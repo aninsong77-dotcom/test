@@ -55,40 +55,32 @@ h1{font-size:1.5rem;margin:0;text-wrap:balance}
 .scan-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 
 /* 설정 */
-.settings{padding-block:2px;display:grid}
-.row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px 20px;padding-block:14px}
-.row+.row{border-top:1px solid var(--line)}
-.row.stack{grid-template-columns:1fr}
-.row-t{font-weight:500}
-.row-l{display:grid;gap:2px;min-width:0}
+/* 설정: 한 줄 드롭다운 */
+.toolbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.dd{position:relative}
+.dd>summary{list-style:none;display:flex;align-items:center;gap:4px;font-size:.8rem;padding:5px 9px;border:1px solid var(--line);border-radius:999px;background:var(--surface);cursor:pointer;white-space:nowrap;user-select:none}
+.dd>summary::-webkit-details-marker{display:none}
+.dd>summary::after{content:"▾";font-size:.7rem;color:var(--muted)}
+.dd>summary:hover{border-color:var(--muted)}
+.dd[open]>summary{border-color:var(--accent);background:var(--accent-soft)}
+.dd .k{color:var(--muted)}
+.dd .v{font-weight:600;color:var(--accent)}
+.menu{position:absolute;top:calc(100% + 6px);left:0;z-index:20;width:max-content;min-width:200px;max-width:min(300px, calc(100vw - 32px));background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 28px rgba(20,30,45,.16);padding:6px;display:grid;gap:1px}
+.menu.right{left:auto;right:0}
+.opt{position:relative;text-align:left;font:inherit;font-size:.86rem;padding:7px 10px 7px 28px;border:0;border-radius:6px;background:none;color:var(--ink);cursor:pointer}
+.opt:hover:not(:disabled){background:var(--bg)}
+.opt[aria-pressed="true"]{color:var(--accent);font-weight:600}
+.opt[aria-pressed="true"]::before{content:"✓";position:absolute;left:10px}
+.opt:disabled{opacity:.45;cursor:default}
+.mcheck{display:flex;align-items:center;gap:8px;font-size:.86rem;padding:7px 10px;border-radius:6px;cursor:pointer}
+.mcheck:hover{background:var(--bg)}
+.mcheck input{accent-color:var(--accent);margin:0}
+.menu .hint{padding:4px 10px 6px;font-size:.76rem}
+.menu hr{border:0;border-top:1px solid var(--line);margin:4px 2px}
 .hint{color:var(--muted);font-size:.8rem;margin:0}
-/* 둘 중 하나 고르기 */
-.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:2px;padding:3px;background:var(--bg);border:1px solid var(--line);border-radius:10px;min-width:220px}
-.seg button{font:inherit;font-size:.88rem;padding:7px 14px;border:0;border-radius:7px;background:transparent;color:var(--muted);cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
-.seg button:hover:not(:disabled){color:var(--ink)}
-.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);font-weight:600;box-shadow:0 1px 3px rgba(20,30,45,.15)}
-.seg button:disabled{opacity:.45;cursor:default}
-/* 켜고 끄는 항목 */
-.toggles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-.tog{position:relative;display:flex;align-items:center;gap:8px;font-size:.88rem;padding:9px 12px;border:1px solid var(--line);border-radius:9px;cursor:pointer;background:var(--surface);transition:background .15s,border-color .15s}
-.tog input{position:absolute;opacity:0;pointer-events:none}
-.tog .box{flex:none;width:16px;height:16px;border:1.5px solid var(--muted);border-radius:4px;display:grid;place-items:center;font-size:11px;line-height:1;color:var(--accent-ink)}
-.tog:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
-.tog:has(input:checked) .box{background:var(--accent);border-color:var(--accent)}
-.tog:has(input:checked) .box::after{content:"✓";font-weight:700}
-.tog:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
-/* 스위치 */
-.switch{position:relative;display:inline-block;width:44px;height:26px;flex:none}
-.switch input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer}
-.switch span{position:absolute;inset:0;border-radius:999px;background:var(--line);transition:background .15s;pointer-events:none}
-.switch span::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
-.switch input:checked+span{background:var(--accent)}
-.switch input:checked+span::after{transform:translateX(18px)}
-.switch input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
-select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px;width:100%}
-.voice-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
-.field{display:grid;gap:4px;min-width:0}
-.mini{font-size:.78rem;color:var(--muted)}
+select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:6px;width:100%}
+.field{display:grid;gap:3px;padding:6px 8px;min-width:0}
+.mini{font-size:.74rem;color:var(--muted)}
 
 /* 본문 */
 .doc{padding:22px 24px;font-size:1rem;line-height:1.85;display:grid;gap:12px}
@@ -114,26 +106,20 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
 
 /* 재생 바 */
 .player{position:sticky;bottom:0;z-index:5;background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -4px 16px rgba(20,30,45,.06);padding:10px 16px calc(12px + env(safe-area-inset-bottom, 0px))}
-.player-in{max-width:780px;margin:0 auto;display:grid;gap:10px}
-.p-row{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between}
-.btn{font:inherit;font-weight:500;padding:8px 16px;border-radius:8px;border:1px solid var(--accent);cursor:pointer;background:var(--accent);color:var(--accent-ink)}
+.player-in{max-width:780px;margin:0 auto;display:flex;align-items:center;gap:6px}
+.btn{font:inherit;font-weight:500;font-size:.85rem;padding:6px 12px;border-radius:7px;border:1px solid var(--accent);cursor:pointer;background:var(--accent);color:var(--accent-ink);white-space:nowrap}
 .btn.ghost{background:transparent;color:var(--accent)}
+.btn.icon{padding:6px 9px;min-width:34px}
 .btn:disabled{opacity:.45;cursor:default}
-.transport{display:flex;gap:6px}
-.transport #play{min-width:112px}
-.jump{display:flex;align-items:center;gap:8px;white-space:nowrap;font-size:.85rem;color:var(--muted);flex:1 1 240px;min-width:0}
-.jump select{padding:7px;min-width:0}
-.rate{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--muted)}
-.rate input{width:120px;accent-color:var(--accent)}
-.status{color:var(--muted);font-size:.82rem;white-space:nowrap;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+.jump{flex:1 1 auto;min-width:0}
+.jump select{padding:6px;font-size:.85rem}
+#rate{width:auto;font-size:.82rem;padding:6px 4px;flex:none}
+.status{color:var(--muted);font-size:.78rem;white-space:nowrap;flex:none;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 @media (max-width:600px){
-  .row{grid-template-columns:1fr}
-  .seg{min-width:0;width:100%}
-  .toggles{grid-template-columns:1fr 1fr}
-  .row.switch-row{grid-template-columns:minmax(0,1fr) auto}
+
   .doc{padding:16px}
-  .rate input{width:90px}
+  .status{display:none}
 }
 @media (prefers-reduced-motion:reduce){.s{transition:none}}
 </style>
@@ -172,60 +158,60 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
     </div>
   </section>
 
-  <section class="card settings" aria-label="읽기 설정">
-    <div class="row">
-      <div class="row-l"><div class="row-t" id="cite-l">본문 속 출처</div><p class="hint">[12], (Kim, 2021) 같은 표시</p></div>
-      <div class="seg" role="group" aria-labelledby="cite-l">
-        <button id="cite-strip" aria-pressed="true">빼고 읽기</button>
-        <button id="cite-keep" aria-pressed="false">다 읽기</button>
+  <nav class="toolbar" aria-label="읽기 설정">
+    <details class="dd" id="dd-cite">
+      <summary><span class="k">출처</span><span class="v" id="sum-cite">빼고</span></summary>
+      <div class="menu">
+        <button class="opt" id="cite-strip" aria-pressed="true">빼고 읽기</button>
+        <button class="opt" id="cite-keep" aria-pressed="false">다 읽기</button>
+        <p class="hint">본문 속 [12], (Kim, 2021) 같은 표시</p>
       </div>
-    </div>
-    <div class="row">
-      <div class="row-l"><div class="row-t" id="mode-l">영어 논문 읽는 방식</div><p class="hint" id="mode-hint">영어 한 문장을 읽고, 이어서 그 문장의 번역을 읽습니다.</p></div>
-      <div class="seg" role="group" aria-labelledby="mode-l">
-        <button id="mode-orig" aria-pressed="true">원문만</button>
-        <button id="mode-bi" aria-pressed="false">원문 + 번역</button>
+    </details>
+    <details class="dd" id="dd-mode">
+      <summary><span class="k">방식</span><span class="v" id="sum-mode">원문만</span></summary>
+      <div class="menu">
+        <button class="opt" id="mode-orig" aria-pressed="true">원문만</button>
+        <button class="opt" id="mode-bi" aria-pressed="false">원문 + 한국어 번역</button>
+        <p class="hint" id="mode-hint"></p>
       </div>
-    </div>
-    <div class="row stack">
-      <div class="row-l"><div class="row-t">빼고 읽을 부분</div><p class="hint">머리말·꼬리말과 쪽 번호는 항상 뺍니다.</p></div>
-      <div class="toggles">
-        <label class="tog"><input type="checkbox" id="o-front" checked><span class="box" aria-hidden="true"></span>저자·소속</label>
-        <label class="tog"><input type="checkbox" id="o-small" checked><span class="box" aria-hidden="true"></span>각주</label>
-        <label class="tog"><input type="checkbox" id="o-caption" checked><span class="box" aria-hidden="true"></span>그림·표 설명</label>
-        <label class="tog"><input type="checkbox" id="o-refs" checked><span class="box" aria-hidden="true"></span>참고문헌 목록</label>
+    </details>
+    <details class="dd" id="dd-skip">
+      <summary><span class="k">빼기</span><span class="v" id="sum-skip">4개</span></summary>
+      <div class="menu right">
+        <label class="mcheck"><input type="checkbox" id="o-front" checked> 저자·소속</label>
+        <label class="mcheck"><input type="checkbox" id="o-small" checked> 각주</label>
+        <label class="mcheck"><input type="checkbox" id="o-caption" checked> 그림·표 설명</label>
+        <label class="mcheck"><input type="checkbox" id="o-refs" checked> 참고문헌 목록</label>
+        <p class="hint">머리말·꼬리말과 쪽 번호는 항상 뺍니다.</p>
+        <hr>
+        <label class="mcheck"><input type="checkbox" id="o-show"> 뺀 부분 화면에 표시</label>
       </div>
-    </div>
-    <div class="row switch-row">
-      <div class="row-l"><label class="row-t" for="o-show">뺀 부분 화면에 표시</label><p class="hint">무엇을 뺐는지 취소선으로 보여 줍니다.</p></div>
-      <span class="switch"><input type="checkbox" id="o-show" role="switch"><span></span></span>
-    </div>
-    <div class="row stack">
-      <div class="row-l"><div class="row-t">음성</div><p class="hint">★ 표시가 붙은 음성이 대체로 더 자연스럽습니다.</p></div>
-      <div class="voice-grid">
+    </details>
+    <details class="dd" id="dd-voice">
+      <summary><span class="k">음성</span></summary>
+      <div class="menu right">
         <label class="field"><span class="mini" id="voice-src-l">원문</span><select id="voice-src"></select></label>
         <label class="field" id="voice-ko-wrap" hidden><span class="mini">한국어 번역</span><select id="voice-ko"></select></label>
+        <p class="hint">★ 표시가 붙은 음성이 대체로 더 자연스럽습니다.</p>
       </div>
-    </div>
-  </section>
+    </details>
+  </nav>
 
   <article class="card doc" id="doc" aria-label="읽을 본문"><p class="empty">불러오는 중…</p></article>
 </div>
 
 <div class="player" role="region" aria-label="재생">
   <div class="player-in">
-    <div class="p-row">
-      <label class="jump" for="jump">시작 위치 <select id="jump"></select></label>
-      <span class="status" id="status" aria-live="polite"></span>
-    </div>
-    <div class="p-row">
-      <div class="transport">
-        <button class="btn" id="play">▶ 읽기</button>
-        <button class="btn ghost" id="pause" disabled>일시정지</button>
-        <button class="btn ghost" id="stop" disabled>정지</button>
-      </div>
-      <label class="rate" for="rate">속도 <input type="range" id="rate" min="0.6" max="2" step="0.1" value="1"> <span class="num" id="rate-val">1.0×</span></label>
-    </div>
+    <label class="jump"><select id="jump" aria-label="시작 위치"></select></label>
+    <button class="btn" id="play">▶ 읽기</button>
+    <button class="btn ghost icon" id="pause" disabled aria-label="일시정지" title="일시정지">❚❚</button>
+    <button class="btn ghost icon" id="stop" disabled aria-label="정지" title="정지">■</button>
+    <select id="rate" aria-label="속도" title="속도">
+      <option value="0.7">0.7×</option><option value="0.8">0.8×</option><option value="0.9">0.9×</option>
+      <option value="1" selected>1.0×</option><option value="1.1">1.1×</option><option value="1.2">1.2×</option>
+      <option value="1.3">1.3×</option><option value="1.5">1.5×</option><option value="1.7">1.7×</option><option value="2">2.0×</option>
+    </select>
+    <span class="status" id="status" aria-live="polite"></span>
   </div>
 </div>
 
@@ -742,7 +728,7 @@ function rebuild(){
   loadVoices();
   render();
 }
-["o-front", "o-small", "o-caption", "o-refs"].forEach(id => $(id).addEventListener("change", rebuild));
+["o-front", "o-small", "o-caption", "o-refs"].forEach(id => $(id).addEventListener("change", () => { updateSummaries(); rebuild(); }));
 $("o-show").addEventListener("change", () => { stop(); render(); });
 
 const speakText = s => (state.stripCites ? stripCitations(s.text) : s.text).trim();
@@ -839,16 +825,28 @@ function mark(){
   const now = document.querySelector(".s.now");
   if (now) now.scrollIntoView({block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
   syncJump();
-  $("status").textContent = state.sentences.length ? `${Math.min(state.idx + 1, state.sentences.length)} / ${state.sentences.length} 문장` : "";
+  $("status").textContent = state.sentences.length ? `${Math.min(state.idx + 1, state.sentences.length)}/${state.sentences.length}` : "";
 }
 
 // ---- 설정 버튼 ------------------------------------------------------------
-function seg(onId, offId, on){ $(onId).setAttribute("aria-pressed", on); $(offId).setAttribute("aria-pressed", !on); }
+function seg(onId, offId, on){ $(onId).setAttribute("aria-pressed", on); $(offId).setAttribute("aria-pressed", !on); updateSummaries(); }
+function updateSummaries(){
+  $("sum-cite").textContent = state.stripCites ? "빼고" : "다 읽기";
+  $("sum-mode").textContent = state.bilingual && state.lang === "en" && sampleFn ? "원문+번역" : "원문만";
+  $("sum-skip").textContent = ["o-front", "o-small", "o-caption", "o-refs"].filter(id => $(id).checked).length + "개";
+}
+// 드롭다운: 하나만 열고, 바깥을 누르거나 항목을 고르면 닫는다
+const dds = [...document.querySelectorAll(".dd")];
+dds.forEach(d => d.addEventListener("toggle", () => { if (d.open) dds.forEach(o => { if (o !== d) o.open = false; }); }));
+document.addEventListener("click", e => { if (!e.target.closest(".dd")) dds.forEach(d => d.open = false); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") dds.forEach(d => d.open = false); });
+document.querySelectorAll(".opt").forEach(b => b.addEventListener("click", () => { b.closest(".dd").open = false; }));
 $("cite-strip").addEventListener("click", () => { state.stripCites = true; seg("cite-strip", "cite-keep", true); state.translations.clear(); stop(); render(); });
 $("cite-keep").addEventListener("click", () => { state.stripCites = false; seg("cite-strip", "cite-keep", false); state.translations.clear(); stop(); render(); });
 $("mode-orig").addEventListener("click", () => { state.bilingual = false; updateModeUi(); stop(); render(); });
 $("mode-bi").addEventListener("click", () => { state.bilingual = true; updateModeUi(); stop(); render(); translateFrom(state.idx); });
 function updateModeUi(){
+  queueMicrotask(updateSummaries);
   const isEn = state.lang === "en";
   $("mode-orig").disabled = $("mode-bi").disabled = !isEn || !sampleFn;
   seg("mode-bi", "mode-orig", state.bilingual && isEn && !!sampleFn);
@@ -1036,7 +1034,7 @@ async function play(){
   synth.cancel();
   state.playing = true; state.paused = false;
   $("play").disabled = true; $("pause").disabled = false; $("stop").disabled = false;
-  $("pause").textContent = "일시정지";
+  $("pause").textContent = "❚❚"; $("pause").setAttribute("aria-label", "일시정지");
   try { wakeLock = await navigator.wakeLock?.request("screen"); } catch {}
   step();
 }
@@ -1044,7 +1042,7 @@ function finish(){
   state.playing = false; state.paused = false;
   if (state.rebuildLater){ state.rebuildLater = false; setTimeout(rebuild); }
   $("play").disabled = false; $("pause").disabled = true; $("stop").disabled = true;
-  $("play").textContent = state.idx >= state.sentences.length ? "▶ 처음부터" : "▶ 읽기";
+  $("play").textContent = state.idx >= state.sentences.length ? "▶ 다시" : "▶ 읽기";
   if (state.idx >= state.sentences.length) state.idx = 0;
   wakeLock?.release?.().catch(() => {}); wakeLock = null;
   mark();
@@ -1053,10 +1051,9 @@ function stop(){ if (!state.playing && !state.paused) return; state.playing = fa
 $("play").addEventListener("click", play);
 $("stop").addEventListener("click", () => { stop(); state.idx = 0; $("play").textContent = "▶ 읽기"; mark(); });
 $("pause").addEventListener("click", () => {
-  if (!state.paused){ synth.pause(); state.paused = true; $("pause").textContent = "계속"; }
-  else { synth.resume(); state.paused = false; $("pause").textContent = "일시정지"; }
+  if (!state.paused){ synth.pause(); state.paused = true; $("pause").textContent = "▶"; $("pause").setAttribute("aria-label", "계속"); }
+  else { synth.resume(); state.paused = false; $("pause").textContent = "❚❚"; $("pause").setAttribute("aria-label", "일시정지"); }
 });
-$("rate").addEventListener("input", e => { $("rate-val").textContent = (+e.target.value).toFixed(1) + "×"; });
 
 // ---- 시작 ----------------------------------------------------------------
 if (!synth){
