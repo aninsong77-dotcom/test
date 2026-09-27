@@ -1,0 +1,9 @@
+node_modules/
+*.mjpeg
+*.narr.json
+*.wav
+*.mp4
+*.mp3
+tw.css
+video/tts_cache/
+tts/vits-mimic3-ko_KO-kss_low/
