@@ -49,6 +49,9 @@ h1{font-size:1.5rem;margin:0;text-wrap:balance}
 .examples{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:.85rem;color:var(--muted)}
 .link{font:inherit;background:none;border:0;padding:0;color:var(--accent);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
 .error{color:var(--warn);font-size:.9rem;margin:0}
+.scan{display:grid;gap:8px;border-top:1px solid var(--line);padding-top:10px}
+.scan p{margin:0}
+.scan-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 
 /* 설정 */
 .settings{display:grid;grid-template-columns:1fr 1fr;gap:16px 20px}
@@ -134,6 +137,14 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
       <button class="link" id="ex-ko">한국어 논문 (TXT)</button>
     </div>
     <p class="error" id="error" hidden></p>
+    <div class="scan" id="scan" hidden>
+      <p id="scan-msg"></p>
+      <div class="scan-row">
+        <button class="btn" id="ocr">Claude로 글자 인식하기</button>
+        <span class="file-stats" id="ocr-status" aria-live="polite"></span>
+      </div>
+      <p class="hint" id="ocr-hint">쪽마다 이미지를 Claude에게 보내 본문 글자를 받아 옵니다. 한 쪽에 10~30초쯤 걸리고 Claude 사용량이 듭니다. 인식이 끝난 쪽부터 바로 들을 수 있습니다.</p>
+    </div>
   </section>
 
   <section class="card settings" aria-label="읽기 설정">
@@ -531,7 +542,7 @@ function parseSheet(buf, XLSX){
 }
 
 // 조각 → 블록. PDF와 같은 규칙(참고문헌, 캡션, 저자 정보, 쪽 번호, 반복 줄)을 글자만 보고 적용한다.
-const SKIP_REASON = {header: "머리말·꼬리말", note: "각주·미주", table: "표", figure: "그림·도형·수식"};
+const SKIP_REASON = {header: "머리말·꼬리말", note: "각주·미주", table: "표", figure: "그림·도형·수식", caption: "그림·표 설명", refs: "참고문헌", front: "저자·소속"};
 function classifyParas(parts, opt){
   const keyOf = t => t.toLowerCase().replace(/\d+/g, "#").replace(/\s+/g, " ").trim();
   const count = {};
@@ -546,14 +557,17 @@ function classifyParas(parts, opt){
     if (!t) return;
     const skip = reason => {
       const last = blocks[blocks.length - 1];
-      if (last && last.kind === "skip" && last.reason === reason) last.text += "\n" + t;
-      else blocks.push({kind: "skip", reason, text: t});
+      if (last && last.kind === "skip" && last.reason === reason && last.page === p.page) last.text += "\n" + t;
+      else blocks.push({kind: "skip", reason, text: t, page: p.page});
     };
-    if (p.row){ blocks.push({kind: "para", text: t}); return; }
-    if (p.heading){ blocks.push({kind: "heading", text: t}); return; }
+    if (p.row){ blocks.push({kind: "para", text: t, page: p.page}); return; }
     if (p.skip === "header") return skip(SKIP_REASON.header);
     if (p.skip === "note" && opt.small) return skip(SKIP_REASON.note);
-    if ((p.skip === "table" || p.skip === "figure") && opt.caption) return skip(SKIP_REASON[p.skip]);
+    if (["table", "figure", "caption"].includes(p.skip) && opt.caption) return skip(SKIP_REASON[p.skip]);
+    if (p.skip === "refs" && opt.refs) return skip(SKIP_REASON.refs);
+    if (p.skip === "front" && opt.front) return skip(SKIP_REASON.front);
+    // 종류가 이미 붙어 온 조각(글자 인식 결과)은 글자 규칙을 다시 적용하지 않는다
+    if (p.heading || p.labeled){ blocks.push({kind: p.heading ? "heading" : "para", text: t, page: p.page}); return; }
     if (inRefs) return skip("참고문헌");
     if (RE_PAGENUM.test(t)) return skip("쪽 번호");
     if (t.length < 80 && count[keyOf(t)] >= 3) return skip("반복되는 줄");
@@ -562,7 +576,7 @@ function classifyParas(parts, opt){
     if (opt.caption && RE_CAPTION.test(t)) return skip("그림·표 설명");
     const short = t.length < 70 && !/[.,;:。]$/.test(t);
     const isHeading = i === titleIdx || (short && (RE_HEADING.test(t) || RE_ABSTRACT.test(t)));
-    blocks.push({kind: isHeading ? "heading" : "para", text: t});
+    blocks.push({kind: isHeading ? "heading" : "para", text: t, page: p.page});
   });
   return blocks;
 }
@@ -611,6 +625,7 @@ const opts = () => ({front: $("o-front").checked, small: $("o-small").checked, c
 async function openFile(name, buf){
   stop();
   $("error").hidden = true;
+  $("scan").hidden = true;
   $("file-name").textContent = name;
   $("file-stats").textContent = "여는 중…";
   const ext = (name.match(/\.([a-z0-9]+)$/i)?.[1] || "").toLowerCase();
@@ -619,8 +634,7 @@ async function openFile(name, buf){
       await need("pdf");
       const pdf = await pdfjsLib.getDocument({data: new Uint8Array(buf), isEvalSupported: false}).promise;
       const lines = await extractLines(pdf, (p, n) => { $("file-stats").textContent = `글자 읽는 중… ${p}/${n}쪽`; });
-      if (!lines.length) throw new Error("이 PDF에는 글자가 없습니다. 스캔한 이미지로 된 PDF는 읽을 수 없습니다.");
-      state.source = {type: "pdf", lines, pages: pdf.numPages};
+      state.source = {type: "pdf", lines, pages: pdf.numPages, pdf};
     } else if (ext === "hwp"){
       await need("xlsx", "pako");
       state.source = {type: "parts", parts: parseHwp(buf, XLSX.CFB, d => pako.inflateRaw(d))};
@@ -636,7 +650,10 @@ async function openFile(name, buf){
       throw new Error("지원하지 않는 형식입니다. PDF, 한글, 엑셀, TXT 파일을 열어 주세요.");
     }
     state.translations.clear(); state.pending.clear();
+    ocrAbort?.abort();
+    state.idx = 0;
     rebuild();
+    checkScan();
   } catch (e){
     $("file-stats").textContent = "";
     $("error").textContent = e.message || "파일을 여는 중 문제가 생겼습니다.";
@@ -664,11 +681,11 @@ function rebuild(){
   if (!state.source) return;
   stop();
   const o = opts();
-  if (state.source.type === "pdf"){
+  if (state.source.type === "pdf" && !state.source.ocrParts){
     classify(state.source.lines, o);
     state.blocks = buildBlocks(state.source.lines);
   } else {
-    state.blocks = classifyParas(state.source.parts, o);
+    state.blocks = classifyParas(state.source.ocrParts || state.source.parts, o);
   }
   // 문서 언어: 한글 비율로 추정
   const sample = state.blocks.filter(b => b.kind !== "skip").map(b => b.text).join(" ").slice(0, 4000);
@@ -682,7 +699,7 @@ function rebuild(){
     const parts = b.kind === "heading" ? [b.text] : splitSentences(b.text);
     for (const t of parts) state.sentences.push({text: t, block: b});
   });
-  state.idx = 0;
+  state.idx = Math.min(state.idx, Math.max(0, state.sentences.length - 1));
   const skipped = state.blocks.filter(b => b.kind === "skip");
   const reasons = [...new Set(skipped.map(b => b.reason))];
   $("file-stats").textContent = `${state.lang === "ko" ? "한국어" : "영어"} · 읽을 문장 ${state.sentences.length}개` +
@@ -692,7 +709,7 @@ function rebuild(){
   render();
 }
 ["o-front", "o-small", "o-caption", "o-refs"].forEach(id => $(id).addEventListener("change", rebuild));
-$("o-show").addEventListener("change", () => $("doc").classList.toggle("hide-skips", !$("o-show").checked));
+$("o-show").addEventListener("change", () => { stop(); render(); });
 
 const speakText = s => (state.stripCites ? stripCitations(s.text) : s.text).trim();
 
@@ -716,7 +733,7 @@ function render(){
   const bi = state.bilingual && state.lang === "en";
   let lastPage = null, seenTitle = false;
   for (const b of state.blocks){
-    if (b.page && b.page !== lastPage && state.source.type === "pdf"){
+    if (b.page && b.page !== lastPage && (b.kind !== "skip" || $("o-show").checked)){
       if (lastPage !== null){ const pg = document.createElement("span"); pg.className = "pg"; pg.textContent = `p. ${b.page}`; doc.appendChild(pg); }
       lastPage = b.page;
     }
@@ -757,7 +774,7 @@ function fillJump(){
   add(0, "처음부터");
   for (const b of state.blocks){
     if (b.kind !== "heading" || b.first === 0) continue;
-    add(b.first, (b.page && state.source.type === "pdf" ? `p.${b.page} · ` : "") + (b.text.length > 40 ? b.text.slice(0, 40) + "…" : b.text));
+    add(b.first, (b.page ? `p.${b.page} · ` : "") + (b.text.length > 40 ? b.text.slice(0, 40) + "…" : b.text));
   }
   add(-1, "직접 고른 문장");
   sel.lastChild.hidden = true;
@@ -849,6 +866,75 @@ function translateFrom(start){
   return p;
 }
 
+// ---- 스캔 PDF: Claude로 글자 인식 (claude.ai 안에서만) --------------------------
+let ocrAbort = null;
+function checkScan(){
+  const src = state.source;
+  if (!src || src.type !== "pdf" || src.ocrParts) return;
+  const chars = new Array(src.pages + 1).fill(0);
+  for (const b of state.blocks) if (b.kind !== "skip" && b.page) chars[b.page] += b.text.length;
+  const empty = chars.slice(1).filter(c => c < 80).length;
+  if (empty < Math.max(1, src.pages * 0.5)) return;
+  $("scan").hidden = false;
+  $("scan-msg").textContent = `스캔한 이미지로 된 PDF로 보입니다. ${src.pages}쪽 중 ${empty}쪽에 읽을 글자가 없습니다.`;
+  $("ocr").hidden = !sampleFn;
+  $("ocr-hint").hidden = !sampleFn;
+  $("ocr-status").textContent = sampleFn ? "" : "글자 인식은 claude.ai에서 이 페이지를 열었을 때만 쓸 수 있습니다.";
+  if (sampleFn) sampleFn.limits().then(l => { if (!l?.images){ $("ocr").hidden = true; $("ocr-status").textContent = "이 화면에서는 이미지를 Claude에게 보낼 수 없어 글자 인식을 쓸 수 없습니다."; } }).catch(() => {});
+}
+const OCR_PROMPT = `이 이미지는 학술 논문 PDF의 한 쪽을 스캔한 것입니다. 글자를 원문 언어 그대로 옮겨 적고, 덩어리마다 종류를 붙이세요.
+종류: "heading"(논문 제목·소제목), "body"(본문 문단), "front"(저자·소속·학술지 정보), "header"(머리말·꼬리말·쪽 번호·다운로드/저작권 안내 문구), "footnote"(각주), "caption"(그림·표 안의 글자와 설명), "references"(참고문헌 목록).
+규칙: 읽는 순서대로(2단 편집이면 왼쪽 단 먼저), 문단 하나를 덩어리 하나로, 줄 끝 하이픈으로 나뉜 단어는 이어 붙이고, 고치거나 요약하지 말 것.
+JSON 배열로만 답하세요. 예: [{"type":"heading","text":"1. Introduction"},{"type":"body","text":"..."}]
+글자가 없는 쪽이면 [] 로 답하세요.`;
+const OCR_KIND = {front: "front", header: "header", footnote: "note", caption: "caption", references: "refs"};
+async function runOcr(){
+  const src = state.source;
+  if (!src?.pdf || !sampleFn) return;
+  if (ocrAbort){ ocrAbort.abort(); return; }
+  ocrAbort = new AbortController();
+  const signal = ocrAbort.signal;
+  $("ocr").textContent = "멈추기";
+  src.ocrParts = [];
+  let failed = 0;
+  try {
+    for (let p = 1; p <= src.pages && !signal.aborted; p++){
+      $("ocr-status").textContent = `글자 인식 중… ${p}/${src.pages}쪽`;
+      const page = await src.pdf.getPage(p);
+      const vp1 = page.getViewport({scale: 1});
+      const vp = page.getViewport({scale: Math.min(2.5, 1600 / Math.max(vp1.width, vp1.height))});
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(vp.width); canvas.height = Math.round(vp.height);
+      await page.render({canvasContext: canvas.getContext("2d"), viewport: vp}).promise;
+      const blob = await new Promise(r => canvas.toBlob(r, "image/jpeg", 0.85));
+      try {
+        const arr = await sampleFn.json(OCR_PROMPT, {images: blob, signal, cache: {gcTime: 86400000}});
+        for (const it of Array.isArray(arr) ? arr : []){
+          const text = String(it?.text || "").trim(); if (!text) continue;
+          src.ocrParts.push({text, page: p, heading: it.type === "heading", skip: OCR_KIND[it.type] || null, labeled: true});
+        }
+      } catch (e){
+        if (e?.code === "cancelled") break;
+        if (["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed", "images_unavailable"].includes(e?.code)){
+          $("ocr-status").textContent = "Claude를 쓸 수 없어 글자 인식을 멈췄습니다."; break;
+        }
+        if (e?.code === "rate_limited"){ $("ocr-status").textContent = `요청이 많아 ${p - 1}쪽까지 인식하고 멈췄습니다. 잠시 뒤 다시 눌러 주세요.`; break; }
+        failed++;
+      }
+      if (!state.playing) rebuild();
+    }
+  } finally {
+    ocrAbort = null;
+    $("ocr").textContent = "다시 인식하기";
+    if (src.ocrParts.length) $("scan-msg").textContent = "스캔한 PDF라서 Claude가 인식한 글자로 읽습니다.";
+    if (!/멈췄/.test($("ocr-status").textContent)){
+      $("ocr-status").textContent = signal.aborted ? "글자 인식을 멈췄습니다." : failed ? `인식 완료 (${failed}쪽은 인식하지 못했습니다)` : "글자 인식 완료";
+    }
+    if (!state.playing) rebuild(); else state.rebuildLater = true;
+  }
+}
+$("ocr").addEventListener("click", runOcr);
+
 // ---- 음성 ----------------------------------------------------------------
 const isGood = v => /google|natural|online|neural|premium|enhanced|siri|yuna|samantha/i.test(v.name);
 function fillVoices(sel, lang){
@@ -922,6 +1008,7 @@ async function play(){
 }
 function finish(){
   state.playing = false; state.paused = false;
+  if (state.rebuildLater){ state.rebuildLater = false; setTimeout(rebuild); }
   $("play").disabled = false; $("pause").disabled = true; $("stop").disabled = true;
   $("play").textContent = state.idx >= state.sentences.length ? "▶ 처음부터" : "▶ 읽기";
   if (state.idx >= state.sentences.length) state.idx = 0;
@@ -948,7 +1035,7 @@ if (!synth){
 updateModeUi();
 $("ex-en").click();
 if (window.claude?.use){
-  window.claude.use("sample").then(fn => { sampleFn = fn; updateModeUi(); if (state.bilingual) render(); }).catch(() => {});
+  window.claude.use("sample").then(fn => { sampleFn = fn; updateModeUi(); if (state.bilingual) render(); checkScan(); }).catch(() => {});
 }
 </script>
 
