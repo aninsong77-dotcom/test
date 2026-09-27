@@ -77,6 +77,7 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
 .s:hover{cursor:pointer;text-decoration:underline dotted var(--muted)}
 .s.now{background:var(--mark);color:var(--mark-ink)}
 .s.read{color:var(--done)}
+.s.start{background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent);padding-left:4px}
 .cite{color:var(--muted)}
 .strip .cite{text-decoration:line-through;opacity:.6}
 .pair{display:grid;gap:2px;margin-bottom:8px}
@@ -94,6 +95,8 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
 .btn{font:inherit;font-weight:500;padding:8px 16px;border-radius:8px;border:1px solid var(--accent);cursor:pointer;background:var(--accent);color:var(--accent-ink)}
 .btn.ghost{background:transparent;color:var(--accent)}
 .btn:disabled{opacity:.45;cursor:default}
+.jump{display:flex;align-items:center;gap:6px;white-space:nowrap;font-size:.85rem;color:var(--muted);flex:1 1 200px;min-width:0;max-width:320px}
+.jump select{padding:6px;min-width:0}
 .rate{display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted)}
 .rate input{width:110px;accent-color:var(--accent)}
 .num{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;font-size:.82rem}
@@ -113,7 +116,7 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
 <div class="wrap">
   <header>
     <h1>논문 듣기</h1>
-    <p class="lede">파일을 열면 머리말, 쪽 번호, 각주 같은 부분은 빼고 본문만 소리 내어 읽습니다. 영어 논문은 한 문장씩 한국어 번역과 번갈아 들을 수 있습니다.</p>
+    <p class="lede">파일을 열면 머리말, 쪽 번호, 각주 같은 부분은 빼고 본문만 소리 내어 읽습니다. 영어 논문은 한 문장씩 한국어 번역과 번갈아 들을 수 있습니다. 아래 ‘시작’에서 장을 고르거나, 본문의 문장을 누르면 그 위치부터 읽습니다.</p>
   </header>
 
   <section class="card file" id="drop" aria-label="파일">
@@ -172,6 +175,7 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
 
 <div class="player" role="region" aria-label="재생">
   <div class="player-in">
+    <label class="jump" for="jump">시작 <select id="jump"></select></label>
     <button class="btn" id="play">▶ 읽기</button>
     <button class="btn ghost" id="pause" disabled>일시정지</button>
     <button class="btn ghost" id="stop" disabled>정지</button>
@@ -742,16 +746,48 @@ function render(){
     doc.appendChild(p);
   }
   if (bi) state.sentences.forEach((_, i) => showTranslation(i));
+  fillJump();
   mark();
 }
+// 시작 위치 목록: 처음 + 소제목마다
+function fillJump(){
+  const sel = $("jump");
+  sel.innerHTML = "";
+  const add = (value, label) => { const o = document.createElement("option"); o.value = value; o.textContent = label; sel.appendChild(o); };
+  add(0, "처음부터");
+  for (const b of state.blocks){
+    if (b.kind !== "heading" || b.first === 0) continue;
+    add(b.first, (b.page && state.source.type === "pdf" ? `p.${b.page} · ` : "") + (b.text.length > 40 ? b.text.slice(0, 40) + "…" : b.text));
+  }
+  add(-1, "직접 고른 문장");
+  sel.lastChild.hidden = true;
+}
+function syncJump(){
+  const sel = $("jump");
+  let v = "0";
+  for (const o of sel.options) if (+o.value >= 0 && +o.value <= state.idx) v = o.value;
+  const exact = [...sel.options].some(o => +o.value === state.idx);
+  sel.value = !state.playing && !exact && state.idx > 0 ? "-1" : v;
+}
+$("jump").addEventListener("change", e => {
+  const v = +e.target.value; if (v < 0) return;
+  const wasPlaying = state.playing;
+  stop();
+  state.idx = v;
+  if (wasPlaying) play();
+  else { mark(); document.querySelector(".s.start")?.scrollIntoView({block: "center", behavior: "smooth"}); }
+});
+
 function mark(){
   document.querySelectorAll(".s").forEach(el => {
     const i = +el.dataset.i;
+    el.classList.toggle("start", !state.playing && state.idx > 0 && i === state.idx);
     el.classList.toggle("now", state.playing && i === state.idx);
     el.classList.toggle("read", i < state.idx);
   });
   const now = document.querySelector(".s.now");
   if (now) now.scrollIntoView({block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
+  syncJump();
   $("status").textContent = state.sentences.length ? `${Math.min(state.idx + 1, state.sentences.length)} / ${state.sentences.length} 문장` : "";
 }
 
