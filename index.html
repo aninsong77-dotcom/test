@@ -1,0 +1,920 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>body{margin:0}</style>
+<title>무료 논문 낭독 테스트</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#f3f5f7; --surface:#ffffff; --ink:#1b2430; --muted:#5d6a78; --line:#d9dfe6;
+  --accent:#2b5c8a; --accent-ink:#ffffff; --accent-soft:#e3edf6;
+  --mark:#ffe58a; --mark-ink:#1b2430; --done:#8a96a3; --tr:#3d6b4f;
+  --skip-bg:#eef1f4; --warn:#9a5b00;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#12171d; --surface:#1a2129; --ink:#e4e9ef; --muted:#9aa7b4; --line:#2c3642;
+    --accent:#6ea4d6; --accent-ink:#0e1a26; --accent-soft:#1f3345;
+    --mark:#5c4a0f; --mark-ink:#fff4c9; --done:#6b7784; --tr:#8cc7a0;
+    --skip-bg:#161c23; --warn:#e0a44a;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#12171d; --surface:#1a2129; --ink:#e4e9ef; --muted:#9aa7b4; --line:#2c3642;
+  --accent:#6ea4d6; --accent-ink:#0e1a26; --accent-soft:#1f3345;
+  --mark:#5c4a0f; --mark-ink:#fff4c9; --done:#6b7784; --tr:#8cc7a0;
+  --skip-bg:#161c23; --warn:#e0a44a;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:15px;line-height:1.6}
+.wrap{max-width:780px;margin:0 auto;padding-inline:16px;padding-block:28px 24px;display:grid;gap:18px}
+h1{font-size:1.5rem;margin:0;text-wrap:balance}
+.lede{margin:4px 0 0;color:var(--muted)}
+.label{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.72rem;letter-spacing:.04em;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
+
+/* 파일 */
+.file{display:grid;gap:10px;border-style:dashed;border-width:1.5px}
+.file.drag{border-color:var(--accent);background:var(--accent-soft)}
+.file-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.file-name{font-weight:500;overflow-wrap:anywhere}
+.file-stats{color:var(--muted);font-size:.85rem}
+.formats{color:var(--muted);font-size:.82rem;margin:0}
+.examples{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:.85rem;color:var(--muted)}
+.link{font:inherit;background:none;border:0;padding:0;color:var(--accent);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.error{color:var(--warn);font-size:.9rem;margin:0}
+
+/* 설정 */
+.settings{display:grid;grid-template-columns:1fr 1fr;gap:16px 20px}
+.group{display:grid;gap:6px;min-width:0;align-content:start}
+.group.wide{grid-column:1/-1}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;width:fit-content;max-width:100%}
+.seg button{font:inherit;font-size:.88rem;padding:7px 12px;border:0;background:var(--surface);color:var(--ink);cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.seg button:disabled{opacity:.45;cursor:default}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:.88rem;padding:5px 10px;border:1px solid var(--line);border-radius:999px;cursor:pointer;background:var(--surface)}
+.chip:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.chip input{accent-color:var(--accent);margin:0}
+.hint{color:var(--muted);font-size:.8rem;margin:0}
+select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px;width:100%}
+.voices{display:grid;gap:8px}
+
+/* 본문 */
+.doc{padding:22px 24px;font-size:1rem;line-height:1.85;display:grid;gap:12px}
+.doc p{margin:0}
+.doc .h{font-weight:700;font-size:1.05rem;margin-top:6px}
+.doc .h.title{font-size:1.2rem}
+.pg{display:block;font-family:"IBM Plex Mono",monospace;font-size:.7rem;color:var(--muted);letter-spacing:.06em;border-top:1px dashed var(--line);padding-top:6px}
+.s{border-radius:3px;transition:background .15s}
+.s:hover{cursor:pointer;text-decoration:underline dotted var(--muted)}
+.s.now{background:var(--mark);color:var(--mark-ink)}
+.s.read{color:var(--done)}
+.cite{color:var(--muted)}
+.strip .cite{text-decoration:line-through;opacity:.6}
+.pair{display:grid;gap:2px;margin-bottom:8px}
+.pair .s{display:block}
+.tr{display:block;color:var(--tr);font-size:.95rem;line-height:1.7}
+.tr.wait{color:var(--muted);font-style:italic}
+.skip{background:var(--skip-bg);border-radius:6px;padding:8px 10px;font-size:.82rem;line-height:1.5;color:var(--muted);white-space:pre-line;text-decoration:line-through;text-decoration-color:color-mix(in srgb, var(--muted) 60%, transparent)}
+.skip .why{display:inline-block;text-decoration:none;font-family:"IBM Plex Mono",monospace;font-size:.68rem;letter-spacing:.05em;border:1px solid var(--line);border-radius:4px;padding:0 5px;margin-right:6px;background:var(--surface)}
+.hide-skips .skip{display:none}
+.empty{color:var(--muted)}
+
+/* 재생 바 */
+.player{position:sticky;bottom:0;z-index:5;background:var(--surface);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom, 0px))}
+.player-in{max-width:780px;margin:0 auto;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{font:inherit;font-weight:500;padding:8px 16px;border-radius:8px;border:1px solid var(--accent);cursor:pointer;background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn:disabled{opacity:.45;cursor:default}
+.rate{display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted)}
+.rate input{width:110px;accent-color:var(--accent)}
+.num{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;font-size:.82rem}
+.status{color:var(--muted);font-size:.85rem;margin-left:auto}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (max-width:600px){
+  .settings{grid-template-columns:1fr}
+  .doc{padding:16px}
+  .status{margin-left:0;width:100%}
+}
+@media (prefers-reduced-motion:reduce){.s{transition:none}}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header>
+    <h1>논문 듣기</h1>
+    <p class="lede">파일을 열면 머리말, 쪽 번호, 각주 같은 부분은 빼고 본문만 소리 내어 읽습니다. 영어 논문은 한 문장씩 한국어 번역과 번갈아 들을 수 있습니다.</p>
+  </header>
+
+  <section class="card file" id="drop" aria-label="파일">
+    <div class="file-row">
+      <label class="btn" for="file" tabindex="0" id="file-btn">파일 열기</label>
+      <input type="file" id="file" accept=".pdf,.hwp,.hwpx,.txt,.xlsx,.xls,.csv,application/pdf,text/plain" hidden>
+      <div>
+        <div class="file-name" id="file-name">예시 논문</div>
+        <div class="file-stats" id="file-stats" aria-live="polite"></div>
+      </div>
+    </div>
+    <p class="formats">PDF · 한글(HWP, HWPX) · 엑셀(XLSX, XLS, CSV) · TXT 파일을 열거나 여기에 끌어다 놓으세요.</p>
+    <div class="examples">예시로 들어보기:
+      <button class="link" id="ex-en">영어 논문 (PDF)</button> ·
+      <button class="link" id="ex-ko">한국어 논문 (TXT)</button>
+    </div>
+    <p class="error" id="error" hidden></p>
+  </section>
+
+  <section class="card settings" aria-label="읽기 설정">
+    <div class="group">
+      <span class="label" id="cite-l">본문 속 출처 [12], (Kim, 2021)</span>
+      <div class="seg" role="group" aria-labelledby="cite-l">
+        <button id="cite-strip" aria-pressed="true">빼고 읽기</button>
+        <button id="cite-keep" aria-pressed="false">다 읽기</button>
+      </div>
+    </div>
+    <div class="group">
+      <span class="label" id="mode-l">영어 논문 읽는 방식</span>
+      <div class="seg" role="group" aria-labelledby="mode-l">
+        <button id="mode-orig" aria-pressed="true">원문만</button>
+        <button id="mode-bi" aria-pressed="false">원문 + 한국어 번역</button>
+      </div>
+      <p class="hint" id="mode-hint">영어 한 문장을 읽고, 이어서 그 문장의 번역을 읽습니다.</p>
+    </div>
+    <div class="group wide">
+      <span class="label">빼고 읽을 부분</span>
+      <div class="chips">
+        <label class="chip"><input type="checkbox" id="o-front" checked> 저자·소속</label>
+        <label class="chip"><input type="checkbox" id="o-small" checked> 각주</label>
+        <label class="chip"><input type="checkbox" id="o-caption" checked> 그림·표·설명</label>
+        <label class="chip"><input type="checkbox" id="o-refs" checked> 참고문헌 목록</label>
+        <label class="chip"><input type="checkbox" id="o-show"> 뺀 부분 화면에 표시</label>
+      </div>
+      <p class="hint">머리말·꼬리말과 쪽 번호는 항상 뺍니다.</p>
+    </div>
+    <div class="group wide voices">
+      <span class="label">음성 (★ 표시가 대체로 더 자연스럽습니다)</span>
+      <select id="voice-src" aria-label="원문 음성"></select>
+      <select id="voice-ko" aria-label="번역 음성" hidden></select>
+    </div>
+  </section>
+
+  <article class="card doc" id="doc" aria-label="읽을 본문"><p class="empty">불러오는 중…</p></article>
+</div>
+
+<div class="player" role="region" aria-label="재생">
+  <div class="player-in">
+    <button class="btn" id="play">▶ 읽기</button>
+    <button class="btn ghost" id="pause" disabled>일시정지</button>
+    <button class="btn ghost" id="stop" disabled>정지</button>
+    <label class="rate" for="rate">속도 <input type="range" id="rate" min="0.6" max="2" step="0.1" value="1"> <span class="num" id="rate-val">1.0×</span></label>
+    <span class="status" id="status" aria-live="polite"></span>
+  </div>
+</div>
+
+<script>
+// ---- PDF → 본문 추출 ----------------------------------------------------
+// 1) 페이지마다 텍스트 줄을 좌표·글자 크기와 함께 뽑는다.
+// 2) 줄마다 종류를 판별한다 (본문 / 머리말·꼬리말 / 쪽 번호 / 각주 / 캡션 / 참고문헌 …).
+// 3) 남은 본문 줄을 문단으로 합치고, 줄 끝 하이픈을 복구한다.
+
+async function extractLines(pdf, onProgress){
+  const lines = [];
+  for (let p = 1; p <= pdf.numPages; p++){
+    const page = await pdf.getPage(p);
+    const vp = page.getViewport({scale: 1});
+    const tc = await page.getTextContent();
+    let cur = null;
+    const flush = () => { if (cur && cur.text.trim()){ cur.text = cur.text.replace(/\s+/g, " ").trim(); lines.push(cur); } cur = null; };
+    for (const it of tc.items){
+      if (!("str" in it)) continue;
+      const [a, b, c, d, x, y] = it.transform;
+      const rotated = Math.abs(b) > 0.01 || Math.abs(c) > 0.01;
+      const size = Math.hypot(c, d) || it.height || 10;
+      const w = it.width || 0;
+      if (!it.str){ if (it.hasEOL) flush(); continue; }
+      const sameLine = cur && cur.rotated === rotated && Math.abs(y - cur.y) < size * 0.5 && x > cur.xEnd - size * 1.5;
+      if (!sameLine){
+        flush();
+        cur = {text: "", x, y, xEnd: x, size, sizeChars: 0, rotated, page: p, pageH: vp.height, pageW: vp.width};
+      }
+      const gap = x - cur.xEnd;
+      if (cur.text && gap > size * 0.15 && !/\s$/.test(cur.text) && !/^\s/.test(it.str)) cur.text += " ";
+      cur.text += it.str;
+      cur.xEnd = Math.max(cur.xEnd, x + w);
+      const n = it.str.trim().length;
+      if (n > cur.sizeChars){ cur.size = size; cur.sizeChars = n; }
+      if (it.hasEOL) flush();
+    }
+    flush();
+    onProgress && onProgress(p, pdf.numPages);
+  }
+  return lines;
+}
+
+const RE_PAGENUM = /^(?:page\s*|p\.\s*)?[-–—(\[]?\s*(?:\d{1,4}|[ivxlc]{1,6})\s*[-–—)\]]?(?:\s*(?:\/|of)\s*\d{1,4})?$/i;
+const RE_ABSTRACT = /^(?:abstract|summary|초\s*록|국문\s*초록|요\s*약|요\s*지)(?![A-Za-z가-힣])/i;
+const RE_REFS = /^(?:[\dIVX]+\.?\s*)?(?:references?|bibliography|literature cited|works cited|참\s*고\s*문\s*헌|인용\s*문헌)\s*$/i;
+const RE_CAPTION = /^[<\[(]?\s*(?:fig(?:ure)?\.?|table|tab\.|그림|표|사진|도표)\s*\d+(?:[.-]\d+)?\s*[>\])]?\s*[.:：]?/i;
+const RE_HEADING = /^(?:\d+(?:\.\d+){0,3}\.?|[IVX]{1,5}\.|[A-Z]\.|제\s*\d+\s*[장절])\s+\S/;
+
+function classify(lines, opt){
+  const nPages = lines.length ? lines[lines.length - 1].page : 0;
+
+  // 가장 많이 쓰인 글자 크기 = 본문 크기
+  const hist = {};
+  for (const l of lines) if (!l.rotated){ const k = Math.round(l.size * 2) / 2; hist[k] = (hist[k] || 0) + l.text.length; }
+  const bodySize = +Object.entries(hist).sort((a, b) => b[1] - a[1])[0]?.[0] || 10;
+
+  // 위·아래 여백에서 여러 쪽에 반복되는 줄 = 머리말/꼬리말
+  const inMargin = l => l.y > l.pageH * 0.9 || l.y < l.pageH * 0.1;
+  const keyOf = l => l.text.toLowerCase().replace(/\d+/g, "#").replace(/\s+/g, " ");
+  const pagesByKey = {};
+  for (const l of lines) if (inMargin(l)) (pagesByKey[keyOf(l)] ||= new Set()).add(l.page);
+  const repeatMin = Math.max(2, Math.ceil(nPages * 0.4));
+
+  // 초록이 앞 2쪽 안에 있으면 그 앞(제목 제외)은 저자·소속 정보로 본다
+  const absIdx = lines.findIndex(l => l.page <= 2 && RE_ABSTRACT.test(l.text));
+
+  let inRefs = false, inCaption = null;
+  lines.forEach((l, i) => {
+    l.kind = "body"; l.reason = "";
+    const t = l.text;
+    const skip = (kind, reason) => { l.kind = kind; l.reason = reason; };
+
+    if (l.rotated || /^arxiv:\s?\d{4}\.\d{4,5}/i.test(t)){ skip("margin", "여백 표기"); return; }
+    if (inMargin(l) && RE_PAGENUM.test(t)){ skip("pagenum", "쪽 번호"); return; }
+    if (inMargin(l) && nPages > 1 && pagesByKey[keyOf(l)]?.size >= repeatMin){ skip("header", "머리말·꼬리말"); return; }
+    if (inRefs){ skip("refs", "참고문헌"); return; }
+    if (RE_REFS.test(t)){ inRefs = opt.refs; if (inRefs){ skip("refs", "참고문헌"); return; } }
+    if (opt.front && absIdx > 0 && i < absIdx && l.size < bodySize * 1.3){ skip("front", "저자·소속"); return; }
+
+    if (inCaption){
+      const prev = lines[i - 1];
+      const near = prev && prev.page === l.page && Math.abs(prev.y - l.y) < l.size * 1.8;
+      if (near && Math.abs(l.size - inCaption.size) < 0.6 && !/[.。]$/.test(prev.text)){ skip("caption", "그림·표 설명"); return; }
+      inCaption = null;
+    }
+    if (opt.caption && RE_CAPTION.test(t)){ inCaption = l; skip("caption", "그림·표 설명"); return; }
+    if (opt.small && l.size < bodySize * 0.88){ skip("small", "각주·작은 글씨"); return; }
+
+    const short = t.length < 70 && !/[.,;:。]$/.test(t);
+    if (short && (RE_HEADING.test(t) || RE_ABSTRACT.test(t) || l.size > bodySize * 1.12)) l.kind = "heading";
+  });
+  return {bodySize};
+}
+
+// 본문 줄 → 문단/제목 블록. 중간에 끼어든 제외 줄은 문단이 끝난 뒤에 붙인다.
+function buildBlocks(lines){
+  const blocks = [];
+  const gaps = [];
+  for (let i = 1; i < lines.length; i++){
+    const a = lines[i - 1], b = lines[i];
+    if (a.kind === "body" && b.kind === "body" && a.page === b.page && a.y > b.y) gaps.push(a.y - b.y);
+  }
+  gaps.sort((x, y) => x - y);
+  const leading = gaps[Math.floor(gaps.length / 2)] || 12;
+
+  let para = null, prev = null, pendingSkips = [];
+  const closePara = () => {
+    if (para){ blocks.push(para); para = null; }
+    for (const s of pendingSkips) blocks.push(s);
+    pendingSkips = [];
+  };
+  const addSkip = l => {
+    const target = para ? pendingSkips : blocks;
+    const last = target[target.length - 1];
+    if (last && last.kind === "skip" && last.reason === l.reason && last.page === l.page) last.text += "\n" + l.text;
+    else target.push({kind: "skip", reason: l.reason, page: l.page, text: l.text});
+  };
+
+  for (const l of lines){
+    if (l.kind !== "body" && l.kind !== "heading"){ addSkip(l); continue; }
+    if (l.kind === "heading"){
+      closePara();
+      blocks.push({kind: "heading", page: l.page, text: l.text});
+      prev = null; continue;
+    }
+    let newPara = !para;
+    if (para && prev && prev.page === l.page && prev.y > l.y){
+      const gap = prev.y - l.y;
+      const endsSentence = /[.!?。"”)]$/.test(prev.text);
+      const indented = l.x > prev.x + l.size * 0.8 && l.x - prev.x < l.size * 4;
+      if (gap > leading * 1.3 || (endsSentence && indented)) newPara = true;
+    }
+    if (newPara){ closePara(); para = {kind: "para", page: l.page, text: l.text}; }
+    else if (/[A-Za-z]-$/.test(para.text) && /^[a-z]/.test(l.text)) para.text = para.text.slice(0, -1) + l.text;
+    else para.text += " " + l.text;
+    prev = l;
+  }
+  closePara();
+  return blocks;
+}
+
+// 본문 속 출처 표시: [12], [3, 5–7], (Chen et al., 2024), (김민수 외, 2021)
+const CITE_RE = new RegExp([
+  /\s?\[\d+(?:\s*[,–-]\s*\d+)*\]/.source,
+  /\s?\((?:(?:see |e\.g\., )?[A-Z][A-Za-z'’-]+(?: et al\.| and [A-Z][A-Za-z'’-]+| & [A-Z][A-Za-z'’-]+)?,? \d{4}[a-z]?(?:; ?)?)+\)/.source,
+  /\s?\((?:[가-힣A-Za-z·]+(?:\s?외)?,\s?\d{4}[a-z]?(?:;\s?)?)+\)/.source,
+].join("|"), "g");
+function stripCitations(s){ return s.replace(CITE_RE, "").replace(/\s+([.,;:])/g, "$1"); }
+// 화면 표시용: [{text, cite}] 조각으로 나눈다
+function citeParts(s){
+  const out = []; let last = 0;
+  for (const m of s.matchAll(CITE_RE)){
+    if (m.index > last) out.push({text: s.slice(last, m.index)});
+    out.push({text: m[0], cite: true}); last = m.index + m[0].length;
+  }
+  if (last < s.length) out.push({text: s.slice(last)});
+  return out;
+}
+
+function splitSentences(text){
+  const protect = ["et al.", "Fig.", "Figs.", "Eq.", "Eqs.", "e.g.", "i.e.", "vs.", "etc.", "No.", "Sec.", "cf.", "Ref.", "Tab.", "approx."];
+  let t = text.replace(/\s+/g, " ").trim();
+  protect.forEach(a => { t = t.split(a).join(a.replace(/\./g, "․")); });
+  return t.split(/(?<=[.!?。])\s+/).map(s => s.replace(/․/g, ".").trim()).filter(Boolean);
+}
+
+
+// ---- PDF 외 형식: HWP · HWPX · TXT · 엑셀 ----------------------------------
+// 각 파서는 순서대로 [{text, skip?}] 조각을 돌려준다. skip은 문서 구조상 본문이
+// 아닌 부분(머리말, 각주, 표 …)이며, 실제로 뺄지는 classifyParas가 옵션을 보고 정한다.
+
+// HWP 5.0 (OLE 복합 파일). 본문은 BodyText/SectionN 스트림에 zlib(raw deflate)로 압축되어 있다.
+const HWP_SKIP = {
+  "head": "header", "foot": "header",          // 머리말·꼬리말
+  "fn  ": "note", "en  ": "note",              // 각주·미주
+  "tbl ": "table",                             // 표
+  "gso ": "figure", "eqed": "figure",          // 그림·도형·수식
+};
+function parseHwp(buf, CFB, inflateRaw){
+  const cfb = CFB.read(new Uint8Array(buf), {type: "array"});
+  const header = CFB.find(cfb, "FileHeader");
+  if (!header) throw new Error("한글(HWP) 문서 구조를 찾지 못했습니다.");
+  const hb = Uint8Array.from(header.content);
+  const flags = hb[36] | (hb[37] << 8) | (hb[38] << 16) | (hb[39] << 24);
+  if (flags & 2) throw new Error("암호가 걸린 한글 문서입니다. 암호를 푼 뒤 다시 열어 주세요.");
+  if (flags & 4) throw new Error("배포용(읽기 전용) 한글 문서는 열 수 없습니다. 한글에서 일반 문서로 저장해 주세요.");
+  const compressed = flags & 1;
+
+  const sections = cfb.FullPaths
+    .map((path, i) => ({m: path.match(/BodyText\/Section(\d+)$/), e: cfb.FileIndex[i]}))
+    .filter(x => x.m).sort((a, b) => a.m[1] - b.m[1]).map(x => x.e);
+  const out = [];
+  for (const sec of sections){
+    let data = Uint8Array.from(sec.content);
+    if (compressed) data = inflateRaw(data);
+    const dv = new DataView(data.buffer, data.byteOffset, data.byteLength);
+    let pos = 0, skipLevel = -1, skipKind = null, cur = null;
+    const push = () => { if (cur && cur.text.trim()) out.push(cur); cur = null; };
+    while (pos + 4 <= data.length){
+      const h = dv.getUint32(pos, true); pos += 4;
+      const tag = h & 0x3ff, level = (h >>> 10) & 0x3ff;
+      let size = (h >>> 20) & 0xfff;
+      if (size === 0xfff){ size = dv.getUint32(pos, true); pos += 4; }
+      const body = data.subarray(pos, pos + size); pos += size;
+
+      if (skipLevel >= 0 && level <= skipLevel){ skipLevel = -1; skipKind = null; }
+      if (tag === 66){ // PARA_HEADER
+        push();
+        cur = {text: "", skip: skipLevel >= 0 ? skipKind : null};
+      } else if (tag === 67 && cur){ // PARA_TEXT
+        cur.text += hwpText(body);
+      } else if (tag === 71 && skipLevel < 0 && body.length >= 4){ // CTRL_HEADER
+        const id = body[3] << 24 | body[2] << 16 | body[1] << 8 | body[0];
+        const name = String.fromCharCode(id >>> 24 & 255, id >>> 16 & 255, id >>> 8 & 255, id & 255);
+        if (HWP_SKIP[name]){ push(); skipLevel = level; skipKind = HWP_SKIP[name]; }
+      }
+    }
+    push();
+  }
+  return out;
+}
+function hwpText(b){
+  let s = "";
+  const n = b.length >> 1;
+  for (let i = 0; i < n; ){
+    const c = b[i * 2] | (b[i * 2 + 1] << 8);
+    if (c >= 32){ s += String.fromCharCode(c); i++; continue; }
+    if (c === 0 || c === 10 || c === 13 || (c >= 24 && c <= 31)){ // 한 글자짜리 제어 문자
+      if (c === 10 || c === 30 || c === 31) s += " ";
+      else if (c === 24) s += "-";
+      i++;
+    } else { // 인라인·확장 제어 문자는 8글자를 차지한다
+      if (c === 9) s += " ";
+      i += 8;
+    }
+  }
+  return s;
+}
+
+// HWPX (zip + XML). Contents/sectionN.xml의 최상위 <hp:p>가 본문 문단이다.
+const HWPX_SKIP = {
+  header: "header", footer: "header", pageNum: "header",
+  footNote: "note", endNote: "note",
+  tbl: "table",
+  pic: "figure", equation: "figure", container: "figure", rect: "figure", ellipse: "figure",
+  line: "figure", polygon: "figure", curve: "figure", arc: "figure", textart: "figure", ole: "figure",
+};
+async function parseHwpx(buf, JSZip, DOMParserCtor){
+  const zip = await JSZip.loadAsync(buf);
+  const names = Object.keys(zip.files)
+    .filter(f => /^Contents\/section\d+\.xml$/i.test(f))
+    .sort((a, b) => +a.match(/\d+/)[0] - +b.match(/\d+/)[0]);
+  if (!names.length) throw new Error("한글(HWPX) 문서 본문을 찾지 못했습니다.");
+  const out = [];
+  for (const name of names){
+    const xml = await zip.file(name).async("string");
+    const doc = new DOMParserCtor().parseFromString(xml, "application/xml");
+    for (const p of elChildren(doc.documentElement)){
+      if (p.localName !== "p") continue;
+      const main = {text: ""}, extra = [];
+      walkHwpx(p, main, extra, null);
+      if (main.text.trim()) out.push(main);
+      out.push(...extra.filter(e => e.text.trim()));
+    }
+  }
+  return out;
+}
+function elChildren(el){ const a = []; for (let n = el.firstChild; n; n = n.nextSibling) if (n.nodeType === 1) a.push(n); return a; }
+function walkHwpx(el, into, extra, skipKind){
+  for (const c of elChildren(el)){
+    const ln = c.localName;
+    if (!skipKind && HWPX_SKIP[ln]){
+      const part = {text: "", skip: HWPX_SKIP[ln]};
+      extra.push(part);
+      walkHwpx(c, part, extra, HWPX_SKIP[ln]);
+    } else if (ln === "t"){
+      into.text += c.textContent;
+    } else if (ln === "lineBreak" || ln === "tab"){
+      into.text += " ";
+    } else if (ln === "p" && into.text && !/\s$/.test(into.text)){
+      into.text += " ";
+      walkHwpx(c, into, extra, skipKind);
+    } else {
+      walkHwpx(c, into, extra, skipKind);
+    }
+  }
+}
+
+// TXT. 인코딩(UTF-8 / UTF-16 / EUC-KR)을 추정하고, 빈 줄을 문단 경계로 본다.
+function decodeText(buf){
+  const b = new Uint8Array(buf);
+  if (b[0] === 0xff && b[1] === 0xfe) return new TextDecoder("utf-16le").decode(b);
+  if (b[0] === 0xfe && b[1] === 0xff) return new TextDecoder("utf-16be").decode(b);
+  const utf8 = new TextDecoder("utf-8").decode(b);
+  if (!utf8.includes("�")) return utf8;
+  try { return new TextDecoder("euc-kr").decode(b); } catch { return utf8; }
+}
+function parseTxt(text){
+  text = text.replace(/\r\n?/g, "\n");
+  // PDF에서 복사한 글에 남은 머리말: 두 번 이상 나오는 짧은 줄 (소제목 형식은 제외)
+  const keyOf = t => t.toLowerCase().replace(/\d+/g, "#").replace(/\s+/g, " ").trim();
+  const seen = {};
+  for (const l of text.split("\n")) if (l.trim() && l.trim().length < 60) seen[keyOf(l)] = (seen[keyOf(l)] || 0) + 1;
+  const isRepeat = l => seen[keyOf(l)] >= 2 && !/[.!?。]$/.test(l) && !RE_HEADING.test(l) && !RE_ABSTRACT.test(l) && !RE_PAGENUM.test(l);
+  const chunks = text.split(/\n\s*\n/);
+  const out = [];
+  for (const chunk of chunks){
+    const lines = chunk.split("\n").map(l => l.trim()).filter(Boolean);
+    if (!lines.length) continue;
+    const maxLen = Math.max(...lines.map(l => l.length));
+    let cur = null;
+    for (const l of lines){
+      if (isRepeat(l)){ if (cur) out.push(cur); cur = null; out.push({text: l, skip: "header"}); continue; }
+      // 한 덩어리 안에서도: 짧게 끝난 줄 뒤나, 쪽 번호·반복 머리말처럼 보이는 줄은 따로 떼어 둔다
+      const standalone = l.length < 80 && (RE_PAGENUM.test(l) || RE_HEADING.test(l) || RE_REFS.test(l) || RE_ABSTRACT.test(l) || RE_CAPTION.test(l));
+      if (!cur || standalone || cur.standalone || (/[.!?。"”)]$/.test(cur.text) && cur.lastLen < maxLen * 0.7)){
+        if (cur) out.push(cur);
+        cur = {text: l, lastLen: l.length, standalone};
+      } else {
+        cur.text = /[A-Za-z]-$/.test(cur.text) && /^[a-z]/.test(l) ? cur.text.slice(0, -1) + l : cur.text + " " + l;
+        cur.lastLen = l.length;
+      }
+    }
+    if (cur) out.push(cur);
+  }
+  return out.map(p => ({text: p.text, skip: p.skip}));
+}
+
+// 엑셀·CSV. 시트마다 제목을 두고, 첫 줄이 머리글이면 "머리글: 값" 형태로 읽는다.
+function parseSheet(buf, XLSX){
+  const wb = XLSX.read(new Uint8Array(buf), {type: "array"});
+  const out = [];
+  for (const name of wb.SheetNames){
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[name], {header: 1, defval: "", raw: false, blankrows: false})
+      .map(r => r.map(v => String(v).trim()));
+    if (!rows.length) continue;
+    out.push({text: name, heading: true});
+    const first = rows[0].filter(Boolean);
+    const hasHeader = rows.length > 1 && first.length >= 2 && first.every(v => isNaN(+v.replace(/,/g, "")));
+    const head = hasHeader ? rows[0] : null;
+    for (const r of hasHeader ? rows.slice(1) : rows){
+      const cells = r.map((v, i) => v && (head && head[i] ? head[i] + ": " + v : v)).filter(Boolean);
+      if (cells.length) out.push({text: cells.join(", ") + ".", row: true});
+    }
+  }
+  return out;
+}
+
+// 조각 → 블록. PDF와 같은 규칙(참고문헌, 캡션, 저자 정보, 쪽 번호, 반복 줄)을 글자만 보고 적용한다.
+const SKIP_REASON = {header: "머리말·꼬리말", note: "각주·미주", table: "표", figure: "그림·도형·수식"};
+function classifyParas(parts, opt){
+  const keyOf = t => t.toLowerCase().replace(/\d+/g, "#").replace(/\s+/g, " ").trim();
+  const count = {};
+  for (const p of parts) if (!p.skip && !p.row && p.text.length < 80) count[keyOf(p.text)] = (count[keyOf(p.text)] || 0) + 1;
+  const absIdx = parts.findIndex((p, i) => i < 60 && !p.skip && RE_ABSTRACT.test(p.text.trim()));
+  const titleIdx = parts.findIndex(p => !p.skip && p.text.trim());
+
+  const blocks = [];
+  let inRefs = false;
+  parts.forEach((p, i) => {
+    const t = p.text.replace(/\s+/g, " ").trim();
+    if (!t) return;
+    const skip = reason => {
+      const last = blocks[blocks.length - 1];
+      if (last && last.kind === "skip" && last.reason === reason) last.text += "\n" + t;
+      else blocks.push({kind: "skip", reason, text: t});
+    };
+    if (p.row){ blocks.push({kind: "para", text: t}); return; }
+    if (p.heading){ blocks.push({kind: "heading", text: t}); return; }
+    if (p.skip === "header") return skip(SKIP_REASON.header);
+    if (p.skip === "note" && opt.small) return skip(SKIP_REASON.note);
+    if ((p.skip === "table" || p.skip === "figure") && opt.caption) return skip(SKIP_REASON[p.skip]);
+    if (inRefs) return skip("참고문헌");
+    if (RE_PAGENUM.test(t)) return skip("쪽 번호");
+    if (t.length < 80 && count[keyOf(t)] >= 3) return skip("반복되는 줄");
+    if (opt.refs && RE_REFS.test(t)){ inRefs = true; return skip("참고문헌"); }
+    if (opt.front && absIdx > 0 && i < absIdx && i !== titleIdx) return skip("저자·소속");
+    if (opt.caption && RE_CAPTION.test(t)) return skip("그림·표 설명");
+    const short = t.length < 70 && !/[.,;:。]$/.test(t);
+    const isHeading = i === titleIdx || (short && (RE_HEADING.test(t) || RE_ABSTRACT.test(t)));
+    blocks.push({kind: isHeading ? "heading" : "para", text: t});
+  });
+  return blocks;
+}
+
+
+
+// ---- 예시 ----------------------------------------------------------------
+const SAMPLE_PDF_B64 = "JVBERi0xLjQKJZOMi54gUmVwb3J0TGFiIEdlbmVyYXRlZCBQREYgZG9jdW1lbnQgKG9wZW5zb3VyY2UpCjEgMCBvYmoKPDwKL0YxIDIgMCBSIC9GMiAzIDAgUiAvRjMgNCAwIFIgL0Y0IDUgMCBSCj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9CYXNlRm9udCAvSGVsdmV0aWNhIC9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nIC9OYW1lIC9GMSAvU3VidHlwZSAvVHlwZTEgL1R5cGUgL0ZvbnQKPj4KZW5kb2JqCjMgMCBvYmoKPDwKL0Jhc2VGb250IC9UaW1lcy1JdGFsaWMgL0VuY29kaW5nIC9XaW5BbnNpRW5jb2RpbmcgL05hbWUgL0YyIC9TdWJ0eXBlIC9UeXBlMSAvVHlwZSAvRm9udAo+PgplbmRvYmoKNCAwIG9iago8PAovQmFzZUZvbnQgL1RpbWVzLVJvbWFuIC9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nIC9OYW1lIC9GMyAvU3VidHlwZSAvVHlwZTEgL1R5cGUgL0ZvbnQKPj4KZW5kb2JqCjUgMCBvYmoKPDwKL0Jhc2VGb250IC9UaW1lcy1Cb2xkIC9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nIC9OYW1lIC9GNCAvU3VidHlwZSAvVHlwZTEgL1R5cGUgL0ZvbnQKPj4KZW5kb2JqCjYgMCBvYmoKPDwKL0NvbnRlbnRzIDExIDAgUiAvTWVkaWFCb3ggWyAwIDAgNjEyIDc5MiBdIC9QYXJlbnQgMTAgMCBSIC9SZXNvdXJjZXMgPDwKL0ZvbnQgMSAwIFIgL1Byb2NTZXQgWyAvUERGIC9UZXh0IC9JbWFnZUIgL0ltYWdlQyAvSW1hZ2VJIF0KPj4gL1JvdGF0ZSAwIC9UcmFucyA8PAoKPj4gCiAgL1R5cGUgL1BhZ2UKPj4KZW5kb2JqCjcgMCBvYmoKPDwKL0NvbnRlbnRzIDEyIDAgUiAvTWVkaWFCb3ggWyAwIDAgNjEyIDc5MiBdIC9QYXJlbnQgMTAgMCBSIC9SZXNvdXJjZXMgPDwKL0ZvbnQgMSAwIFIgL1Byb2NTZXQgWyAvUERGIC9UZXh0IC9JbWFnZUIgL0ltYWdlQyAvSW1hZ2VJIF0KPj4gL1JvdGF0ZSAwIC9UcmFucyA8PAoKPj4gCiAgL1R5cGUgL1BhZ2UKPj4KZW5kb2JqCjggMCBvYmoKPDwKL1BhZ2VNb2RlIC9Vc2VOb25lIC9QYWdlcyAxMCAwIFIgL1R5cGUgL0NhdGFsb2cKPj4KZW5kb2JqCjkgMCBvYmoKPDwKL0F1dGhvciAoXChhbm9ueW1vdXNcKSkgL0NyZWF0aW9uRGF0ZSAoRDoyMDI2MDkyNzA1NDgwMyswMCcwMCcpIC9DcmVhdG9yIChcKHVuc3BlY2lmaWVkXCkpIC9LZXl3b3JkcyAoKSAvTW9kRGF0ZSAoRDoyMDI2MDkyNzA1NDgwMyswMCcwMCcpIC9Qcm9kdWNlciAoUmVwb3J0TGFiIFBERiBMaWJyYXJ5IC0gXChvcGVuc291cmNlXCkpIAogIC9TdWJqZWN0IChcKHVuc3BlY2lmaWVkXCkpIC9UaXRsZSAoU2VjdGlvbi1Bd2FyZSBTdW1tYXJpemF0aW9uIG9mIExvbmcgUGFwZXJzKSAvVHJhcHBlZCAvRmFsc2UKPj4KZW5kb2JqCjEwIDAgb2JqCjw8Ci9Db3VudCAyIC9LaWRzIFsgNiAwIFIgNyAwIFIgXSAvVHlwZSAvUGFnZXMKPj4KZW5kb2JqCjExIDAgb2JqCjw8Ci9GaWx0ZXIgWyAvQVNDSUk4NURlY29kZSAvRmxhdGVEZWNvZGUgXSAvTGVuZ3RoIDI3MTAKPj4Kc3RyZWFtCkdhdD0sOy9iMksmcTk7UVIpZVIxOys0J2Jsb25dLmZgOFdUZDlgPFsqUk9NMlE+KTg6LGNbWFNmREZuJiljQ11jMmxnNyQhPjdtSDNBXVE/bz9HWDZAZi1OM107VVNjR3QwTisiR3FnIltOci4sVVVzYixtSSVzRihdSSxxYkBwPE5gREpEJ19AJilnT3NjTD9uW3RgV0dMZEkjRDAzKypBQEMhUU1aLixQXWRsZk1WUCtOUzxfXUwkXHRFaDtvSlFVa15WcjNMUjhGU0VvM15fTCRmMWMtQWc6VD1CR2lKYzduWHEnZDpxJzdePjtNYGtYL18vZGNzJUM1QF9tR1ZWMD9ZZmRjO18ldCZZZCtxLFI7MVNMVWFNRmMzTTJeLG9tXGBBYU5CXm1WWlgwQ3RtXGhfaGRmOiVHRitQQ3Q4WiozQGFlNFApZiYrclpKRDVBR2FrcCRdS0QrcF48ZHAnU3MrbC43XzJRa1BIb1leZD1FUVE0YCxwaDRHQmZlZUpxLkxQa0Vwc0RKbSUxZi5eWSg+VXMvUjVKLSQuIUFNXjZPZyZ1KEdATWxwcV4nOytoYmdAR2FOJFBZUWlcPjI2WVpmLylAQGZPWkRSRT0rKmJGPUdZYzdVRHAqRDRhLidrNUhQRCNWMlY0XmxISCJ0cmN0bydXJi9cNipAWl8lWFFyQW9DQ1EqXzRtNTo7Xzc7Wj9MajBKX2FnNEZSYi5DKVsjLW9oT0Y1LCVyOjwpSyJoZHU1Lyk8dGNIZy1GL0s6ZkFcZ2ddOVVHb2NIRks8bkdLTXM3aU4/Syo6KzpsOk5bMl9MRiwhaCdlbmNAdWoiaEppal91VC5oV1M4SywkSylcNzdfXSpKZF8/YiIhL3UmRUdrQ09lVWg+K0drTnE3KWRrbVFiND9fKztrZmZSMV4zST43U1d1V2ZfUmQoK2tQOFNNR05qMTk3L20qNGJMNUpiKzg5a3MvKyQpLy0oQTBublklaVs8QjJQakstRF9uXiouYTwiOWRucmBtdGJeWiJpNzhKWlAkWzFnSGJqaSliTj1wTU5HKmVabTIwTWwvTykpYHJjZFpjLVVnJmtUPGVGIjBCLjRkKC5KOD4qbFpbRkMyMmVlaFUzVyxGVDg4OCQtTiREQ1E1WFAqNWI3VWZxQVs8ZHFiVjxpRT09YCgqPCY9PHEpT1BRby9gQS8mJGIrIVRpKEpNNk5VQS5ETC9layg1bD40Tk5bQVkmbz1kNmshWnJYc0NBZkozXD9Dbm4pYjUhViRda3EwKS5PXllNVWYwOCxvVl4pRGFMOEwyY2RGWzc0USdhLFJJdS4lLXExKSdoOColVWdJLVE1VnBjUV48PnNGUUF0UGhpPG05JGJWampAOiM8NGAoV1QsZUFTNFU3WSVLJHQqOmN0ZFBHUyZeXlZrYm9lSjlvJG8hZzpXRlYtVHUhVSlBJFgwL2AlIjBRbDJxJSg8RjpeKyE6TWNsQ1ljYHJxS05IP1hkKSlIbFpaK1U/Zj1OVThiI2smSG9FZ3BdbGpBT1EiYWBZNWpdUDUtdGY+dVgsPWY1JWg/Kjd1MVkyNVg7KTFhMVZfVCYtaVZiXlNcVSdZNFpdYmx0bzs+YFxlVDdpdDFqcTonalVjZ3ReVSsyJU1uXzFHNFYoS2oyQGRxPjslK2A3PyMqPF5tdWdbYz1LWykiNkBLRHQ+QGpxJiZSV2Nsbk48VWFcJypCI00uKyEqS0lHNUBCWFNpQG88XyR1ViwtcV9VSWBjLHBaJTFLX0clNDs4Lz4lMyZLJ3BsVzk0ViZVMyk1ZF81SWRNOHRPNml0YCZkPXBobTBhI29HZVpSQ2VRRiY/UUhNUG9HaDw+WWNMTEVZPCRIczRQM1ExMmFpJCU4OS4kZjBSY0hiZElXJVEnU28xcHVSZDJtOz1QbSclPW5EZThoRFtuY24uO0E5UlpYVC5ySigkVy8nMk1fMStJUScrQ2JGLG4sZyNKOW9wSE9pMDRBRGE+N2JJMi8iXjNnZCRKV2dHQnRXSj9GVkRDXmgkQitAMVFvKzlRNl5ZRDJydENQPVhrcSg5bVVhN1dZLS44KS45NXNyc2NxUylSXUsoWUJpb3JZIWsyNzlwVUg+Pzc0S09HVTZDQk8qaCJfc2ZlMy5sLSQ9OVVLJm8sNUpWPilHKEtiWUxsLzY+c01XOkU+clhubkFdKTg6QS5sO1w6OzVEL1pFKEQ6JGZHMiV1ZT9GVVZlSzJdRCdxYGZwSGk+VGordD9CKGRuKFw2SzUmQHUtSmk7bW5WOklMVDcwXkFOJTc0I2U8bUdTM0diO2JBOFlvIkNRRF9CbFdcP1JxNytQVz1vV1xqO2MyI18mPFJYcDw0P2swY0w/PD5rSVhESCdJNyFHSzlfLz9CYlpTUyg7LyoycmRoT2gqaEc8TWdaNTlZZ19XJE4mJypXYGY6QGU7XjNGRC5AOlA1RlBmMz06XCpqSUtnS1JdYE5PLUlPVl8vIlxPXC1zdGNuPm4+LTwndG87UjREOyxFbW5pNT5XI3JOKWp0Tk42VCxURDYhSFg3UGtjTWxkJFtPdU5lQ19tcE1OUkZCRD5YZXJMMmxhPmIlLDBXclc+PlpjPTAsRSo7TlJoUHRzTk9lM2F1cDRCLyJVMkI0LiNfLUApPU5wKFZZOTdwOmVOSyxaVWkuQzJTUFZPMClOYmIrP0xPZlBjKiVNRXJfY2BwT2A4KUhaNm4obHBKVzNMQ0BNazVbVzlCcXVFOEouNSJCcitFNWc1dWJxW3NjbEpoVCh1bG9mWklYKD48LFxPSkpFXCNOOlY6JXFwclhRIiU1Jzc7KmIjRyQpbig0dF4yQiNWTFRDVExcNT9FaCdkWjUkP3QoPV9GXXBvJU41VkJzRzo8IXFjS1diOS4wL1c0TGIvZGtWTkZZY1I4Vy9OQkM5K0JVPWxPRlolYDkiYmMpYDluWyIvPSNHKnNnSylSWz1gTVY3dTZNak9rYVZIXWxJM2EnImsuNW5xLUpKOy4jPEBxU0VuR2F1YmpkOic9JUhRWHM5OlxgQXIpWEZeRkEyNmhzcElfaHVAXVMlQ1YnZnEoVy5LQ09OOSk1SzROOFVdVF9dVnE2JnVZNSZeOCVVIWk2Sik8W1pLaWBHP1ooVHJRNkUxREk7YWk1VCZhIzpmKi5bNEQzWVpXWTNTW2dmWS9QQTojJ3E0TSNTQUddI15uKjIlZTZkU2UuYTcxSm8+anFtNF5hNmwlIWBsZFlhNkVnS11xNlIpPVFWaERNW1VEKGstIlR0YlYmJUEoSWJUciY+cydEYl9DPDppRkw2bU1LPy1caXJsaVghNzEjLmBSUlc8Ri5OVFlbJmM1Qk4kP1VYQkViUXBDRyo6czRPVSE/RVI0N2pxLlgvN0s6NS05IjVqRFheUjJOWldzUmdeI009XWJRcURATFp0YyxrTCgnZ1FkRVoxdTM0ZiE2ZypCa2RobWJxYj0rZVJmUURiQTxhWSxCP2xbUUc1ZDwuOXBFPiVmbi09SUpgLFAnYTI3L2tiZkhkJF4+cC9BRnJhbWdpJGlIZSIsaGE1JmtcdCc7cS9uND8iOEpfNC1hLWxcb2lkXGcrLjw+fj5lbmRzdHJlYW0KZW5kb2JqCjEyIDAgb2JqCjw8Ci9GaWx0ZXIgWyAvQVNDSUk4NURlY29kZSAvRmxhdGVEZWNvZGUgXSAvTGVuZ3RoIDQ2Ngo+PgpzdHJlYW0KR2F0JV07LD4lXydTWUg/KCQ/MGdmIV0oPV4tUjhTalQzNzM5dU1nISdXQU1XZ0M7LC9tcC40QkxiRVohUDI8TmxjaFp1MzM4R2RtbyllLGdcLz5TWU0vMzQ/QFApLCMlKCFyRCw6WD0zUTo/XWVcWCxodXFeRVBCOi5rMFxjJiRZVGVvUD5mIUgqSS9WPUVYRTNpcSpAYz0zNF1EK2gyaDM8aCs+JDlCPDxLS3Erak9CZVkhYVBOImFTcDtTZV83STpNKmg5KWcwOSo8aV1oZGBJVkgkSkFEbl00V1guQDtWL2hwM0JtREoyKFJvKUtoJmBzVWdLSTkwVlslaT07bD9vQzUqLWYqWkxtL1pGMictT15HcyRhKTddYC51VVFNTDdSUDE0NW9HRkhaLjlCPmhOXXRAb1pUPj1aNCgvdSxTWj5BR2VHQ2tjSjsqU2tcWE1pOXAsKl9INk4pPm84WmlAMSRRUmxzWiEuJTc1cDltY0E5TXRFOG5WJjFnUk9mZ1M1WENzSWdWPVBpZGk4SlF0bUczOTg0S1NqZ1RQOyNHXChDb2lESEddU18ycTYyPjAiYFElM1FqWGJuQkc+YEl0MyprTistNW8pZktYJF5+PmVuZHN0cmVhbQplbmRvYmoKeHJlZgowIDEzCjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDA2MSAwMDAwMCBuIAowMDAwMDAwMTIyIDAwMDAwIG4gCjAwMDAwMDAyMjkgMDAwMDAgbiAKMDAwMDAwMDMzOSAwMDAwMCBuIAowMDAwMDAwNDQ4IDAwMDAwIG4gCjAwMDAwMDA1NTYgMDAwMDAgbiAKMDAwMDAwMDc1MSAwMDAwMCBuIAowMDAwMDAwOTQ2IDAwMDAwIG4gCjAwMDAwMDEwMTUgMDAwMDAgbiAKMDAwMDAwMTMyNCAwMDAwMCBuIAowMDAwMDAxMzkwIDAwMDAwIG4gCjAwMDAwMDQxOTIgMDAwMDAgbiAKdHJhaWxlcgo8PAovSUQgCls8NWRiMzA2MDk4YjE2NTg0MjcwYzU2OTZiZWIwOWE5NWI+PDVkYjMwNjA5OGIxNjU4NDI3MGM1Njk2YmViMDlhOTViPl0KJSBSZXBvcnRMYWIgZ2VuZXJhdGVkIFBERiBkb2N1bWVudCAtLSBkaWdlc3QgKG9wZW5zb3VyY2UpCgovSW5mbyA5IDAgUgovUm9vdCA4IDAgUgovU2l6ZSAxMwo+PgpzdGFydHhyZWYKNDc0OQolJUVPRgo=";
+const SAMPLE_TXT = "교육공학연구 제41권 제2호\n온라인 강의 만족도에 관한 연구\n\n홍길동, 김철수\n한국대학교 교육학과\n\n초록\n본 연구는 대학생의 자기주도 학습 능력이 온라인 강의 만족도에\n미치는 영향을 분석하였다(김민수 외, 2021). 분석 결과 유의한 영향이 있었다[12].\n\n1. 서론\n온라인 강의는 코로나19 이후 빠르게 확산되었다[3, 5]. 그러나 학습자의\n만족도는 여전히 낮은 편이다(Smith et al., 2020).\n\n- 2 -\n교육공학연구 제41권 제2호\n\n2. 연구 방법\n설문은 412명을 대상으로 실시하였다.\n그림 1. 연구 모형\n\n- 3 -\n교육공학연구 제41권 제2호\n\n참고문헌\n김민수, 이영희 (2021). 온라인 학습. 교육공학연구, 37(1), 1-20.\n";
+
+// ---- 라이브러리는 필요한 형식을 열 때만 불러온다 ---------------------------------
+const CDN = "https://cdnjs.cloudflare.com/ajax/libs/";
+const LIBS = {
+  pdf: [CDN + "pdf.js/3.11.174/pdf.worker.min.js", CDN + "pdf.js/3.11.174/pdf.min.js"],
+  xlsx: [CDN + "xlsx/0.18.5/xlsx.full.min.js"],
+  pako: [CDN + "pako/2.1.0/pako.min.js"],
+  jszip: [CDN + "jszip/3.10.1/jszip.min.js"],
+};
+const loaded = {};
+function loadScript(src){
+  return loaded[src] ||= new Promise((res, rej) => {
+    const s = document.createElement("script");
+    s.src = src; s.onload = res;
+    s.onerror = () => { delete loaded[src]; rej(new Error("필요한 구성 요소를 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.")); };
+    document.head.appendChild(s);
+  });
+}
+async function need(...names){ for (const n of names) for (const src of LIBS[n]) await loadScript(src); }
+
+// ---- 상태 ----------------------------------------------------------------
+const $ = id => document.getElementById(id);
+const synth = window.speechSynthesis;
+const state = {
+  source: null,          // {type:"pdf", lines} | {type:"parts", parts}
+  lang: "en",
+  blocks: [], sentences: [],
+  idx: 0, playing: false, paused: false, phase: "src",
+  stripCites: true, bilingual: false,
+  translations: new Map(), pending: new Map(),
+};
+let sampleFn = null, wakeLock = null;
+
+const opts = () => ({front: $("o-front").checked, small: $("o-small").checked, caption: $("o-caption").checked, refs: $("o-refs").checked});
+
+// ---- 파일 열기 ------------------------------------------------------------
+async function openFile(name, buf){
+  stop();
+  $("error").hidden = true;
+  $("file-name").textContent = name;
+  $("file-stats").textContent = "여는 중…";
+  const ext = (name.match(/\.([a-z0-9]+)$/i)?.[1] || "").toLowerCase();
+  try {
+    if (ext === "pdf"){
+      await need("pdf");
+      const pdf = await pdfjsLib.getDocument({data: new Uint8Array(buf), isEvalSupported: false}).promise;
+      const lines = await extractLines(pdf, (p, n) => { $("file-stats").textContent = `글자 읽는 중… ${p}/${n}쪽`; });
+      if (!lines.length) throw new Error("이 PDF에는 글자가 없습니다. 스캔한 이미지로 된 PDF는 읽을 수 없습니다.");
+      state.source = {type: "pdf", lines, pages: pdf.numPages};
+    } else if (ext === "hwp"){
+      await need("xlsx", "pako");
+      state.source = {type: "parts", parts: parseHwp(buf, XLSX.CFB, d => pako.inflateRaw(d))};
+    } else if (ext === "hwpx"){
+      await need("jszip");
+      state.source = {type: "parts", parts: await parseHwpx(buf, JSZip, DOMParser)};
+    } else if (["xlsx", "xls", "csv", "xlsm", "ods"].includes(ext)){
+      await need("xlsx");
+      state.source = {type: "parts", parts: parseSheet(buf, XLSX), sheet: true};
+    } else if (ext === "txt" || ext === "md" || ext === ""){
+      state.source = {type: "parts", parts: parseTxt(decodeText(buf))};
+    } else {
+      throw new Error("지원하지 않는 형식입니다. PDF, 한글, 엑셀, TXT 파일을 열어 주세요.");
+    }
+    state.translations.clear(); state.pending.clear();
+    rebuild();
+  } catch (e){
+    $("file-stats").textContent = "";
+    $("error").textContent = e.message || "파일을 여는 중 문제가 생겼습니다.";
+    $("error").hidden = false;
+  }
+}
+
+$("file").addEventListener("change", async e => {
+  const f = e.target.files[0]; if (!f) return;
+  openFile(f.name, await f.arrayBuffer());
+  e.target.value = "";
+});
+$("file-btn").addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " "){ e.preventDefault(); $("file").click(); } });
+const drop = $("drop");
+["dragenter", "dragover"].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add("drag"); }));
+["dragleave", "drop"].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove("drag"); }));
+drop.addEventListener("drop", async e => {
+  const f = e.dataTransfer.files[0]; if (f) openFile(f.name, await f.arrayBuffer());
+});
+$("ex-en").addEventListener("click", () => openFile("예시 논문 (영어).pdf", Uint8Array.from(atob(SAMPLE_PDF_B64), c => c.charCodeAt(0)).buffer));
+$("ex-ko").addEventListener("click", () => openFile("예시 논문 (한국어).txt", new TextEncoder().encode(SAMPLE_TXT).buffer));
+
+// ---- 분류 → 문장 ----------------------------------------------------------
+function rebuild(){
+  if (!state.source) return;
+  stop();
+  const o = opts();
+  if (state.source.type === "pdf"){
+    classify(state.source.lines, o);
+    state.blocks = buildBlocks(state.source.lines);
+  } else {
+    state.blocks = classifyParas(state.source.parts, o);
+  }
+  // 문서 언어: 한글 비율로 추정
+  const sample = state.blocks.filter(b => b.kind !== "skip").map(b => b.text).join(" ").slice(0, 4000);
+  const ko = (sample.match(/[가-힣]/g) || []).length, en = (sample.match(/[A-Za-z]/g) || []).length;
+  state.lang = ko > en * 0.3 ? "ko" : "en";
+
+  state.sentences = [];
+  state.blocks.forEach(b => {
+    if (b.kind === "skip") return;
+    b.first = state.sentences.length;
+    const parts = b.kind === "heading" ? [b.text] : splitSentences(b.text);
+    for (const t of parts) state.sentences.push({text: t, block: b});
+  });
+  state.idx = 0;
+  const skipped = state.blocks.filter(b => b.kind === "skip");
+  const reasons = [...new Set(skipped.map(b => b.reason))];
+  $("file-stats").textContent = `${state.lang === "ko" ? "한국어" : "영어"} · 읽을 문장 ${state.sentences.length}개` +
+    (skipped.length ? ` · 뺀 부분: ${reasons.join(", ")}` : "");
+  updateModeUi();
+  loadVoices();
+  render();
+}
+["o-front", "o-small", "o-caption", "o-refs"].forEach(id => $(id).addEventListener("change", rebuild));
+$("o-show").addEventListener("change", () => $("doc").classList.toggle("hide-skips", !$("o-show").checked));
+
+const speakText = s => (state.stripCites ? stripCitations(s.text) : s.text).trim();
+
+// ---- 화면 ----------------------------------------------------------------
+function sentenceEl(i){
+  const s = state.sentences[i];
+  const span = document.createElement("span");
+  span.className = "s"; span.dataset.i = i;
+  for (const p of citeParts(s.text)){
+    if (p.cite){ const c = document.createElement("span"); c.className = "cite"; c.textContent = p.text; span.appendChild(c); }
+    else span.appendChild(document.createTextNode(p.text));
+  }
+  span.addEventListener("click", () => { stop(); state.idx = i; play(); });
+  return span;
+}
+function render(){
+  const doc = $("doc");
+  doc.innerHTML = "";
+  doc.classList.toggle("strip", state.stripCites);
+  doc.classList.toggle("hide-skips", !$("o-show").checked);
+  const bi = state.bilingual && state.lang === "en";
+  let lastPage = null, seenTitle = false;
+  for (const b of state.blocks){
+    if (b.page && b.page !== lastPage && state.source.type === "pdf"){
+      if (lastPage !== null){ const pg = document.createElement("span"); pg.className = "pg"; pg.textContent = `p. ${b.page}`; doc.appendChild(pg); }
+      lastPage = b.page;
+    }
+    if (b.kind === "skip"){
+      const d = document.createElement("div"); d.className = "skip";
+      const why = document.createElement("span"); why.className = "why"; why.textContent = b.reason;
+      d.append(why, document.createTextNode(b.text));
+      doc.appendChild(d); continue;
+    }
+    const el = document.createElement(b.kind === "heading" ? "div" : "p");
+    if (b.kind === "heading"){ el.className = "h" + (!seenTitle ? " title" : ""); seenTitle = true; }
+    const end = b.first + (b.kind === "heading" ? 1 : splitSentences(b.text).length);
+    for (let i = b.first; i < end; i++){
+      if (bi){
+        const pair = document.createElement("span"); pair.className = "pair";
+        const tr = document.createElement("span"); tr.className = "tr"; tr.dataset.tr = i;
+        pair.append(sentenceEl(i), tr); el.appendChild(pair);
+      } else {
+        el.appendChild(sentenceEl(i)); el.appendChild(document.createTextNode(" "));
+      }
+    }
+    doc.appendChild(el);
+  }
+  if (!state.sentences.length){
+    const p = document.createElement("p"); p.className = "empty";
+    p.textContent = "읽을 본문을 찾지 못했습니다. ‘빼고 읽을 부분’ 선택을 줄여 보세요.";
+    doc.appendChild(p);
+  }
+  if (bi) state.sentences.forEach((_, i) => showTranslation(i));
+  mark();
+}
+function mark(){
+  document.querySelectorAll(".s").forEach(el => {
+    const i = +el.dataset.i;
+    el.classList.toggle("now", state.playing && i === state.idx);
+    el.classList.toggle("read", i < state.idx);
+  });
+  const now = document.querySelector(".s.now");
+  if (now) now.scrollIntoView({block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
+  $("status").textContent = state.sentences.length ? `${Math.min(state.idx + 1, state.sentences.length)} / ${state.sentences.length} 문장` : "";
+}
+
+// ---- 설정 버튼 ------------------------------------------------------------
+function seg(onId, offId, on){ $(onId).setAttribute("aria-pressed", on); $(offId).setAttribute("aria-pressed", !on); }
+$("cite-strip").addEventListener("click", () => { state.stripCites = true; seg("cite-strip", "cite-keep", true); state.translations.clear(); stop(); render(); });
+$("cite-keep").addEventListener("click", () => { state.stripCites = false; seg("cite-strip", "cite-keep", false); state.translations.clear(); stop(); render(); });
+$("mode-orig").addEventListener("click", () => { state.bilingual = false; updateModeUi(); stop(); render(); });
+$("mode-bi").addEventListener("click", () => { state.bilingual = true; updateModeUi(); stop(); render(); translateFrom(state.idx); });
+function updateModeUi(){
+  const isEn = state.lang === "en";
+  $("mode-orig").disabled = $("mode-bi").disabled = !isEn || !sampleFn;
+  seg("mode-bi", "mode-orig", state.bilingual && isEn && !!sampleFn);
+  $("voice-ko").hidden = !(state.bilingual && isEn && sampleFn);
+  $("mode-hint").textContent = !sampleFn ? "번역은 claude.ai에서 이 페이지를 열었을 때만 쓸 수 있습니다."
+    : !isEn ? "지금 문서는 한국어라 번역 없이 읽습니다."
+    : "영어 한 문장을 읽고, 이어서 그 문장의 번역을 읽습니다. 번역에는 Claude 사용량이 조금 쓰입니다.";
+}
+
+// ---- 번역 (claude.ai 안에서만) ---------------------------------------------
+const BATCH = 20;
+function showTranslation(i){
+  const el = document.querySelector(`[data-tr="${i}"]`); if (!el) return;
+  const t = state.translations.get(speakText(state.sentences[i]));
+  el.textContent = t || "번역 대기 중…";
+  el.classList.toggle("wait", !t);
+}
+function translateFrom(start){
+  if (!sampleFn || !state.bilingual || state.lang !== "en") return Promise.resolve();
+  const b = Math.floor(start / BATCH);
+  if (state.pending.has(b)) return state.pending.get(b);
+  const idxs = [];
+  for (let i = b * BATCH; i < Math.min((b + 1) * BATCH, state.sentences.length); i++){
+    if (!state.translations.has(speakText(state.sentences[i]))) idxs.push(i);
+  }
+  if (!idxs.length) return Promise.resolve();
+  idxs.forEach(i => { const el = document.querySelector(`[data-tr="${i}"]`); if (el) el.textContent = "번역 중…"; });
+  const src = idxs.map(i => speakText(state.sentences[i]));
+  const prompt = "다음은 영어 학술 논문의 문장들입니다. 각 문장을 자연스러운 한국어로 번역하세요. " +
+    "전문 용어는 정확하게, 숫자와 기호는 그대로 두고, 소리 내어 읽기 좋은 문장으로 옮기세요. " +
+    "입력과 같은 순서·같은 개수의 JSON 문자열 배열로만 답하세요. 예: [\"첫 문장 번역\", \"둘째 문장 번역\"]\n\n" +
+    JSON.stringify(src);
+  const p = sampleFn.json(prompt, {modelTier: "quick", cache: {gcTime: 86400000}})
+    .then(arr => {
+      if (Array.isArray(arr)) src.forEach((s, k) => { if (typeof arr[k] === "string" && arr[k].trim()) state.translations.set(s, arr[k].trim()); });
+      idxs.forEach(showTranslation);
+    })
+    .catch(e => {
+      idxs.forEach(i => { const el = document.querySelector(`[data-tr="${i}"]`); if (el) el.textContent = ""; });
+      const hide = ["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed"];
+      if (hide.includes(e?.code)){ sampleFn = null; state.bilingual = false; updateModeUi(); }
+      $("error").textContent = e?.code === "rate_limited" ? "번역 요청이 많아 잠시 멈췄습니다. 조금 뒤에 다시 눌러 주세요."
+        : hide.includes(e?.code) ? "번역을 쓸 수 없어 원문만 읽습니다."
+        : "번역하지 못한 문장이 있습니다. 해당 문장은 원문만 읽습니다.";
+      $("error").hidden = false;
+    })
+    .finally(() => state.pending.delete(b));
+  state.pending.set(b, p);
+  return p;
+}
+
+// ---- 음성 ----------------------------------------------------------------
+const isGood = v => /google|natural|online|neural|premium|enhanced|siri|yuna|samantha/i.test(v.name);
+function fillVoices(sel, lang){
+  const all = synth.getVoices();
+  const prev = sel.value;
+  const list = all.filter(v => v.lang.toLowerCase().startsWith(lang)).sort((a, b) => isGood(b) - isGood(a));
+  sel.innerHTML = "";
+  for (const v of list.length ? list : all){
+    const o = document.createElement("option");
+    o.value = v.name; o.textContent = (isGood(v) ? "★ " : "") + v.name + " (" + v.lang + ")";
+    sel.appendChild(o);
+  }
+  if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
+  return list.length;
+}
+function loadVoices(){
+  if (!synth) return;
+  const n = fillVoices($("voice-src"), state.lang);
+  fillVoices($("voice-ko"), "ko");
+  $("voice-src").setAttribute("aria-label", (state.lang === "ko" ? "한국어" : "영어") + " 음성");
+  if (synth.getVoices().length && !n){ $("error").textContent = `이 기기에 ${state.lang === "ko" ? "한국어" : "영어"} 음성이 없어 다른 음성으로 읽습니다.`; $("error").hidden = false; }
+}
+function utter(text, sel, fallbackLang){
+  const u = new SpeechSynthesisUtterance(text);
+  const v = synth.getVoices().find(v => v.name === $(sel).value);
+  if (v){ u.voice = v; u.lang = v.lang; } else u.lang = fallbackLang;
+  u.rate = +$("rate").value;
+  return u;
+}
+
+// ---- 재생 ----------------------------------------------------------------
+function step(){
+  if (!state.playing) return;
+  if (state.idx >= state.sentences.length){ finish(); return; }
+  const s = state.sentences[state.idx];
+  const bi = state.bilingual && state.lang === "en" && sampleFn;
+  mark();
+  if (bi){ translateFrom(state.idx); translateFrom(state.idx + BATCH / 2); }
+  const text = speakText(s);
+  if (!text){ state.idx++; return step(); }
+  const u = utter(text, "voice-src", state.lang === "ko" ? "ko-KR" : "en-US");
+  u.onend = async () => {
+    if (!state.playing) return;
+    if (bi){
+      await translateFrom(state.idx);
+      if (!state.playing) return;
+      const t = state.translations.get(text);
+      if (t){
+        const k = utter(t, "voice-ko", "ko-KR");
+        k.onend = () => { if (state.playing){ state.idx++; step(); } };
+        k.onerror = onErr;
+        synth.speak(k);
+        return;
+      }
+    }
+    state.idx++; step();
+  };
+  u.onerror = onErr;
+  synth.speak(u);
+}
+function onErr(e){ if (e.error !== "interrupted" && e.error !== "canceled"){ $("error").textContent = "읽는 중 문제가 생겼습니다: " + e.error; $("error").hidden = false; finish(); } }
+async function play(){
+  if (!synth || !state.sentences.length) return;
+  if (state.idx >= state.sentences.length) state.idx = 0;
+  synth.cancel();
+  state.playing = true; state.paused = false;
+  $("play").disabled = true; $("pause").disabled = false; $("stop").disabled = false;
+  $("pause").textContent = "일시정지";
+  try { wakeLock = await navigator.wakeLock?.request("screen"); } catch {}
+  step();
+}
+function finish(){
+  state.playing = false; state.paused = false;
+  $("play").disabled = false; $("pause").disabled = true; $("stop").disabled = true;
+  $("play").textContent = state.idx >= state.sentences.length ? "▶ 처음부터" : "▶ 읽기";
+  if (state.idx >= state.sentences.length) state.idx = 0;
+  wakeLock?.release?.().catch(() => {}); wakeLock = null;
+  mark();
+}
+function stop(){ if (!state.playing && !state.paused) return; state.playing = false; synth?.cancel(); finish(); }
+$("play").addEventListener("click", play);
+$("stop").addEventListener("click", () => { stop(); state.idx = 0; $("play").textContent = "▶ 읽기"; mark(); });
+$("pause").addEventListener("click", () => {
+  if (!state.paused){ synth.pause(); state.paused = true; $("pause").textContent = "계속"; }
+  else { synth.resume(); state.paused = false; $("pause").textContent = "일시정지"; }
+});
+$("rate").addEventListener("input", e => { $("rate-val").textContent = (+e.target.value).toFixed(1) + "×"; });
+
+// ---- 시작 ----------------------------------------------------------------
+if (!synth){
+  $("error").textContent = "이 브라우저는 음성 읽기를 지원하지 않습니다. Chrome, Edge, Safari에서 열어 주세요.";
+  $("error").hidden = false; $("play").disabled = true;
+} else {
+  synth.addEventListener ? synth.addEventListener("voiceschanged", loadVoices) : (synth.onvoiceschanged = loadVoices);
+  window.addEventListener("pagehide", () => synth.cancel());
+}
+updateModeUi();
+$("ex-en").click();
+if (window.claude?.use){
+  window.claude.use("sample").then(fn => { sampleFn = fn; updateModeUi(); if (state.bilingual) render(); }).catch(() => {});
+}
+</script>
+
+</body>
+</html>
