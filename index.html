@@ -45,7 +45,10 @@ body.drag .doc{outline:2px dashed var(--accent);outline-offset:4px}
 .error{color:var(--warn);font-size:.9rem;margin:0}
 .scan{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;font-size:.85rem}
 .busy{color:var(--muted);font-size:.78rem;white-space:nowrap}
-h1{font-size:1.15rem}
+.busy:empty{display:none}
+.wrap{padding-block:18px 24px}
+.lg{display:none}
+@media (min-width:640px){.lg{display:inline}}
 /* 마우스를 올리면 보이는 설명 */
 @media (hover:hover){
   [data-tip]{position:relative}
@@ -58,15 +61,17 @@ h1{font-size:1.15rem}
 @media (min-width:640px){.dd .v{display:inline}}
 
 /* 설정 */
-/* 설정: 한 줄 드롭다운 */
-.toolbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+/* 위쪽 바: 아래 재생 바와 같은 모양 */
+.topbar{position:sticky;top:env(safe-area-inset-top, 0px);z-index:6;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:0 4px 16px rgba(20,30,45,.05);padding:10px 16px}
+.toolbar{max-width:780px;margin:0 auto;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .dd{position:relative}
-.dd>summary{list-style:none;display:flex;align-items:center;gap:4px;font-size:.8rem;padding:5px 9px;border:1px solid var(--line);border-radius:999px;background:var(--surface);cursor:pointer;white-space:nowrap;user-select:none}
+.dd>summary{list-style:none;display:flex;align-items:center;gap:6px;font-size:.85rem;line-height:1.6;padding:6px 10px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);cursor:pointer;white-space:nowrap;user-select:none}
 .dd>summary::-webkit-details-marker{display:none}
-.dd>summary::after{content:"▾";font-size:.7rem;color:var(--muted)}
+.dd>summary::after{content:"";width:6px;height:6px;margin:0 2px 3px 2px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg);opacity:.7}
 .dd>summary:hover{border-color:var(--muted)}
-.dd[open]>summary{border-color:var(--accent);background:var(--accent-soft)}
-.dd .k{color:var(--muted)}
+.dd[open]>summary{border-color:var(--accent)}
+.dd.file>summary{background:transparent;border-color:var(--accent);color:var(--accent);font-weight:500}
+.dd .k{color:var(--ink)}
 .dd .v{font-weight:600;color:var(--accent)}
 .menu{position:absolute;top:calc(100% + 6px);left:0;z-index:20;width:max-content;min-width:200px;max-width:min(300px, calc(100vw - 32px));background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 28px rgba(20,30,45,.16);padding:6px;display:grid;gap:1px}
 .menu.right{left:auto;right:0}
@@ -125,16 +130,20 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
   .status{display:none}
 }
 @media (prefers-reduced-motion:reduce){.s{transition:none}}
+@media (max-width:480px){
+  .toolbar{gap:5px}
+  .dd>summary{padding:6px 6px 6px 8px;gap:3px;font-size:.82rem}
+  .player-in{gap:5px}
+}
 </style>
 </head>
 <body>
 
 
-<div class="wrap">
-  <h1>논문 듣기</h1>
+<header class="topbar">
   <nav class="toolbar" aria-label="파일과 읽기 설정">
-    <details class="dd" id="dd-file">
-      <summary id="tip-file">파일 열기</summary>
+    <details class="dd file" id="dd-file">
+      <summary id="tip-file">파일<span class="lg"> 열기</span></summary>
       <div class="menu">
         <label class="opt" for="file" id="file-btn" tabindex="0">내 파일 열기…</label>
         <button class="opt" id="ex-en">예시: 영어 논문 (PDF)</button>
@@ -176,6 +185,9 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
     </details>
     <span class="busy" id="file-stats" aria-live="polite"></span>
   </nav>
+</header>
+
+<div class="wrap">
   <p class="error" id="error" hidden></p>
   <div class="scan" id="scan" hidden>
     <span id="scan-msg"></span>
