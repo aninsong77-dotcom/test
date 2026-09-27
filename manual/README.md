@@ -15,7 +15,7 @@
 apt-get install -y ffmpeg fluidsynth fluid-soundfont-gm
 pip install sherpa-onnx soundfile numpy scipy
 git clone --depth 1 https://github.com/aninsong77-dotcom/gonglbaki /home/user/aninsong77-dotcom/gonglbaki
-cd manual-video/video && npm ci && npx tailwindcss -c tailwind.config.js -i tw.in.css -o tw.css --minify
+cd manual/video && npm ci && npx tailwindcss -c tailwind.config.js -i tw.in.css -o tw.css --minify
 # (구글 키가 없을 때만) 오프라인 음성 모델
 # curl -L https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/vits-mimic3-ko_KO-kss_low.tar.bz2 | tar xj -C ../tts
 
