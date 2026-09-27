@@ -40,19 +40,22 @@ h1{font-size:1.5rem;margin:0;text-wrap:balance}
 .label{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.72rem;letter-spacing:.04em;color:var(--muted)}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
 
-/* 파일 */
-.file{display:grid;gap:10px;border-style:dashed;border-width:1.5px}
-.file.drag{border-color:var(--accent);background:var(--accent-soft)}
-.file-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-.file-name{font-weight:500;overflow-wrap:anywhere}
-.file-stats{color:var(--muted);font-size:.85rem}
-.formats{color:var(--muted);font-size:.82rem;margin:0}
-.examples{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:.85rem;color:var(--muted)}
-.link{font:inherit;background:none;border:0;padding:0;color:var(--accent);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+/* 파일을 화면에 끌어다 놓을 때 */
+body.drag .doc{outline:2px dashed var(--accent);outline-offset:4px}
 .error{color:var(--warn);font-size:.9rem;margin:0}
-.scan{display:grid;gap:8px;border-top:1px solid var(--line);padding-top:10px}
-.scan p{margin:0}
-.scan-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.scan{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;font-size:.85rem}
+.busy{color:var(--muted);font-size:.78rem;white-space:nowrap}
+h1{font-size:1.15rem}
+/* 마우스를 올리면 보이는 설명 */
+@media (hover:hover){
+  [data-tip]{position:relative}
+  [data-tip]:hover::before,[data-tip]:focus-visible::before{content:attr(data-tip);position:absolute;top:calc(100% + 8px);left:0;z-index:40;width:max-content;max-width:260px;white-space:pre-line;text-align:left;background:var(--ink);color:var(--bg);font-size:.75rem;font-weight:400;line-height:1.5;padding:6px 9px;border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,.18);pointer-events:none}
+  .tip-r[data-tip]:hover::before,.tip-r[data-tip]:focus-visible::before{left:auto;right:0}
+  .player [data-tip]:hover::before,.player [data-tip]:focus-visible::before{top:auto;bottom:calc(100% + 8px)}
+  .dd[open]>summary::before{display:none!important}
+}
+.dd .v{display:none}
+@media (min-width:640px){.dd .v{display:inline}}
 
 /* 설정 */
 /* 설정: 한 줄 드롭다운 */
@@ -128,89 +131,72 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
 
 
 <div class="wrap">
-  <header>
-    <h1>논문 듣기</h1>
-    <p class="lede">파일을 열면 머리말, 쪽 번호, 각주 같은 부분은 빼고 본문만 소리 내어 읽습니다. 영어 논문은 한 문장씩 한국어 번역과 번갈아 들을 수 있습니다. 아래 ‘시작’에서 장을 고르거나, 본문의 문장을 누르면 그 위치부터 읽습니다.</p>
-  </header>
-
-  <section class="card file" id="drop" aria-label="파일">
-    <div class="file-row">
-      <label class="btn" for="file" tabindex="0" id="file-btn">파일 열기</label>
-      <input type="file" id="file" accept=".pdf,.hwp,.hwpx,.txt,.xlsx,.xls,.csv,application/pdf,text/plain" hidden>
-      <div>
-        <div class="file-name" id="file-name">예시 논문</div>
-        <div class="file-stats" id="file-stats" aria-live="polite"></div>
+  <h1>논문 듣기</h1>
+  <nav class="toolbar" aria-label="파일과 읽기 설정">
+    <details class="dd" id="dd-file">
+      <summary id="tip-file">파일 열기</summary>
+      <div class="menu">
+        <label class="opt" for="file" id="file-btn" tabindex="0">내 파일 열기…</label>
+        <button class="opt" id="ex-en">예시: 영어 논문 (PDF)</button>
+        <button class="opt" id="ex-ko">예시: 한국어 논문 (TXT)</button>
       </div>
-    </div>
-    <p class="formats">PDF · 한글(HWP, HWPX) · 엑셀(XLSX, XLS, CSV) · TXT 파일을 열거나 여기에 끌어다 놓으세요.</p>
-    <div class="examples">예시로 들어보기:
-      <button class="link" id="ex-en">영어 논문 (PDF)</button> ·
-      <button class="link" id="ex-ko">한국어 논문 (TXT)</button>
-    </div>
-    <p class="error" id="error" hidden></p>
-    <div class="scan" id="scan" hidden>
-      <p id="scan-msg"></p>
-      <div class="scan-row">
-        <button class="btn" id="ocr">Claude로 글자 인식하기</button>
-        <span class="file-stats" id="ocr-status" aria-live="polite"></span>
-      </div>
-      <p class="hint" id="ocr-hint">쪽마다 이미지를 Claude에게 보내 본문 글자를 받아 옵니다. 한 쪽에 10~30초쯤 걸리고 Claude 사용량이 듭니다. 인식이 끝난 쪽부터 바로 들을 수 있습니다.</p>
-    </div>
-  </section>
-
-  <nav class="toolbar" aria-label="읽기 설정">
+    </details>
+    <input type="file" id="file" accept=".pdf,.hwp,.hwpx,.txt,.xlsx,.xls,.csv,application/pdf,text/plain" hidden>
     <details class="dd" id="dd-cite">
-      <summary><span class="k">출처</span><span class="v" id="sum-cite">빼고</span></summary>
+      <summary data-tip="본문 속 [12], (Kim, 2021) 같은 출처 표시를 읽을지 고릅니다."><span class="k">출처</span><span class="v" id="sum-cite">빼고</span></summary>
       <div class="menu">
         <button class="opt" id="cite-strip" aria-pressed="true">빼고 읽기</button>
         <button class="opt" id="cite-keep" aria-pressed="false">다 읽기</button>
-        <p class="hint">본문 속 [12], (Kim, 2021) 같은 표시</p>
       </div>
     </details>
     <details class="dd" id="dd-mode">
-      <summary><span class="k">방식</span><span class="v" id="sum-mode">원문만</span></summary>
+      <summary id="tip-mode"><span class="k">번역</span><span class="v" id="sum-mode">끔</span></summary>
       <div class="menu">
         <button class="opt" id="mode-orig" aria-pressed="true">원문만</button>
         <button class="opt" id="mode-bi" aria-pressed="false">원문 + 한국어 번역</button>
-        <p class="hint" id="mode-hint"></p>
       </div>
     </details>
     <details class="dd" id="dd-skip">
-      <summary><span class="k">빼기</span><span class="v" id="sum-skip">4개</span></summary>
+      <summary class="tip-r" data-tip="머리말·꼬리말과 쪽 번호는 항상 뺍니다. 그 밖에 뺄 부분을 고릅니다."><span class="k">빼기</span><span class="v" id="sum-skip">4개</span></summary>
       <div class="menu right">
         <label class="mcheck"><input type="checkbox" id="o-front" checked> 저자·소속</label>
         <label class="mcheck"><input type="checkbox" id="o-small" checked> 각주</label>
         <label class="mcheck"><input type="checkbox" id="o-caption" checked> 그림·표 설명</label>
         <label class="mcheck"><input type="checkbox" id="o-refs" checked> 참고문헌 목록</label>
-        <p class="hint">머리말·꼬리말과 쪽 번호는 항상 뺍니다.</p>
         <hr>
         <label class="mcheck"><input type="checkbox" id="o-show"> 뺀 부분 화면에 표시</label>
       </div>
     </details>
     <details class="dd" id="dd-voice">
-      <summary><span class="k">음성</span></summary>
+      <summary class="tip-r" data-tip="읽어 줄 목소리를 고릅니다. ★ 표시가 붙은 음성이 대체로 더 자연스럽습니다."><span class="k">음성</span></summary>
       <div class="menu right">
         <label class="field"><span class="mini" id="voice-src-l">원문</span><select id="voice-src"></select></label>
         <label class="field" id="voice-ko-wrap" hidden><span class="mini">한국어 번역</span><select id="voice-ko"></select></label>
-        <p class="hint">★ 표시가 붙은 음성이 대체로 더 자연스럽습니다.</p>
       </div>
     </details>
+    <span class="busy" id="file-stats" aria-live="polite"></span>
   </nav>
+  <p class="error" id="error" hidden></p>
+  <div class="scan" id="scan" hidden>
+    <span id="scan-msg"></span>
+    <button class="btn" id="ocr" data-tip="쪽마다 이미지를 Claude에게 보내 본문 글자를 받아 옵니다.&#10;한 쪽에 10~30초쯤 걸리고 Claude 사용량이 듭니다.&#10;인식이 끝난 쪽부터 바로 들을 수 있습니다.">Claude로 글자 인식</button>
+    <span class="busy" id="ocr-status" aria-live="polite"></span>
+  </div>
 
   <article class="card doc" id="doc" aria-label="읽을 본문"><p class="empty">불러오는 중…</p></article>
 </div>
 
 <div class="player" role="region" aria-label="재생">
   <div class="player-in">
-    <label class="jump"><select id="jump" aria-label="시작 위치"></select></label>
-    <button class="btn" id="play">▶ 읽기</button>
-    <button class="btn ghost icon" id="pause" disabled aria-label="일시정지" title="일시정지">❚❚</button>
-    <button class="btn ghost icon" id="stop" disabled aria-label="정지" title="정지">■</button>
-    <select id="rate" aria-label="속도" title="속도">
+    <label class="jump" data-tip="읽기 시작할 장을 고릅니다. 본문 문장을 눌러도 거기서부터 읽습니다."><select id="jump" aria-label="시작 위치"></select></label>
+    <button class="btn" id="play" data-tip="고른 위치부터 읽기">▶ 읽기</button>
+    <button class="btn ghost icon" id="pause" disabled aria-label="일시정지" data-tip="일시정지 / 계속">❚❚</button>
+    <button class="btn ghost icon" id="stop" disabled aria-label="정지" data-tip="멈추고 처음으로">■</button>
+    <label class="tip-r" data-tip="읽는 속도"><select id="rate" aria-label="속도">
       <option value="0.7">0.7×</option><option value="0.8">0.8×</option><option value="0.9">0.9×</option>
       <option value="1" selected>1.0×</option><option value="1.1">1.1×</option><option value="1.2">1.2×</option>
       <option value="1.3">1.3×</option><option value="1.5">1.5×</option><option value="1.7">1.7×</option><option value="2">2.0×</option>
-    </select>
+    </select></label>
     <span class="status" id="status" aria-live="polite"></span>
   </div>
 </div>
@@ -646,7 +632,7 @@ async function openFile(name, buf){
   stop();
   $("error").hidden = true;
   $("scan").hidden = true;
-  $("file-name").textContent = name;
+  state.fileName = name;
   $("file-stats").textContent = "여는 중…";
   const ext = (name.match(/\.([a-z0-9]+)$/i)?.[1] || "").toLowerCase();
   try {
@@ -687,7 +673,7 @@ $("file").addEventListener("change", async e => {
   e.target.value = "";
 });
 $("file-btn").addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " "){ e.preventDefault(); $("file").click(); } });
-const drop = $("drop");
+const drop = document.body;
 ["dragenter", "dragover"].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add("drag"); }));
 ["dragleave", "drop"].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove("drag"); }));
 drop.addEventListener("drop", async e => {
@@ -722,7 +708,8 @@ function rebuild(){
   state.idx = Math.min(state.idx, Math.max(0, state.sentences.length - 1));
   const skipped = state.blocks.filter(b => b.kind === "skip");
   const reasons = [...new Set(skipped.map(b => b.reason))];
-  $("file-stats").textContent = `${state.lang === "ko" ? "한국어" : "영어"} · 읽을 문장 ${state.sentences.length}개` +
+  $("file-stats").textContent = "";
+  state.statsText = `${state.lang === "ko" ? "한국어" : "영어"} · 읽을 문장 ${state.sentences.length}개` +
     (skipped.length ? ` · 뺀 부분: ${reasons.join(", ")}` : "");
   updateModeUi();
   loadVoices();
@@ -831,8 +818,10 @@ function mark(){
 // ---- 설정 버튼 ------------------------------------------------------------
 function seg(onId, offId, on){ $(onId).setAttribute("aria-pressed", on); $(offId).setAttribute("aria-pressed", !on); updateSummaries(); }
 function updateSummaries(){
+  $("tip-file").dataset.tip = (state.fileName ? `지금 파일: ${state.fileName}\n${state.statsText || ""}\n\n` : "") +
+    "PDF · 한글(HWP, HWPX) · 엑셀(XLSX, XLS, CSV) · TXT 파일을 엽니다. 화면에 끌어다 놓아도 됩니다.";
   $("sum-cite").textContent = state.stripCites ? "빼고" : "다 읽기";
-  $("sum-mode").textContent = state.bilingual && state.lang === "en" && sampleFn ? "원문+번역" : "원문만";
+  $("sum-mode").textContent = state.bilingual && state.lang === "en" && sampleFn ? "켬" : "끔";
   $("sum-skip").textContent = ["o-front", "o-small", "o-caption", "o-refs"].filter(id => $(id).checked).length + "개";
 }
 // 드롭다운: 하나만 열고, 바깥을 누르거나 항목을 고르면 닫는다
@@ -851,7 +840,7 @@ function updateModeUi(){
   $("mode-orig").disabled = $("mode-bi").disabled = !isEn || !sampleFn;
   seg("mode-bi", "mode-orig", state.bilingual && isEn && !!sampleFn);
   $("voice-ko-wrap").hidden = !(state.bilingual && isEn && sampleFn);
-  $("mode-hint").textContent = !sampleFn ? "번역은 claude.ai에서 이 페이지를 열었을 때만 쓸 수 있습니다."
+  $("tip-mode").dataset.tip = !sampleFn ? "번역은 claude.ai에서 이 페이지를 열었을 때만 쓸 수 있습니다."
     : !isEn ? "지금 문서는 한국어라 번역 없이 읽습니다."
     : "영어 한 문장을 읽고, 이어서 그 문장의 번역을 읽습니다. 번역에는 Claude 사용량이 조금 쓰입니다.";
 }
@@ -908,9 +897,8 @@ function checkScan(){
   const empty = chars.slice(1).filter(c => c < 80).length;
   if (empty < Math.max(1, src.pages * 0.5)) return;
   $("scan").hidden = false;
-  $("scan-msg").textContent = `스캔한 이미지로 된 PDF로 보입니다. ${src.pages}쪽 중 ${empty}쪽에 읽을 글자가 없습니다.`;
+  $("scan-msg").textContent = `스캔본 PDF라 ${src.pages}쪽 중 ${empty}쪽에 글자가 없습니다.`;
   $("ocr").hidden = !sampleFn;
-  $("ocr-hint").hidden = !sampleFn;
   $("ocr-status").textContent = sampleFn ? "" : "글자 인식은 claude.ai에서 이 페이지를 열었을 때만 쓸 수 있습니다.";
   if (sampleFn) sampleFn.limits().then(l => { if (!l?.images){ $("ocr").hidden = true; $("ocr-status").textContent = "이 화면에서는 이미지를 Claude에게 보낼 수 없어 글자 인식을 쓸 수 없습니다."; } }).catch(() => {});
 }
@@ -958,7 +946,7 @@ async function runOcr(){
   } finally {
     ocrAbort = null;
     $("ocr").textContent = "다시 인식하기";
-    if (src.ocrParts.length) $("scan-msg").textContent = "스캔한 PDF라서 Claude가 인식한 글자로 읽습니다.";
+    if (src.ocrParts.length) $("scan-msg").textContent = "스캔본이라 Claude가 인식한 글자로 읽습니다.";
     if (!/멈췄/.test($("ocr-status").textContent)){
       $("ocr-status").textContent = signal.aborted ? "글자 인식을 멈췄습니다." : failed ? `인식 완료 (${failed}쪽은 인식하지 못했습니다)` : "글자 인식 완료";
     }
