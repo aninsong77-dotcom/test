@@ -32,6 +32,7 @@
   --skip-bg:#161c23; --warn:#e0a44a;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:15px;line-height:1.6}
 .wrap{max-width:780px;margin:0 auto;padding-inline:16px;padding-block:28px 24px;display:grid;gap:18px}
 h1{font-size:1.5rem;margin:0;text-wrap:balance}
@@ -54,21 +55,40 @@ h1{font-size:1.5rem;margin:0;text-wrap:balance}
 .scan-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 
 /* 설정 */
-.settings{display:grid;grid-template-columns:1fr 1fr;gap:16px 20px}
-.group{display:grid;gap:6px;min-width:0;align-content:start}
-.group.wide{grid-column:1/-1}
-.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;width:fit-content;max-width:100%}
-.seg button{font:inherit;font-size:.88rem;padding:7px 12px;border:0;background:var(--surface);color:var(--ink);cursor:pointer}
-.seg button+button{border-left:1px solid var(--line)}
-.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
-.seg button:disabled{opacity:.45;cursor:default}
-.chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{display:inline-flex;align-items:center;gap:6px;font-size:.88rem;padding:5px 10px;border:1px solid var(--line);border-radius:999px;cursor:pointer;background:var(--surface)}
-.chip:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
-.chip input{accent-color:var(--accent);margin:0}
+.settings{padding-block:2px;display:grid}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px 20px;padding-block:14px}
+.row+.row{border-top:1px solid var(--line)}
+.row.stack{grid-template-columns:1fr}
+.row-t{font-weight:500}
+.row-l{display:grid;gap:2px;min-width:0}
 .hint{color:var(--muted);font-size:.8rem;margin:0}
-select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px;width:100%}
-.voices{display:grid;gap:8px}
+/* 둘 중 하나 고르기 */
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:2px;padding:3px;background:var(--bg);border:1px solid var(--line);border-radius:10px;min-width:220px}
+.seg button{font:inherit;font-size:.88rem;padding:7px 14px;border:0;border-radius:7px;background:transparent;color:var(--muted);cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
+.seg button:hover:not(:disabled){color:var(--ink)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);font-weight:600;box-shadow:0 1px 3px rgba(20,30,45,.15)}
+.seg button:disabled{opacity:.45;cursor:default}
+/* 켜고 끄는 항목 */
+.toggles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.tog{position:relative;display:flex;align-items:center;gap:8px;font-size:.88rem;padding:9px 12px;border:1px solid var(--line);border-radius:9px;cursor:pointer;background:var(--surface);transition:background .15s,border-color .15s}
+.tog input{position:absolute;opacity:0;pointer-events:none}
+.tog .box{flex:none;width:16px;height:16px;border:1.5px solid var(--muted);border-radius:4px;display:grid;place-items:center;font-size:11px;line-height:1;color:var(--accent-ink)}
+.tog:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.tog:has(input:checked) .box{background:var(--accent);border-color:var(--accent)}
+.tog:has(input:checked) .box::after{content:"✓";font-weight:700}
+.tog:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
+/* 스위치 */
+.switch{position:relative;display:inline-block;width:44px;height:26px;flex:none}
+.switch input{position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer}
+.switch span{position:absolute;inset:0;border-radius:999px;background:var(--line);transition:background .15s;pointer-events:none}
+.switch span::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--surface);box-shadow:0 1px 2px rgba(0,0,0,.25);transition:transform .15s}
+.switch input:checked+span{background:var(--accent)}
+.switch input:checked+span::after{transform:translateX(18px)}
+.switch input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px;width:100%}
+.voice-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.field{display:grid;gap:4px;min-width:0}
+.mini{font-size:.78rem;color:var(--muted)}
 
 /* 본문 */
 .doc{padding:22px 24px;font-size:1rem;line-height:1.85;display:grid;gap:12px}
@@ -93,22 +113,27 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
 .empty{color:var(--muted)}
 
 /* 재생 바 */
-.player{position:sticky;bottom:0;z-index:5;background:var(--surface);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom, 0px))}
-.player-in{max-width:780px;margin:0 auto;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.player{position:sticky;bottom:0;z-index:5;background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -4px 16px rgba(20,30,45,.06);padding:10px 16px calc(12px + env(safe-area-inset-bottom, 0px))}
+.player-in{max-width:780px;margin:0 auto;display:grid;gap:10px}
+.p-row{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between}
 .btn{font:inherit;font-weight:500;padding:8px 16px;border-radius:8px;border:1px solid var(--accent);cursor:pointer;background:var(--accent);color:var(--accent-ink)}
 .btn.ghost{background:transparent;color:var(--accent)}
 .btn:disabled{opacity:.45;cursor:default}
-.jump{display:flex;align-items:center;gap:6px;white-space:nowrap;font-size:.85rem;color:var(--muted);flex:1 1 200px;min-width:0;max-width:320px}
-.jump select{padding:6px;min-width:0}
-.rate{display:flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted)}
-.rate input{width:110px;accent-color:var(--accent)}
-.num{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;font-size:.82rem}
-.status{color:var(--muted);font-size:.85rem;margin-left:auto}
+.transport{display:flex;gap:6px}
+.transport #play{min-width:112px}
+.jump{display:flex;align-items:center;gap:8px;white-space:nowrap;font-size:.85rem;color:var(--muted);flex:1 1 240px;min-width:0}
+.jump select{padding:7px;min-width:0}
+.rate{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--muted)}
+.rate input{width:120px;accent-color:var(--accent)}
+.status{color:var(--muted);font-size:.82rem;white-space:nowrap;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 @media (max-width:600px){
-  .settings{grid-template-columns:1fr}
+  .row{grid-template-columns:1fr}
+  .seg{min-width:0;width:100%}
+  .toggles{grid-template-columns:1fr 1fr}
+  .row.switch-row{grid-template-columns:minmax(0,1fr) auto}
   .doc{padding:16px}
-  .status{margin-left:0;width:100%}
+  .rate input{width:90px}
 }
 @media (prefers-reduced-motion:reduce){.s{transition:none}}
 </style>
@@ -148,36 +173,39 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
   </section>
 
   <section class="card settings" aria-label="읽기 설정">
-    <div class="group">
-      <span class="label" id="cite-l">본문 속 출처 [12], (Kim, 2021)</span>
+    <div class="row">
+      <div class="row-l"><div class="row-t" id="cite-l">본문 속 출처</div><p class="hint">[12], (Kim, 2021) 같은 표시</p></div>
       <div class="seg" role="group" aria-labelledby="cite-l">
         <button id="cite-strip" aria-pressed="true">빼고 읽기</button>
         <button id="cite-keep" aria-pressed="false">다 읽기</button>
       </div>
     </div>
-    <div class="group">
-      <span class="label" id="mode-l">영어 논문 읽는 방식</span>
+    <div class="row">
+      <div class="row-l"><div class="row-t" id="mode-l">영어 논문 읽는 방식</div><p class="hint" id="mode-hint">영어 한 문장을 읽고, 이어서 그 문장의 번역을 읽습니다.</p></div>
       <div class="seg" role="group" aria-labelledby="mode-l">
         <button id="mode-orig" aria-pressed="true">원문만</button>
-        <button id="mode-bi" aria-pressed="false">원문 + 한국어 번역</button>
+        <button id="mode-bi" aria-pressed="false">원문 + 번역</button>
       </div>
-      <p class="hint" id="mode-hint">영어 한 문장을 읽고, 이어서 그 문장의 번역을 읽습니다.</p>
     </div>
-    <div class="group wide">
-      <span class="label">빼고 읽을 부분</span>
-      <div class="chips">
-        <label class="chip"><input type="checkbox" id="o-front" checked> 저자·소속</label>
-        <label class="chip"><input type="checkbox" id="o-small" checked> 각주</label>
-        <label class="chip"><input type="checkbox" id="o-caption" checked> 그림·표·설명</label>
-        <label class="chip"><input type="checkbox" id="o-refs" checked> 참고문헌 목록</label>
-        <label class="chip"><input type="checkbox" id="o-show"> 뺀 부분 화면에 표시</label>
+    <div class="row stack">
+      <div class="row-l"><div class="row-t">빼고 읽을 부분</div><p class="hint">머리말·꼬리말과 쪽 번호는 항상 뺍니다.</p></div>
+      <div class="toggles">
+        <label class="tog"><input type="checkbox" id="o-front" checked><span class="box" aria-hidden="true"></span>저자·소속</label>
+        <label class="tog"><input type="checkbox" id="o-small" checked><span class="box" aria-hidden="true"></span>각주</label>
+        <label class="tog"><input type="checkbox" id="o-caption" checked><span class="box" aria-hidden="true"></span>그림·표 설명</label>
+        <label class="tog"><input type="checkbox" id="o-refs" checked><span class="box" aria-hidden="true"></span>참고문헌 목록</label>
       </div>
-      <p class="hint">머리말·꼬리말과 쪽 번호는 항상 뺍니다.</p>
     </div>
-    <div class="group wide voices">
-      <span class="label">음성 (★ 표시가 대체로 더 자연스럽습니다)</span>
-      <select id="voice-src" aria-label="원문 음성"></select>
-      <select id="voice-ko" aria-label="번역 음성" hidden></select>
+    <div class="row switch-row">
+      <div class="row-l"><label class="row-t" for="o-show">뺀 부분 화면에 표시</label><p class="hint">무엇을 뺐는지 취소선으로 보여 줍니다.</p></div>
+      <span class="switch"><input type="checkbox" id="o-show" role="switch"><span></span></span>
+    </div>
+    <div class="row stack">
+      <div class="row-l"><div class="row-t">음성</div><p class="hint">★ 표시가 붙은 음성이 대체로 더 자연스럽습니다.</p></div>
+      <div class="voice-grid">
+        <label class="field"><span class="mini" id="voice-src-l">원문</span><select id="voice-src"></select></label>
+        <label class="field" id="voice-ko-wrap" hidden><span class="mini">한국어 번역</span><select id="voice-ko"></select></label>
+      </div>
     </div>
   </section>
 
@@ -186,12 +214,18 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
 
 <div class="player" role="region" aria-label="재생">
   <div class="player-in">
-    <label class="jump" for="jump">시작 <select id="jump"></select></label>
-    <button class="btn" id="play">▶ 읽기</button>
-    <button class="btn ghost" id="pause" disabled>일시정지</button>
-    <button class="btn ghost" id="stop" disabled>정지</button>
-    <label class="rate" for="rate">속도 <input type="range" id="rate" min="0.6" max="2" step="0.1" value="1"> <span class="num" id="rate-val">1.0×</span></label>
-    <span class="status" id="status" aria-live="polite"></span>
+    <div class="p-row">
+      <label class="jump" for="jump">시작 위치 <select id="jump"></select></label>
+      <span class="status" id="status" aria-live="polite"></span>
+    </div>
+    <div class="p-row">
+      <div class="transport">
+        <button class="btn" id="play">▶ 읽기</button>
+        <button class="btn ghost" id="pause" disabled>일시정지</button>
+        <button class="btn ghost" id="stop" disabled>정지</button>
+      </div>
+      <label class="rate" for="rate">속도 <input type="range" id="rate" min="0.6" max="2" step="0.1" value="1"> <span class="num" id="rate-val">1.0×</span></label>
+    </div>
   </div>
 </div>
 
@@ -818,7 +852,7 @@ function updateModeUi(){
   const isEn = state.lang === "en";
   $("mode-orig").disabled = $("mode-bi").disabled = !isEn || !sampleFn;
   seg("mode-bi", "mode-orig", state.bilingual && isEn && !!sampleFn);
-  $("voice-ko").hidden = !(state.bilingual && isEn && sampleFn);
+  $("voice-ko-wrap").hidden = !(state.bilingual && isEn && sampleFn);
   $("mode-hint").textContent = !sampleFn ? "번역은 claude.ai에서 이 페이지를 열었을 때만 쓸 수 있습니다."
     : !isEn ? "지금 문서는 한국어라 번역 없이 읽습니다."
     : "영어 한 문장을 읽고, 이어서 그 문장의 번역을 읽습니다. 번역에는 Claude 사용량이 조금 쓰입니다.";
@@ -872,7 +906,7 @@ function checkScan(){
   const src = state.source;
   if (!src || src.type !== "pdf" || src.ocrParts) return;
   const chars = new Array(src.pages + 1).fill(0);
-  for (const b of state.blocks) if (b.kind !== "skip" && b.page) chars[b.page] += b.text.length;
+  for (const l of src.lines) if (!["header", "pagenum", "margin"].includes(l.kind)) chars[l.page] += l.text.length;
   const empty = chars.slice(1).filter(c => c < 80).length;
   if (empty < Math.max(1, src.pages * 0.5)) return;
   $("scan").hidden = false;
@@ -954,7 +988,7 @@ function loadVoices(){
   if (!synth) return;
   const n = fillVoices($("voice-src"), state.lang);
   fillVoices($("voice-ko"), "ko");
-  $("voice-src").setAttribute("aria-label", (state.lang === "ko" ? "한국어" : "영어") + " 음성");
+  $("voice-src-l").textContent = state.lang === "ko" ? "한국어 원문" : "영어 원문";
   if (synth.getVoices().length && !n){ $("error").textContent = `이 기기에 ${state.lang === "ko" ? "한국어" : "영어"} 음성이 없어 다른 음성으로 읽습니다.`; $("error").hidden = false; }
 }
 function utter(text, sel, fallbackLang){
