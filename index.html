@@ -223,9 +223,9 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
     <details class="dd" id="dd-skip">
       <summary class="tip-r" data-tip="머리말·꼬리말과 쪽 번호는 항상 뺍니다. 그 밖에 뺄 부분을 고릅니다."><span class="k">빼기</span><span class="v" id="sum-skip">4개</span></summary>
       <div class="menu right">
-        <label class="mcheck"><input type="checkbox" id="o-front" checked> 저자·소속</label>
+        <label class="mcheck"><input type="checkbox" id="o-front" checked> 저자·소속·키워드</label>
         <label class="mcheck"><input type="checkbox" id="o-small" checked> 각주</label>
-        <label class="mcheck"><input type="checkbox" id="o-caption" checked> 그림·표 설명</label>
+        <label class="mcheck"><input type="checkbox" id="o-caption" checked> 그림·표 설명·코드</label>
         <label class="mcheck"><input type="checkbox" id="o-refs" checked> 참고문헌 목록</label>
         <hr>
         <label class="mcheck"><input type="checkbox" id="o-show"> 뺀 부분 화면에 표시</label>
@@ -282,7 +282,7 @@ async function extractLines(pdf, onProgress){
     const vp = page.getViewport({scale: 1});
     const tc = await page.getTextContent();
     let cur = null;
-    const flush = () => { if (cur && cur.text.trim()){ cur.text = cur.text.replace(/\s+/g, " ").trim(); lines.push(cur); } cur = null; };
+    const flush = () => { if (cur && cur.text.trim()){ cur.text = fixAccents(cur.text.replace(/\s+/g, " ").trim()); lines.push(cur); } cur = null; };
     for (const it of tc.items){
       if (!("str" in it)) continue;
       const [a, b, c, d, x, y] = it.transform;
@@ -290,16 +290,25 @@ async function extractLines(pdf, onProgress){
       const size = Math.hypot(c, d) || it.height || 10;
       const w = it.width || 0;
       if (!it.str){ if (it.hasEOL) flush(); continue; }
-      const sameLine = cur && cur.rotated === rotated && Math.abs(y - cur.y) < size * 0.5 && x > cur.xEnd - size * 1.5;
+      const tol = Math.max(size, cur ? cur.size : 0) * 0.5;
+      const sameLine = cur && cur.rotated === rotated && Math.abs(y - cur.y) < tol && x > cur.xEnd - size * 1.5;
+      // 각주 번호·저자 표시 같은 위첨자(작고 위로 올라간 숫자·기호)는 읽지 않는다
+      if (sameLine && size < cur.size * 0.8 && y > cur.y + cur.size * 0.15 && /^[\d,∗*†‡§¶#]{1,4}$/.test(it.str.trim())){
+        cur.xEnd = Math.max(cur.xEnd, x + w);
+        if (it.hasEOL) flush();
+        continue;
+      }
       if (!sameLine){
         flush();
-        cur = {text: "", x, y, xEnd: x, size, sizeChars: 0, rotated, page: p, pageH: vp.height, pageW: vp.width};
+        cur = {text: "", x, y, xEnd: x, size, sizeChars: 0, chars: 0, monoChars: 0, rotated, page: p, pageH: vp.height, pageW: vp.width};
       }
       const gap = x - cur.xEnd;
       if (cur.text && gap > size * 0.15 && !/\s$/.test(cur.text) && !/^\s/.test(it.str)) cur.text += " ";
       cur.text += it.str;
       cur.xEnd = Math.max(cur.xEnd, x + w);
       const n = it.str.trim().length;
+      cur.chars += n;
+      if (tc.styles[it.fontName]?.fontFamily === "monospace") cur.monoChars += n;
       if (n > cur.sizeChars){ cur.size = size; cur.sizeChars = n; }
       if (it.hasEOL) flush();
     }
@@ -309,11 +318,21 @@ async function extractLines(pdf, onProgress){
   return lines;
 }
 
+// LaTeX PDF에서 따로 떨어져 나오는 악센트 기호를 글자와 합친다 (na¨ıve → naïve)
+const ACCENTS = {"\u00A8": "\u0308", "\u00B4": "\u0301", "`": "\u0300", "\u02C6": "\u0302", "\u02DC": "\u0303", "\u00B8": "\u0327"};
+function fixAccents(t){
+  return t.replace(/([\u00A8\u00B4`\u02C6\u02DC\u00B8])\s?([A-Za-zı])/g, (m, a, c) => (c === "ı" ? "i" : c) + ACCENTS[a]).normalize("NFC");
+}
+
 const RE_PAGENUM = /^(?:page\s*|p\.\s*)?[-–—(\[]?\s*(?:\d{1,4}|[ivxlc]{1,6})\s*[-–—)\]]?(?:\s*(?:\/|of)\s*\d{1,4})?$/i;
 const RE_ABSTRACT = /^(?:abstract|summary|초\s*록|국문\s*초록|요\s*약|요\s*지)(?![A-Za-z가-힣])/i;
 const RE_REFS = /^(?:[\dIVX]+\.?\s*)?(?:references?|bibliography|literature cited|works cited|참\s*고\s*문\s*헌|인용\s*문헌)\s*$/i;
-const RE_CAPTION = /^[<\[(]?\s*(?:fig(?:ure)?\.?|table|tab\.|그림|표|사진|도표)\s*\d+(?:[.-]\d+)?\s*[>\])]?\s*[.:：]?/i;
-const RE_HEADING = /^(?:\d+(?:\.\d+){0,3}\.?|[IVX]{1,5}\.|[A-Z]\.|제\s*\d+\s*[장절])\s+\S/;
+// "Figure 3. …", "Table 2: …", "<그림 1> …", "[표 2] …" 처럼 번호 뒤에 구두점이나 괄호가 있어야 캡션으로 본다
+// ("Figure 3 shows …" 같은 본문 문장은 캡션이 아니다)
+const RE_CAPTION = /^(?:[<\[(]\s*(?:fig(?:ure)?\.?|table|tab\.|그림|표|사진|도표)\s*\d+(?:[.-]\d+)?\s*[>\])]|(?:fig(?:ure)?\.?|table|tab\.|그림|표|사진|도표)\s*\d+(?:[.-]\d+)?\s*[.:：|]|(?:그림|표|사진|도표)\s*\d+(?:[.-]\d+)?\s)/i;
+// 번호 뒤 첫 글자가 대문자나 한글이고, 코드 기호가 없어야 소제목으로 본다 ("1 for (var i …" 제외)
+const RE_HEADING = /^(?:\d+(?:\.\d+){0,3}\.?|[IVX]{1,5}\.|[A-Z]\.|제\s*\d+\s*[장절])\s+[A-Z가-힣"“'‘][^{}();=<>\[\]]*$/;
+const RE_FRONT_META = /^(?:keywords?|key\s*words|index terms|categories and subject descriptors|general terms|ccs concepts|acm reference format|jel classification|주제어|핵심어|키워드|검색어)\b/i;
 
 function classify(lines, opt){
   const nPages = lines.length ? lines[lines.length - 1].page : 0;
@@ -333,7 +352,7 @@ function classify(lines, opt){
   // 초록이 앞 2쪽 안에 있으면 그 앞(제목 제외)은 저자·소속 정보로 본다
   const absIdx = lines.findIndex(l => l.page <= 2 && RE_ABSTRACT.test(l.text));
 
-  let inRefs = false, inCaption = null;
+  let inRefs = false, inCaption = null, inMeta = false;
   lines.forEach((l, i) => {
     l.kind = "body"; l.reason = "";
     const t = l.text;
@@ -345,6 +364,12 @@ function classify(lines, opt){
     if (inRefs){ skip("refs", "참고문헌"); return; }
     if (RE_REFS.test(t)){ inRefs = opt.refs; if (inRefs){ skip("refs", "참고문헌"); return; } }
     if (opt.front && absIdx > 0 && i < absIdx && l.size < bodySize * 1.3){ skip("front", "저자·소속"); return; }
+    if (opt.front && l.page <= 2 && RE_FRONT_META.test(t)){ inMeta = true; skip("front", "키워드·분류"); return; }
+    if (inMeta){
+      const prev = lines[i - 1];
+      if (prev && prev.page === l.page && Math.abs(prev.y - l.y) < l.size * 1.6 && !RE_HEADING.test(t) && !RE_FRONT_META.test(t) && !/[.。]$/.test(prev.text)){ skip("front", "키워드·분류"); return; }
+      inMeta = false;
+    }
 
     if (inCaption){
       const prev = lines[i - 1];
@@ -353,6 +378,11 @@ function classify(lines, opt){
       inCaption = null;
     }
     if (opt.caption && RE_CAPTION.test(t)){ inCaption = l; skip("caption", "그림·표 설명"); return; }
+    // 고정폭 글꼴로 된 줄 중에 코드처럼 생긴 줄(= ; { } // := 또는 줄 번호), 그리고 그 바로 아래 이어지는 고정폭 줄
+    const mono = l.chars >= 3 && l.monoChars / l.chars > 0.8;
+    const prevL = lines[i - 1];
+    const codeLike = /[;{}=]|\/\/|:=|^\d+\s/.test(t) || (prevL?.kind === "code" && prevL.page === l.page && Math.abs(prevL.y - l.y) < l.size * 1.8);
+    if (opt.caption && mono && codeLike){ skip("code", "코드"); return; }
     if (opt.small && l.size < bodySize * 0.88){ skip("small", "각주·작은 글씨"); return; }
 
     const short = t.length < 70 && !/[.,;:。]$/.test(t);
@@ -401,6 +431,7 @@ function buildBlocks(lines){
     }
     if (newPara){ closePara(); para = {kind: "para", page: l.page, text: l.text}; }
     else if (/[A-Za-z]-$/.test(para.text) && /^[a-z]/.test(l.text)) para.text = para.text.slice(0, -1) + l.text;
+    else if (/[A-Za-z]-$/.test(para.text) && /^[A-Z0-9]/.test(l.text)) para.text += l.text;
     else para.text += " " + l.text;
     prev = l;
   }
