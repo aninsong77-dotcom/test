@@ -141,6 +141,11 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
   .status{display:none}
 }
 @media (prefers-reduced-motion:reduce){.s{transition:none}}
+/* 글 붙여넣기 */
+.paste{display:grid;gap:10px;padding:12px}
+.paste textarea{font:inherit;font-size:.95rem;line-height:1.6;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;width:100%;resize:vertical;min-height:140px}
+.paste textarea:focus{outline:2px solid var(--accent);outline-offset:1px}
+.paste-row{display:flex;gap:6px;justify-content:flex-end}
 /* 이 버전에서 안 되는 기능 */
 .dd.off>summary{color:var(--muted)}
 .dd.off .k{color:var(--muted)}
@@ -200,6 +205,7 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
       <summary id="tip-file">파일<span class="lg"> 열기</span></summary>
       <div class="menu">
         <label class="opt" for="file" id="file-btn" tabindex="0">내 파일 열기…</label>
+        <button class="opt" id="paste-open">글 붙여넣기…</button>
         <button class="opt" id="ex-en">예시: 영어 논문 (PDF)</button>
         <button class="opt" id="ex-ko">예시: 한국어 논문 (TXT)</button>
       </div>
@@ -244,6 +250,13 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
 
 <div class="wrap">
   <p class="error" id="error" hidden></p>
+  <section class="card paste" id="paste-box" hidden aria-label="글 붙여넣기">
+    <textarea id="paste-text" rows="8" placeholder="읽을 글을 여기에 붙여 넣으세요. 논문 PDF나 웹페이지에서 복사한 글도 됩니다."></textarea>
+    <div class="paste-row">
+      <button class="btn" id="paste-go">이 글 읽기</button>
+      <button class="btn ghost" id="paste-close">닫기</button>
+    </div>
+  </section>
   <div class="scan" id="scan" hidden>
     <span id="scan-msg"></span>
     <a class="btn ghost" id="ocr-elsewhere" href="#" target="_blank" rel="noopener" hidden>claude.ai 버전에서 열기</a>
@@ -841,6 +854,27 @@ drop.addEventListener("drop", async e => {
 $("ex-en").addEventListener("click", () => openFile("예시 논문 (영어).pdf", Uint8Array.from(atob(SAMPLE_PDF_B64), c => c.charCodeAt(0)).buffer));
 $("ex-ko").addEventListener("click", () => openFile("예시 논문 (한국어).txt", new TextEncoder().encode(SAMPLE_TXT).buffer));
 
+// ---- 글 붙여넣기: 메뉴의 입력 칸, 또는 화면 아무 데서나 Ctrl+V ----------------------
+const openPasted = text => {
+  if (!text.trim()) return;
+  $("paste-box").hidden = true;
+  openFile("붙여넣은 글.txt", new TextEncoder().encode(text).buffer);
+};
+$("paste-open").addEventListener("click", () => { $("paste-box").hidden = false; $("paste-text").focus(); });
+$("paste-close").addEventListener("click", () => { $("paste-box").hidden = true; });
+$("paste-go").addEventListener("click", () => {
+  if (!$("paste-text").value.trim()){ $("paste-text").focus(); return; }
+  openPasted($("paste-text").value);
+});
+document.addEventListener("paste", e => {
+  if (e.target.closest?.("textarea, input, select")) return;
+  const text = e.clipboardData?.getData("text/plain") || "";
+  if (text.trim().length < 2) return;
+  e.preventDefault();
+  $("paste-text").value = text;
+  openPasted(text);
+});
+
 // ---- 분류 → 문장 ----------------------------------------------------------
 function rebuild(){
   if (!state.source) return;
@@ -985,7 +1019,7 @@ function mark(){
 function seg(onId, offId, on){ $(onId).setAttribute("aria-pressed", on); $(offId).setAttribute("aria-pressed", !on); updateSummaries(); }
 function updateSummaries(){
   $("tip-file").dataset.tip = (state.fileName ? `지금 파일: ${state.fileName}\n${state.statsText || ""}\n\n` : "") +
-    "PDF · 한글(HWP, HWPX) · 엑셀(XLSX, XLS, CSV) · TXT 파일을 엽니다. 화면에 끌어다 놓아도 됩니다.";
+    "PDF · 한글(HWP, HWPX) · 엑셀(XLSX, XLS, CSV) · TXT 파일을 엽니다. 화면에 끌어다 놓아도 됩니다.\n복사한 글은 ‘글 붙여넣기’나 Ctrl+V로 넣을 수 있습니다.";
   $("sum-cite").textContent = state.stripCites ? "빼고" : "다 읽기";
   $("sum-mode").textContent = claudeState === "off" ? "안 됨" : state.bilingual && state.lang === "en" && sampleFn ? "켬" : "끔";
   $("sum-skip").textContent = ["o-front", "o-small", "o-caption", "o-refs"].filter(id => $(id).checked).length + "개";
