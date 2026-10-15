@@ -1,0 +1,1387 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>통계 사다리</title>
+<meta name="description" content="질문에 답하며 사다리를 내려가 내 연구 설계에 맞는 통계 기법을 찾는 시제품">
+<link rel="icon" href="favicon.ico">
+
+<!--
+  ================================================================
+  갈림길 규칙 (화면 코드와 분리된 데이터)
+  ----------------------------------------------------------------
+  규칙만 고치려면 아래 JSON만 손보면 됩니다. 화면 코드는 건드릴 필요가 없습니다.
+  화면의 [AI 지식 규칙] 메뉴에서 규칙 파일을 내려받아 고친 뒤 다시 불러올 수도 있습니다.
+
+  start        : 첫 질문의 id
+  stepNames    : 질문 번호(step)별 이름
+  gate         : 모든 도착점 바로 앞에 묻는 5번 질문 (매개·조절)
+                 options[].next 는 "@result"(결과로) 또는 "@outOfScope"(범위 밖 안내)
+  nodes        : 질문들. id를 키로 씀
+    step       : 질문 번호 ("1"~"5", "3+"은 3번의 덧붙임 질문)
+    title      : 지도에 보이는 짧은 이름
+    question   : 화면에 보이는 질문 (쉬운 말, 통계 용어는 괄호로)
+    help       : "설명 보기" 내용 { text, example }
+    options[]  : 선택지 { label(쉬운 말), term(통계 용어), short(지도·경로용 짧은 말), next(다음 질문 id 또는 결과 id), source }
+  results      : 도착점(기법). { name, en, reason, alt(대안), source }
+  source       : 근거 { tag: "자료 근거" | "AI 지식" | "근거 없음", ref: 자료의 위치, note: 메모 }
+  ================================================================
+-->
+<script type="application/json" id="rules-data">
+{
+  "version": "0.1",
+  "updated": "2026-10-15",
+  "start": "q1",
+  "stepNames": {
+    "1": "알고 싶은 것",
+    "2": "결과로 잰 것",
+    "3": "원인 쪽에 놓은 것",
+    "3+": "원인 쪽 · 통제할 점수",
+    "4": "여러 번 측정했는지",
+    "5": "다른 변인이 있는지"
+  },
+  "gate": {
+    "step": "5",
+    "title": "다른 변인 확인",
+    "question": "원인과 결과 사이를 거쳐 가거나, 효과의 크기를 바꾸는 다른 변인이 있나요?",
+    "help": {
+      "text": "사이를 거쳐 가는 변인(매개변인)은 '원인 → 그 변인 → 결과'처럼 원인의 영향을 결과로 전달합니다. 효과를 바꾸는 변인(조절변인)은 그 변인의 수준에 따라 원인의 효과가 커지거나 작아지게 합니다. 앞에서 이미 원인 쪽에 넣은 기준은 빼고 생각하세요.",
+      "example": "거쳐 가는 예: 능력주의 신념 → 사회비교경향성 → 외집단 혐오. 바꾸는 예: 스트레스가 우울에 미치는 영향이 사회적 지지가 높은 사람에게서는 약하다."
+    },
+    "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "사용자 요청 질문 흐름 5번. 매개·조절은 이번 버전 범위 밖이라 안내만 함." },
+    "options": [
+      { "label": "없음", "term": "", "short": "다른 변인 없음", "next": "@result",
+        "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+      { "label": "있음, 사이를 거쳐 가는 변인", "term": "매개변인", "short": "매개 있음", "next": "@outOfScope",
+        "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "이번 버전 범위 밖" } },
+      { "label": "있음, 효과의 크기를 바꾸는 변인", "term": "조절변인", "short": "조절 있음", "next": "@outOfScope",
+        "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "이번 버전 범위 밖" } }
+    ]
+  },
+  "nodes": {
+    "q1": {
+      "step": "1", "title": "알고 싶은 것",
+      "question": "연구에서 가장 알고 싶은 것은 무엇인가요?",
+      "help": {
+        "text": "연구 질문을 한 문장으로 써 보고 가장 가까운 것을 고르세요. '~에 따라 다른가?'는 차이, '~할수록 ~한가?'는 같이 움직임, '~로 ~를 얼마나 설명·예측하나?'는 예측입니다.",
+        "example": "'남녀의 우울 점수가 다른가?' → 집단끼리 차이 / '공부 시간이 길수록 성적도 높은가?' → 같이 움직임 / '자존감과 스트레스로 우울을 얼마나 설명하나?' → 예측"
+      },
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "사용자 요청 질문 흐름 1번" },
+      "options": [
+        { "label": "집단끼리 차이가 있는지", "term": "차이 검정", "short": "집단 차이", "next": "q2_diff",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+        { "label": "두 가지가 같이 움직이는지", "term": "상관·관련성", "short": "같이 움직임", "next": "q2_rel",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+        { "label": "무엇으로 무엇을 예측하는지", "term": "회귀·예측", "short": "예측", "next": "q2_pred",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } }
+      ]
+    },
+
+    "q2_diff": {
+      "step": "2", "title": "결과로 잰 것",
+      "question": "집단끼리 비교할 결과는 무엇으로 쟀나요?",
+      "help": {
+        "text": "숫자는 평균을 낼 수 있는 것(설문 척도 점수, 시험 점수, 반응 시간 등)이고, 분류는 사람 수를 세는 것(합격/불합격, 좋아하는 유형 등)입니다.",
+        "example": "우울 척도 총점 → 숫자 / 상담 신청 여부(예·아니오) → 분류"
+      },
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "사용자 요청 질문 흐름 2번" },
+      "options": [
+        { "label": "점수 같은 숫자", "term": "연속형 변인·등간/비율척도", "short": "결과=숫자", "next": "q3_diff_n",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "평균 비교 계열(t검정·분산분석)로 감" } },
+        { "label": "예·아니오나 유형 같은 분류", "term": "범주형 변인·명목척도", "short": "결과=분류", "next": "q3_diff_c",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "빈도 비교 계열(카이제곱 등)로 감" } }
+      ]
+    },
+
+    "q3_diff_n": {
+      "step": "3", "title": "집단 나눈 기준 수",
+      "question": "집단을 나누는 기준은 몇 가지인가요?",
+      "help": {
+        "text": "집단을 나누는 기준이 원인 쪽(독립변인)입니다. 기준이 몇 가지인지 세어 보세요. 사전·사후처럼 '측정 시기'도 기준 하나로 셉니다.",
+        "example": "성별만 → 1가지 / 성별과 학년 → 2가지 / 프로그램(실험·통제)과 측정 시기(사전·사후) → 2가지 / 우리 학교 학생 점수를 전국 평균과 비교 → 집단 하나"
+      },
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "사용자 요청 질문 흐름 3번(원인 개수)" },
+      "options": [
+        { "label": "기준 1가지", "term": "독립변인 1개", "short": "기준 1개", "next": "q3_diff_n_lv",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+        { "label": "기준 2가지 이상", "term": "독립변인 2개 이상·요인설계", "short": "기준 2개+", "next": "q4_diff_fac",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+        { "label": "집단이 하나뿐, 정해진 기준 점수와 비교", "term": "단일표본", "short": "집단 1개·기준값", "next": "r_onesample_t",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "사용자 흐름에 없던 선택지를 덧붙임" } }
+      ]
+    },
+
+    "q3_diff_n_lv": {
+      "step": "3", "title": "집단 수",
+      "question": "그 기준으로 몇 집단(몇 조건)으로 나눴나요?",
+      "help": {
+        "text": "기준 안의 집단 수를 수준이라고 합니다. 같은 사람을 여러 번 잰 경우에는 측정 횟수를 세세요.",
+        "example": "실험집단·통제집단 → 두 집단 / 저·중·고 소득 → 세 집단 / 사전·사후 → 두 조건 / 사전·사후·추후 → 세 조건"
+      },
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "사용자 요청 질문 흐름 3번(집단 수)" },
+      "options": [
+        { "label": "두 집단(두 조건)", "term": "2수준", "short": "2집단", "next": "q4_diff_n2",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "t검정 계열" } },
+        { "label": "세 집단(세 조건) 이상", "term": "3수준 이상", "short": "3집단+", "next": "q4_diff_n3",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "분산분석 계열" } }
+      ]
+    },
+
+    "q4_diff_n2": {
+      "step": "4", "title": "같은 사람 반복?",
+      "question": "한 사람이 두 조건을 다 겪었거나 두 번 측정됐나요?",
+      "help": {
+        "text": "같은 사람의 점수가 두 번 있으면 '예'입니다. 부부·쌍둥이처럼 짝지어 비교하는 경우도 '예'로 보세요. 실험집단과 통제집단이 서로 다른 사람이면 '아니오'입니다.",
+        "example": "같은 학생의 프로그램 전·후 점수 → 예 / 남학생과 여학생의 점수 → 아니오"
+      },
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "사용자 요청 질문 흐름 4번" },
+      "options": [
+        { "label": "아니오, 집단마다 다른 사람", "term": "독립표본·집단 간 설계", "short": "다른 사람", "next": "q3c_diff_n2",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+        { "label": "예, 같은 사람(또는 짝)이 두 번", "term": "대응표본·반복측정", "short": "같은 사람 2번", "next": "r_paired_t",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } }
+      ]
+    },
+
+    "q3c_diff_n2": {
+      "step": "3+", "title": "통제할 점수?",
+      "question": "미리 잰 다른 점수의 영향을 빼고(통제하고) 두 집단을 비교하고 싶나요?",
+      "help": {
+        "text": "집단마다 출발점이 달라서 그 차이를 빼고 비교하고 싶을 때 '예'를 고르세요. 이렇게 빼 주는 점수를 공변인이라고 합니다.",
+        "example": "실험·통제 집단의 사전 점수가 달라서, 사전 점수를 통제하고 사후 점수를 비교 → 예"
+      },
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "사용자 흐름에 없던 질문을 덧붙임(공분산분석 구분용)" },
+      "options": [
+        { "label": "아니오", "term": "", "short": "통제 없음", "next": "r_ind_t",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+        { "label": "예, 통제할 점수가 있음", "term": "공변인", "short": "공변인 있음", "next": "r_ancova",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } }
+      ]
+    },
+
+    "q4_diff_n3": {
+      "step": "4", "title": "같은 사람 반복?",
+      "question": "한 사람이 여러 조건을 다 겪었거나 세 번 이상 측정됐나요?",
+      "help": {
+        "text": "같은 사람의 점수가 조건마다 있으면 '예'입니다. 집단마다 다른 사람이면 '아니오'입니다.",
+        "example": "같은 학생의 사전·사후·추후 점수 → 예 / 1·2·3학년 학생의 점수 → 아니오"
+      },
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "사용자 요청 질문 흐름 4번" },
+      "options": [
+        { "label": "아니오, 집단마다 다른 사람", "term": "집단 간 설계", "short": "다른 사람", "next": "q3c_diff_n3",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+        { "label": "예, 같은 사람이 여러 번", "term": "반복측정·집단 내 설계", "short": "같은 사람 여러 번", "next": "r_rm_anova",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } }
+      ]
+    },
+
+    "q3c_diff_n3": {
+      "step": "3+", "title": "통제할 점수?",
+      "question": "미리 잰 다른 점수의 영향을 빼고(통제하고) 집단들을 비교하고 싶나요?",
+      "help": {
+        "text": "집단마다 출발점이 달라서 그 차이를 빼고 비교하고 싶을 때 '예'를 고르세요.",
+        "example": "세 상담 방법의 효과를 비교하면서 나이의 영향을 빼고 싶음 → 예"
+      },
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "사용자 흐름에 없던 질문을 덧붙임" },
+      "options": [
+        { "label": "아니오", "term": "", "short": "통제 없음", "next": "r_oneway",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+        { "label": "예, 통제할 점수가 있음", "term": "공변인", "short": "공변인 있음", "next": "r_ancova",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } }
+      ]
+    },
+
+    "q4_diff_fac": {
+      "step": "4", "title": "같은 사람 반복?",
+      "question": "기준마다 따져 볼 때, 한 사람이 여러 조건을 다 겪었나요?",
+      "help": {
+        "text": "기준 하나하나에 대해 '집단마다 다른 사람인지, 같은 사람이 다 겪었는지'를 따져 보세요. 둘이 섞여 있는 경우가 흔합니다.",
+        "example": "성별(남·여) × 측정 시기(사전·사후): 성별은 다른 사람, 측정 시기는 같은 사람 → 섞여 있음"
+      },
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "사용자 요청 질문 흐름 4번" },
+      "options": [
+        { "label": "모든 기준에서 집단마다 다른 사람", "term": "집단 간 요인설계", "short": "모두 다른 사람", "next": "q3c_diff_fac",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+        { "label": "섞여 있음 (어떤 기준은 같은 사람이 반복)", "term": "혼합설계", "short": "섞여 있음", "next": "r_mixed_anova",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+        { "label": "모든 기준에서 같은 사람이 다 겪음", "term": "집단 내 요인설계", "short": "모두 같은 사람", "next": "r_rm_factorial",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } }
+      ]
+    },
+
+    "q3c_diff_fac": {
+      "step": "3+", "title": "통제할 점수?",
+      "question": "미리 잰 다른 점수의 영향을 빼고(통제하고) 집단들을 비교하고 싶나요?",
+      "help": {
+        "text": "집단마다 출발점이 달라서 그 차이를 빼고 비교하고 싶을 때 '예'를 고르세요.",
+        "example": "성별 × 학년별 성적을 비교하면서 지능 점수의 영향을 빼고 싶음 → 예"
+      },
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "사용자 흐름에 없던 질문을 덧붙임" },
+      "options": [
+        { "label": "아니오", "term": "", "short": "통제 없음", "next": "r_factorial_anova",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+        { "label": "예, 통제할 점수가 있음", "term": "공변인", "short": "공변인 있음", "next": "r_ancova",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } }
+      ]
+    },
+
+    "q3_diff_c": {
+      "step": "3", "title": "집단 나눈 기준 수",
+      "question": "집단을 나누는 기준은 몇 가지인가요?",
+      "help": {
+        "text": "집단을 나누는 기준이 원인 쪽(독립변인)입니다. 기준이 몇 가지인지 세어 보세요.",
+        "example": "성별에 따라 상담 신청 여부가 다른가 → 1가지 / 성별과 학년에 따라 → 2가지"
+      },
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "사용자 요청 질문 흐름 3번" },
+      "options": [
+        { "label": "기준 1가지", "term": "독립변인 1개", "short": "기준 1개", "next": "q4_diff_c",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+        { "label": "기준 2가지 이상", "term": "독립변인 2개 이상", "short": "기준 2개+", "next": "r_logistic",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "여러 기준을 함께 보려면 로지스틱 회귀로 감" } }
+      ]
+    },
+
+    "q4_diff_c": {
+      "step": "4", "title": "같은 사람 반복?",
+      "question": "같은 사람을 여러 번 분류했나요?",
+      "help": {
+        "text": "같은 사람에게 같은 분류 질문을 여러 번 했으면 '예'입니다. 이때 결과는 예·아니오 두 가지인 경우를 기준으로 합니다.",
+        "example": "같은 학생에게 교육 전·후로 '찬성/반대'를 물음 → 예, 두 번 / 남녀의 찬성/반대 비율 비교 → 아니오"
+      },
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "사용자 요청 질문 흐름 4번" },
+      "options": [
+        { "label": "아니오, 집단마다 다른 사람", "term": "독립 표본", "short": "다른 사람", "next": "r_chisq",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+        { "label": "예, 같은 사람을 두 번", "term": "대응 표본", "short": "같은 사람 2번", "next": "r_mcnemar",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+        { "label": "예, 같은 사람을 세 번 이상", "term": "반복측정", "short": "같은 사람 3번+", "next": "r_cochran",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } }
+      ]
+    },
+
+    "q2_rel": {
+      "step": "2", "title": "두 가지를 잰 방식",
+      "question": "같이 움직이는지 볼 두 가지는 각각 무엇으로 쟀나요?",
+      "help": {
+        "text": "숫자는 평균을 낼 수 있는 것(척도 점수, 시간 등), 분류는 사람 수를 세는 것(성별, 유형 등)입니다.",
+        "example": "자존감 점수와 우울 점수 → 둘 다 숫자 / 성별과 흡연 여부 → 둘 다 분류 / 성별과 우울 점수 → 섞여 있음"
+      },
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "사용자 요청 질문 흐름 2번. 상관에는 결과·원인 구분이 없어서 두 변인을 함께 물음" },
+      "options": [
+        { "label": "둘 다 점수 같은 숫자", "term": "연속형 × 연속형", "short": "숫자×숫자", "next": "q3_rel_nn",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+        { "label": "둘 다 예·아니오나 유형 같은 분류", "term": "범주형 × 범주형", "short": "분류×분류", "next": "r_chisq",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "관련성 크기는 파이·크래머 V로 보고" } },
+        { "label": "하나는 숫자, 하나는 분류", "term": "연속형 × 범주형", "short": "숫자×분류", "next": "q3_rel_mix",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } }
+      ]
+    },
+
+    "q3_rel_nn": {
+      "step": "3", "title": "점수 모양·통제",
+      "question": "두 점수는 어떤 모양이고, 따로 빼고 싶은 변인이 있나요?",
+      "help": {
+        "text": "점수가 고르게 퍼져 있는지(대부분 가운데 몰리고 양 끝은 적은 모양), 순위처럼 매겼거나 한쪽으로 크게 치우쳤는지 보세요. 제3의 변인이 두 점수에 함께 영향을 준다면 그 영향을 빼고 볼 수 있습니다.",
+        "example": "키와 몸무게 → 고르게 퍼짐 / 백일장 등수와 독서량 순위 → 순위 / 나이를 빼고 운동량과 체력의 관계 → 제3 변인 통제"
+      },
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "사용자 흐름 3번 자리에 '분포·통제변인' 질문을 둠" },
+      "options": [
+        { "label": "두 점수만 보면 되고, 점수가 고르게 퍼져 있음", "term": "정규분포 가정", "short": "고르게 퍼짐", "next": "r_pearson",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+        { "label": "순위·등수이거나, 점수가 한쪽으로 심하게 몰려 있음", "term": "서열척도·비정규분포", "short": "순위·치우침", "next": "r_spearman",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+        { "label": "세 번째 변인의 영향을 빼고 두 점수의 관계를 보고 싶음", "term": "통제변인", "short": "제3 변인 통제", "next": "r_partial",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } }
+      ]
+    },
+
+    "q3_rel_mix": {
+      "step": "3", "title": "분류 쪽 개수",
+      "question": "분류 쪽은 몇 가지로 나뉘나요?",
+      "help": {
+        "text": "분류가 몇 가지 값을 갖는지 세어 보세요.",
+        "example": "남·여 → 두 가지 / 초·중·고 → 세 가지"
+      },
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "사용자 요청 질문 흐름 3번(집단 수)" },
+      "options": [
+        { "label": "두 가지", "term": "이분형", "short": "분류 2가지", "next": "r_pointbiserial",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+        { "label": "세 가지 이상", "term": "다범주", "short": "분류 3가지+", "next": "r_rel_anova",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "상관보다 집단 차이로 다루는 편이 일반적" } }
+      ]
+    },
+
+    "q2_pred": {
+      "step": "2", "title": "예측할 결과",
+      "question": "예측하려는 결과는 무엇으로 쟀나요?",
+      "help": {
+        "text": "숫자는 평균을 낼 수 있는 것, 예·아니오는 두 가지 중 하나, 유형은 순서 없이 셋 이상으로 나뉘는 것, 등급은 순서가 있는 단계입니다.",
+        "example": "우울 점수 → 숫자 / 중도 탈락 여부 → 예·아니오 / 진로 유형(취업·진학·창업) → 유형 / 만족도 상·중·하 → 등급"
+      },
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "사용자 요청 질문 흐름 2번" },
+      "options": [
+        { "label": "점수 같은 숫자", "term": "연속형 종속변인", "short": "결과=숫자", "next": "q3_pred_n",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+        { "label": "예·아니오 두 가지", "term": "이분형 종속변인", "short": "결과=예·아니오", "next": "r_logistic",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "이 가지는 3·4번 질문을 생략함(이번 버전)" } },
+        { "label": "순서 없는 세 가지 이상 유형", "term": "명목형 종속변인", "short": "결과=유형", "next": "r_multinom",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "이 가지는 3·4번 질문을 생략함(이번 버전)" } },
+        { "label": "순서 있는 등급 (예: 상·중·하)", "term": "서열형 종속변인", "short": "결과=등급", "next": "r_ordinal",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "이 가지는 3·4번 질문을 생략함(이번 버전)" } }
+      ]
+    },
+
+    "q3_pred_n": {
+      "step": "3", "title": "예측하는 쪽",
+      "question": "예측하는 쪽(원인 쪽)에는 무엇을 몇 개 놓았나요?",
+      "help": {
+        "text": "점수로 잰 것이든 집단으로 나눈 것(성별 등)이든 모두 넣을 수 있습니다. 집단으로 나눈 것은 0과 1로 바꿔(더미변수) 넣습니다. 여러 개를 '통제변인 → 관심 변인'처럼 묶음별로 차례로 넣어 나중 묶음이 더 설명하는지 보려면 세 번째를 고르세요.",
+        "example": "스트레스 하나로 우울 예측 → 하나 / 스트레스·자존감·성별로 우울 예측 → 여러 개 / 1단계 성별·나이, 2단계 스트레스·자존감 → 묶음별로"
+      },
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "사용자 요청 질문 흐름 3번" },
+      "options": [
+        { "label": "하나", "term": "예측변인 1개", "short": "예측변인 1개", "next": "q4_pred_n1",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+        { "label": "여러 개를 한꺼번에", "term": "예측변인 여러 개", "short": "여러 개 한꺼번에", "next": "q4_pred_nm",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+        { "label": "여러 개를 묶음별로 차례로 넣기", "term": "단계별 투입", "short": "묶음별 투입", "next": "q4_pred_nh",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } }
+      ]
+    },
+
+    "q4_pred_n1": {
+      "step": "4", "title": "반복·묶인 자료?",
+      "question": "같은 사람이 여러 번 측정됐거나, 사람들이 학교·반처럼 묶여 있나요?",
+      "help": {
+        "text": "같은 사람의 점수가 여러 번 있거나, 같은 반·학교·회사 사람끼리 서로 비슷할 수 있는 자료라면 '예'입니다.",
+        "example": "한 학생을 6개월마다 세 번 조사 → 예 / 30개 학교에서 학생 1,000명 조사 후 학교 차이도 고려 → 예 / 대학생 300명 한 번 설문 → 아니오"
+      },
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "사용자 요청 질문 흐름 4번" },
+      "options": [
+        { "label": "아니오", "term": "", "short": "한 번 측정", "next": "r_simple_reg",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+        { "label": "예", "term": "반복측정·위계적 자료", "short": "반복·묶인 자료", "next": "r_multilevel",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } }
+      ]
+    },
+
+    "q4_pred_nm": {
+      "step": "4", "title": "반복·묶인 자료?",
+      "question": "같은 사람이 여러 번 측정됐거나, 사람들이 학교·반처럼 묶여 있나요?",
+      "help": {
+        "text": "같은 사람의 점수가 여러 번 있거나, 같은 반·학교·회사 사람끼리 서로 비슷할 수 있는 자료라면 '예'입니다.",
+        "example": "30개 학교 학생 자료로 학교 차이도 고려 → 예 / 대학생 300명 한 번 설문 → 아니오"
+      },
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "사용자 요청 질문 흐름 4번" },
+      "options": [
+        { "label": "아니오", "term": "", "short": "한 번 측정", "next": "r_multiple_reg",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+        { "label": "예", "term": "반복측정·위계적 자료", "short": "반복·묶인 자료", "next": "r_multilevel",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } }
+      ]
+    },
+
+    "q4_pred_nh": {
+      "step": "4", "title": "반복·묶인 자료?",
+      "question": "같은 사람이 여러 번 측정됐거나, 사람들이 학교·반처럼 묶여 있나요?",
+      "help": {
+        "text": "같은 사람의 점수가 여러 번 있거나, 같은 반·학교·회사 사람끼리 서로 비슷할 수 있는 자료라면 '예'입니다.",
+        "example": "30개 학교 학생 자료로 학교 차이도 고려 → 예 / 대학생 300명 한 번 설문 → 아니오"
+      },
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "사용자 요청 질문 흐름 4번" },
+      "options": [
+        { "label": "아니오", "term": "", "short": "한 번 측정", "next": "r_hier_reg",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+        { "label": "예", "term": "반복측정·위계적 자료", "short": "반복·묶인 자료", "next": "r_multilevel",
+          "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } }
+      ]
+    }
+  },
+
+  "results": {
+    "r_onesample_t": { "name": "단일표본 t검정", "en": "One-sample t-test",
+      "reason": "한 집단의 평균 점수가 정해진 기준값(전국 평균, 척도 중간값 등)과 다른지 보는 기법입니다.",
+      "alt": "점수가 한쪽으로 심하게 치우쳤거나 사람 수가 아주 적으면: 윌콕슨 부호순위 검정",
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+    "r_ind_t": { "name": "독립표본 t검정", "en": "Independent-samples t-test",
+      "reason": "서로 다른 사람으로 이루어진 두 집단의 평균 점수를 비교하는 기법입니다.",
+      "alt": "점수가 한쪽으로 심하게 치우쳤거나 사람 수가 아주 적으면: 맨-휘트니 U 검정",
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+    "r_paired_t": { "name": "대응표본 t검정", "en": "Paired-samples t-test",
+      "reason": "같은 사람(또는 짝)의 두 점수를 비교하므로, 사람마다의 차이를 빼고 두 조건의 평균을 비교하는 기법입니다.",
+      "alt": "점수 차이가 한쪽으로 심하게 치우쳤거나 사람 수가 아주 적으면: 윌콕슨 부호순위 검정",
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+    "r_ancova": { "name": "공분산분석", "en": "ANCOVA",
+      "reason": "미리 잰 점수(공변인)의 영향을 통제한 뒤 집단들의 평균을 비교하는 기법입니다. 기준이 여럿이면 다원 공분산분석이 됩니다.",
+      "alt": "공변인과 결과의 관계가 집단마다 크게 다르면(회귀선이 평행하지 않으면) 상호작용을 넣은 회귀분석을 검토",
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+    "r_oneway": { "name": "일원분산분석", "en": "One-way ANOVA",
+      "reason": "기준 하나로 나눈 세 집단 이상의 평균을 한 번에 비교하는 기법입니다. 차이가 있으면 어느 집단끼리 다른지 사후검정(Scheffé, Tukey 등)으로 확인합니다.",
+      "alt": "점수가 한쪽으로 심하게 치우쳤거나 사람 수가 아주 적으면: 크러스컬-월리스 검정",
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+    "r_rm_anova": { "name": "반복측정 분산분석", "en": "Repeated-measures ANOVA",
+      "reason": "같은 사람이 세 번 이상 측정됐을 때 시점(조건)별 평균이 다른지 비교하는 기법입니다.",
+      "alt": "점수가 한쪽으로 심하게 치우쳤거나 사람 수가 아주 적으면: 프리드먼 검정",
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+    "r_factorial_anova": { "name": "이원(다원) 분산분석", "en": "Factorial ANOVA",
+      "reason": "기준 두 가지 이상으로 나눈 집단들의 평균을 비교하면서, 각 기준의 효과(주효과)와 기준끼리 함께 작용하는 효과(상호작용)를 함께 보는 기법입니다.",
+      "alt": "",
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+    "r_mixed_anova": { "name": "혼합설계 분산분석", "en": "Mixed (split-plot) ANOVA",
+      "reason": "집단마다 다른 사람인 기준(예: 실험·통제)과 같은 사람이 반복된 기준(예: 사전·사후)을 함께 분석하는 기법입니다. 프로그램 효과는 주로 '집단 × 시기' 상호작용으로 확인합니다.",
+      "alt": "",
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+    "r_rm_factorial": { "name": "이원 반복측정 분산분석", "en": "Two-way repeated-measures ANOVA",
+      "reason": "같은 사람이 두 가지 이상의 기준에 따른 모든 조건을 다 겪었을 때 각 기준의 효과와 상호작용을 보는 기법입니다.",
+      "alt": "",
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+    "r_chisq": { "name": "카이제곱 독립성 검정", "en": "Chi-square test of independence",
+      "reason": "두 분류 변인이 서로 관련 있는지, 곧 집단에 따라 분류 비율이 다른지 사람 수(빈도)로 확인하는 기법입니다.",
+      "alt": "칸마다 기대되는 사람 수가 5보다 적은 칸이 많으면: 피셔 정확검정",
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+    "r_mcnemar": { "name": "맥니마 검정", "en": "McNemar test",
+      "reason": "같은 사람을 두 번 예·아니오로 분류했을 때, 두 번 사이에 비율이 바뀌었는지 보는 기법입니다.",
+      "alt": "",
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+    "r_cochran": { "name": "코크란 Q 검정", "en": "Cochran's Q test",
+      "reason": "같은 사람을 세 번 이상 예·아니오로 분류했을 때 시점(조건)마다 비율이 다른지 보는 기법입니다.",
+      "alt": "",
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+    "r_logistic": { "name": "이항 로지스틱 회귀분석", "en": "Binary logistic regression",
+      "reason": "결과가 예·아니오 두 가지일 때, 원인 쪽 변인(점수든 집단이든)이 '예'가 될 가능성을 얼마나 높이거나 낮추는지 보는 기법입니다.",
+      "alt": "결과가 셋 이상 유형이면: 다항 로지스틱 회귀분석",
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+    "r_pearson": { "name": "피어슨 상관분석", "en": "Pearson correlation",
+      "reason": "두 점수가 함께 커지거나(정적) 반대로 움직이는지(부적), 그 정도를 -1~1 사이 숫자로 보여 주는 기법입니다.",
+      "alt": "점수가 한쪽으로 심하게 치우쳤거나 사람 수가 아주 적으면: 스피어만 순위상관",
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+    "r_spearman": { "name": "스피어만 순위상관분석", "en": "Spearman rank correlation",
+      "reason": "점수를 순위로 바꿔 두 변인이 같이 움직이는지 보는 기법으로, 순위 자료나 치우친 점수에 알맞습니다.",
+      "alt": "",
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+    "r_partial": { "name": "편상관분석", "en": "Partial correlation",
+      "reason": "세 번째 변인의 영향을 뺀 뒤 두 점수가 같이 움직이는지 보는 기법입니다.",
+      "alt": "",
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+    "r_pointbiserial": { "name": "점이연 상관분석", "en": "Point-biserial correlation",
+      "reason": "두 가지로 나뉜 분류와 점수가 같이 움직이는지 보는 기법입니다. 결론은 독립표본 t검정과 같아서, 논문에서는 t검정으로 보고하는 경우가 많습니다.",
+      "alt": "",
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+    "r_rel_anova": { "name": "일원분산분석 (관계 크기는 에타제곱)", "en": "One-way ANOVA with eta-squared",
+      "reason": "세 가지 이상으로 나뉜 분류와 점수의 관계는 상관보다 '분류별로 점수 평균이 다른가'로 보고, 관계의 크기는 에타제곱으로 나타냅니다.",
+      "alt": "점수가 한쪽으로 심하게 치우쳤으면: 크러스컬-월리스 검정",
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+    "r_simple_reg": { "name": "단순회귀분석", "en": "Simple linear regression",
+      "reason": "예측하는 변인 하나로 결과 점수를 얼마나 설명·예측할 수 있는지 보는 기법입니다.",
+      "alt": "",
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+    "r_multiple_reg": { "name": "다중회귀분석", "en": "Multiple linear regression",
+      "reason": "여러 예측 변인을 한꺼번에 넣고, 서로의 영향을 통제한 상태에서 각각이 결과 점수를 얼마나 설명하는지 보는 기법입니다.",
+      "alt": "",
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+    "r_hier_reg": { "name": "위계적 회귀분석", "en": "Hierarchical regression",
+      "reason": "예측 변인을 묶음별로 차례로 넣어, 앞 묶음을 통제한 뒤 다음 묶음이 결과를 더 설명하는지(설명력 증가량 ΔR²) 보는 기법입니다.",
+      "alt": "",
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+    "r_multilevel": { "name": "다층모형(혼합효과모형)", "en": "Multilevel / mixed-effects model",
+      "reason": "같은 사람의 반복 측정이나 학교·반으로 묶인 자료처럼 서로 비슷할 수 있는 자료에서, 그 묶임을 고려해 예측 관계를 추정하는 기법입니다.",
+      "alt": "",
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+    "r_multinom": { "name": "다항 로지스틱 회귀분석", "en": "Multinomial logistic regression",
+      "reason": "결과가 순서 없는 세 가지 이상 유형일 때, 예측 변인에 따라 각 유형에 속할 가능성이 어떻게 달라지는지 보는 기법입니다.",
+      "alt": "",
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } },
+    "r_ordinal": { "name": "서열 로지스틱 회귀분석", "en": "Ordinal logistic regression",
+      "reason": "결과가 순서 있는 등급일 때, 예측 변인에 따라 더 높은 등급에 속할 가능성이 어떻게 달라지는지 보는 기법입니다.",
+      "alt": "",
+      "source": { "tag": "AI 지식", "ref": "첨부 자료 없음", "note": "" } }
+  }
+}
+</script>
+
+<style>
+:root {
+  --orange: #f5841f;
+  --orange-deep: #e06f0b;
+  --orange-soft: #fff3e8;
+  --orange-line: #fbd3ad;
+  --navy: #1f2a52;
+  --navy-soft: #e9ecf5;
+  --ink: #1d2333;
+  --ink-2: #4a5168;
+  --ink-3: #8a90a3;
+  --line: #e2e5ee;
+  --bg: #ffffff;
+  --bg-2: #f7f8fb;
+  --ok: #1f8a5b;
+  --ok-soft: #e6f5ee;
+  --warn: #b5470b;
+  --radius: 14px;
+  --shadow: 0 1px 2px rgba(31,42,82,.06), 0 6px 20px rgba(31,42,82,.06);
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
+  font-size: 16px; line-height: 1.6; word-break: keep-all; overflow-wrap: anywhere;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+
+/* ---------- 머리 ---------- */
+.topbar {
+  background: var(--orange); color: #fff; font-size: 14px; letter-spacing: .04em;
+  padding: 10px 24px; text-align: right;
+}
+.brand {
+  display: flex; align-items: center; gap: 28px;
+  max-width: 1240px; margin: 0 auto; padding: 28px 24px;
+}
+.logo {
+  flex: none; width: 150px; padding: 12px 10px; border: 3px solid var(--orange); border-radius: 8px;
+  text-align: center; color: var(--orange); line-height: 1.15;
+}
+.logo b { display: block; font-size: 30px; letter-spacing: .06em; font-weight: 800; }
+.logo span { font-size: 13px; font-weight: 600; }
+.title-pill {
+  flex: 1; border: 3px solid var(--orange); border-radius: 999px; padding: 16px 40px;
+}
+.title-pill h1 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -.01em; }
+.title-pill p { margin: 2px 0 0; color: var(--ink-2); font-size: 15px; }
+
+.nav { background: var(--navy); }
+.nav-inner { max-width: 1240px; margin: 0 auto; padding: 0 24px; display: flex; gap: 4px; overflow-x: auto; }
+.tab {
+  position: relative; background: none; border: 0; color: #c9cfe3; font-weight: 700; font-size: 17px;
+  padding: 18px 22px; white-space: nowrap;
+}
+.tab:hover { color: #fff; }
+.tab[aria-selected="true"] { color: #fff; }
+.tab[aria-selected="true"]::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: #f5b400;
+}
+.tab .count {
+  display: inline-block; margin-left: 6px; min-width: 22px; padding: 0 6px; border-radius: 999px;
+  background: rgba(255,255,255,.14); font-size: 12px; line-height: 20px; text-align: center;
+}
+
+main { max-width: 1240px; margin: 0 auto; padding: 32px 24px 64px; }
+.view[hidden] { display: none !important; }
+
+/* ---------- 사다리 화면 ---------- */
+.ladder { display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 32px; align-items: start; }
+
+.map {
+  position: sticky; top: 16px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+  background: var(--bg); box-shadow: var(--shadow);
+}
+.map-head {
+  background: var(--orange); color: #fff; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.map-head h2 { margin: 0; font-size: 18px; }
+.map-head p { margin: 0; font-size: 13px; color: #fff4e8; }
+.map-toggle { display: none; background: rgba(255,255,255,.18); border: 0; color: #fff; border-radius: 999px; padding: 6px 14px; font-weight: 700; font-size: 14px; }
+.map-body { max-height: calc(100vh - 120px); overflow: auto; padding: 14px 12px 18px; }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; padding: 0 8px 12px; font-size: 12px; color: var(--ink-3); border-bottom: 1px solid var(--line); margin-bottom: 10px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
+
+.tree, .tree ul { list-style: none; margin: 0; padding: 0; }
+.tree ul { margin-left: 13px; padding-left: 12px; border-left: 2px solid var(--line); }
+.tree li { margin: 3px 0; }
+.tree li.on > ul { border-left-color: var(--orange-line); }
+.edge { display: block; font-size: 12px; color: var(--ink-3); padding: 2px 0 0 4px; }
+.edge::before { content: "└ "; color: var(--line); }
+li.on > .edge { color: var(--orange-deep); font-weight: 700; }
+li.on > .edge::before { color: var(--orange); }
+.tnode {
+  display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
+  background: none; border: 1px solid transparent; border-radius: 8px; padding: 5px 8px; font-size: 14px; color: var(--ink-2);
+}
+.tnode:hover { background: var(--bg-2); border-color: var(--line); }
+.tnode .no {
+  flex: none; display: inline-grid; place-items: center; min-width: 24px; height: 22px; padding: 0 5px; border-radius: 6px;
+  background: var(--navy-soft); color: var(--navy); font-size: 11px; font-weight: 800;
+}
+.tnode.leaf { color: var(--ink); font-weight: 600; }
+.tnode.leaf .no { background: var(--ok-soft); color: var(--ok); }
+.tnode.on { color: var(--ink); font-weight: 700; }
+.tnode.on .no { background: var(--orange-soft); color: var(--orange-deep); }
+.tnode.here { background: var(--orange); border-color: var(--orange); color: #fff; box-shadow: 0 4px 12px rgba(245,132,31,.35); }
+.tnode.here .no { background: rgba(255,255,255,.25); color: #fff; }
+.tree.dim .tnode:not(.on):not(.here) { opacity: .55; }
+.tree.dim .tnode:not(.on):not(.here):hover { opacity: 1; }
+
+.gate-box {
+  margin: 14px 4px 0; padding: 12px 14px; border: 1.5px dashed var(--line); border-radius: 10px; font-size: 13px; color: var(--ink-2);
+  background: var(--bg-2);
+}
+.gate-box b { color: var(--navy); }
+.gate-box.here { border-style: solid; border-color: var(--orange); background: var(--orange-soft); color: var(--ink); }
+.gate-box.done { border-color: var(--orange-line); }
+
+/* 카드 */
+.card { border: 1px solid var(--line); border-radius: 10px; background: var(--bg); box-shadow: var(--shadow); padding: 32px 36px; }
+.card + .card { margin-top: 24px; }
+
+.stepper { display: flex; align-items: center; gap: 0; margin-bottom: 26px; }
+.stepper .s { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; font-size: 12px; color: var(--ink-3); }
+.stepper .s:last-child { flex: none; }
+.stepper .dot {
+  flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%;
+  border: 2px solid var(--line); background: var(--bg); font-weight: 800; font-size: 13px; color: var(--ink-3);
+}
+.stepper .bar { flex: 1; height: 2px; background: var(--line); margin: 0 6px; }
+.stepper .s.done .dot { border-color: var(--orange); color: var(--orange-deep); }
+.stepper .s.done .bar { background: var(--orange); }
+.stepper .s.cur .dot { background: var(--orange); border-color: var(--orange); color: #fff; }
+.stepper .lbl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.kicker { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: var(--orange-deep); }
+.q { margin: 8px 0 6px; font-size: 26px; line-height: 1.4; font-weight: 800; letter-spacing: -.01em; }
+
+.tag {
+  display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: .02em;
+  border: 1px solid; white-space: nowrap; vertical-align: middle;
+}
+.tag.ai { color: #6b46c1; border-color: #d8ccf5; background: #f5f1fd; }
+.tag.src { color: var(--ok); border-color: #bfe3d1; background: var(--ok-soft); }
+.tag.none { color: var(--warn); border-color: #f2c7ae; background: #fdf0e8; }
+
+.help-btn {
+  margin-top: 10px; background: var(--bg); border: 1.5px solid var(--navy); color: var(--navy);
+  border-radius: 999px; padding: 6px 16px; font-size: 14px; font-weight: 700;
+}
+.help-btn[aria-expanded="true"] { background: var(--navy); color: #fff; }
+.help {
+  margin-top: 14px; padding: 16px 20px; background: var(--navy-soft); border-radius: 10px; font-size: 15px; color: var(--ink);
+}
+.help p { margin: 0; }
+.help .ex { margin-top: 10px; padding-top: 10px; border-top: 1px solid #d3d8e8; color: var(--ink-2); }
+.help .ex b { color: var(--navy); }
+
+.opts { display: grid; gap: 12px; margin-top: 24px; }
+.opt {
+  display: flex; align-items: center; gap: 14px; width: 100%; text-align: left;
+  background: var(--bg); border: 1.5px solid var(--line); border-radius: 12px; padding: 16px 18px;
+  transition: border-color .15s, background .15s, transform .15s;
+}
+.opt:hover { border-color: var(--orange); background: var(--orange-soft); transform: translateY(-1px); }
+.opt.picked { border-color: var(--orange); background: var(--orange-soft); }
+.opt .key {
+  flex: none; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px;
+  background: var(--navy); color: #fff; font-weight: 800; font-size: 14px;
+}
+.opt .txt { flex: 1; min-width: 0; }
+.opt .main { display: block; font-weight: 700; font-size: 17px; }
+.opt .term { display: block; font-size: 13px; color: var(--ink-3); margin-top: 1px; }
+.opt .arrow { flex: none; color: var(--ink-3); font-size: 20px; }
+
+.src-line { margin-top: 22px; font-size: 13px; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--line); }
+.btn {
+  display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 9px 18px; font-weight: 700; font-size: 15px;
+  border: 1.5px solid var(--line); background: var(--bg); color: var(--ink);
+}
+.btn:hover { border-color: var(--ink-3); }
+.btn.primary { background: var(--orange); border-color: var(--orange); color: #fff; }
+.btn.primary:hover { background: var(--orange-deep); border-color: var(--orange-deep); }
+.btn.navy { background: var(--navy); border-color: var(--navy); color: #fff; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.sm { padding: 6px 12px; font-size: 13px; }
+
+/* 결과 */
+.result-hero { border-left: 6px solid var(--orange); padding-left: 20px; }
+.result-hero .en { color: var(--ink-3); font-size: 15px; font-weight: 600; }
+.result-hero h2 { margin: 4px 0 0; font-size: 32px; line-height: 1.3; font-weight: 800; }
+.reason { margin: 18px 0 0; font-size: 17px; }
+.alt { margin-top: 14px; padding: 12px 16px; border-radius: 10px; background: var(--bg-2); font-size: 14px; color: var(--ink-2); }
+.alt b { color: var(--ink); }
+.section-title { margin: 28px 0 12px; font-size: 16px; font-weight: 800; color: var(--navy); display: flex; align-items: center; gap: 8px; }
+.section-title::before { content: ""; width: 4px; height: 16px; border-radius: 2px; background: var(--orange); }
+.summary { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.summary li { display: grid; grid-template-columns: 170px 1fr; gap: 12px; padding: 10px 16px; font-size: 15px; }
+.summary li + li { border-top: 1px solid var(--line); }
+.summary .k { color: var(--ink-3); font-size: 14px; }
+.summary .v small { color: var(--ink-3); }
+
+.notice {
+  padding: 18px 20px; border-radius: 12px; background: var(--orange-soft); border: 1px solid var(--orange-line); font-size: 16px;
+}
+.notice b { color: var(--orange-deep); }
+
+/* 변인 고정칸 */
+.vars-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.vars-head h3 { margin: 0; font-size: 20px; }
+.lock-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 700; background: var(--navy); color: #fff; }
+.lock-badge.open { background: var(--bg-2); color: var(--ink-3); }
+.field-grid { display: grid; gap: 12px; margin-top: 16px; }
+.iv-row { display: grid; grid-template-columns: 34px 1fr 1.4fr 36px; gap: 10px; align-items: end; }
+.iv-row .n { display: grid; place-items: center; height: 44px; font-weight: 800; color: var(--navy); }
+label.f { display: block; font-size: 13px; font-weight: 700; color: var(--ink-2); }
+label.f input, label.f select, label.f textarea {
+  display: block; width: 100%; margin-top: 4px; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--bg); font-size: 15px;
+}
+label.f input:focus, label.f select:focus, label.f textarea:focus { border-color: var(--orange); outline: none; }
+label.f input:disabled { background: var(--bg-2); color: var(--ink); border-style: dashed; }
+.icon-btn { width: 36px; height: 44px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink-3); font-size: 18px; }
+.icon-btn:hover { color: var(--warn); border-color: var(--warn); }
+.hint { margin: 10px 0 0; font-size: 13px; color: var(--ink-3); }
+
+/* 표 */
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 760px; }
+th, td { padding: 10px 12px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+th { background: var(--navy); color: #fff; font-weight: 700; white-space: nowrap; }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr:nth-child(even) td { background: var(--bg-2); }
+.m-yes { color: var(--ok); font-weight: 800; }
+.m-no { color: var(--warn); font-weight: 800; }
+.m-part { color: #8a6d00; font-weight: 800; }
+.empty { padding: 28px; text-align: center; color: var(--ink-3); }
+
+.log-form { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.log-form .wide { grid-column: 1 / -1; }
+
+.page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+.page-head h2 { margin: 0; font-size: 24px; }
+.page-head p { margin: 4px 0 0; color: var(--ink-2); }
+
+.stats { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+.stat { flex: 1; min-width: 140px; border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; }
+.stat b { display: block; font-size: 26px; line-height: 1.2; }
+.stat span { font-size: 13px; color: var(--ink-3); }
+
+.rule-list { display: grid; gap: 14px; }
+.rule { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.rule-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 16px; background: var(--bg-2); border-bottom: 1px solid var(--line); }
+.rule-h code { font-size: 12px; color: var(--ink-3); }
+.rule-h b { font-size: 15px; }
+.rule-b { padding: 10px 16px 14px; font-size: 14px; }
+.rule-b ul { margin: 6px 0 0; padding-left: 18px; }
+.rule-b li { margin: 4px 0; }
+.rule-b .meta { color: var(--ink-3); font-size: 13px; }
+
+.toast {
+  position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
+  background: var(--navy); color: #fff; padding: 10px 20px; border-radius: 999px; font-size: 14px; font-weight: 600;
+  transition: opacity .2s, transform .2s; z-index: 10; max-width: calc(100% - 32px);
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+footer { border-top: 1px solid var(--line); color: var(--ink-3); font-size: 13px; text-align: center; padding: 20px 16px 32px; }
+
+/* ---------- 휴대폰 ---------- */
+@media (max-width: 960px) {
+  .ladder { grid-template-columns: 1fr; gap: 20px; }
+  .map { position: static; }
+  .map-toggle { display: inline-block; }
+  .map.collapsed .map-body { max-height: 0; padding: 0 12px; overflow: hidden; }
+  .map-body { max-height: 60vh; }
+}
+@media (max-width: 640px) {
+  .topbar { padding: 8px 16px; font-size: 12px; }
+  .brand { gap: 12px; padding: 16px; }
+  .logo { width: 84px; padding: 8px 4px; border-width: 2px; }
+  .logo b { font-size: 18px; }
+  .logo span { font-size: 10px; }
+  .title-pill { border-width: 2px; border-radius: 18px; padding: 10px 16px; }
+  .title-pill h1 { font-size: 17px; }
+  .title-pill p { font-size: 12px; }
+  .nav-inner { padding: 0 8px; }
+  .tab { font-size: 15px; padding: 14px 12px; }
+  main { padding: 20px 16px 48px; }
+  .card { padding: 22px 18px; }
+  .q { font-size: 21px; }
+  .result-hero h2 { font-size: 25px; }
+  .stepper .lbl { display: none; }
+  .tree ul { margin-left: 8px; padding-left: 8px; }
+  .tnode { padding: 4px 6px; font-size: 13px; }
+  .summary li { grid-template-columns: 1fr; gap: 0; }
+  .iv-row { grid-template-columns: 1fr 36px; }
+  .iv-row .n { display: none; }
+  .iv-row label:nth-of-type(2) { grid-column: 1 / 2; }
+  .iv-row .icon-btn { grid-row: 1; grid-column: 2; }
+  .log-form { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">통계 기법 고르기 · 시제품 v0.1 · 서버 없이 이 파일 하나로 동작</div>
+
+<header class="brand">
+  <div class="logo" aria-hidden="true"><b>STAT</b><span>통계 사다리</span></div>
+  <div class="title-pill">
+    <h1>내 연구 설계에 맞는 통계 기법 찾기</h1>
+    <p>질문에 답하며 사다리를 내려가세요. 이번 버전은 기법 고르기까지만 합니다.</p>
+  </div>
+</header>
+
+<nav class="nav" aria-label="메뉴">
+  <div class="nav-inner" role="tablist">
+    <button class="tab" role="tab" data-view="ladder" aria-selected="true">사다리</button>
+    <button class="tab" role="tab" data-view="log" aria-selected="false">검증 기록<span class="count" id="log-count">0</span></button>
+    <button class="tab" role="tab" data-view="rules" aria-selected="false">AI 지식 규칙<span class="count" id="ai-count">0</span></button>
+  </div>
+</nav>
+
+<main>
+  <!-- 사다리 -->
+  <section class="view" id="view-ladder">
+    <div class="ladder">
+      <aside class="map" id="map">
+        <div class="map-head">
+          <div>
+            <h2>사다리 지도</h2>
+            <p>지나온 길과 지금 위치 · 눌러서 이동</p>
+          </div>
+          <button class="map-toggle" id="map-toggle" aria-expanded="true">접기</button>
+        </div>
+        <div class="map-body" id="map-body">
+          <div class="legend">
+            <span><i style="background:var(--orange)"></i>지금 위치</span>
+            <span><i style="background:var(--orange-soft);border:1px solid var(--orange-line)"></i>지나온 길</span>
+            <span><i style="background:var(--ok-soft)"></i>도착점(기법)</span>
+          </div>
+          <ul class="tree" id="tree"></ul>
+          <div class="gate-box" id="gate-box"></div>
+        </div>
+      </aside>
+      <div id="stage"></div>
+    </div>
+  </section>
+
+  <!-- 검증 기록 -->
+  <section class="view" id="view-log" hidden>
+    <div class="page-head">
+      <div>
+        <h2>검증 기록</h2>
+        <p>실제 논문의 설계를 사다리에 넣어 보고, 나온 기법이 논문의 기법과 같은지 적어 두세요.</p>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" id="log-csv">CSV로 내려받기</button>
+      </div>
+    </div>
+    <div class="card">
+      <form class="log-form" id="log-form" autocomplete="off">
+        <label class="f wide">논문 이름
+          <input name="paper" required placeholder="예: 권슬기·김민정 (2026) 사회비교경향성과 외로움">
+        </label>
+        <label class="f wide">고른 경로
+          <input name="path" placeholder="사다리에서 결과까지 가면 [지금 결과 가져오기]로 채워집니다">
+        </label>
+        <label class="f">사다리가 고른 기법
+          <input name="method" placeholder="예: 독립표본 t검정">
+        </label>
+        <label class="f">논문이 쓴 기법
+          <input name="paperMethod" required placeholder="예: 독립표본 t검정">
+        </label>
+        <label class="f">일치 여부
+          <select name="match">
+            <option value="일치">일치</option>
+            <option value="부분 일치">부분 일치</option>
+            <option value="불일치">불일치</option>
+          </select>
+        </label>
+        <label class="f">메모
+          <input name="memo" placeholder="다르게 나온 이유 등">
+        </label>
+        <div class="wide" style="display:flex;gap:10px;flex-wrap:wrap">
+          <button type="button" class="btn" id="log-fill">지금 결과 가져오기</button>
+          <button type="submit" class="btn primary">표에 추가</button>
+        </div>
+      </form>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>논문 이름</th><th>고른 경로</th><th>나온 기법</th><th>논문의 기법</th><th>일치 여부</th><th>메모</th><th></th></tr></thead>
+          <tbody id="log-body"></tbody>
+        </table>
+      </div>
+      <p class="hint">기록은 이 브라우저에만 저장됩니다. 다른 기기로 옮기거나 보관하려면 CSV로 내려받으세요(엑셀에서 열림).</p>
+    </div>
+  </section>
+
+  <!-- 규칙 목록 -->
+  <section class="view" id="view-rules" hidden>
+    <div class="page-head">
+      <div>
+        <h2>근거 꼬리표별 규칙 목록</h2>
+        <p>첨부 자료 없이 통계 지식으로 채운 <span class="tag ai">AI 지식</span> 규칙입니다. 하나씩 확인하고, 자료가 생기면 근거 위치를 채워 주세요.</p>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn" id="rules-export">규칙 파일 내려받기</button>
+        <label class="btn" style="cursor:pointer">규칙 파일 불러오기<input type="file" id="rules-import" accept=".json,application/json" hidden></label>
+        <button class="btn" id="rules-reset">기본 규칙으로</button>
+      </div>
+    </div>
+    <div class="stats" id="rule-stats"></div>
+    <div id="rule-source-note"></div>
+    <div class="rule-list" id="rule-list"></div>
+  </section>
+</main>
+
+<footer>통계 사다리 시제품 · 갈림길 규칙은 이 파일 안 <code>rules-data</code> 부분에 따로 들어 있습니다.</footer>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ---------- 저장소 (실패해도 동작) ----------
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+    del(k) { try { localStorage.removeItem(k); } catch (e) {} }
+  };
+
+  const $ = (s, el = document) => el.querySelector(s);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const toast = msg => { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2200); };
+  const download = (name, text, type = 'text/plain') => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type: type + ';charset=utf-8' }));
+    a.download = name; document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  };
+  const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+
+  // ---------- 규칙 ----------
+  const DEFAULT_RULES = JSON.parse($('#rules-data').textContent);
+
+  function checkRules(r) {
+    const errs = [];
+    if (!r || typeof r !== 'object') return ['JSON 형식이 아닙니다.'];
+    if (!r.nodes || !r.results || !r.gate || !r.start) return ['start, gate, nodes, results 가 모두 있어야 합니다.'];
+    if (!r.nodes[r.start]) errs.push(`start "${r.start}" 질문이 nodes에 없습니다.`);
+    for (const [id, n] of Object.entries(r.nodes)) {
+      if (!Array.isArray(n.options) || !n.options.length) { errs.push(`${id}: 선택지가 없습니다.`); continue; }
+      n.options.forEach((o, i) => {
+        if (!r.nodes[o.next] && !r.results[o.next]) errs.push(`${id} 선택지 ${i + 1}: 다음 "${o.next}"을(를) 찾을 수 없습니다.`);
+      });
+    }
+    (r.gate.options || []).forEach((o, i) => {
+      if (o.next !== '@result' && o.next !== '@outOfScope') errs.push(`gate 선택지 ${i + 1}: next는 @result 또는 @outOfScope 여야 합니다.`);
+    });
+    return errs;
+  }
+
+  let RULES = DEFAULT_RULES;
+  let customRules = false;
+  {
+    const saved = store.get('ladder.rules', null);
+    if (saved && !checkRules(saved).length) { RULES = saved; customRules = true; }
+  }
+
+  // ---------- 상태: 고른 선택지 번호의 목록 ----------
+  let path = store.get('ladder.path', []);
+  let helpOpen = false;
+
+  function walk(p) {
+    let cur = { type: 'node', id: RULES.start };
+    let pending = null;
+    const steps = [];
+    for (const i of p) {
+      if (cur.type === 'result' || cur.type === 'out') break;
+      const node = cur.type === 'gate' ? RULES.gate : RULES.nodes[cur.id];
+      const opt = node && node.options[i];
+      if (!opt) break;
+      steps.push({ node, opt, i });
+      if (cur.type === 'gate') cur = { type: opt.next === '@outOfScope' ? 'out' : 'result', id: pending };
+      else if (RULES.results[opt.next]) { pending = opt.next; cur = { type: 'gate' }; }
+      else cur = { type: 'node', id: opt.next };
+    }
+    return { cur, pending, steps };
+  }
+
+  function go(p) {
+    path = p.slice();
+    const w = walk(path);
+    path = path.slice(0, w.steps.length); // 규칙이 바뀌어 맞지 않는 뒷부분은 버림
+    store.set('ladder.path', path);
+    helpOpen = false;
+    render();
+  }
+
+  const stepName = s => (RULES.stepNames && RULES.stepNames[s]) || '';
+  const tagClass = t => t === '자료 근거' ? 'src' : t === '근거 없음' ? 'none' : 'ai';
+  const tagHtml = src => src ? `<span class="tag ${tagClass(src.tag)}">${esc(src.tag)}</span>` : '';
+
+  // ---------- 지도 ----------
+  function renderTree() {
+    const w = walk(path);
+    const curKey = path.join('.');
+    const isPrefix = k => curKey === k || curKey.startsWith(k + '.') || k === '';
+    const seen = new Set();
+
+    function nodeLi(id, keyArr) {
+      const n = RULES.nodes[id];
+      const key = keyArr.join('.');
+      const on = isPrefix(key) && (keyArr.length <= path.length);
+      const here = on && w.cur.type === 'node' && key === curKey;
+      if (seen.has(key)) return '';
+      seen.add(key);
+      let h = `<button class="tnode ${here ? 'here' : on ? 'on' : ''}" data-path="${key}" ${here ? 'aria-current="step"' : ''}>
+        <span class="no">${esc(n.step)}</span><span>${esc(n.title)}</span></button>`;
+      h += '<ul>' + n.options.map((o, i) => {
+        const ck = keyArr.concat(i);
+        const cks = ck.join('.');
+        const cOn = isPrefix(cks) && ck.length <= path.length;
+        let child;
+        if (RULES.results[o.next]) {
+          const r = RULES.results[o.next];
+          const reached = cOn && w.cur.type !== 'node';
+          child = `<button class="tnode leaf ${reached ? (w.cur.type === 'gate' ? 'on' : 'here') : ''}" data-path="${cks}">
+            <span class="no">✓</span><span>${esc(r.name)}</span></button>`;
+        } else child = nodeLi(o.next, ck);
+        return `<li class="${cOn ? 'on' : ''}"><span class="edge">${esc(o.short || o.label)}</span>${child}</li>`;
+      }).join('') + '</ul>';
+      return h;
+    }
+
+    const tree = $('#tree');
+    tree.innerHTML = `<li class="on">${nodeLi(RULES.start, [])}</li>`;
+    tree.classList.toggle('dim', path.length > 0);
+
+    const g = $('#gate-box');
+    const gs = RULES.gate;
+    g.className = 'gate-box' + (w.cur.type === 'gate' ? ' here' : (w.cur.type === 'result' || w.cur.type === 'out') ? ' done' : '');
+    let gtxt = `<b>${esc(gs.step)}. ${esc(gs.title)}</b> — 모든 도착점(✓) 바로 앞에서 한 번 더 묻습니다.`;
+    if (w.cur.type === 'result' || w.cur.type === 'out') gtxt += `<br>고른 답: <b>${esc(w.steps[w.steps.length - 1].opt.short)}</b>`;
+    g.innerHTML = gtxt;
+
+    // 지금 위치가 보이게 지도 안에서만 스크롤
+    const here = tree.querySelector('.tnode.here') || (w.cur.type === 'gate' ? g : null);
+    const body = $('#map-body');
+    if (here) {
+      const top = here.getBoundingClientRect().top - body.getBoundingClientRect().top + body.scrollTop;
+      if (top < body.scrollTop + 40 || top > body.scrollTop + body.clientHeight - 60) body.scrollTop = Math.max(0, top - body.clientHeight / 3);
+    }
+  }
+
+  $('#tree').addEventListener('click', e => {
+    const b = e.target.closest('.tnode'); if (!b) return;
+    const key = b.dataset.path;
+    go(key === '' ? [] : key.split('.').map(Number));
+    if (window.matchMedia('(max-width: 960px)').matches) $('#stage').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  $('#map-toggle').addEventListener('click', e => {
+    const m = $('#map'); const c = m.classList.toggle('collapsed');
+    e.currentTarget.textContent = c ? '펼치기' : '접기';
+    e.currentTarget.setAttribute('aria-expanded', String(!c));
+  });
+
+  // ---------- 단계 표시 ----------
+  function stepper(curStep, finished) {
+    const order = ['1', '2', '3', '4', '5'];
+    const ci = finished ? 5 : order.indexOf(String(curStep).replace('+', ''));
+    return '<div class="stepper" aria-hidden="true">' + order.map((s, i) =>
+      `<div class="s ${i < ci ? 'done' : i === ci ? 'cur' : ''}"><span class="dot">${s}</span><span class="lbl">${esc(stepName(s))}</span>${i < 4 ? '<span class="bar"></span>' : ''}</div>`
+    ).join('') + '</div>';
+  }
+
+  function backBtns() {
+    return `<div class="actions">
+      <button class="btn" data-act="back" ${path.length ? '' : 'disabled'}>← 뒤로 가기</button>
+      <button class="btn" data-act="restart" ${path.length ? '' : 'disabled'}>처음부터</button>
+    </div>`;
+  }
+
+  // ---------- 질문 화면 ----------
+  function renderQuestion(node, isGate) {
+    const opts = node.options.map((o, i) => `
+      <button class="opt" data-opt="${i}">
+        <span class="key">${String.fromCharCode(65 + i)}</span>
+        <span class="txt"><span class="main">${esc(o.label)}</span>${o.term ? `<span class="term">(${esc(o.term)})</span>` : ''}</span>
+        ${tagHtml(o.source)}
+        <span class="arrow">›</span>
+      </button>`).join('');
+    const src = node.source || {};
+    return `<div class="card">
+      ${stepper(node.step)}
+      <div class="kicker">질문 ${esc(node.step)} · ${esc(stepName(node.step))} ${tagHtml(src)}</div>
+      <h2 class="q">${esc(node.question)}</h2>
+      <button class="help-btn" data-act="help" aria-expanded="${helpOpen}">${helpOpen ? '설명 닫기' : '설명 보기'}</button>
+      ${helpOpen ? `<div class="help"><p>${esc(node.help?.text)}</p>${node.help?.example ? `<p class="ex"><b>예시</b> ${esc(node.help.example)}</p>` : ''}</div>` : ''}
+      <div class="opts">${opts}</div>
+      <div class="src-line">근거 ${tagHtml(src)} <span>${esc(src.ref || '')}${src.note ? ' · ' + esc(src.note) : ''}</span></div>
+      ${backBtns()}
+    </div>`;
+  }
+
+  function summaryHtml(steps) {
+    return '<ul class="summary">' + steps.map(s =>
+      `<li><span class="k">${esc(s.node.step)}. ${esc(stepName(s.node.step) || s.node.title)}</span>
+       <span class="v">${esc(s.opt.label)}${s.opt.term ? ` <small>(${esc(s.opt.term)})</small>` : ''}</span></li>`
+    ).join('') + '</ul>';
+  }
+  const pathText = steps => steps.map(s => s.opt.short || s.opt.label).join(' → ');
+
+  // ---------- 결과 화면 ----------
+  function renderResult(w) {
+    const r = RULES.results[w.cur.id];
+    return `<div class="card">
+      ${stepper('5', true)}
+      <div class="result-hero">
+        <div class="kicker">도착한 기법 ${tagHtml(r.source)}</div>
+        <h2>${esc(r.name)}</h2>
+        <div class="en">${esc(r.en)}</div>
+      </div>
+      <p class="reason">${esc(r.reason)}</p>
+      ${r.alt ? `<div class="alt"><b>함께 확인할 것</b> · ${esc(r.alt)}</div>` : ''}
+      <div class="section-title">내가 고른 답</div>
+      ${summaryHtml(w.steps)}
+      <div class="src-line">근거 ${tagHtml(r.source)} <span>${esc(r.source?.ref || '')}${r.source?.note ? ' · ' + esc(r.source.note) : ''}</span></div>
+      <div class="actions">
+        <button class="btn" data-act="back">← 뒤로 가기</button>
+        <button class="btn" data-act="restart">처음부터</button>
+        <button class="btn navy" data-act="to-log">검증 기록에 넣기</button>
+      </div>
+    </div>
+    ${renderVars(r, w)}`;
+  }
+
+  function renderOut(w) {
+    const r = RULES.results[w.cur.id];
+    const last = w.steps[w.steps.length - 1];
+    return `<div class="card">
+      ${stepper('5', true)}
+      <div class="kicker">질문 5 · ${esc(stepName('5'))} ${tagHtml(RULES.gate.source)}</div>
+      <h2 class="q">이번 버전의 범위 밖입니다</h2>
+      <div class="notice"><b>${esc(last.opt.term || last.opt.label)} 분석</b>을 포함한 매개·조절 분석은 이번 버전에서 다루지 않습니다.
+        앞의 답만으로 고른 기본 기법은 <b>${esc(r.name)}</b>(${esc(r.en)})이며, 매개·조절 분석은 보통 이런 기본 기법(주로 회귀분석) 위에 쌓아 올립니다.</div>
+      <div class="section-title">내가 고른 답</div>
+      ${summaryHtml(w.steps)}
+      ${backBtns()}
+    </div>`;
+  }
+
+  // ---------- 변인 고정칸 ----------
+  let vars = store.get('ladder.vars', { ivs: [{ name: '', levels: '' }], dv: '', locked: false, lockedAt: '' });
+  const saveVars = () => store.set('ladder.vars', vars);
+
+  function renderVars() {
+    const L = vars.locked;
+    const dis = L ? 'disabled' : '';
+    const rows = vars.ivs.map((iv, i) => `
+      <div class="iv-row">
+        <span class="n">${i + 1}</span>
+        <label class="f">독립변인 이름<input data-iv="${i}" data-k="name" value="${esc(iv.name)}" placeholder="예: 성별" ${dis}></label>
+        <label class="f">수준 (쉼표로 구분)<input data-iv="${i}" data-k="levels" value="${esc(iv.levels)}" placeholder="예: 남, 여" ${dis}></label>
+        <button class="icon-btn" data-act="iv-del" data-i="${i}" title="이 독립변인 지우기" ${dis || vars.ivs.length < 2 ? 'disabled' : ''}>×</button>
+      </div>`).join('');
+    return `<div class="card">
+      <div class="vars-head">
+        <h3>변인 고정칸</h3>
+        <span class="lock-badge ${L ? '' : 'open'}">${L ? '🔒 잠김 · ' + esc(vars.lockedAt) : '🔓 작성 중'}</span>
+      </div>
+      <p class="hint">분석에 쓸 변인을 적고 잠가 두면, 나중에 바뀌지 않았는지 확인할 기준이 됩니다.</p>
+      <div class="field-grid">
+        ${rows}
+        <div><button class="btn sm" data-act="iv-add" ${dis}>+ 독립변인 추가</button></div>
+        <label class="f">종속변인 이름<input data-k="dv" value="${esc(vars.dv)}" placeholder="예: 우울 점수" ${dis}></label>
+      </div>
+      <div class="actions">
+        <button class="btn ${L ? '' : 'primary'}" data-act="lock">${L ? '잠금 풀기' : '🔒 잠그기'}</button>
+        <button class="btn" data-act="vars-dl">텍스트로 내려받기</button>
+      </div>
+    </div>`;
+  }
+
+  function varsText() {
+    const w = walk(path);
+    const r = w.cur.type === 'result' ? RULES.results[w.cur.id] : null;
+    const lines = [
+      '통계 사다리 — 변인 고정 기록',
+      `작성일: ${today()}`,
+      `상태: ${vars.locked ? '잠김 (' + vars.lockedAt + ')' : '잠기지 않음'}`,
+      '',
+      `도착한 기법: ${r ? r.name + ' (' + r.en + ')' : '-'}`,
+      `고른 경로: ${pathText(w.steps) || '-'}`,
+      '',
+      '[독립변인]'
+    ];
+    vars.ivs.forEach((iv, i) => lines.push(`${i + 1}. ${iv.name || '(이름 없음)'} — 수준: ${iv.levels || '-'}`));
+    lines.push('', '[종속변인]', vars.dv || '(이름 없음)', '', '[내가 고른 답]');
+    w.steps.forEach(s => lines.push(`- ${s.node.step}. ${stepName(s.node.step)}: ${s.opt.label}${s.opt.term ? ' (' + s.opt.term + ')' : ''}`));
+    return lines.join('\r\n');
+  }
+
+  // ---------- 그리기 ----------
+  function render() {
+    const w = walk(path);
+    let html;
+    if (w.cur.type === 'node') html = renderQuestion(RULES.nodes[w.cur.id], false);
+    else if (w.cur.type === 'gate') html = renderQuestion(RULES.gate, true);
+    else if (w.cur.type === 'result') html = renderResult(w);
+    else html = renderOut(w);
+    $('#stage').innerHTML = html;
+    renderTree();
+  }
+
+  $('#stage').addEventListener('click', e => {
+    const o = e.target.closest('[data-opt]');
+    if (o) { o.classList.add('picked'); go(path.concat(Number(o.dataset.opt))); return; }
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const act = b.dataset.act;
+    if (act === 'back') go(path.slice(0, -1));
+    else if (act === 'restart') go([]);
+    else if (act === 'help') { helpOpen = !helpOpen; render(); }
+    else if (act === 'to-log') { switchView('log'); fillLogFromCurrent(); }
+    else if (act === 'iv-add') { vars.ivs.push({ name: '', levels: '' }); saveVars(); render(); }
+    else if (act === 'iv-del') { vars.ivs.splice(Number(b.dataset.i), 1); saveVars(); render(); }
+    else if (act === 'lock') {
+      vars.locked = !vars.locked;
+      vars.lockedAt = vars.locked ? new Date().toLocaleString('ko-KR') : '';
+      saveVars(); render(); toast(vars.locked ? '변인을 잠갔습니다.' : '잠금을 풀었습니다.');
+    }
+    else if (act === 'vars-dl') download(`변인고정_${today()}.txt`, '﻿' + varsText());
+  });
+
+  $('#stage').addEventListener('input', e => {
+    const t = e.target; if (!t.dataset.k || vars.locked) return;
+    if (t.dataset.iv != null) vars.ivs[Number(t.dataset.iv)][t.dataset.k] = t.value;
+    else vars[t.dataset.k] = t.value;
+    saveVars();
+  });
+
+  // ---------- 탭 ----------
+  function switchView(v) {
+    document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.view === v)));
+    document.querySelectorAll('.view').forEach(s => { s.hidden = s.id !== 'view-' + v; });
+    store.set('ladder.view', v);
+  }
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => switchView(t.dataset.view)));
+
+  // ---------- 검증 기록 ----------
+  let log = store.get('ladder.log', []);
+  const form = $('#log-form');
+
+  function fillLogFromCurrent() {
+    const w = walk(path);
+    if (w.cur.type !== 'result' && w.cur.type !== 'out') { toast('먼저 사다리에서 결과까지 내려가 주세요.'); return; }
+    const r = RULES.results[w.cur.id];
+    form.path.value = pathText(w.steps);
+    form.method.value = w.cur.type === 'out' ? `범위 밖 (기본: ${r.name})` : r.name;
+    toast('지금 결과를 가져왔습니다.');
+  }
+  $('#log-fill').addEventListener('click', fillLogFromCurrent);
+
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const f = Object.fromEntries(new FormData(form));
+    log.push({ ...f, date: today() });
+    store.set('ladder.log', log);
+    form.reset();
+    renderLog(); toast('표에 추가했습니다.');
+  });
+
+  function renderLog() {
+    $('#log-count').textContent = log.length;
+    const body = $('#log-body');
+    if (!log.length) { body.innerHTML = '<tr><td colspan="8" class="empty">아직 기록이 없습니다.</td></tr>'; return; }
+    const cls = m => m === '일치' ? 'm-yes' : m === '불일치' ? 'm-no' : 'm-part';
+    body.innerHTML = log.map((r, i) => `<tr>
+      <td>${i + 1}</td><td>${esc(r.paper)}</td><td>${esc(r.path)}</td><td>${esc(r.method)}</td>
+      <td>${esc(r.paperMethod)}</td><td class="${cls(r.match)}">${esc(r.match)}</td><td>${esc(r.memo)}</td>
+      <td><button class="btn sm" data-del="${i}">지우기</button></td></tr>`).join('');
+  }
+  $('#log-body').addEventListener('click', e => {
+    const b = e.target.closest('[data-del]'); if (!b) return;
+    if (!confirm('이 기록을 지울까요?')) return;
+    log.splice(Number(b.dataset.del), 1); store.set('ladder.log', log); renderLog();
+  });
+  $('#log-csv').addEventListener('click', () => {
+    if (!log.length) { toast('내려받을 기록이 없습니다.'); return; }
+    const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+    const rows = [['번호', '논문 이름', '고른 경로', '나온 기법', '논문의 기법', '일치 여부', '메모', '기록일']]
+      .concat(log.map((r, i) => [i + 1, r.paper, r.path, r.method, r.paperMethod, r.match, r.memo, r.date]));
+    download(`검증기록_${today()}.csv`, '﻿' + rows.map(r => r.map(q).join(',')).join('\r\n'), 'text/csv');
+  });
+
+  // ---------- 규칙 목록 ----------
+  function allRules() {
+    const list = [];
+    for (const [id, n] of Object.entries(RULES.nodes)) list.push({ kind: '질문', id, n });
+    list.push({ kind: '질문', id: 'gate', n: RULES.gate });
+    for (const [id, r] of Object.entries(RULES.results)) list.push({ kind: '도착점', id, r });
+    return list;
+  }
+
+  function renderRules() {
+    const counts = { 'AI 지식': 0, '자료 근거': 0, '근거 없음': 0 };
+    const add = s => { const t = s?.tag || '근거 없음'; counts[t] = (counts[t] || 0) + 1; };
+    for (const n of Object.values(RULES.nodes)) { add(n.source); n.options.forEach(o => add(o.source)); }
+    add(RULES.gate.source); RULES.gate.options.forEach(o => add(o.source));
+    Object.values(RULES.results).forEach(r => add(r.source));
+    $('#ai-count').textContent = counts['AI 지식'];
+    $('#rule-stats').innerHTML = `
+      <div class="stat"><b>${counts['AI 지식']}</b><span><span class="tag ai">AI 지식</span> 규칙</span></div>
+      <div class="stat"><b>${counts['자료 근거']}</b><span><span class="tag src">자료 근거</span> 규칙</span></div>
+      <div class="stat"><b>${counts['근거 없음']}</b><span><span class="tag none">근거 없음</span> 규칙</span></div>`;
+    $('#rule-source-note').innerHTML = customRules
+      ? `<div class="notice" style="margin-bottom:16px">지금은 <b>불러온 규칙 파일</b>로 동작 중입니다. [기본 규칙으로]를 누르면 이 파일에 들어 있는 규칙으로 돌아갑니다.</div>` : '';
+
+    const label = next => next === '@result' ? '→ 결과 보기' : next === '@outOfScope' ? '→ 범위 밖 안내'
+      : RULES.results[next] ? `→ 도착: ${RULES.results[next].name}` : `→ 질문: ${RULES.nodes[next]?.title || next}`;
+    const notSrc = s => (s?.tag || '근거 없음') !== '자료 근거';
+
+    $('#rule-list').innerHTML = allRules().map(x => {
+      if (x.kind === '질문') {
+        const n = x.n;
+        const opts = n.options.filter(o => notSrc(o.source));
+        if (!notSrc(n.source) && !opts.length) return '';
+        return `<div class="rule">
+          <div class="rule-h">${tagHtml(n.source)}<b>질문 ${esc(n.step)} · ${esc(n.title)}</b><code>${esc(x.id)}</code></div>
+          <div class="rule-b">${esc(n.question)}
+            <div class="meta">근거 위치: ${esc(n.source?.ref || '-')}${n.source?.note ? ' · ' + esc(n.source.note) : ''}</div>
+            <ul>${n.options.map(o => `<li>${tagHtml(o.source)} ${esc(o.label)}${o.term ? ` (${esc(o.term)})` : ''} <b>${esc(label(o.next))}</b>${o.source?.note ? ` <span class="meta">· ${esc(o.source.note)}</span>` : ''}</li>`).join('')}</ul>
+          </div></div>`;
+      }
+      const r = x.r;
+      if (!notSrc(r.source)) return '';
+      return `<div class="rule">
+        <div class="rule-h">${tagHtml(r.source)}<b>도착점 · ${esc(r.name)}</b><code>${esc(x.id)}</code></div>
+        <div class="rule-b">${esc(r.reason)}${r.alt ? `<div class="meta">함께 확인할 것: ${esc(r.alt)}</div>` : ''}
+          <div class="meta">근거 위치: ${esc(r.source?.ref || '-')}</div></div></div>`;
+    }).join('');
+  }
+
+  $('#rules-export').addEventListener('click', () => download(`통계사다리_규칙_${today()}.json`, JSON.stringify(RULES, null, 2), 'application/json'));
+  $('#rules-import').addEventListener('change', async e => {
+    const file = e.target.files[0]; e.target.value = '';
+    if (!file) return;
+    let r;
+    try { r = JSON.parse(await file.text()); } catch (err) { alert('JSON을 읽지 못했습니다: ' + err.message); return; }
+    const errs = checkRules(r);
+    if (errs.length) { alert('규칙 파일에 문제가 있습니다.\n\n' + errs.slice(0, 15).join('\n')); return; }
+    RULES = r; customRules = true; store.set('ladder.rules', r);
+    go([]); renderRules(); toast('규칙 파일을 불러왔습니다.');
+  });
+  $('#rules-reset').addEventListener('click', () => {
+    if (!customRules) { toast('이미 기본 규칙입니다.'); return; }
+    if (!confirm('불러온 규칙을 지우고 기본 규칙으로 돌아갈까요?')) return;
+    RULES = DEFAULT_RULES; customRules = false; store.del('ladder.rules');
+    go([]); renderRules(); toast('기본 규칙으로 돌아왔습니다.');
+  });
+
+  // ---------- 시작 ----------
+  const defErrs = checkRules(DEFAULT_RULES);
+  if (defErrs.length) console.warn('기본 규칙 점검:', defErrs);
+  if (window.matchMedia('(max-width: 960px)').matches && path.length) {
+    $('#map').classList.add('collapsed'); $('#map-toggle').textContent = '펼치기'; $('#map-toggle').setAttribute('aria-expanded', 'false');
+  }
+  go(path);
+  renderLog();
+  renderRules();
+  switchView(store.get('ladder.view', 'ladder'));
+})();
+</script>
+</body>
+</html>
