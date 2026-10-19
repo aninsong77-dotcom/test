@@ -2325,6 +2325,20 @@ button,input,textarea,select{font-family:inherit}
 .si-rev{flex:none;display:flex;align-items:center;gap:3px;font-size:12px;color:var(--ink-2)}
 .si-opts{display:grid;gap:10px;margin-top:12px}
 .si-ok{display:flex;gap:8px;align-items:flex-start;margin-top:12px;font-size:12.5px;color:var(--ink-2)}
+
+/* AI 방식 고르기 */
+.center{position:relative}
+.ai-pop{position:absolute;left:14px;bottom:70px;z-index:25;width:min(380px,calc(100% - 28px));background:var(--bg);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 32px rgba(0,0,0,.18);padding:12px}
+.ap-h{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:14px;margin:0 2px 8px}
+.ap-opt{display:flex;gap:10px;align-items:flex-start;padding:9px 10px;border:1.5px solid var(--line);border-radius:10px;margin-top:6px;cursor:pointer}
+.ap-opt input{margin-top:3px;accent-color:var(--orange)}
+.ap-opt b{display:block;font-size:13.5px}.ap-opt small{display:block;font-size:12px;color:var(--ink-3);line-height:1.5;margin-top:1px}
+.ap-opt.on{border-color:var(--orange);background:var(--orange-soft)}
+.ap-opt.dis{opacity:.5;cursor:default}
+.ap-f{margin:10px 2px 0;font-size:12px;color:var(--ink-3)}
+.ai-dot.copy i{background:var(--orange)}.ai-dot.copy{color:var(--orange-deep)}
+.ai-dot.off i{background:#c0392b}.ai-dot.off{color:#c0392b}
+.ai-dot.none i{background:#b8bfcf}
 </style>
 </head>
 <body>
@@ -2543,6 +2557,7 @@ button,input,textarea,select{font-family:inherit}
   </section>
   <div class="thread" id="thread"></div>
 </main>
+<div class="ai-pop" id="ai-pop" hidden></div>
 <div class="ai-note" id="ai-note" hidden></div>
 <form class="composer" id="composer" autocomplete="off"><button type="button" class="ai-dot" id="ai-dot" title="AI 연결 상태"><i></i><span>확인 중</span></button>
   <textarea id="cmp-text" rows="1" placeholder="궁금한 것을 물어보세요 (예: 이 결정은 어떤 걸 고르는 게 좋아?)"></textarea>
@@ -4777,9 +4792,13 @@ function createSurvey() {
   const DESIGNS = ['한 시점 설문 (횡단 연구)', '여러 시점 설문 (종단 연구)', '실험 · 준실험 (무작위 배정 있음)', '실험 · 준실험 (무작위 배정 없음)'];
   const EXPECT = { '+': '정적(+) · 앞 집단이 더 높음', '-': '부적(−) · 앞 집단이 더 낮음', '≠': '차이·관계가 있음 (방향 없음)' };
 
-  const sampleP = (window.claude && typeof window.claude.use === 'function') ? window.claude.use('sample').catch(() => null) : Promise.resolve(null);
-  let aiState = 'checking';   // checking | on | off | denied
-  sampleP.then(s => { aiState = s ? 'on' : 'off'; renderInterp(); });
+  const sampleRawP = (window.claude && typeof window.claude.use === 'function') ? window.claude.use('sample').catch(() => null) : Promise.resolve(null);
+  let aiState = 'checking';   // 이 화면에서 Claude를 바로 쓸 수 있는지: checking | on | off | denied
+  // AI 방식 (사용자가 고름): auto = Claude 바로 쓰기(가능할 때) · copy = 다른 AI에 복사해서 · off = AI 쓰지 않기
+  let aiMode = store.get('ladder.aiMode', 'auto');
+  const sampleP = { then: (ok, bad) => sampleRawP.then(s => (aiMode === 'auto' ? s : null)).then(ok, bad) };
+  const aiOn = () => aiMode === 'auto' && aiState === 'on';
+  sampleRawP.then(s => { aiState = s ? 'on' : 'off'; renderInterp(); });
 
   const allEffects = () => analyses.flatMap(a => a.effects.map(e => ({ ...e, analysis: a })));
   const effById = id => allEffects().find(e => e.id === id);
@@ -4797,7 +4816,7 @@ function createSurvey() {
   function renderInterp() {
     const box = $('#in-main'); if (!box) return;
     const effs = allEffects();
-    const aiChip = aiState === 'on' ? '<span class="st auto">AI 연결됨</span>' : aiState === 'checking' ? '<span class="st manual">AI 확인 중…</span>'
+    const aiChip = aiMode === 'off' ? '<span class="st missing">AI 쓰지 않음</span>' : aiMode === 'copy' ? '<span class="st manual">다른 AI (복사) 방식</span>' : aiState === 'on' ? '<span class="st auto">AI 연결됨</span>' : aiState === 'checking' ? '<span class="st manual">AI 확인 중…</span>'
       : aiState === 'denied' ? '<span class="st missing">AI 사용이 허용되지 않음</span>' : '<span class="st missing">AI 없음 · claude.ai 링크에서 열면 됩니다</span>';
     const effOpts = cur => `<option value="">(효과 고르기)</option>` + analyses.map(a => `<optgroup label="${esc(a.title)}">${a.effects.map(e => `<option value="${e.id}" ${e.id === cur ? 'selected' : ''}>${esc(e.label)}</option>`).join('')}</optgroup>`).join('');
     const hyps = intent.hyps.map((h, i) => {
@@ -4817,7 +4836,9 @@ function createSurvey() {
     }).join('');
 
     const ck = intent.check;
-    const mode = intent.mode || (aiState === 'on' || aiState === 'checking' ? 'auto' : 'chat');
+    let mode = intent.mode || (aiOn() || (aiMode === 'auto' && aiState === 'checking') ? 'auto' : 'chat');
+    if (aiMode !== 'auto' && mode === 'auto') mode = 'chat';
+    if (aiMode === 'off') mode = 'off';
     const checkHtml = ck ? `<div class="ai-box">
       <div class="ai-label">AI가 이해한 연구 의도</div>
       <p>${esc(ck.understanding)}</p>
@@ -4865,19 +4886,20 @@ function createSurvey() {
       <div class="card">
         <div class="res-head"><h3 class="card-title">3. AI와 함께 해석하기</h3><a class="guide-link" href="#guide-ai">AI 연결 방법 설명</a></div>
         <p class="hint">어느 방법을 쓰든 판정은 위의 코드 판정을 따르고, 초안의 숫자와 판정은 이 화면이 다시 점검합니다.</p>
-        <div class="mode-tabs" role="tablist">
-          ${[['auto', '바로 쓰기', 'claude.ai 링크'], ['chat', '아무 AI 채팅', '무료 계정도 됨'], ['code', 'Claude Code', '유료 구독']].map(([k, l, sub]) => `<button class="mode-tab" role="tab" data-in-mode="${k}" aria-selected="${mode === k}"><b>${l}</b><span>${sub}</span></button>`).join('')}
+        ${mode === 'off' ? `<div class="notice">AI를 쓰지 않도록 설정했습니다. 아무것도 밖으로 보내지 않습니다. 가설 판정과 결과표는 그대로 쓸 수 있으니, 해석 글은 직접 쓰고 아래 [초안 점검] 칸에 붙여 넣으면 숫자·판정을 점검합니다. <button class="btn sm" data-ai-mode-open>AI 방식 바꾸기</button></div>` : ''}
+        <div class="mode-tabs" role="tablist" ${mode === 'off' ? 'hidden' : ''}>
+          ${[['auto', '바로 쓰기', 'claude.ai 링크'], ['chat', '아무 AI 채팅', '무료 계정도 됨'], ['code', 'Claude Code', '유료 구독']].filter(([k]) => k !== 'auto' || aiMode === 'auto').map(([k, l, sub]) => `<button class="mode-tab" role="tab" data-in-mode="${k}" aria-selected="${mode === k}"><b>${l}</b><span>${sub}</span></button>`).join('')}
         </div>
         ${mode === 'auto' ? `
-          ${aiState === 'on' ? '' : `<div class="notice">이 화면에서는 바로 쓰기를 할 수 없습니다. ${aiState === 'denied' ? 'AI 사용이 허용되지 않았거나 이 계정에서 쓸 수 없습니다.' : 'claude.ai 링크에서 열면 됩니다.'} 다른 방법은 위의 [아무 AI 채팅]이나 [Claude Code]를 고르세요.</div>`}
+          ${aiOn() ? '' : `<div class="notice">이 화면에서는 바로 쓰기를 할 수 없습니다. ${aiState === 'denied' ? 'AI 사용이 허용되지 않았거나 이 계정에서 쓸 수 없습니다.' : 'claude.ai 링크에서 열면 됩니다.'} 다른 방법은 위의 [아무 AI 채팅]이나 [Claude Code]를 고르세요.</div>`}
           <ol class="steps">
             <li><b>의도 확인</b>: AI가 연구 목적과 가설을 다시 말해 보고, 효과 연결이 맞는지 보고, 빠진 정보를 묻습니다.</li>
             <li><b>초안 쓰기</b>: 판정과 숫자를 그대로 써서 결과·논의 문단을 씁니다. 쓴 뒤 코드가 다시 점검합니다.</li>
           </ol>
           ${checkHtml}
           <div class="actions">
-            <button class="btn ${ck ? '' : 'primary'}" data-in-act="check" ${aiState === 'on' ? '' : 'disabled'}>${ck ? '의도 다시 확인' : '① AI가 내 의도 확인하기'}</button>
-            <button class="btn ${ck ? 'primary' : ''}" data-in-act="write" ${aiState === 'on' ? '' : 'disabled'}>② 결과·논의 초안 쓰기</button>
+            <button class="btn ${ck ? '' : 'primary'}" data-in-act="check" ${aiOn() ? '' : 'disabled'}>${ck ? '의도 다시 확인' : '① AI가 내 의도 확인하기'}</button>
+            <button class="btn ${ck ? 'primary' : ''}" data-in-act="write" ${aiOn() ? '' : 'disabled'}>② 결과·논의 초안 쓰기</button>
             <button class="btn" data-in-act="stop" id="in-stop" hidden>멈추기</button>
             <span class="hint" id="in-prog"></span>
           </div>` : ''}
@@ -5405,6 +5427,13 @@ ${REVIEW_RULES}
       <p>세 가지 AI 연결 방법(바로 쓰기, 아무 AI 채팅, Claude Code) 모두에서 쓸 수 있습니다. 질문마다 [검토함]에 체크하며 하나씩 정리하세요.</p>` },
 
     { id: 'ai', group: 'AI 연결', title: 'AI 연결 방법 세 가지', tab: 'interp', body: `
+      <h3>AI 방식 고르기</h3>
+      <p>대화창 왼쪽 아래 점을 누르면 고를 수 있습니다. 고른 방식은 대화창, 결과 해석, 허점 점검, 척도 사진 읽기에 모두 적용됩니다.</p>
+      <table class="gtable"><thead><tr><th>방식</th><th>이럴 때</th></tr></thead><tbody>
+        <tr><td><b>Claude 바로 쓰기</b></td><td>claude.ai 링크로 열었을 때. 화면 안에서 바로 답합니다.</td></tr>
+        <tr><td><b>다른 AI 쓰기</b></td><td>ChatGPT·Gemini 등 쓰던 AI를 쓰고 싶을 때. 지시문을 복사해 붙여 넣습니다.</td></tr>
+        <tr><td><b>AI 쓰지 않기</b></td><td>기관·IRB 규정상 외부 AI에 연구 자료를 보내면 안 될 때. 아무것도 밖으로 보내지 않습니다.</td></tr>
+      </tbody></table>
       <h3>내 화면에서 AI가 되나요?</h3>
       <p>대화창 왼쪽 아래 점을 보세요. <b style="color:#1f8a5b">● AI 연결됨</b>이면 대화창과 결과 해석에서 AI가 바로 답합니다. <b style="color:#8a90a3">● AI 없음</b>이면 아래 방법 중 하나로 씁니다.</p>
       <table class="gtable"><thead><tr><th>어디서 열었나</th><th>대화창에 물으면</th></tr></thead><tbody>
@@ -5813,7 +5842,8 @@ ${reviewText()}
       <p class="hint">결과·논의 글을 심사위원처럼 읽고 약한 곳을 질문으로 짚습니다. 글은 고치지 않습니다. 보고 체크리스트에서 '확인 필요'인 항목도 함께 봅니다.</p>
       <label class="f">점검할 글<textarea rows="6" id="rv-text" placeholder="결과·논의 글을 붙여 넣으세요. 비워 두면 위의 AI 초안을 씁니다.">${esc(rv.text)}</textarea></label>
       <div class="actions tight">${intent.out ? '<button class="btn sm" data-in-act="rv-load">위의 초안 불러오기</button>' : ''}</div>
-      ${mode === 'auto' ? `<div class="actions"><button class="btn primary" data-in-act="rv-run" ${aiState === 'on' ? '' : 'disabled'}>허점 점검 받기</button><span class="hint" id="rv-prog"></span></div>` : ''}
+      ${mode === 'off' ? '<p class="hint">AI를 쓰지 않도록 설정되어 있어 허점 점검은 쉬어 갑니다. 보고 체크리스트의 확인 필요 항목을 직접 살펴보세요.</p>' : ''}
+      ${mode === 'auto' ? `<div class="actions"><button class="btn primary" data-in-act="rv-run" ${aiOn() ? '' : 'disabled'}>허점 점검 받기</button><span class="hint" id="rv-prog"></span></div>` : ''}
       ${mode === 'chat' ? `<div class="chat-steps" style="margin-top:12px">
           <div class="chat-step"><span class="n">1</span><div><b>지시문을 AI 채팅에 붙여 넣기</b><div class="actions tight"><button class="btn sm primary" data-in-act="copy-prompt" data-which="review">허점 점검 지시문 복사</button></div></div></div>
           <div class="chat-step"><span class="n">2</span><div><b>AI의 답을 붙여 넣기</b><label class="f"><textarea rows="5" id="rv-paste" placeholder="[잘한 점] [질문] 형식의 답을 붙여 넣으세요">${esc(rv.paste)}</textarea></label>
@@ -6695,9 +6725,14 @@ ${q}`;
     const v = curView();
     addMsg(v, 'me', q);
     const sample = await sampleP;
+    if (aiMode === 'off') {
+      const links = guideSearch(q);
+      addMsg(v, 'ai', `AI를 쓰지 않도록 설정되어 있어 사용 설명에서 관련된 곳을 찾았습니다.${links.length ? '' : ' 맞는 쪽을 찾지 못했습니다.'}`, { links, choices: curChoices() });
+      return;
+    }
     if (!sample || aiState === 'denied') {
       const links = guideSearch(q);
-      addMsg(v, 'ai', `지금 화면에서는 AI가 연결되어 있지 않아 사용 설명에서 관련된 곳을 찾았습니다.${links.length ? '' : ' 맞는 쪽을 찾지 못했습니다.'} claude.ai 링크로 열면 바로 답하고, 아래 버튼으로 같은 질문을 다른 AI 채팅에 물을 수도 있습니다.`, { links, prompt: helperPrompt(q), choices: curChoices() });
+      addMsg(v, 'ai', aiMode === 'copy' ? `사용 설명에서 관련된 곳을 찾았습니다.${links.length ? '' : ' 맞는 쪽을 찾지 못했습니다.'} 아래 버튼으로 질문을 복사해 쓰시는 AI 채팅에 붙여 넣으면 지금 상황에 맞는 답을 받을 수 있습니다.` : `지금 화면에서는 AI가 연결되어 있지 않아 사용 설명에서 관련된 곳을 찾았습니다.${links.length ? '' : ' 맞는 쪽을 찾지 못했습니다.'} claude.ai 링크로 열면 바로 답하고, 아래 버튼으로 같은 질문을 다른 AI 채팅에 물을 수도 있습니다.`, { links, prompt: helperPrompt(q), choices: curChoices() });
       return;
     }
     helperBusy = true; $('#cmp-send').disabled = true;
@@ -6864,25 +6899,49 @@ ${q}`;
 
   // ---------- AI 연결 상태: 대화창 옆 점, 처음 한 번 안내 ----------
   function renderAiNote() {
-    const st = aiState, on = st === 'on', checking = st === 'checking';
-    const dot = $('#ai-dot'); dot.className = 'ai-dot ' + (on ? 'on' : checking ? 'wait' : 'off');
-    dot.querySelector('span').textContent = on ? 'AI 연결됨' : checking ? '확인 중' : 'AI 없음';
-    dot.title = on ? '이 화면에서 AI가 바로 답합니다' : checking ? 'AI 연결을 확인하는 중' : 'AI가 연결되지 않았습니다 · 눌러서 연결 방법 보기';
-    $('#cmp-text').placeholder = on || checking ? '궁금한 것을 물어보세요 (예: 이 결정은 어떤 걸 고르는 게 좋아?)'
+    const st = aiState, checking = aiMode === 'auto' && st === 'checking', on = aiOn();
+    const eff = aiMode === 'off' ? 'off' : on ? 'on' : checking ? 'wait' : aiMode === 'copy' ? 'copy' : 'none';
+    const dot = $('#ai-dot'); dot.className = 'ai-dot ' + eff;
+    dot.querySelector('span').textContent = { on: 'Claude 연결됨', wait: '확인 중', copy: '다른 AI (복사)', off: 'AI 끔', none: 'AI 없음' }[eff];
+    dot.title = 'AI 방식 고르기';
+    $('#cmp-text').placeholder = eff === 'off' ? '궁금한 것을 물어보세요 (사용 설명에서 찾아 드려요)' : on || checking ? '궁금한 것을 물어보세요 (예: 이 결정은 어떤 걸 고르는 게 좋아?)'
       : '궁금한 것을 물어보세요 (다른 AI에 물을 질문으로 만들어 드려요)';
-    const note = $('#ai-note'), show = !on && !checking && !store.get('ladder.aiNoteClosed', false);
+    const note = $('#ai-note'), show = eff === 'none' && !store.get('ladder.aiNoteClosed', false);
     note.hidden = !show;
     if (show) note.innerHTML = `<div class="an-ic">i</div><div class="an-tx"><b>${st === 'denied' ? 'AI 사용이 허용되지 않았어요.' : '이 화면에서는 AI가 바로 연결되지 않아요.'}</b>
       <span>${st === 'denied' ? 'claude.ai에서 이 페이지의 Claude 사용을 허용하면 바로 답합니다.' : '<b>claude.ai 링크</b>로 열면 화면 안에서 바로 답합니다.'} 지금은 대화창에 물으면 사용 설명에서 찾아 드리고, 같은 질문을 <b>ChatGPT·Gemini·Claude</b> 같은 AI 채팅에 붙여 넣을 수 있게 만들어 드려요.</span></div>
-      <div class="an-bt"><button class="btn sm" data-an="guide">AI 연결 방법 보기</button><button class="an-x" data-an="close" title="닫기">×</button></div>`;
+      <div class="an-bt"><button class="btn sm" data-an="guide">AI 연결 방법 보기</button><button class="btn sm" data-ai-mode-open>AI 방식 고르기</button><button class="an-x" data-an="close" title="닫기">×</button></div>`;
+    renderAiPop();
   }
+  function renderAiPop() {
+    const pop = $('#ai-pop'); if (!pop || pop.hidden) return;
+    const can = aiState === 'on';
+    const opt = (k, t, d, dis) => `<label class="ap-opt ${aiMode === k ? 'on' : ''} ${dis ? 'dis' : ''}"><input type="radio" name="ai-mode" value="${k}" ${aiMode === k ? 'checked' : ''} ${dis ? 'disabled' : ''}><span><b>${t}</b><small>${d}</small></span></label>`;
+    pop.innerHTML = `<div class="ap-h">AI 방식 고르기<button class="an-x" data-ap="close" title="닫기">×</button></div>
+      ${opt('auto', 'Claude 바로 쓰기', can ? '화면 안에서 Claude가 바로 답합니다. 내 Claude 사용량을 씁니다.' : 'claude.ai 링크로 열었을 때만 됩니다. 지금은 다른 AI 방식처럼 동작합니다.', false)}
+      ${opt('copy', '다른 AI 쓰기 (복사·붙여 넣기)', 'ChatGPT·Gemini·Claude 등 아무 AI. 지시문을 복사해 붙여 넣고 답을 다시 붙여 넣습니다. 무료 계정도 됩니다.')}
+      ${opt('off', 'AI 쓰지 않기', 'AI 기능을 끄고 아무것도 밖으로 보내지 않습니다. 기법 고르기·설문·계산·판정은 그대로 됩니다. 기관 규정상 외부 AI를 쓸 수 없을 때.')}
+      <p class="ap-f">어느 방식이든 응답 원자료는 AI에 보내지 않습니다. <a href="#guide-ai">자세히</a></p>`;
+  }
+  function openAiPop() { const pop = $('#ai-pop'); pop.hidden = false; renderAiPop(); }
+  function setAiMode(m) {
+    aiMode = m; _set('ladder.aiMode', m);
+    renderAiNote(); renderInterp(); if (typeof renderImport === 'function') renderImport(); renderThread();
+    toast({ auto: aiState === 'on' ? 'Claude가 화면 안에서 바로 답합니다.' : 'claude.ai 링크로 열면 Claude가 바로 답합니다. 지금은 복사 방식으로 동작합니다.', copy: '다른 AI 방식: AI에 물을 지시문을 복사해 쓰시는 AI 채팅에 붙여 넣으세요.', off: 'AI를 쓰지 않습니다. 아무것도 밖으로 보내지 않습니다.' }[m]);
+  }
+  document.addEventListener('click', e => {
+    if (e.target.closest('[data-ai-mode-open]')) { e.preventDefault(); openAiPop(); return; }
+    if (e.target.closest('[data-ap="close"]')) { $('#ai-pop').hidden = true; return; }
+    if (!$('#ai-pop').hidden && !e.target.closest('#ai-pop') && !e.target.closest('#ai-dot')) $('#ai-pop').hidden = true;
+  });
+  $('#ai-pop').addEventListener('change', e => { if (e.target.name === 'ai-mode') { setAiMode(e.target.value); renderAiPop(); } });
   $('#ai-note').addEventListener('click', e => {
     const b = e.target.closest('[data-an]'); if (!b) return;
     if (b.dataset.an === 'guide') openGuide('ai');
     else { _set('ladder.aiNoteClosed', true); renderAiNote(); toast('대화창 왼쪽 아래 점을 누르면 언제든 연결 방법을 볼 수 있어요.'); }
   });
-  $('#ai-dot').addEventListener('click', () => { if (aiState === 'on') toast('AI가 연결되어 있습니다. 대화창에 바로 물어보세요.'); else openGuide('ai'); });
-  sampleP.then(() => setTimeout(renderAiNote, 0));
+  $('#ai-dot').addEventListener('click', () => { const pop = $('#ai-pop'); if (pop.hidden) openAiPop(); else pop.hidden = true; });
+  sampleRawP.then(() => setTimeout(renderAiNote, 0));
   renderAiNote();
 
 
@@ -7167,7 +7226,7 @@ ${q}`;
       ${imp.tab === 'file' ? `<label class="si-drop" id="si-drop"><input type="file" id="si-file" accept=".pdf,application/pdf,image/png,image/jpeg,image/webp" multiple hidden>
           <b>PDF나 사진을 끌어다 놓거나 눌러서 고르기</b><span>PDF는 글자를 바로 읽고, 사진·스캔 PDF는 AI가 글자를 읽습니다. 척도가 있는 쪽만 올리면 더 정확합니다.</span></label>`
         : `<label class="f">척도 원본 글 (PDF에서 척도 부분을 복사해 붙여 넣기)<textarea id="si-text" rows="8" placeholder="예)\n직무 스트레스 척도 (홍길동, 2020)\n1=전혀 그렇지 않다 2=그렇지 않다 3=보통이다 4=그렇다 5=매우 그렇다\n1. 업무량이 너무 많다\n2. 일을 끝낼 시간이 부족하다\n3. 나는 내 일을 스스로 조절할 수 있다 (R)">${esc(imp.text)}</textarea></label>
-          <div class="actions" style="margin-top:10px;padding-top:0;border:0"><button class="btn primary" data-si="parse">문항 찾기</button>${aiState === 'on' ? '<button class="btn" data-si="ai-text">AI로 정리 (표가 깨졌을 때)</button>' : ''}</div>`}
+          <div class="actions" style="margin-top:10px;padding-top:0;border:0"><button class="btn primary" data-si="parse">문항 찾기</button>${aiOn() ? '<button class="btn" data-si="ai-text">AI로 정리 (표가 깨졌을 때)</button>' : ''}</div>`}
       ${imp.busy ? `<div class="si-busy"><span class="spin"></span>${esc(imp.busy)}</div>` : ''}
       ${imp.msg ? `<div class="si-msg">${imp.msg}</div>` : ''}
       ${R ? `<div class="si-prev">
@@ -7232,10 +7291,15 @@ ${q}`;
   }
   async function readImages(images, scanned) {
     const ai = await imgOk();
+    if (aiMode === 'off') {
+      imp.res = null;
+      setBusy('', `<b>AI를 쓰지 않도록 설정되어 있어 ${scanned ? '스캔 PDF' : '사진'}의 글자는 읽지 않습니다.</b> 글자를 고를 수 있는 PDF나 복사한 글은 AI 없이 됩니다. <button class="btn sm" data-ai-mode-open>AI 방식 바꾸기</button>`);
+      return;
+    }
     if (!ai) {
       imp.res = null;
       setBusy('', `<b>${scanned ? '글자 정보가 없는 스캔 PDF입니다.' : '사진에서 글자를 읽으려면 AI가 필요합니다.'}</b> 이 화면에서는 AI가 사진을 읽을 수 없어요.
-        <ol><li>ChatGPT, Gemini, Claude 같은 AI 채팅에 이 ${scanned ? 'PDF' : '사진'}을 올리고</li><li>아래 [지시문 복사]를 눌러 같은 채팅에 붙여 넣은 뒤</li><li>AI의 답을 [글 붙여 넣기]에 넣고 [문항 찾기]를 누르세요.</li></ol>
+        ${aiMode === 'copy' ? '다른 AI로 읽어 주세요.' : ''}<ol><li>ChatGPT, Gemini, Claude 같은 AI 채팅에 이 ${scanned ? 'PDF' : '사진'}을 올리고</li><li>아래 [지시문 복사]를 눌러 같은 채팅에 붙여 넣은 뒤</li><li>AI의 답을 [글 붙여 넣기]에 넣고 [문항 찾기]를 누르세요.</li></ol>
         <div class="actions" style="margin-top:6px;padding-top:0;border:0"><button class="btn sm primary" data-si="copy-prompt">지시문 복사</button><button class="btn sm" data-si="tab-text">글 붙여 넣기로</button></div>
         <span class="hint">claude.ai 링크로 열면 이 화면에서 바로 사진을 읽습니다.</span>`);
       return;
