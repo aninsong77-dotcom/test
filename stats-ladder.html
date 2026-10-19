@@ -2095,8 +2095,9 @@ main#scroller .page-head p { font-size: 14px; }
 #splash .sp-wm{height:30px;width:auto;opacity:0;animation:t-fade .45s 1.55s forwards}
 #splash .sp-tag{margin:-10px 0 0;color:var(--ink-3,#8a90a3);font-size:13px;letter-spacing:.02em;opacity:0;animation:t-fade .45s 1.7s forwards}
 #splash .sp-skip{position:absolute;right:20px;bottom:20px;border:0;background:none;padding:6px 10px;font:inherit;font-size:12.5px;color:var(--ink-3,#8a90a3);cursor:pointer}
-.tong.anim .t-dot{transform-box:fill-box;transform-origin:center;animation:t-in .55s cubic-bezier(.55,0,.75,.45) both}
-.tong.anim .t-dot:nth-child(1){animation-delay:.15s}.tong.anim .t-dot:nth-child(2){animation-delay:.3s}.tong.anim .t-dot:nth-child(3){animation-delay:.45s}
+.tong.anim .t-dot{transform-box:fill-box;transform-origin:center;animation:t-in .55s cubic-bezier(.55,0,.75,.45) both,t-back .45s ease-out forwards}
+.tong.anim .t-dot:nth-child(1){animation-delay:.15s,1.6s}.tong.anim .t-dot:nth-child(2){animation-delay:.3s,1.7s}.tong.anim .t-dot:nth-child(3){animation-delay:.45s,1.8s}
+@keyframes t-back{from{transform:none;opacity:0}to{transform:none;opacity:1}}
 @keyframes t-in{0%{transform:none;opacity:1}60%{transform:translate(calc(var(--dx)*.6px),calc(var(--dy)*.6px - 10px));opacity:1}100%{transform:translate(calc(var(--dx)*1px),calc(var(--dy)*1px)) scale(.2);opacity:0}}
 .tong.anim .t-barrel{transform-box:fill-box;transform-origin:50% 100%;animation:t-gulp .4s 1s ease-out both}
 @keyframes t-gulp{0%,100%{transform:none}40%{transform:scale(1.04,.93)}75%{transform:scale(.98,1.03)}}
@@ -2107,6 +2108,24 @@ main#scroller .page-head p { font-size: 14px; }
 @keyframes t-grow{from{transform:scaleY(0)}to{transform:none}}
 @keyframes t-fade{from{opacity:0}to{opacity:1}}
 @media (max-width:640px){.hdr-logo .t-dots,.hdr-logo .t-bars{display:none}}
+
+/* 연구 고르기 드롭다운 */
+.proj-wrap{position:relative;margin-left:10px;padding-left:14px;border-left:1px solid var(--line,#e2e5ee);min-width:0}
+.proj-chip{display:flex;align-items:center;gap:6px;max-width:260px;border:1.5px solid var(--line,#e2e5ee);background:#fff;border-radius:10px;padding:6px 10px 6px 12px;font:inherit;font-size:13.5px;font-weight:700;color:var(--ink,#1d2333);cursor:pointer}
+.proj-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.proj-chip i{font-style:normal;color:var(--ink-3,#8a90a3);font-size:11px}
+.proj-chip:hover{border-color:#c9cfe0}
+.proj-pop{position:absolute;left:14px;top:calc(100% + 8px);width:min(340px,90vw);background:#fff;border:1px solid var(--line,#e2e5ee);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.16);padding:12px;z-index:30}
+.pj-h{font-size:11.5px;font-weight:700;color:var(--ink-3,#8a90a3);margin:0 4px 6px}
+.pj-list{display:grid;gap:2px;max-height:240px;overflow:auto}
+.pj-it{display:flex;align-items:center;gap:9px;text-align:left;border:0;background:none;border-radius:8px;padding:8px;font:inherit;font-size:13.5px;cursor:pointer;color:var(--ink,#1d2333)}
+.pj-it:hover{background:var(--bg2,#f7f8fb)}.pj-it.on{background:#eef3ff;font-weight:700}
+.pj-dot{width:8px;height:8px;border-radius:50%;border:1.5px solid #b8c0d4;flex:none}.pj-it.on .pj-dot{background:#2563eb;border-color:#2563eb}
+.pj-name{display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line,#e2e5ee)}
+.pj-name input{flex:1;min-width:0;border:1.5px solid var(--line,#e2e5ee);border-radius:8px;padding:6px 9px;font:inherit;font-size:13px}
+.pj-acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.pj-acts .btn.danger{background:#c0392b;border-color:#c0392b;color:#fff}
+.pj-hint{margin:10px 2px 0;font-size:11.5px;color:var(--ink-3,#8a90a3);line-height:1.5}
+@media (max-width:640px){.proj-wrap{margin-left:4px;padding-left:8px}.proj-chip{max-width:96px;padding:5px 8px;font-size:12.5px}.proj-pop{left:auto;right:-120px}}
 </style>
 </head>
 <body>
@@ -2127,6 +2146,7 @@ main#scroller .page-head p { font-size: 14px; }
     <g class="t-bars"><rect class="t-bar" x="102" y="40" width="10" height="16" rx="2.5" fill="#c5d6fb"/><rect class="t-bar" x="117" y="31" width="10" height="25" rx="2.5" fill="#8eb0f6"/><rect class="t-bar" x="132" y="20" width="10" height="36" rx="2.5" fill="#2563eb"/></g>
   </svg>
   <span class="hdr-title"><svg class="wm" viewBox="0 0 76 24" role="img" aria-label="ㅌㅗㅇ (통)"><g fill="none" stroke="#1f2a52" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3H18M3 12H17M3 21H18M3 3V21"/><path d="M38 6V20M29 20H47"/><circle cx="64" cy="12" r="8.6"/></g></svg><span>설문부터 통계 해석까지</span></span>
+  <div class="proj-wrap"><button class="proj-chip" id="proj-chip" aria-haspopup="true"></button><div class="proj-pop" id="proj-pop" hidden></div></div>
   <span class="hdr-sp"></span>
   <div class="fold-wrap"><button class="fold-chip" id="fold-chip">📁 연구 폴더</button><div class="fold-pop" id="fold-pop" hidden><div class="folder-bar" id="folder-bar"></div></div></div>
   <button class="hdr-btn" id="rp-tog" title="오른쪽 보기 창 열기·닫기">보기 창</button>
@@ -2151,7 +2171,7 @@ main#scroller .page-head p { font-size: 14px; }
   var done = false;
   function close() { if (done) return; done = true; d.classList.add('out'); setTimeout(function () { d.remove(); }, 450); }
   d.addEventListener('click', close); document.addEventListener('keydown', close, { once: true });
-  setTimeout(close, 2700);
+  setTimeout(close, 2900);
 })();
 </script>
 <div class="app" id="app">
@@ -2242,7 +2262,7 @@ main#scroller .page-head p { font-size: 14px; }
   <section class="view" id="view-guide" hidden>
     <div class="guide">
       <aside class="gd-side">
-        <div class="gd-head"><b>사용 설명</b><span>통계 사다리 위키</span></div>
+        <div class="gd-head"><b>사용 설명</b><span>ㅌㅗㅇ 위키</span></div>
         <div class="gd-search"><input id="gd-q" type="search" placeholder="찾기 (예: 역문항, 무료)" aria-label="사용 설명 찾기"></div>
         <nav id="gd-nav"></nav>
       </aside>
@@ -2703,7 +2723,7 @@ main#scroller .page-head p { font-size: 14px; }
     const w = walk(path);
     const r = w.cur.type === 'result' ? RULES.results[w.cur.id] : null;
     const lines = [
-      '통계 사다리 — 변인 고정 기록',
+      'ㅌㅗㅇ — 변인 고정 기록',
       `작성일: ${today()}`,
       `상태: ${vars.locked ? '잠김 (' + vars.lockedAt + ')' : '잠기지 않음'}`,
       '',
@@ -3155,7 +3175,7 @@ main#scroller .page-head p { font-size: 14px; }
       demos: sv.demos.filter(d => norm(d.text)).map(d => ({ text: norm(d.text), type: d.type, choices: d.options }))
     };
     return `/**
- * 구글 폼 만들기 스크립트 — 통계 사다리에서 만듦 (${today()})
+ * 구글 폼 만들기 스크립트 — ㅌㅗㅇ에서 만듦 (${today()})
  *
  * 1) https://script.google.com 에서 [새 프로젝트]를 엽니다.
  * 2) 원래 있던 코드를 지우고 이 코드를 모두 붙여 넣은 뒤 저장(Ctrl+S)합니다.
@@ -3165,7 +3185,7 @@ main#scroller .page-head p { font-size: 14px; }
  *    폼과 응답 시트는 내 구글 드라이브에 저장됩니다.
  *
  * 문항 문장을 폼에서 고치면 응답을 합칠 때 자동 연결이 안 될 수 있습니다.
- * 고칠 일이 있으면 통계 사다리의 설문 설계에서 고친 뒤 스크립트를 다시 만드세요.
+ * 고칠 일이 있으면 ㅌㅗㅇ의 설문 설계에서 고친 뒤 스크립트를 다시 만드세요.
  */
 const SURVEY = ${JSON.stringify(data, null, 2)};
 
@@ -3956,7 +3976,7 @@ function createSurvey() {
     const box = $('#an-main');
     const lid = ladderResultId(), lm = lid ? LADDER_TO_METHOD[lid] : undefined;
     const ladderNote = lid ? (lm ? `사다리가 고른 기법: <b>${esc(RULES.results[lid].name)}</b> → 아래에서 <b>${esc(METHODS[lm].name)}</b>으로 계산합니다.`
-      : `사다리가 고른 기법 <b>${esc(RULES.results[lid].name)}</b>은 이 사이트에서 아직 계산하지 않습니다. jamovi(무료)나 SPSS에서 계산하고, 결과 해석 탭에 그 결과를 직접 적어 쓸 수 있습니다.`) : '사다리에서 기법을 고르면 그 기법이 먼저 선택됩니다.';
+      : `사다리가 고른 기법 <b>${esc(RULES.results[lid].name)}</b>은 이 사이트에서 아직 계산하지 않습니다. jamovi(무료)나 SPSS에서 계산하고, 결과 해석 메뉴에 그 결과를 직접 적어 쓸 수 있습니다.`) : '사다리에서 기법을 고르면 그 기법이 먼저 선택됩니다.';
     if (!lastScored) {
       box.innerHTML = `<div class="card">
         <h3 class="card-title">분석할 자료가 아직 없습니다</h3>
@@ -4679,7 +4699,7 @@ function createSurvey() {
             <div class="chat-step"><span class="n">2</span><div><b>터미널에서 그 폴더로 가서 <code>claude</code> 실행</b>
               <pre class="cmd">cd 폴더경로
 claude</pre>
-              <p class="hint">"통계 사다리 해석 모드입니다."가 나오면 성공입니다. "해석해 줘"라고 쓰면 시작합니다.</p></div></div>
+              <p class="hint">"ㅌㅗㅇ 해석 모드입니다."가 나오면 성공입니다. "해석해 줘"라고 쓰면 시작합니다.</p></div></div>
             <div class="chat-step"><span class="n">3</span><div><b>Claude가 묻는 것에 답하면 폴더에 <code>draft.md</code>가 생깁니다</b></div></div>
             <div class="chat-step"><span class="n">4</span><div><b>draft.md 내용을 아래 [초안 점검] 칸에 붙여 넣기</b></div></div>
           </div>` : ''}
@@ -4770,26 +4790,26 @@ ${writingRules()}
 
   // Claude Code 해석 모드용 CLAUDE.md
   function claudeMd() {
-    return `# 통계 사다리 해석 모드
+    return `# ㅌㅗㅇ 해석 모드
 
-이 폴더는 통계 사다리(https://claude.ai/artifact/Gaiius2CkfmCTb1pJWx2kd)에서 내보낸 분석 결과를 바탕으로,
+이 폴더는 ㅌㅗㅇ(https://claude.ai/artifact/Gaiius2CkfmCTb1pJWx2kd)에서 내보낸 분석 결과를 바탕으로,
 사회과학 석사논문의 결과·논의 초안을 함께 쓰는 곳이다. 너는 연구자를 돕는 통계 해석 조교다.
 
 ## 파일 위치
-- 통계 사다리의 **연구 폴더**라면 파일이 하위 폴더에 있다: \`2_data/analysis_data.csv\`, \`3_analysis/analysis.R\`, \`4_interpretation/interpretation.json\`. 파일을 하나씩 받아 넣었다면 모두 이 폴더 맨 위에 있다. 둘 중 있는 곳을 찾아서 쓴다.
-- 만드는 파일은 입력 파일 옆에 둔다: \`R_output.txt\`·\`R_results.csv\`는 \`analysis.R\` 옆, \`draft.md\`·\`review.md\`는 \`interpretation.json\` 옆, \`decision_log.md\`는 이 폴더 맨 위. 통계 사다리는 이 위치에서 파일을 읽어 와 대조·점검한다.
-- \`project.json\`, \`README.md\`, \`1_survey\`의 파일은 통계 사다리가 관리하니 고치지 않는다.
+- ㅌㅗㅇ의 **연구 폴더**라면 파일이 하위 폴더에 있다: \`2_data/analysis_data.csv\`, \`3_analysis/analysis.R\`, \`4_interpretation/interpretation.json\`. 파일을 하나씩 받아 넣었다면 모두 이 폴더 맨 위에 있다. 둘 중 있는 곳을 찾아서 쓴다.
+- 만드는 파일은 입력 파일 옆에 둔다: \`R_output.txt\`·\`R_results.csv\`는 \`analysis.R\` 옆, \`draft.md\`·\`review.md\`는 \`interpretation.json\` 옆, \`decision_log.md\`는 이 폴더 맨 위. ㅌㅗㅇ은 이 위치에서 파일을 읽어 와 대조·점검한다.
+- \`project.json\`, \`README.md\`, \`1_survey\`의 파일은 ㅌㅗㅇ이 관리하니 고치지 않는다.
 
 ## 시작할 때
-첫 답에서 "통계 사다리 해석 모드입니다."라고 말하고, 같은 폴더의 \`interpretation.json\`을 읽은 뒤 다음 순서로 진행한다.
-파일이 없으면 통계 사다리의 결과 해석 탭 → [Claude Code] → [interpretation.json 받기]로 받아 이 폴더에 넣으라고 안내한다.
+첫 답에서 "ㅌㅗㅇ 해석 모드입니다."라고 말하고, 같은 폴더의 \`interpretation.json\`을 읽은 뒤 다음 순서로 진행한다.
+파일이 없으면 ㅌㅗㅇ의 결과 해석 메뉴 → [Claude Code] → [interpretation.json 받기]로 받아 이 폴더에 넣으라고 안내한다.
 
 ## 진행 순서
 1. **의도 확인**: 해석하기 전에 아래를 한국어로 보여 주고, 연구자가 답할 때까지 기다린다.
 ${CHECK_TASK.replace(/^할 일:\n/, '').split('\n').map(l => '   ' + l).join('\n')}
 2. **초안 쓰기**: 연구자가 답하면 \`draft.md\` 파일을 만들어 아래 형식으로 쓴다. 연구자가 고쳐 달라고 하면 그 파일을 고친다.
 3. **스스로 점검**: 다 쓴 뒤 초안의 숫자가 모두 \`interpretation.json\`에 그대로 있는지, 가설마다 판정과 같게 썼는지, 금지 표현이 없는지 확인하고 결과를 짧게 알린다.
-4. **마무리 안내**: "초안을 통계 사다리 결과 해석 탭의 [초안 점검] 칸에 붙여 넣으면 숫자와 판정을 한 번 더 점검합니다."라고 알린다.
+4. **마무리 안내**: "초안을 ㅌㅗㅇ 결과 해석 메뉴의 [초안 점검] 칸에 붙여 넣으면 숫자와 판정을 한 번 더 점검합니다."라고 알린다.
 
 ## 반드시 지킬 것
 아래에서 [연구 자료]는 \`interpretation.json\`을 말한다.
@@ -4801,14 +4821,14 @@ ${writingRules()}
 ${TEXT_FORMAT}
 
 ## "R로 분석해줘"라고 하면
-이 폴더의 \`analysis.R\`과 \`analysis_data.csv\`로 R 분석을 실행한다. \`analysis.R\`은 통계 사다리가 연구자의 분석 결정대로 만든 코드다. 파일 이름이 \`analysis.R.txt\`이면 \`analysis.R\`로 바꾼다.
+이 폴더의 \`analysis.R\`과 \`analysis_data.csv\`로 R 분석을 실행한다. \`analysis.R\`은 ㅌㅗㅇ이 연구자의 분석 결정대로 만든 코드다. 파일 이름이 \`analysis.R.txt\`이면 \`analysis.R\`로 바꾼다.
 1. \`Rscript --version\`으로 R이 있는지 확인한다. 없으면 설치 방법을 알려 준다 (맥·윈도우: https://cran.r-project.org 설치 파일, 맥은 \`brew install r\`도 가능). 연구자가 허락하면 설치를 돕는다.
 2. \`analysis.R\`이 있는 폴더에서 \`Rscript analysis.R > R_output.txt 2>&1\`로 실행한다 (연구 폴더라면 \`cd 3_analysis\` 후). 추가 패키지는 필요 없다.
 3. 숫자는 \`R_output.txt\`와 \`R_results.csv\`에 나온 값만 쓴다. 직접 계산하거나 고치지 않는다.
 4. \`analysis.R\`의 분석 내용(변인, 방법, 분석 결정)을 바꾸지 않는다. 실행 오류가 나면 원인을 설명하고, 파일 경로·인코딩처럼 분석과 관계없는 문제만 연구자의 허락을 받아 고친다. 고친 것은 \`decision_log.md\`에 적는다.
 5. \`analysis_data.csv\`의 내용을 화면에 출력하거나 대화에 옮기지 않는다. 열 이름 확인만 한다.
 6. R 출력에 계획에 없던 문제(경고, 수렴 실패, 가정이 크게 어긋남 등)가 보이면 멈추고, 선택지와 각 선택의 결과를 쉬운 말로 설명해 연구자에게 묻는다. 연구자가 고른 것과 이유를 \`decision_log.md\`에 "결과를 본 뒤의 결정"으로 적는다. 더 유의하게 나오는 쪽을 권하지 않는다.
-7. 끝나면 주요 결과를 짧은 표로 보여 주고, "R_output.txt 내용을 통계 사다리 분석 탭의 [R 결과와 맞춰 보기]에 붙여 넣으면 숫자를 대조합니다."라고 알린다.
+7. 끝나면 주요 결과를 짧은 표로 보여 주고, "R_output.txt 내용을 ㅌㅗㅇ 분석 결정·계산 화면의 [R 결과와 맞춰 보기]에 붙여 넣으면 숫자를 대조합니다."라고 알린다.
 
 ## "허점 점검해줘"라고 하면
 \`draft.md\`(연구자가 다른 파일을 말하면 그 파일)를 읽고 깐깐한 동료로서 점검한다. 글을 고치지 않고 \`review.md\` 파일에 아래 형식으로 쓴다.
@@ -4828,7 +4848,7 @@ ${REVIEW_RULES}
 `;
   }
   function exportJson() {
-    return JSON.stringify({ 안내: '통계 사다리에서 내보낸 해석 자료입니다. 판정은 통계 사다리의 코드가 정했고, 숫자는 계산 결과를 그대로 옮겼습니다. 이 파일은 고치지 마세요.', 내보낸_날짜: today(), 판정_규칙: '간접효과는 부트스트랩 95% 신뢰구간이 0을 포함하지 않으면 유의, 나머지는 p < .05이면 유의. 예상 방향과 같을 때만 지지.', 예시_자료: analyses.some(a => a.sample), ...payload() }, null, 2);
+    return JSON.stringify({ 안내: 'ㅌㅗㅇ에서 내보낸 해석 자료입니다. 판정은 ㅌㅗㅇ의 코드가 정했고, 숫자는 계산 결과를 그대로 옮겼습니다. 이 파일은 고치지 마세요.', 내보낸_날짜: today(), 판정_규칙: '간접효과는 부트스트랩 95% 신뢰구간이 0을 포함하지 않으면 유의, 나머지는 p < .05이면 유의. 예상 방향과 같을 때만 지지.', 예시_자료: analyses.some(a => a.sample), ...payload() }, null, 2);
   }
 
   // 붙여 넣은 초안 읽기: JSON이면 그대로, 아니면 [결과] [논의] 등 제목으로 나눔
@@ -4994,9 +5014,10 @@ ${REVIEW_RULES}
   const ARTIFACT_URL = 'https://claude.ai/artifact/Gaiius2CkfmCTb1pJWx2kd';
   const GUIDE = [
     { id: 'start', group: '시작하기', title: '처음 오셨나요', body: `
-      <p>통계 사다리는 통계 용어를 몰라도 <b>질문에 답하며 내 연구에 맞는 통계 기법을 고르고</b>, 그 변인으로 <b>설문을 만들어 응답을 모으고</b>, <b>계산과 결과 해석</b>까지 이어 가는 도구입니다.</p>
+      <p>ㅌㅗㅇ(통)은 통계 용어를 몰라도 <b>질문에 답하며 사다리를 내려가 내 연구에 맞는 통계 기법을 고르고</b>, 그 변인으로 <b>설문을 만들어 응답을 모으고</b>, <b>계산과 결과 해석</b>까지 이어 가는 도구입니다.</p>
       <h3>화면 구성</h3>
       <table class="gtable"><thead><tr><th>자리</th><th>하는 일</th></tr></thead><tbody>
+        <tr><td>위 띠 연구 이름 ▾</td><td>연구를 여러 개 두고 고릅니다. [+ 새 연구]·[복제]·[이름 바꾸기]·[지우기]. 연구마다 사다리 답, 설문, 분석, 해석, 대화가 따로 저장되고, PC 연구 폴더도 연구마다 따로 연결됩니다. 다른 아이디어는 [복제]해서 원래 연구를 그대로 둔 채 시험해 보세요.</td></tr>
         <tr><td>왼쪽 메뉴</td><td>연구 진행 순서. 끝낸 단계는 ✓, 지금 단계는 주황색. 맨 위 ☰ 버튼으로 접었다 펼 수 있습니다.</td></tr>
         <tr><td>가운데</td><td>지금 단계에서 고르고 적는 곳. 사다리에서 답한 질문은 대화처럼 위로 쌓이고, 말풍선을 누르면 그 질문으로 돌아갑니다. 맨 아래 입력창에 궁금한 것을 물으면 답이 이어서 남습니다.</td></tr>
         <tr><td>오른쪽 보기 창</td><td>[통계 방법] 고른 기법·사다리 지도·변인·분석 결정, [설문] 요약·응답 현황·응답자 화면 미리보기, [결과] 가설 판정·해석 초안·허점 점검·계산 결과표. 단계에 맞는 탭이 저절로 열리고, 직접 눌러 바꿀 수도 있습니다.</td></tr>
@@ -5021,7 +5042,7 @@ ${REVIEW_RULES}
       <p>[분석] 메뉴에서 <b>[예시 자료로 해 보기]</b>를 누르면 예시 설문과 가짜 응답 300명으로 전체 흐름을 바로 볼 수 있습니다. 예시 자료는 화면 확인용이라 논문에 쓰면 안 됩니다.</p>` },
 
     { id: 'folder', group: '시작하기', title: '연구 폴더 (PC)', body: `
-      <p>교수님의 lazzzyResearch처럼 <b>연구 하나 = 폴더 하나</b>로 작업합니다. PC의 폴더를 연결하면 통계 사다리에서 한 일이 그 폴더에 파일로 <b>자동 저장</b>되고, 같은 폴더에서 Claude Code를 실행하면 Claude가 그 파일들로 일합니다.</p>
+      <p>교수님의 lazzzyResearch처럼 <b>연구 하나 = 폴더 하나</b>로 작업합니다. PC의 폴더를 연결하면 ㅌㅗㅇ에서 한 일이 그 폴더에 파일로 <b>자동 저장</b>되고, 같은 폴더에서 Claude Code를 실행하면 Claude가 그 파일들로 일합니다.</p>
       <h3>준비</h3>
       <ul><li><b>PC의 크롬·엣지·웨일</b>이 필요합니다. 사파리·파이어폭스·휴대폰, 그리고 claude.ai 링크 안에서는 폴더 연결이 막혀 있습니다.</li>
         <li><code>stats-ladder.html</code> 파일을 PC에 받아 두고 더블클릭해서 엽니다. (claude.ai 링크에서는 [연구 폴더 zip 받기]·[불러오기]로 대신합니다.)</li></ul>
@@ -5034,7 +5055,7 @@ ${REVIEW_RULES}
 ├─ 2_data/  analysis_data.csv (분석용 자료), item_analysis.csv (+ raw_responses.csv 선택)
 ├─ 3_analysis/  analysis_plan.md (분석 계획서), analysis.R, results.csv (결과표)
 └─ 4_interpretation/  interpretation.json (해석 자료)</pre></div>
-      <div class="gstep"><b>STEP 3. 같은 폴더에서 Claude Code</b><p>터미널에서 <code>cd 내논문</code> → <code>claude</code> → "R로 분석해줘", "해석해 줘", "허점 점검해줘". Claude가 만든 <code>R_output.txt</code>, <code>draft.md</code>, <code>review.md</code>는 통계 사다리 화면으로 돌아오면 <b>자동으로 읽어 와</b> 대조·점검합니다.</p></div>
+      <div class="gstep"><b>STEP 3. 같은 폴더에서 Claude Code</b><p>터미널에서 <code>cd 내논문</code> → <code>claude</code> → "R로 분석해줘", "해석해 줘", "허점 점검해줘". Claude가 만든 <code>R_output.txt</code>, <code>draft.md</code>, <code>review.md</code>는 ㅌㅗㅇ 화면으로 돌아오면 <b>자동으로 읽어 와</b> 대조·점검합니다.</p></div>
       <div class="gstep"><b>STEP 4. 다음에 이어 하기</b><p>stats-ladder.html을 다시 열면 지난 폴더가 보입니다. <b>[다시 연결]</b>만 누르면 됩니다. 응답 원자료도 저장해 두었다면 점수까지 바로 다시 만들어집니다.</p></div>
       <div class="gnote"><b>응답 원자료 저장</b>은 기본으로 꺼져 있습니다. 켜면 다시 열 때 응답을 넣지 않아도 되지만, 폴더가 구글 드라이브처럼 동기화되는 곳이면 개인정보 보관 규정을 확인하세요.</div>` },
 
@@ -5136,13 +5157,13 @@ ${REVIEW_RULES}
       <p>결과를 보고 유의하게 나오는 쪽으로 방법을 바꾸면, 우연한 결과를 진짜처럼 보고하게 됩니다(흔히 p-해킹이라고 부름). 그래서 <b>[결정 확정하기]</b>로 미리 정하고, 결과를 본 뒤 바꾼 것은 <b>사후 변경</b>으로 기록되어 이유를 적게 됩니다. 기록은 <b>[분석 계획서 받기]</b>로 받아 논문 부록이나 심사 자료로 쓸 수 있습니다.</p>` },
 
     { id: 'r', group: '단계별 사용법', title: '⑤-2 R로 확인하기', tab: 'analysis', body: `
-      <p>통계 사다리의 숫자를 <b>R</b>로 다시 계산해 대조합니다. R은 무료이고 연구에서 널리 쓰는 표준 통계 프로그램입니다. R 문법은 몰라도 됩니다.</p>
-      <ul><li>R 코드는 통계 사다리가 <b>분석 결정 그대로</b> 만듭니다. AI가 즉석에서 짜지 않습니다.</li><li><b>기본 R만</b> 씁니다. 추가 패키지 설치가 필요 없습니다.</li><li>숫자는 R이 만듭니다. AI는 R을 대신 실행하고 결과를 정리할 뿐입니다.</li></ul>
+      <p>ㅌㅗㅇ의 숫자를 <b>R</b>로 다시 계산해 대조합니다. R은 무료이고 연구에서 널리 쓰는 표준 통계 프로그램입니다. R 문법은 몰라도 됩니다.</p>
+      <ul><li>R 코드는 ㅌㅗㅇ이 <b>분석 결정 그대로</b> 만듭니다. AI가 즉석에서 짜지 않습니다.</li><li><b>기본 R만</b> 씁니다. 추가 패키지 설치가 필요 없습니다.</li><li>숫자는 R이 만듭니다. AI는 R을 대신 실행하고 결과를 정리할 뿐입니다.</li></ul>
       <div class="gstep"><b>STEP 1. 파일 받기</b><p>[분석] 탭 → [R로 확인하기]에서 <code>analysis_data.csv</code>와 <code>analysis.R</code>을 받아 한 폴더에 넣습니다. claude.ai에서 받으면 <code>analysis.R.txt</code>로 저장될 수 있습니다. 이름에서 <code>.txt</code>를 지우세요 (Claude Code는 알아서 바꿉니다).</p></div>
       <div class="gstep"><b>STEP 2-가. Claude Code가 대신 실행</b><p>새로 받은 CLAUDE.md도 그 폴더에 넣고 <code>claude</code> 실행 → <b>"R로 분석해줘"</b>. R이 없으면 설치를 도와주고, 실행 결과를 <code>R_output.txt</code>로 남깁니다. 계획에 없던 문제가 보이면 멈추고 묻습니다.</p></div>
       <div class="gstep"><b>STEP 2-나. RStudio에서 직접</b><p><a href="https://posit.co/download/rstudio-desktop/" target="_blank" rel="noopener">R과 RStudio</a>를 설치하고, <code>analysis.R</code>을 열어 오른쪽 위 <b>[Source]</b>를 누릅니다. 작업 폴더가 파일 위치와 같아야 합니다 ([Session → Set Working Directory → To Source File Location]).</p></div>
       <div class="gstep"><b>STEP 3. 대조</b><p>R 출력(또는 <code>R_results.csv</code>)을 각 분석 결과의 <b>[R 결과와 맞춰 보기]</b>에 붙여 넣으면 효과마다 일치 여부가 표로 나옵니다. 부트스트랩 신뢰구간은 난수가 달라 소수 셋째 자리에서 조금 다를 수 있고, 판정(0 포함 여부)이 같으면 일치로 봅니다.</p></div>
-      <div class="gnote">논문에는 "분석은 통계 사다리로 수행하고 R 4.x로 재계산해 확인하였다"처럼 적을 수 있습니다. 표준 도구로 확인했다는 근거가 됩니다.</div>` },
+      <div class="gnote">논문에는 "분석은 ㅌㅗㅇ으로 수행하고 R 4.x로 재계산해 확인하였다"처럼 적을 수 있습니다. 표준 도구로 확인했다는 근거가 됩니다.</div>` },
 
     { id: 'checks', group: '단계별 사용법', title: '⑦ 보고 체크리스트와 허점 점검', tab: 'interp', body: `
       <h3>보고 체크리스트 (코드가 자동으로)</h3>
@@ -5172,7 +5193,7 @@ ${REVIEW_RULES}
       <p>어느 방법이든 <b>가설 판정은 코드가 정하고, 초안의 숫자와 판정은 이 페이지가 다시 점검</b>합니다. 그래서 어떤 AI를 써도 안전장치는 같습니다.</p>
       <h3>아무 AI 채팅으로 하기 (무료)</h3>
       <ol>
-        <li>결과 해석 탭 → [아무 AI 채팅] → <b>[① 의도 확인 지시문 복사]</b> → AI 채팅에 붙여 넣기</li>
+        <li>결과 해석 메뉴 → [아무 AI 채팅] → <b>[① 의도 확인 지시문 복사]</b> → AI 채팅에 붙여 넣기</li>
         <li>AI의 답을 [AI의 답] 칸에 붙여 넣고, AI가 물은 것에 [내 답] 칸에 답하기</li>
         <li><b>[② 초안 쓰기 지시문 복사]</b> → 같은 채팅에 붙여 넣기</li>
         <li>AI가 쓴 초안을 <b>[초안 점검]</b> 칸에 붙여 넣고 [초안 점검하기]</li>
@@ -5187,16 +5208,16 @@ ${REVIEW_RULES}
         <p class="hint">맥·리눅스</p><pre>curl -fsSL https://claude.ai/install.sh | bash</pre>
         <p class="hint">윈도우 (PowerShell)</p><pre>irm https://claude.ai/install.ps1 | iex</pre>
         <p class="hint">설치 방법은 바뀔 수 있으니 안 되면 <a href="https://claude.com/product/claude-code" target="_blank" rel="noopener">Claude Code 공식 안내</a>를 확인하세요.</p></div>
-      <div class="gstep"><b>STEP 3. 해석 폴더 만들기</b><p>바탕화면 등에 새 폴더(예: <code>통계해석</code>)를 만들고, 결과 해석 탭 → [Claude Code]에서 두 파일을 받아 넣습니다.</p>
+      <div class="gstep"><b>STEP 3. 해석 폴더 만들기</b><p>바탕화면 등에 새 폴더(예: <code>통계해석</code>)를 만들고, 결과 해석 메뉴 → [Claude Code]에서 두 파일을 받아 넣습니다.</p>
         <ul><li><code>CLAUDE.md</code> — Claude가 지킬 규칙 (판정 그대로, 숫자 그대로, 인과 단정 금지, 인용 지어내지 않기)</li><li><code>interpretation.json</code> — 연구 의도, 가설, 코드 판정, 결과표 (응답 원자료 없음)</li></ul></div>
       <div class="gstep"><b>STEP 4. AI 조교 실행</b><p>터미널에서 폴더로 이동해 실행합니다.</p><pre>cd 바탕화면/통계해석
 claude</pre>
         <p>처음이면 브라우저가 열리고 Claude 계정으로 로그인합니다. 화면에 이렇게 나오면 성공입니다.</p>
-        <pre>통계 사다리 해석 모드입니다.
+        <pre>ㅌㅗㅇ 해석 모드입니다.
 interpretation.json을 읽었습니다. …</pre>
         <p><b>"해석해 줘"</b>라고 쓰면 의도 확인부터 시작합니다.</p></div>
-      <div class="gstep"><b>STEP 5. 초안 점검</b><p>질문에 답하면 폴더에 <code>draft.md</code>가 생깁니다. 내용을 결과 해석 탭의 <b>[초안 점검]</b> 칸에 붙여 넣으세요. 고치고 싶으면 Claude Code에 "논의를 더 짧게"처럼 말하면 됩니다.</p></div>
-      <div class="gstep"><b>STEP 6. 허점 점검</b><p>Claude Code에 <b>"허점 점검해줘"</b>라고 하면 깐깐한 동료로서 초안을 읽고 <code>review.md</code>에 질문을 씁니다. 그 내용을 결과 해석 탭 <b>4. 허점 점검</b>에 붙여 넣으면 질문별로 정리되어 보입니다.</p></div>
+      <div class="gstep"><b>STEP 5. 초안 점검</b><p>질문에 답하면 폴더에 <code>draft.md</code>가 생깁니다. 내용을 결과 해석 메뉴의 <b>[초안 점검]</b> 칸에 붙여 넣으세요. 고치고 싶으면 Claude Code에 "논의를 더 짧게"처럼 말하면 됩니다.</p></div>
+      <div class="gstep"><b>STEP 6. 허점 점검</b><p>Claude Code에 <b>"허점 점검해줘"</b>라고 하면 깐깐한 동료로서 초안을 읽고 <code>review.md</code>에 질문을 씁니다. 그 내용을 결과 해석 메뉴 <b>4. 허점 점검</b>에 붙여 넣으면 질문별로 정리되어 보입니다.</p></div>
       <div class="gnote">가설이나 분석을 바꾸면 <code>interpretation.json</code>을 다시 받아 덮어쓰세요. CLAUDE.md는 한 번 받으면 됩니다.</div>` },
 
     { id: 'faq', group: '도움말', title: '자주 묻는 질문', body: `
@@ -5629,7 +5650,7 @@ ${reviewText()}
   }
 
   function planText() {
-    const lines = ['# 분석 계획서 — 통계 사다리', '', `작성: ${today()}`, `확정: ${plan.locked || '확정하지 않음'}`, '', '## 결정'];
+    const lines = ['# 분석 계획서 — ㅌㅗㅇ', '', `작성: ${today()}`, `확정: ${plan.locked || '확정하지 않음'}`, '', '## 결정'];
     DECISIONS.forEach(d => lines.push(`- ${d.q} → **${decLabel(d, d.get())}**${d.scope === 'data' ? '' : ` (해당: ${d.scope.map(m => METHODS[m]?.name || m).join(', ')})`}`));
     lines.push('', '## 정해진 기본값'); FIXED.forEach(([k, v]) => lines.push(`- ${k}: ${v}`));
     lines.push('', '## 결정 기록');
@@ -5669,7 +5690,7 @@ eff <- function(label, est, lo = NA, hi = NA, p = NA) {
 }
 num <- function(col) as.numeric(d[[col]])
 catf <- function(col, lv) factor(d[[col]], levels = unique(c(lv, setdiff(unique(na.omit(d[[col]])), lv))))
-# 분류 변인 → 더미 (첫 범주가 기준). 이름은 통계 사다리와 같게
+# 분류 변인 → 더미 (첫 범주가 기준). 이름은 ㅌㅗㅇ과 같게
 dum <- function(f, name) {
   f <- droplevels(f); lv <- levels(f)
   m <- sapply(lv[-1], function(l) as.numeric(f == l)); m <- matrix(m, ncol = length(lv) - 1)
@@ -5856,7 +5877,7 @@ for (j in seq_along(pts)) eff(paste0("조건부 간접효과 (", ${rq(W)}, " ", 
     const parts = ok.map((a, i) => `
 # ---------------------------------------------------------------------
 # [${i + 1}] ${a.title}
-#     통계 사다리 계산: ${a.at}, N = ${a.n}
+#     ㅌㅗㅇ 계산: ${a.at}, N = ${a.n}
 ${(a.decisions || []).map(x => `#     분석 결정: ${x}`).join('\n')}
 # ---------------------------------------------------------------------
 AID <- ${rq(a.id)}; cat("\\nANALYSIS\\t", AID, "\\t", ${rq(a.title)}, "\\n", sep = "")
@@ -5864,9 +5885,9 @@ local({
 ${RGEN[a.spec.method](a.spec).split('\n').map(l => '  ' + l).join('\n')}
 })`);
     return `# =====================================================================
-# 통계 사다리 R 분석 코드 — 만든 날 ${today()}
+# ㅌㅗㅇ R 분석 코드 — 만든 날 ${today()}
 # 연구자가 정한 분석 결정을 그대로 따르는 코드입니다. 기본 R만 씁니다 (추가 패키지 없음).
-# 결정을 바꾸려면 코드를 고치지 말고 통계 사다리에서 바꾼 뒤 다시 받으세요.
+# 결정을 바꾸려면 코드를 고치지 말고 ㅌㅗㅇ에서 바꾼 뒤 다시 받으세요.
 #
 # 분석 결정
 ${DECISIONS.map(d => `#   - ${d.q} → ${decLabel(d, d.get())}`).join('\n')}
@@ -5875,7 +5896,7 @@ ${plan.log.filter(l => l.after).map(l => `#   * 사후 변경: ${l.q} ${l.from} 
 # 실행: 이 파일과 analysis_data.csv를 같은 폴더에 두고 (연구 폴더라면 3_analysis 폴더에서 그대로)
 #   터미널:  Rscript analysis.R > R_output.txt
 #   RStudio: 파일을 열고 [Source]
-# 끝에 나오는 EFFECT 줄을 통계 사다리 [R 결과와 맞춰 보기]에 붙여 넣으면 숫자를 대조합니다.
+# 끝에 나오는 EFFECT 줄을 ㅌㅗㅇ [R 결과와 맞춰 보기]에 붙여 넣으면 숫자를 대조합니다.
 # =====================================================================
 ${R_HEAD}${parts.join('\n')}
 
@@ -5938,7 +5959,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
     const n = analyses.filter(a => a.spec).length;
     return `<div class="card">
       <div class="res-head"><h3 class="card-title">R로 확인하기</h3><a class="guide-link" href="#guide-r">설명</a></div>
-      <p class="hint">통계 사다리의 숫자를 표준 통계 프로그램인 R로 다시 계산해 대조합니다. R 코드는 위의 분석 결정을 그대로 따르고, 추가 패키지 없이 기본 R만 씁니다. AI가 숫자를 만들지 않습니다.</p>
+      <p class="hint">ㅌㅗㅇ의 숫자를 표준 통계 프로그램인 R로 다시 계산해 대조합니다. R 코드는 위의 분석 결정을 그대로 따르고, 추가 패키지 없이 기본 R만 씁니다. AI가 숫자를 만들지 않습니다.</p>
       <div class="chat-steps">
         <div class="chat-step"><span class="n">1</span><div><b>두 파일을 받아 한 폴더에 넣기</b>
           <div class="actions tight"><button class="btn sm primary" data-an-act="r-data" ${lastScored ? '' : 'disabled'}>analysis_data.csv 받기</button><button class="btn sm primary" data-an-act="r-code" ${n ? '' : 'disabled'}>analysis.R 받기 (분석 ${n}개)</button></div>
@@ -5969,9 +5990,10 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
     rq.onsuccess = () => { const tx = rq.result.transaction('kv', mode); const r = fn(tx.objectStore('kv')); tx.oncomplete = () => res(r && r.result); tx.onerror = () => rej(tx.error); };
     rq.onerror = () => rej(rq.error);
   });
-  const saveHandle = h => idb('readwrite', s => s.put(h, 'dir')).catch(() => {});
-  const loadHandle = () => idb('readonly', s => s.get('dir')).catch(() => null);
-  const dropHandle = () => idb('readwrite', s => s.delete('dir')).catch(() => {});
+  const HKEY = () => (typeof projReg === 'undefined' || projReg.cur === 'p1') ? 'dir' : 'dir:' + projReg.cur;
+  const saveHandle = h => idb('readwrite', s => s.put(h, HKEY())).catch(() => {});
+  const loadHandle = () => idb('readonly', s => s.get(HKEY())).catch(() => null);
+  const dropHandle = () => idb('readwrite', s => s.delete(HKEY())).catch(() => {});
 
   // ---------- 파일 읽고 쓰기 ----------
   async function subdir(root, parts, create) { let d = root; for (const p of parts) d = await d.getDirectoryHandle(p, { create }); return d; }
@@ -5991,10 +6013,10 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
 
   // ---------- 프로젝트 상태 ----------
   function projectState() {
-    return { app: '통계 사다리', version: '0.8', savedAt: new Date().toISOString(), path, vars, sv, plan, anSel, analyses, intent, log, rules: customRules ? RULES : null };
+    return { app: 'ㅌㅗㅇ', version: '0.9', savedAt: new Date().toISOString(), path, vars, sv, plan, anSel, analyses, intent, log, rules: customRules ? RULES : null };
   }
   function applyProject(o) {
-    if (!o || o.app !== '통계 사다리') throw new Error('통계 사다리 프로젝트 파일이 아닙니다.');
+    if (!o || (o.app !== 'ㅌㅗㅇ' && o.app !== '\uD1B5\uACC4 \uC0AC\uB2E4\uB9AC')) throw new Error('ㅌㅗㅇ 프로젝트 파일이 아닙니다.');
     if (o.rules && !checkRules(o.rules).length) { RULES = o.rules; customRules = true; store.set('ladder.rules', o.rules); }
     vars = o.vars || vars; if (!Array.isArray(vars.others)) vars.others = []; saveVars();
     sv = o.sv || blankSurvey(); saveSv();
@@ -6022,7 +6044,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
     const F = [
       ['CLAUDE.md', claudeMd()],
       ['project.json', JSON.stringify(projectState(), null, 1)],
-      ['README.md', `# 통계 사다리 연구 폴더\n\n통계 사다리가 자동으로 저장하는 폴더입니다. 마지막 저장: ${new Date().toLocaleString('ko-KR')}\n\n- 1_survey: 설문 설계, 코드북, 구글 폼 스크립트\n- 2_data: 분석용 자료${folderOpts.saveRaw ? ', 응답 원자료' : ''}\n- 3_analysis: 분석 계획서, R 코드, 결과표 (Claude Code가 만든 R_output.txt도 여기)\n- 4_interpretation: 해석 자료 (Claude Code가 만든 draft.md, review.md도 여기)\n\n이 폴더에서 \`claude\`를 실행하면 Claude Code가 CLAUDE.md의 규칙대로 일합니다.\nproject.json은 통계 사다리가 다시 불러올 때 쓰니 고치지 마세요.\n`]
+      ['README.md', `# ㅌㅗㅇ 연구 폴더\n\nㅌㅗㅇ이 자동으로 저장하는 폴더입니다. 마지막 저장: ${new Date().toLocaleString('ko-KR')}\n\n- 1_survey: 설문 설계, 코드북, 구글 폼 스크립트\n- 2_data: 분석용 자료${folderOpts.saveRaw ? ', 응답 원자료' : ''}\n- 3_analysis: 분석 계획서, R 코드, 결과표 (Claude Code가 만든 R_output.txt도 여기)\n- 4_interpretation: 해석 자료 (Claude Code가 만든 draft.md, review.md도 여기)\n\n이 폴더에서 \`claude\`를 실행하면 Claude Code가 CLAUDE.md의 규칙대로 일합니다.\nproject.json은 ㅌㅗㅇ이 다시 불러올 때 쓰니 고치지 마세요.\n`]
     ];
     if (sv.scales.length || sv.demos.length) F.push(['1_survey/survey.md', surveyMd()], ['1_survey/codebook.csv', codebookCsv()], ['1_survey/google_form.gs', buildScript()]);
     if (lastScored) F.push(['2_data/analysis_data.csv', toCsv(analysisRows())], ['2_data/item_analysis.csv', toCsv(itemStatsRows())]);
@@ -6072,7 +6094,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
     if (pj) {
       let o = null; try { o = JSON.parse(pj.text); } catch (e) {}
       const mine = analyses.length || sv.scales.length || intent.hyps.some(h => norm(h.text));
-      if (o && o.app === '통계 사다리') {
+      if (o && (o.app === 'ㅌㅗㅇ' || o.app === '\uD1B5\uACC4 \uC0AC\uB2E4\uB9AC')) {
         if (o.savedAt && o.savedAt === store.get('ladder.folderSavedAt', '')) { await saveFolder(); }   // 이 브라우저가 마지막으로 저장한 그대로
         else if (!mine) { await loadFromFolder(o); toast(`'${dirHandle.name}' 폴더의 연구를 불러왔습니다.`); }
         else folderInfo.pending = o;     // 화면에도 내용이 있으면 고르게 함
@@ -6369,11 +6391,11 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
   }
   function helperPrompt(q) {
     const recent = thread.filter(m => m.role !== 'sys').slice(-8).map(m => `${m.role === 'me' ? '연구자' : '도우미'}: ${m.text}`).join('\n');
-    return `너는 '통계 사다리'의 도우미다. 통계를 잘 모르는 사회과학 대학원생이 통계 기법을 고르고, 설문을 만들고, 분석하고, 결과를 해석하는 것을 돕는다.
+    return `너는 'ㅌㅗㅇ(통)'의 도우미다. 통계를 잘 모르는 사회과학 대학원생이 통계 기법을 고르고, 설문을 만들고, 분석하고, 결과를 해석하는 것을 돕는다.
 지킬 것:
 - 쉬운 한국어로 짧게(대개 3~8문장) 답한다. 통계 용어는 괄호로 덧붙인다.
 - 연구자의 결정을 대신 내리지 않는다. 선택지가 있으면 각각의 장단점을 말하고, 이 연구 상황에서 흔히 쓰는 쪽을 근거와 함께 제안하되 결정은 연구자에게 맡긴다.
-- 숫자는 [현재 상태]에 있는 것만 쓴다. 새로 계산하지 않는다. 계산이 필요하면 통계 사다리의 어느 단계에서 무엇을 누르면 되는지 안내한다.
+- 숫자는 [현재 상태]에 있는 것만 쓴다. 새로 계산하지 않는다. 계산이 필요하면 ㅌㅗㅇ의 어느 단계에서 무엇을 누르면 되는지 안내한다.
 - 가설 판정은 [현재 상태]의 판정을 따른다. 참고문헌을 지어내지 않는다.
 - 마크다운 표나 제목 없이 평범한 문장과 짧은 목록으로 쓴다.
 
@@ -6442,6 +6464,79 @@ ${q}`;
     c.textContent = folderState === 'on' ? `📁 ${dirHandle.name}${folderInfo.savedAt ? ' · 저장됨 ' + folderInfo.savedAt : ''}` : folderState === 'need-permission' ? '📁 다시 연결 필요' : '📁 연구 폴더';
     if (folderInfo.pending) $('#fold-pop').hidden = false;
   }
+
+  // =================================================================
+  // 연구 여러 개: 위 띠의 드롭다운으로 고르기 (연구마다 따로 저장, 폴더도 따로)
+  // =================================================================
+  let projReg = store.get('ladder.projects', null);
+  if (!projReg || !Array.isArray(projReg.list) || !projReg.list.length) {
+    projReg = { cur: 'p1', list: [{ id: 'p1', name: norm(intent.title) || '내 연구 1', at: new Date().toISOString() }] };
+    _set('ladder.projects', projReg);
+  }
+  const curProj = () => projReg.list.find(p => p.id === projReg.cur) || projReg.list[0];
+  const blankProject = () => ({ path: [], vars: { ivs: [{ name: '', levels: '' }], dv: '', locked: false, lockedAt: '', others: [] }, sv: blankSurvey(),
+    plan: { dec: { minPct: '80', straight: 'keep' }, locked: '', seen: false, log: [] }, anSel: null, analyses: [], intent: blankIntent(), thread: [] });
+  const snapshot = () => ({ ...projectState(), thread, navCur, folderSeen: seen, folderSavedAt: store.get('ladder.folderSavedAt', '') });
+  let projDel = '';
+
+  async function switchProject(id, o) {
+    clearTimeout(saveTimer);
+    if (folderState === 'on' && !folderInfo.pending) await saveFolder();
+    _set('ladder.proj.' + projReg.cur, snapshot());
+    o = o || store.get('ladder.proj.' + id, null) || blankProject();
+    // 메모리에만 있던 응답 원자료와 폴더 연결은 비움
+    raw = null; colMap = {}; mapAuto = {}; consentCol = -1; lastScored = null; rawText = '';
+    dirHandle = null; folderState = 'off'; folderInfo = { savedAt: '', pending: null, lastErr: '' }; written.clear();
+    projReg.cur = id; _set('ladder.projects', projReg);
+    applyProject({ ...o, app: 'ㅌㅗㅇ', log, rules: null });   // 검증 기록과 갈림길 규칙은 모든 연구가 함께 씀
+    if (!o.anSel) _set('ladder.anSel', null);
+    thread = o.thread || []; _set('ladder.thread', thread);
+    seen = o.folderSeen || {}; _set('ladder.folderSeen', seen); _set('ladder.folderSavedAt', o.folderSavedAt || '');
+    projDel = '';
+    renderCollect(); switchView(curView()); renderRight(); renderProj();
+    toast(`'${curProj().name}' 연구로 바꿨습니다.`);
+    await initFolder();
+  }
+  function newId() { return 'p' + Date.now().toString(36); }
+  function addProject(name, o) {
+    const id = newId();
+    projReg.list.push({ id, name, at: new Date().toISOString() }); _set('ladder.projects', projReg);
+    return switchProject(id, o);
+  }
+  async function deleteProject(id) {
+    if (projReg.list.length < 2) return;
+    if (id === projReg.cur) { const other = projReg.list.find(p => p.id !== id); await switchProject(other.id); }
+    projReg.list = projReg.list.filter(p => p.id !== id); _set('ladder.projects', projReg);
+    store.del('ladder.proj.' + id); idb('readwrite', s => s.delete('dir:' + id)).catch(() => {});
+    renderProj(); toast('연구를 지웠습니다.');
+  }
+
+  function renderProj() {
+    const c = curProj();
+    $('#proj-chip').innerHTML = `<span>${esc(c.name)}</span><i>▾</i>`;
+    $('#proj-chip').title = `지금 연구: ${c.name}`;
+    $('#proj-pop').innerHTML = `<div class="pj-h">내 연구 ${projReg.list.length}개</div>
+      <div class="pj-list">${projReg.list.map(p => `<button class="pj-it ${p.id === projReg.cur ? 'on' : ''}" data-pj="${p.id}"><span class="pj-dot"></span>${esc(p.name)}</button>`).join('')}</div>
+      <div class="pj-name"><input id="pj-name" value="${esc(c.name)}" maxlength="40" aria-label="지금 연구 이름"><button class="btn sm" data-pj-act="rename">이름 바꾸기</button></div>
+      <div class="pj-acts"><button class="btn sm primary" data-pj-act="new">+ 새 연구</button><button class="btn sm" data-pj-act="dup">복제</button>
+        <button class="btn sm ${projDel ? 'danger' : ''}" data-pj-act="del" ${projReg.list.length < 2 ? 'disabled' : ''}>${projDel ? '한 번 더 누르면 지웁니다' : '지우기'}</button></div>
+      <p class="pj-hint">연구마다 사다리 답, 설문, 분석, 해석, 대화가 따로 저장됩니다. PC 연구 폴더도 연구마다 따로 연결합니다. 검증 기록과 갈림길 규칙은 함께 씁니다.</p>`;
+  }
+  $('#proj-chip').addEventListener('click', e => { e.stopPropagation(); projDel = ''; renderProj(); $('#proj-pop').hidden = !$('#proj-pop').hidden; $('#fold-pop').hidden = true; });
+  document.addEventListener('click', e => { if (!$('#proj-pop').hidden && !e.target.closest('.proj-wrap')) $('#proj-pop').hidden = true; });
+  $('#proj-pop').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'pj-name') { e.preventDefault(); $('[data-pj-act=rename]').click(); } });
+  $('#proj-pop').addEventListener('click', async e => {
+    e.stopPropagation();
+    const it = e.target.closest('[data-pj]');
+    if (it) { $('#proj-pop').hidden = true; if (it.dataset.pj !== projReg.cur) await switchProject(it.dataset.pj); return; }
+    const b = e.target.closest('[data-pj-act]'); if (!b) return;
+    const act = b.dataset.pjAct;
+    if (act === 'rename') { const v = norm($('#pj-name').value); if (!v) { toast('이름을 적어 주세요.'); return; } curProj().name = v; _set('ladder.projects', projReg); renderProj(); toast('이름을 바꿨습니다.'); }
+    else if (act === 'new') { $('#proj-pop').hidden = true; await addProject(`새 연구 ${projReg.list.length + 1}`); }
+    else if (act === 'dup') { $('#proj-pop').hidden = true; const o = { ...snapshot(), folderSeen: {}, folderSavedAt: '' }; await addProject(`${curProj().name} (복사본)`, JSON.parse(JSON.stringify(o))); }
+    else if (act === 'del') { if (!projDel) { projDel = projReg.cur; renderProj(); return; } $('#proj-pop').hidden = true; await deleteProject(projDel); }
+  });
+  renderProj();
 
   // ---------- 시작 ----------
   const defErrs = checkRules(DEFAULT_RULES);
