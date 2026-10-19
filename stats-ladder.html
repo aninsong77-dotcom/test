@@ -2297,6 +2297,34 @@ button,input,textarea,select{font-family:inherit}
 #splash .sp-wm .wm-g{animation:wm-sw 2.2s 1.95s cubic-bezier(.6,0,.3,1)}
 .home-link{cursor:pointer}
 .home-link:focus-visible{outline:2px solid var(--orange);outline-offset:3px;border-radius:6px}
+
+/* 척도 원본으로 만들기 */
+.si-card{margin-bottom:16px;border-color:var(--orange-line)}
+.si-head{display:flex;justify-content:space-between;align-items:center}
+.si-tabs{display:flex;gap:4px;margin:6px 0 12px;border-bottom:1px solid var(--line)}
+.si-tab{border:0;background:none;font:inherit;font-weight:700;color:var(--ink-3);padding:8px 12px;border-bottom:3px solid transparent;cursor:pointer}
+.si-tab.on{color:var(--ink);border-bottom-color:var(--point)}
+.si-drop{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;padding:26px 16px;border:2px dashed var(--orange-line);border-radius:12px;background:var(--orange-soft);cursor:pointer}
+.si-drop.over{border-color:var(--orange);background:var(--bg)}
+.si-drop span{font-size:12.5px;color:var(--ink-3)}
+.si-busy{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:var(--ink-2)}
+.si-busy .spin{width:14px;height:14px;border:2px solid var(--orange-line);border-top-color:var(--orange);border-radius:50%;animation:si-spin .8s linear infinite}
+@keyframes si-spin{to{transform:rotate(360deg)}}
+.si-msg{margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--bg-2);font-size:13px;line-height:1.6}
+.si-msg ol{margin:6px 0;padding-left:20px}
+.si-prev{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.si-prev h4{margin:0 0 8px;font-size:15px}.si-prev h4 small{font-weight:500;color:var(--ink-3);font-size:12.5px;margin-left:6px}
+.si-notes{margin:0 0 10px;padding-left:18px;font-size:12.5px;color:var(--ink-2)}
+.si-sec{margin-top:12px;border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.si-secname{margin-bottom:6px}
+.si-item{display:flex;align-items:center;gap:8px;padding:3px 0}
+.si-item.off{opacity:.45}
+.si-no{flex:none;min-width:22px;text-align:right;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.si-txt{flex:1;min-width:0;border:1px solid transparent;border-radius:6px;padding:5px 7px;font:inherit;font-size:13.5px;background:transparent;color:var(--ink)}
+.si-txt:hover,.si-txt:focus{border-color:var(--line);background:var(--bg);outline:none}
+.si-rev{flex:none;display:flex;align-items:center;gap:3px;font-size:12px;color:var(--ink-2)}
+.si-opts{display:grid;gap:10px;margin-top:12px}
+.si-ok{display:flex;gap:8px;align-items:flex-start;margin-top:12px;font-size:12.5px;color:var(--ink-2)}
 </style>
 </head>
 <body>
@@ -2365,11 +2393,13 @@ button,input,textarea,select{font-family:inherit}
         <p>변인마다 문항과 응답 선택지를 적으면, 구글 폼을 만드는 스크립트와 코드북이 만들어집니다.</p>
       </div>
       <div class="head-btns">
+        <button class="btn primary" data-sv-act="scale-src">📄 척도 원본으로 만들기</button>
         <button class="btn" data-sv-act="import">사다리 변인 가져오기</button>
         <button class="btn" data-sv-act="example">예시 설문 불러오기</button>
         <button class="btn" data-sv-act="clear">모두 지우기</button>
       </div>
     </div>
+    <div id="sv-import"></div>
     <div class="sv-layout">
       <div class="sv-main" id="sv-main"></div>
       <aside class="sv-side" id="sv-side"></aside>
@@ -3190,7 +3220,7 @@ button,input,textarea,select{font-family:inherit}
         <div class="grid3">
           <label class="f">약칭 (영문 추천)<input data-sc="${si}" data-f="code" value="${esc(s.code)}" placeholder="${esc(scaleCode(s, si))}"></label>
           <label class="f">역할<select data-sc="${si}" data-f="role">${opt(ROLES, s.role)}</select></label>
-          <label class="f">응답 방식<select data-sc="${si}" data-f="points">${[4, 5, 6, 7].map(n => `<option value="${n}" ${n == s.points ? 'selected' : ''}>${n}점 척도</option>`).join('')}</select></label>
+          <label class="f">응답 방식<select data-sc="${si}" data-f="points">${[2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(n => `<option value="${n}" ${n == s.points ? 'selected' : ''}>${n}점 척도</option>`).join('')}</select></label>
         </div>
         <label class="f" style="margin-top:12px">선택지 (1점부터 차례로, 쉼표로 구분)<input data-sc="${si}" data-f="labels" value="${esc(s.labels.join(', '))}"></label>
         <div class="grid2" style="margin-top:12px">
@@ -3462,7 +3492,7 @@ function createSurvey() {
       else it[f] = t.value;
     } else if (t.dataset.sc != null) {
       const sIdx = +t.dataset.sc, sc = sv.scales[sIdx];
-      if (f === 'points') { sc.points = +t.value; sc.labels = LABELS[sc.points].slice(); saveSv(); renderSurvey(); return; }
+      if (f === 'points') { sc.points = +t.value; sc.labels = (LABELS[sc.points] || Array.from({ length: sc.points }, (_, k) => String(k + 1))).slice(); saveSv(); renderSurvey(); return; }
       if (f === 'labels') sc.labels = t.value.split(/[,，]/).map(norm).filter(Boolean);
       else sc[f] = t.value;
       if (f === 'code') { saveSv(); const pos = t.selectionStart; renderSurvey(); const el = $(`[data-sc="${sIdx}"][data-f="code"]`); el.focus(); el.setSelectionRange(pos, pos); return; }
@@ -3495,6 +3525,7 @@ function createSurvey() {
     }
     else if (act === 'demo-add') sv.demos.push(newDemo());
     else if (act === 'demo-del') sv.demos.splice(i, 1);
+    else if (act === 'scale-src') { openImport(); return; }
     else if (act === 'import') { const n = importFromLadder(vars); toast(n ? `사다리 변인 ${n}개를 넣었습니다.` : '가져올 새 변인이 없습니다. 사다리 도착 화면의 변인 고정칸을 채워 주세요.'); return; }
     else if (act === 'example') { if (sv.scales.length && !twice(b, '한 번 더 누르면 지금 설문을 바꿉니다')) return; sv = exampleSurvey(); toast('예시 설문을 불러왔습니다.'); }
     else if (act === 'clear') { if (!twice(b, '한 번 더 눌러 모두 지우기')) return; sv = blankSurvey(); $('#sv-script').innerHTML = ''; }
@@ -5252,9 +5283,24 @@ ${REVIEW_RULES}
       <div class="gnote">갈림길 규칙은 아직 교재 자료 없이 통계 지식으로 만든 것이라 모두 <span class="tag ai">AI 지식</span> 꼬리표가 붙어 있습니다. 왼쪽 [갈림길 규칙] 메뉴에서 하나씩 볼 수 있습니다.</div>` },
 
     { id: 'survey', group: '단계별 사용법', title: '② 설문 설계', tab: 'survey', body: `
+      <h3>척도 원본으로 한 번에 만들기</h3>
+      <p>설문 만들기 위쪽 <b>[📄 척도 원본으로 만들기]</b>를 누르고 척도를 넣으면 문항, 응답 선택지, 역문항, 하위요인을 찾아 칸을 채웁니다.</p>
+      <table class="gtable"><thead><tr><th>원본</th><th>읽는 방법</th></tr></thead><tbody>
+        <tr><td>PDF (글자를 고를 수 있는 PDF)</td><td>이 화면에서 바로 글자를 읽습니다. AI가 필요 없습니다.</td></tr>
+        <tr><td>사진, 스캔한 PDF (글자를 고를 수 없음)</td><td>AI가 글자를 읽습니다. claude.ai 링크에서는 바로 되고, 그 밖에서는 [지시문 복사]를 눌러 ChatGPT·Gemini 같은 AI 채팅에 사진과 함께 붙여 넣은 뒤 답을 [글 붙여 넣기]에 넣습니다.</td></tr>
+        <tr><td>복사한 글</td><td>[글 붙여 넣기]에 넣고 [문항 찾기]. "1. 문항" 처럼 번호가 붙어 있으면 대부분 잘 됩니다.</td></tr>
+      </tbody></table>
+      <ul>
+        <li>찾는 것: 척도 이름과 출처, 지시문, 응답 선택지(<code>1=전혀 그렇지 않다 … 5=매우 그렇다</code>, 표 머리줄, 문항 끝 응답 칸 개수), 역문항(<code>(R)</code> <code>(역)</code> <code>*</code>, "역채점 문항: 3, 7번"), 하위요인(제목줄, "정서적 고갈(1, 2, 3)")</li>
+        <li><b>미리보기에서 원본과 한 문항씩 대조</b>하고, 문장·역문항·넣을지 여부를 고친 뒤 [설문에 넣기]. 하위요인은 따로 변인으로 넣을지 합칠지 고릅니다.</li>
+        <li>사다리에서 가져온 빈 변인이 있으면 그 변인에 바로 채울 수 있습니다.</li>
+        <li>원척도가 0점부터 시작하면 설문에는 1점부터 저장됩니다. 원척도 점수로 보고하려면 평균에서 1을 빼세요.</li>
+      </ul>
+      <div class="gnote">척도는 저작권이 있는 경우가 많습니다. 저자 허락이나 공개 사용 조건을 확인하고, 논문에 출처를 밝히세요.</div>
+      <h3>직접 만들기</h3>
       <ol>
         <li><b>설문 기본 정보</b>: 제목, 첫 화면 인사말, 연구 참여 동의문(○○ 자리를 실제 내용으로), 점수 계산 방식(평균 권장)</li>
-        <li><b>변인(척도)</b>: 이름, 약칭(영문 추천, 예: SCO), 역할(독립·매개·조절·종속·통제), 응답 방식(4~7점), 선택지, 척도 출처</li>
+        <li><b>변인(척도)</b>: 이름, 약칭(영문 추천, 예: SCO), 역할(독립·매개·조절·종속·통제), 응답 방식(2~11점), 선택지, 척도 출처</li>
         <li><b>문항</b>: 하나씩 적거나 [문항 여러 개 한 번에 붙여 넣기]로 넣습니다. 줄 끝에 <code>(역)</code>을 붙이면 역문항이 됩니다.</li>
         <li><b>기본 정보 문항</b>: 성별, 나이처럼 설문 끝에 묻는 문항. 이름·연락처처럼 사람을 알아볼 수 있는 정보는 받지 않는 것을 권합니다.</li>
       </ol>
@@ -6859,6 +6905,411 @@ ${q}`;
     el.addEventListener('click', home);
     el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); home(); } });
   });
+
+  // =================================================================
+  // 척도 원본 → 설문: PDF(글자 있음)·붙여 넣은 글은 규칙으로, 사진·스캔은 AI가 읽음
+  // =================================================================
+  const PDFJS = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/';
+  let imp = { open: false, tab: 'file', text: '', busy: '', files: [], images: [], res: null, msg: '', target: 'new', mode: 'split', ok: false };
+
+  // ---------- 1. 글에서 척도 읽기 (AI 없이) ----------
+  const CIRC = '①②③④⑤⑥⑦⑧⑨⑩⑪'.split('');
+  const LABEL_WORDS = /(전혀|그렇지 않|그렇다|보통|매우|대체로|약간|조금|항상|자주|가끔|거의|없다|있다|동의|반대|중간)/;
+  const REV_MARK = /\s*(?:[(（\[]\s*(?:R|r|역|역문항|역채점|역코딩|reverse(?:d)?)\s*[)）\]]|\*+|®)\s*$/;
+  const ITEM_RE = /^(?:문항\s*|Q\s*|q\s*)?(\d{1,3})\s*(?:[.)\]:．、]|번\.?)\s*(.+)$/;
+  const ITEM_RE2 = /^(\d{1,3})\s+(?=[가-힣A-Za-z"“‘'(])(.{3,})$/;
+  const toAscii = t => t.replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0));
+  const numList = t => {   // "3, 7, 9번" "1~9" "4-6"
+    const out = [];
+    String(t).replace(/(\d+)\s*[~\-–]\s*(\d+)|(\d+)/g, (m, a, b, c) => { if (c) out.push(+c); else for (let k = +a; k <= +b && k - a < 200; k++) out.push(k); return m; });
+    return out;
+  };
+  function stripTail(t) {
+    return t.replace(/(\s*[①②③④⑤⑥⑦⑧⑨⑩⑪])+\s*$/, '').replace(/(\s+[0-9]){3,}\s*$/, '').replace(/(\s*[□○◯☐]){2,}\s*$/, '').replace(/(\s*\(\s*\)){2,}\s*$/, '').trim();
+  }
+  function parseScaleText(raw) {
+    const R = { name: '', source: '', instruction: '', points: 0, labels: [], start: 1, sections: [], warnings: [], notes: [] };
+    const text = toAscii(String(raw || '').replace(/\r/g, ''));
+    const rawLines = text.split('\n').map(l => l.replace(/\u00a0/g, ' ').trim()).filter(l => l.replace(/\s/g, ''));
+    // 줄 끝의 응답 칸(① ② ③, 1 2 3 4 5, □)은 미리 지움 — 역문항 표시는 남김
+    let lines = rawLines.map(l => { const t = l.replace(/\s+/g, ' '); const m = t.match(REV_MARK); const body = m ? t.slice(0, m.index) : t; const cut = stripTail(body); return (cut || body) + (m && cut ? ' (R)' : m ? m[0] : ''); }).map(l => l.trim());
+    const used = new Set();
+    const consecutive = ns => ns.length >= 3 && (ns[0] === 0 || ns[0] === 1) && ns.every((n, k) => k === 0 || n === ns[k - 1] + 1);
+
+    // 응답 선택지: "1 = 전혀 그렇지 않다", "① 전혀 …", 한 줄에 여럿 또는 여러 줄
+    const pairRe = /(?:^|\s|[(\[])([0-9]{1,2}|[①②③④⑤⑥⑦⑧⑨⑩⑪])\s*[)\]]?\s*[=:：.\-]?\s*([가-힣][가-힣 ]{0,14}[가-힣])(?=\s*(?:[,;/·]|\s[0-9①-⑪(]|$|\s*[)\]]))/g;
+    let best = null;
+    lines.forEach((l, i) => {
+      if (ITEM_RE.test(l) && !LABEL_WORDS.test(l.replace(ITEM_RE, '$2').slice(0, 12))) return;
+      const all = [...l.matchAll(pairRe)].map(m => ({ n: CIRC.includes(m[1]) ? CIRC.indexOf(m[1]) + 1 : +m[1], t: m[2].trim() }));
+      const pairs = consecutive(all.map(p => p.n)) && all.length >= 3 ? all : all.filter(p => LABEL_WORDS.test(p.t));
+      if (pairs.length >= 3 && consecutive(pairs.map(p => p.n).sort((a, b) => a - b)) && (!best || pairs.length > best.pairs.length)) best = { pairs, lines: [i] };
+    });
+    if (!best) {   // 한 줄에 하나씩 "1 = 전혀 그렇지 않다"
+      for (let i = 0; i < lines.length; i++) {
+        const run = [];
+        for (let j = i; j < lines.length; j++) {
+          const m = lines[j].match(/^([0-9]{1,2}|[①-⑪])\s*[=:：)\].\-]\s*([가-힣][가-힣 ]{0,14})$/);
+          if (!m) break;
+          run.push({ n: CIRC.includes(m[1]) ? CIRC.indexOf(m[1]) + 1 : +m[1], t: m[2].trim(), i: j });
+        }
+        if (run.length >= 3 && consecutive(run.map(r => r.n)) && run.some(r => LABEL_WORDS.test(r.t)) && run.every(r => r.t.length <= 15)) { best = { pairs: run, lines: run.map(r => r.i) }; break; }
+      }
+    }
+    if (best) {
+      const ps = best.pairs.sort((a, b) => a.n - b.n);
+      R.labels = ps.map(p => p.t); R.points = ps.length; R.start = ps[0].n;
+      best.lines.forEach(i => used.add(i));
+    } else {   // 선택지 이름만 나란히 있는 머리줄
+      rawLines.forEach((raw, i) => {
+        const l = lines[i];
+        if (R.labels.length || ITEM_RE.test(l) || ITEM_RE2.test(l)) return;
+        const parts = raw.split(/\s{2,}|\t|\s*\|\s*|\s*\/\s*/).map(s => s.trim()).filter(Boolean);
+        if (parts.length >= 3 && parts.length <= 11 && parts.every(w => LABEL_WORDS.test(w) && w.length <= 15)) { R.labels = parts; R.points = parts.length; used.add(i); return; }
+        const known = Object.values(LABELS).sort((a, b) => b.length - a.length).find(set => l.includes(set.join(' ')));
+        if (known) { R.labels = known.slice(); R.points = known.length; used.add(i); }
+      });
+    }
+    // 문항 줄 끝의 응답 칸 개수(① ② ③ ④ ⑤ / 1 2 3 4 5 / □□□□□)로 점수 단계 추정
+    const boxCounts = rawLines.map(l => { const m = l.match(/((?:\s*[①②③④⑤⑥⑦⑧⑨⑩⑪])+|(?:\s+[0-9]){3,}|(?:\s*[□○◯☐]){3,})\s*$/); return m ? (m[1].match(/[①-⑪0-9□○◯☐]/g) || []).length : 0; }).filter(n => n >= 3 && n <= 11);
+    const boxN = boxCounts.length >= 2 ? boxCounts.sort((a, b) => boxCounts.filter(x => x === b).length - boxCounts.filter(x => x === a).length)[0] : 0;
+    if (!R.points && boxN) {
+      R.points = boxN;
+      R.notes.push(`문항마다 응답 칸이 ${boxN}개라서 ${boxN}점 척도로 정했습니다. 선택지 글은 표준 문구로 넣었으니 원본과 같은지 확인하세요.`);
+    }
+    const pm = text.match(/([2-9]|1[01])\s*점\s*(?:리커트|Likert|척도|척도로|평정)/i);
+    if (!R.points && pm) { R.points = +pm[1]; R.notes.push(`"${pm[0]}"를 보고 ${pm[1]}점 척도로 정했습니다. 선택지 글은 기본값입니다.`); }
+    if (/0\s*[=:]\s*[가-힣]/.test(text) && R.start === 1 && best && best.pairs[0].n === 0) R.start = 0;
+    if (R.start === 0) R.notes.push('원척도는 0점부터 시작합니다. 설문에는 1점부터로 저장되니, 원척도 점수로 보고하려면 평균에서 1을 빼세요.');
+
+    // 역문항 목록 "역채점 문항: 3, 7, 9번"
+    const revSet = new Set();
+    lines.forEach((l, i) => {
+      const m = l.match(/역\s*(?:문항|채점|코딩|점수|환산|산출)[^0-9]{0,20}((?:\d+\s*(?:번)?\s*(?:[,，、및와과~\-–]|\s)\s*)*\d+)/);
+      if (m) { numList(m[1]).forEach(n => revSet.add(n)); used.add(i); }
+    });
+
+    // 하위요인 정의 "정서적 고갈(1, 2, 3, 6)", "정서적 고갈: 1~9번"
+    const subDefs = [];
+    lines.forEach((l, i) => {
+      if (used.has(i) || ITEM_RE.test(l) || /역\s*(?:문항|채점|코딩)/.test(l)) return;
+      const body = l.replace(/^(?:하위\s*요인|하위\s*척도|구성\s*요인|요인)\s*[:：]?\s*/, '');
+      const defs = [...body.matchAll(/([가-힣A-Za-z][가-힣A-Za-z ·]{1,24}?)\s*(?:[:：]\s*|[(（]\s*)((?:\d+\s*(?:번)?\s*(?:[,，、~\-–]|\s)\s*)*\d+)\s*(?:번)?\s*(?:문항)?\s*[)）]?/g)]
+        .map(m => ({ name: m[1].replace(/^[,，;；/\s]+|[\s]+$/g, '').trim(), nums: numList(m[2]) })).filter(d => d.nums.length >= 1 && !/역/.test(d.name));
+      const covered = defs.reduce((a, d) => a + d.nums.length, 0);
+      if (defs.length && covered >= 2 && body.replace(/[\s,，;；/()（）:：~\-–0-9번문항]/g, '').length <= defs.reduce((a, d) => a + d.name.replace(/\s/g, '').length, 0) + 2) { subDefs.push(...defs); used.add(i); }
+    });
+
+    // 문항
+    const items = []; let cur = null; let section = ''; const heads = [];
+    const looksSentence = t => /[다요까]\s*[.?!]?\s*$|[.?!]\s*$/.test(String(t).replace(REV_MARK, ''));
+    let pending = [];   // 표에서 번호가 두 줄 가운데에 찍혀 문장이 번호 앞뒤로 갈라진 경우
+    for (let i = 0; i < lines.length; i++) {
+      if (used.has(i)) continue;
+      const l = lines[i];
+      const m = l.match(ITEM_RE) || l.match(ITEM_RE2);
+      if (m && m[2] && /[가-힣A-Za-z]/.test(m[2]) && +m[1] < 500) {
+        cur = { no: +m[1], text: m[2], section }; items.push(cur); pending = []; continue;
+      }
+      const bare = l.match(/^(\d{1,3})$/);
+      if (bare && items.length && +bare[1] === items[items.length - 1].no + 1) {
+        cur = { no: +bare[1], text: pending.join(' '), section }; items.push(cur); pending = []; continue;
+      }
+      if (/(다음|아래)/.test(l) && /(문항|읽고|표시|응답|답해|체크|해당)/.test(l) && !R.instruction) { R.instruction = l; cur = null; continue; }
+      const nextIsItem = i + 1 < lines.length && ITEM_RE.test(lines[i + 1]);
+      if (!looksSentence(l) && l.length <= 30 && nextIsItem && !LABEL_WORDS.test(l)) { section = l.replace(/^[\[<【■□▶◆●○\-\s]+|[\]>】:\s]+$/g, ''); heads.push(section); cur = null; continue; }
+      if (cur && !looksSentence(cur.text) && l.length < 160) { cur.text = (cur.text + ' ' + l).trim(); continue; }
+      if (items.length && cur && looksSentence(cur.text) && l.length < 160 && !used.has(i)) { pending.push(l); continue; }
+      if (!items.length && /^(출처|자료|source|reference)\s*[:：]/i.test(l)) { R.source = l.replace(/^[^:：]*[:：]\s*/, ''); continue; }
+      if (!items.length && !R.name) {
+        const t = l.replace(/^[\[<【(（][^\]>】)）]{0,12}[\]>】)）]\s*/, '');
+        const hm = t.match(/^(.{2,40}?)\s*[(（]([^()（）]*\d{4}[^()（）]*)[)）]\s*$/);
+        if (hm) { R.name = hm[1].trim(); if (!R.source) R.source = hm[2].trim(); continue; }
+        if (t.length <= 40 && !looksSentence(t)) { R.name = t.replace(/^[\[<【]|[\]>】]$/g, ''); continue; }
+      }
+      if (!items.length && /(\d{4})/.test(l) && /(et al|외|\(\d{4}\)|, \d{4})/.test(l) && !R.source) { R.source = l; continue; }
+    }
+    {   // 문항 앞 줄 가운데 '척도·질문지' 이름이 있으면 그것을 이름으로
+      const firstItem = lines.findIndex(l => ITEM_RE.test(l) || ITEM_RE2.test(l));
+      const cand = lines.slice(0, firstItem < 0 ? lines.length : firstItem).find(l => /(척도|질문지|검사|scale|inventory|questionnaire)/i.test(l) && l.length <= 60 && !/(다음|아래)/.test(l));
+      if (cand && !/(척도|질문지|검사|scale|inventory|questionnaire)/i.test(R.name)) {
+        const t = cand.replace(/^[\[<【(（][^\]>】)）]{0,12}[\]>】)）]\s*/, '');
+        const hm = t.match(/^(.{2,40}?)\s*[(（]([^()（）]*\d{4}[^()（）]*)[)）]\s*$/);
+        R.name = hm ? hm[1].trim() : t; if (hm && (!R.source || R.source === cand || R.source === t)) R.source = hm[2].trim();
+      }
+    }
+    items.forEach(it => {
+      let t = stripTail(it.text);
+      if (REV_MARK.test(t)) { it.reverse = true; t = t.replace(REV_MARK, '').trim(); }
+      it.text = stripTail(t);
+      if (revSet.has(it.no)) it.reverse = true;
+      it.reverse = !!it.reverse; it.keep = true;
+    });
+    // 같은 번호가 두 번(표 머리 반복 등) 나오면 뒤의 것을 버림 — 구역마다 1번부터 다시 시작하는 경우는 둠
+    const seen = new Set(); const dedup = [];
+    items.forEach(it => { const k = it.section + '|' + it.no; if (seen.has(k)) return; seen.add(k); dedup.push(it); });
+
+    // 구역 나누기: 하위요인 정의가 있으면 그대로, 없으면 제목줄
+    if (subDefs.length) {
+      subDefs.forEach(sd => R.sections.push({ name: sd.name, items: dedup.filter(it => sd.nums.includes(it.no)).map(it => ({ ...it })) }));
+      const rest = dedup.filter(it => !subDefs.some(sd => sd.nums.includes(it.no)));
+      if (rest.length) R.sections.push({ name: '(하위요인 없음)', items: rest });
+    } else {
+      const names = [...new Set(dedup.map(it => it.section))];
+      names.forEach(n => R.sections.push({ name: n, items: dedup.filter(it => it.section === n) }));
+    }
+    if (!R.instruction) R.instruction = '';
+    // 점검
+    if (!dedup.length) R.warnings.push('번호가 붙은 문항을 찾지 못했습니다. "1. 문항 내용"처럼 번호가 있는 부분을 붙여 넣어 주세요.');
+    const nums = dedup.map(it => it.no);
+    if (dedup.length && !heads.length && !subDefs.length) {
+      const miss = []; for (let k = Math.min(...nums); k <= Math.max(...nums); k++) if (!nums.includes(k)) miss.push(k);
+      if (miss.length && miss.length <= 10) R.warnings.push(`${miss.join(', ')}번 문항이 보이지 않습니다. 원본에서 빠진 곳이 없는지 확인하세요.`);
+    }
+    if (!R.labels.length && !R.points) R.warnings.push('응답 선택지(예: 1=전혀 그렇지 않다 … 5=매우 그렇다)를 찾지 못해 5점 척도로 두었습니다. 원본과 맞는지 확인하세요.');
+    if (!R.points) R.points = 5;
+    if (!R.labels.length || R.labels.length !== R.points) R.labels = (LABELS[R.points] || Array.from({ length: R.points }, (_, k) => String(k + 1))).slice();
+    if (revSet.size) R.notes.push(`역문항 목록(${[...revSet].join(', ')}번)을 찾아 표시했습니다.`);
+    return R;
+  }
+
+  // ---------- 2. AI에게 읽히기 (사진·스캔·깨진 표) ----------
+  const SCALE_JSON_RULES = `규칙:
+- 문항 문장은 원본 그대로 옮긴다. 고치거나 번역하거나 요약하지 않는다.
+- 원본에 역문항 표시(R, 역, *, 역채점 목록 등)가 있을 때만 reverse를 true로 한다. 짐작하지 않는다.
+- 응답 선택지는 원본의 글을 1점(또는 0점)부터 차례로 적는다. 원본에 없으면 labels를 빈 배열로 둔다.
+- 하위요인이 있으면 sections에 나누고, 없으면 sections 하나에 모두 넣고 name은 빈 문자열로 둔다.
+- 읽기 어려운 글자나 확실하지 않은 곳은 notes에 적는다.`;
+  const SCALE_JSON_SHAPE = '{"name":"척도 이름","source":"저자(연도) 등 출처","instruction":"지시문","start":1,"labels":["전혀 그렇지 않다","…","매우 그렇다"],"sections":[{"name":"하위요인 이름","items":[{"no":1,"text":"문항 문장","reverse":false}]}],"notes":["확인할 점"]}';
+  const scalePromptText = t => `아래는 심리·사회과학 척도의 원본 글이다. 설문지를 만들 수 있게 정리해서 JSON 하나로만 답하라.\n${SCALE_JSON_RULES}\n형식: ${SCALE_JSON_SHAPE}\n\n[원본]\n${t.slice(0, 60000)}`;
+  const scalePromptImg = n => `첨부한 이미지 ${n}장은 심리·사회과학 척도의 원본(논문 부록·척도집 사진이나 스캔)이다. 글자를 읽어 설문지를 만들 수 있게 정리해서 JSON 하나로만 답하라.\n${SCALE_JSON_RULES}\n형식: ${SCALE_JSON_SHAPE}`;
+  const SCALE_COPY_PROMPT = `첨부한 사진(또는 PDF)은 심리·사회과학 척도의 원본입니다. 글자를 읽어 아래 형식의 글로만 정리해 주세요.
+- 문항 문장은 원본 그대로 옮기고, 고치거나 번역하지 마세요.
+- 원본에 역문항 표시가 있을 때만 문항 끝에 (R)을 붙이세요.
+- 읽기 어려운 곳은 맨 아래 "확인할 점:"에 적어 주세요.
+
+척도: (척도 이름)
+출처: (저자, 연도)
+지시문: (지시문)
+응답: 1=전혀 그렇지 않다, 2=그렇지 않다, 3=보통이다, 4=그렇다, 5=매우 그렇다   ← 원본 선택지대로
+[하위요인 이름]   ← 하위요인이 있을 때만
+1. 문항 문장
+2. 문항 문장 (R)
+…
+확인할 점: …`;
+  function fromAiJson(o) {
+    const R = { name: norm(o?.name), source: norm(o?.source), instruction: norm(o?.instruction), start: +o?.start === 0 ? 0 : 1, labels: (Array.isArray(o?.labels) ? o.labels : []).map(norm).filter(Boolean), points: 0, sections: [], warnings: [], notes: (Array.isArray(o?.notes) ? o.notes : []).map(norm).filter(Boolean) };
+    (Array.isArray(o?.sections) ? o.sections : []).forEach(s => {
+      const its = (Array.isArray(s?.items) ? s.items : []).map((it, k) => ({ no: +it?.no || k + 1, text: stripTail(norm(it?.text)).replace(REV_MARK, '').trim(), reverse: !!it?.reverse || REV_MARK.test(norm(it?.text)), keep: true })).filter(it => it.text);
+      if (its.length) R.sections.push({ name: norm(s?.name), items: its });
+    });
+    R.points = R.labels.length || 5;
+    if (!R.labels.length) { R.labels = LABELS[5].slice(); R.warnings.push('원본에서 응답 선택지를 찾지 못해 5점 척도로 두었습니다. 원본과 맞는지 확인하세요.'); }
+    if (R.start === 0) R.notes.push('원척도는 0점부터 시작합니다. 설문에는 1점부터로 저장되니, 원척도 점수로 보고하려면 평균에서 1을 빼세요.');
+    if (!R.sections.length) R.warnings.push('AI가 문항을 찾지 못했습니다. 더 선명한 사진이나 척도 부분만 자른 사진으로 다시 해 보세요.');
+    R.notes.unshift('AI가 읽은 결과입니다. 원본과 한 문항씩 대조해 주세요.');
+    return R;
+  }
+
+  // ---------- 3. PDF 읽기 (pdf.js, 필요할 때만 불러옴) ----------
+  let pdfjsP = null;
+  function loadPdfJs() {
+    if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+    if (pdfjsP) return pdfjsP;
+    pdfjsP = new Promise((res, rej) => {
+      const s = document.createElement('script'); s.src = PDFJS + 'pdf.min.js';
+      s.onload = () => { if (!window.pdfjsLib) return rej(new Error('pdf.js')); window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS + 'pdf.worker.min.js'; res(window.pdfjsLib); };
+      s.onerror = () => { pdfjsP = null; rej(new Error('pdf.js를 불러오지 못했습니다')); };
+      document.head.appendChild(s);
+    });
+    return pdfjsP;
+  }
+  async function readPdf(file) {
+    const lib = await loadPdfJs();
+    const pdf = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+    const pages = Math.min(pdf.numPages, 30), texts = [], scans = [];
+    for (let p = 1; p <= pages; p++) {
+      const page = await pdf.getPage(p);
+      const tc = await page.getTextContent();
+      const rows = [];   // y가 같은 조각을 한 줄로
+      tc.items.forEach(it => {
+        if (!it.str) return;
+        const y = it.transform[5], x = it.transform[4], h = Math.abs(it.transform[3]) || 10;
+        let row = rows.find(r => Math.abs(r.y - y) < h * 0.5); if (!row) { row = { y, parts: [] }; rows.push(row); }
+        row.parts.push({ x, w: it.width || 0, s: it.str, h });
+      });
+      rows.sort((a, b) => b.y - a.y);
+      const pageText = rows.map(r => { r.parts.sort((a, b) => a.x - b.x); let out = '', end = null; r.parts.forEach(q => { if (end != null && q.x - end > q.h * 0.2 && !/\s$/.test(out)) out += ' '; out += q.s; end = q.x + q.w; }); return out; }).join('\n');
+      if (pageText.replace(/\s/g, '').length < 30) scans.push(page); else texts.push(pageText);
+    }
+    const images = [];
+    for (const page of scans.slice(0, 8)) {   // 글자가 없는 쪽은 그림으로 바꿔 AI에게
+      const vp = page.getViewport({ scale: 2 }); const c = document.createElement('canvas'); c.width = vp.width; c.height = vp.height;
+      await page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+      images.push(await new Promise(r => c.toBlob(r, 'image/jpeg', 0.9)));
+    }
+    return { text: texts.join('\n'), images, pages: pdf.numPages, scanned: scans.length };
+  }
+
+  // ---------- 4. 화면 ----------
+  const imgOk = async () => { const s = await sampleP; if (!s || aiState === 'denied') return null; const lim = await s.limits?.().catch(() => null); return lim?.images ? { s, lim: lim.images } : null; };
+  function renderImport() {
+    const box = $('#sv-import'); if (!box) return;
+    if (!imp.open) { box.innerHTML = ''; return; }
+    const R = imp.res;
+    const nItems = R ? R.sections.reduce((a, s) => a + s.items.filter(i => i.keep).length, 0) : 0;
+    const nRev = R ? R.sections.reduce((a, s) => a + s.items.filter(i => i.keep && i.reverse).length, 0) : 0;
+    const emptyTargets = sv.scales.map((s, i) => [s, i]).filter(([s]) => !s.items.some(it => norm(it.text)));
+    box.innerHTML = `<div class="card si-card">
+      <div class="si-head"><h3 class="card-title">척도 원본으로 설문 만들기</h3><button class="icon-btn" data-si="close" title="닫기">×</button></div>
+      <p class="hint" style="margin-top:0">논문 부록이나 척도집의 척도를 넣으면 문항, 응답 선택지, 역문항을 찾아 설문 칸을 채웁니다. 넣기 전에 미리보기에서 원본과 대조해 고칠 수 있습니다.</p>
+      <div class="si-tabs"><button class="si-tab ${imp.tab === 'file' ? 'on' : ''}" data-si="tab-file">PDF·사진 올리기</button><button class="si-tab ${imp.tab === 'text' ? 'on' : ''}" data-si="tab-text">글 붙여 넣기</button></div>
+      ${imp.tab === 'file' ? `<label class="si-drop" id="si-drop"><input type="file" id="si-file" accept=".pdf,application/pdf,image/png,image/jpeg,image/webp" multiple hidden>
+          <b>PDF나 사진을 끌어다 놓거나 눌러서 고르기</b><span>PDF는 글자를 바로 읽고, 사진·스캔 PDF는 AI가 글자를 읽습니다. 척도가 있는 쪽만 올리면 더 정확합니다.</span></label>`
+        : `<label class="f">척도 원본 글 (PDF에서 척도 부분을 복사해 붙여 넣기)<textarea id="si-text" rows="8" placeholder="예)\n직무 스트레스 척도 (홍길동, 2020)\n1=전혀 그렇지 않다 2=그렇지 않다 3=보통이다 4=그렇다 5=매우 그렇다\n1. 업무량이 너무 많다\n2. 일을 끝낼 시간이 부족하다\n3. 나는 내 일을 스스로 조절할 수 있다 (R)">${esc(imp.text)}</textarea></label>
+          <div class="actions" style="margin-top:10px;padding-top:0;border:0"><button class="btn primary" data-si="parse">문항 찾기</button>${aiState === 'on' ? '<button class="btn" data-si="ai-text">AI로 정리 (표가 깨졌을 때)</button>' : ''}</div>`}
+      ${imp.busy ? `<div class="si-busy"><span class="spin"></span>${esc(imp.busy)}</div>` : ''}
+      ${imp.msg ? `<div class="si-msg">${imp.msg}</div>` : ''}
+      ${R ? `<div class="si-prev">
+        <h4>미리보기 <small>문항 ${nItems}개 · 역문항 ${nRev}개${R.sections.length > 1 ? ` · 하위요인 ${R.sections.length}개` : ''}</small></h4>
+        ${R.warnings.length ? `<ul class="warn-list">${R.warnings.map(w => `<li>${esc(w)}</li>`).join('')}</ul>` : ''}
+        ${R.notes.length ? `<ul class="si-notes">${R.notes.map(w => `<li>${esc(w)}</li>`).join('')}</ul>` : ''}
+        <div class="grid2"><label class="f">척도 이름<input data-sif="name" value="${esc(R.name)}" placeholder="예: 직무 스트레스"></label><label class="f">출처 (저자, 연도)<input data-sif="source" value="${esc(R.source)}" placeholder="예: 홍길동(2020)"></label></div>
+        <div class="grid2" style="margin-top:10px"><label class="f">응답 방식<select data-sif="points">${[2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(n => `<option value="${n}" ${n === R.points ? 'selected' : ''}>${n}점</option>`).join('')}</select></label>
+          <label class="f">선택지 (1점부터, 쉼표로)<input data-sif="labels" value="${esc(R.labels.join(', '))}"></label></div>
+        <label class="f" style="margin-top:10px">지시문<input data-sif="instruction" value="${esc(R.instruction)}" placeholder="${esc(DEFAULT_INSTR)}"></label>
+        ${R.sections.map((s, si) => `<div class="si-sec">
+          ${R.sections.length > 1 || s.name ? `<label class="f si-secname">하위요인<input data-sis="${si}" value="${esc(s.name)}"></label>` : ''}
+          ${s.items.map((it, ii) => `<div class="si-item ${it.keep ? '' : 'off'}">
+            <input type="checkbox" data-sii="${si}.${ii}" data-k="keep" ${it.keep ? 'checked' : ''} title="넣기">
+            <span class="si-no">${it.no}</span>
+            <input class="si-txt" data-sii="${si}.${ii}" data-k="text" value="${esc(it.text)}">
+            <label class="si-rev"><input type="checkbox" data-sii="${si}.${ii}" data-k="reverse" ${it.reverse ? 'checked' : ''}>역</label>
+          </div>`).join('')}</div>`).join('')}
+        <div class="si-opts">
+          ${R.sections.length > 1 && imp.target !== 'new' ? '<p class="hint" style="margin:0">사다리 변인에 채울 때는 하위요인을 합쳐 그 변인 하나로 넣습니다.</p>' : ''}
+          ${R.sections.length > 1 && imp.target === 'new' ? `<label class="f">하위요인을<select data-sif="mode"><option value="split" ${imp.mode === 'split' ? 'selected' : ''}>각각 따로 변인으로 (하위요인 점수를 따로 분석)</option><option value="one" ${imp.mode === 'one' ? 'selected' : ''}>한 변인으로 합쳐서 (전체 점수로 분석)</option></select></label>` : ''}
+          <label class="f">어디에 넣을까요<select data-sif="target"><option value="new">새 변인으로 추가</option>${emptyTargets.map(([s, i]) => `<option value="${i}" ${String(imp.target) === String(i) ? 'selected' : ''}>사다리 변인 '${esc(s.name || '(이름 없음)')}'(${esc(s.role)})에 채우기</option>`).join('')}</select></label>
+        </div>
+        <label class="si-ok"><input type="checkbox" data-sif="ok" ${imp.ok ? 'checked' : ''}> 이 척도를 써도 되는지(저자 허락 또는 공개 사용 조건) 확인했습니다. 논문에는 출처를 밝힙니다.</label>
+        <div class="actions"><button class="btn primary" data-si="apply" ${nItems ? '' : 'disabled'}>설문에 넣기</button><button class="btn" data-si="reset">다시 하기</button></div>
+      </div>` : ''}
+    </div>`;
+    const drop = $('#si-drop');
+    if (drop) {
+      drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+      drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+      drop.addEventListener('drop', e => { e.preventDefault(); drop.classList.remove('over'); handleFiles([...e.dataTransfer.files]); });
+    }
+  }
+  const setBusy = (t, m) => { imp.busy = t; if (m !== undefined) imp.msg = m; renderImport(); };
+
+  async function handleFiles(files) {
+    files = files.filter(f => /pdf|image\//.test(f.type) || /\.pdf$/i.test(f.name)); if (!files.length) { toast('PDF나 사진 파일을 골라 주세요.'); return; }
+    imp.res = null; imp.msg = '';
+    let text = '', images = [], scanned = 0;
+    try {
+      for (const f of files) {
+        if (/pdf/.test(f.type) || /\.pdf$/i.test(f.name)) {
+          setBusy(`'${f.name}' 읽는 중…`);
+          const r = await readPdf(f); text += (text ? '\n' : '') + r.text; images.push(...r.images); scanned += r.scanned;
+        } else images.push(f);
+      }
+    } catch (e) {
+      setBusy('', `PDF를 읽지 못했습니다 (${esc(e.message || e)}). PDF에서 척도 부분을 복사해 [글 붙여 넣기]에 넣거나, 척도 쪽을 캡처한 사진을 올려 주세요.`); return;
+    }
+    imp.images = images;
+    if (text.replace(/\s/g, '').length > 40) {
+      imp.text = text; const R = parseScaleText(text);
+      if (images.length) R.notes.push(`글자가 없는 쪽(스캔) ${images.length}개는 읽지 않았습니다. 그 쪽에 문항이 있으면 사진으로 따로 올려 주세요.`);
+      imp.res = R; imp.tab = 'file';
+      setBusy('', R.sections.length ? '' : `글자는 읽었지만 번호가 붙은 문항을 찾지 못했습니다. [글 붙여 넣기]에서 척도 부분만 남기고 [문항 찾기]를 눌러 보세요.`);
+      if (!R.sections.length) { imp.tab = 'text'; renderImport(); }
+      return;
+    }
+    if (!images.length) { setBusy('', '읽을 글자가 없습니다.'); return; }
+    await readImages(images, scanned);
+  }
+  async function readImages(images, scanned) {
+    const ai = await imgOk();
+    if (!ai) {
+      imp.res = null;
+      setBusy('', `<b>${scanned ? '글자 정보가 없는 스캔 PDF입니다.' : '사진에서 글자를 읽으려면 AI가 필요합니다.'}</b> 이 화면에서는 AI가 사진을 읽을 수 없어요.
+        <ol><li>ChatGPT, Gemini, Claude 같은 AI 채팅에 이 ${scanned ? 'PDF' : '사진'}을 올리고</li><li>아래 [지시문 복사]를 눌러 같은 채팅에 붙여 넣은 뒤</li><li>AI의 답을 [글 붙여 넣기]에 넣고 [문항 찾기]를 누르세요.</li></ol>
+        <div class="actions" style="margin-top:6px;padding-top:0;border:0"><button class="btn sm primary" data-si="copy-prompt">지시문 복사</button><button class="btn sm" data-si="tab-text">글 붙여 넣기로</button></div>
+        <span class="hint">claude.ai 링크로 열면 이 화면에서 바로 사진을 읽습니다.</span>`);
+      return;
+    }
+    const use = images.slice(0, ai.lim.maxCount || 5);
+    setBusy(`AI가 ${use.length}장에서 글자를 읽는 중… (30초~1분쯤 걸립니다)`);
+    try {
+      const o = await ai.s.json(scalePromptImg(use.length), { images: use, modelTier: 'default' });
+      imp.res = fromAiJson(o);
+      if (images.length > use.length) imp.res.warnings.push(`한 번에 ${use.length}장까지 읽어서 나머지 ${images.length - use.length}장은 읽지 않았습니다.`);
+      setBusy('', '');
+    } catch (e) {
+      setBusy('', e?.code === 'image_rejected' ? '사진을 읽지 못했습니다. JPG나 PNG로, 너무 크지 않은 사진을 올려 주세요.' : `AI가 읽지 못했습니다 (${esc(e?.code || 'error')}). 다시 해 보거나, [지시문 복사]로 다른 AI 채팅을 써 보세요. <button class="btn sm" data-si="copy-prompt">지시문 복사</button>`);
+    }
+  }
+  function applyImport() {
+    const R = imp.res; if (!R) return;
+    const labels = R.labels.slice(0, R.points); while (labels.length < R.points) labels.push(String(labels.length + 1));
+    const mk = (name, items, section) => ({ ...newScale(name, '기타'), points: R.points, labels, source: R.source, instruction: R.instruction, section: section || '',
+      items: items.filter(i => i.keep && norm(i.text)).map(i => ({ text: norm(i.text), reverse: !!i.reverse })) });
+    const secs = R.sections.filter(s => s.items.some(i => i.keep));
+    let made = [];
+    if (secs.length > 1 && imp.mode === 'split' && imp.target === 'new') made = secs.map(s => mk(norm(s.name) || norm(R.name), s.items, `${norm(R.name)}${s.name ? ' · ' + norm(s.name) : ''}`));
+    else made = [mk(norm(R.name) || '새 척도', secs.flatMap(s => s.items), norm(R.name))];
+    made.forEach(m => { if (!m.items.length) m.items = [{ text: '', reverse: false }]; });
+    if (imp.target !== 'new' && sv.scales[+imp.target]) {
+      const t = sv.scales[+imp.target];
+      const first = made.shift();
+      Object.assign(t, { points: first.points, labels: first.labels, source: first.source, instruction: first.instruction, items: first.items, section: first.section || t.section });
+      made.forEach(m => m.role = t.role);
+    }
+    sv.scales.push(...made);
+    sv.example = false;
+    saveSv(); renderSurvey();
+    const n = R.sections.reduce((a, s) => a + s.items.filter(i => i.keep).length, 0);
+    addSys('survey', `척도 원본에서 문항 ${n}개를 넣었습니다${R.name ? ': ' + norm(R.name) : ''}`);
+    toast(imp.ok ? `문항 ${n}개를 넣었습니다. 변인 역할(독립·종속 등)을 확인해 주세요.` : `문항 ${n}개를 넣었습니다. 척도 사용 허락과 출처 표기를 잊지 마세요.`);
+    imp = { ...imp, open: false, res: null, msg: '', busy: '', images: [], target: 'new' };
+    renderImport();
+  }
+
+  $('#sv-import').addEventListener('click', async e => {
+    const b = e.target.closest('[data-si]'); if (!b) return;
+    const a = b.dataset.si;
+    if (a === 'close') { imp.open = false; renderImport(); }
+    else if (a === 'tab-file' || a === 'tab-text') { imp.tab = a.slice(4); renderImport(); }
+    else if (a === 'parse') { imp.text = $('#si-text').value; const R = parseScaleText(imp.text); imp.res = R; imp.msg = ''; renderImport(); $('.si-prev')?.scrollIntoView({ block: 'start', behavior: 'smooth' }); }
+    else if (a === 'ai-text') {
+      imp.text = $('#si-text').value; if (!norm(imp.text)) { toast('척도 원본 글을 붙여 넣어 주세요.'); return; }
+      const s = await sampleP; if (!s) { toast('AI가 연결되어 있지 않습니다.'); return; }
+      setBusy('AI가 정리하는 중…', '');
+      try { imp.res = fromAiJson(await s.json(scalePromptText(imp.text), { modelTier: 'default' })); setBusy('', ''); }
+      catch (err) { setBusy('', `AI가 정리하지 못했습니다 (${esc(err?.code || 'error')}). [문항 찾기]로 해 보세요.`); }
+    }
+    else if (a === 'copy-prompt') { try { await navigator.clipboard.writeText(SCALE_COPY_PROMPT); toast('지시문을 복사했습니다. AI 채팅에 사진과 함께 붙여 넣으세요.'); } catch (err) { showSheet('척도_지시문.txt', SCALE_COPY_PROMPT); } }
+    else if (a === 'reset') { imp.res = null; imp.msg = ''; imp.images = []; renderImport(); }
+    else if (a === 'apply') applyImport();
+  });
+  $('#sv-import').addEventListener('change', e => {
+    const t = e.target;
+    if (t.id === 'si-file') { handleFiles([...t.files]); t.value = ''; return; }
+    const R = imp.res; if (!R) return;
+    if (t.dataset.sii) { const [si, ii] = t.dataset.sii.split('.').map(Number); const it = R.sections[si].items[ii]; if (t.dataset.k === 'text') it.text = t.value; else it[t.dataset.k] = t.checked; if (t.dataset.k !== 'text') renderImport(); return; }
+    if (t.dataset.sis) { R.sections[+t.dataset.sis].name = t.value; return; }
+    const f = t.dataset.sif; if (!f) return;
+    if (f === 'points') { R.points = +t.value; R.labels = (LABELS[R.points] || Array.from({ length: R.points }, (_, k) => String(k + 1))).slice(); renderImport(); }
+    else if (f === 'labels') R.labels = t.value.split(/[,，]/).map(norm).filter(Boolean);
+    else if (f === 'mode') imp.mode = t.value;
+    else if (f === 'target') { imp.target = t.value; renderImport(); }
+    else if (f === 'ok') imp.ok = t.checked;
+    else R[f] = t.value;
+  });
+  $('#sv-import').addEventListener('input', e => { if (e.target.id === 'si-text') imp.text = e.target.value; });
+  function openImport() { imp.open = true; renderImport(); $('#sv-import').scrollIntoView({ block: 'start', behavior: 'smooth' }); }
 
   // ---------- 시작 ----------
   const defErrs = checkRules(DEFAULT_RULES);
