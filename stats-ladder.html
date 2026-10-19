@@ -2213,6 +2213,16 @@ label.f input,label.f select,label.f textarea{font-size:14px;padding:8px 11px}
 
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .tnode.here,:root:not([data-theme="light"]) .tnode.here .no{color:#1f1206}}
 :root[data-theme="dark"] .tnode.here,:root[data-theme="dark"] .tnode.here .no{color:#1f1206}
+
+.proj-wrap{display:flex;align-items:center;gap:8px}
+.proj-lbl{font-size:12px;font-weight:700;color:var(--ink-3)}
+.proj-add{display:inline-flex;align-items:center;gap:5px;border:1.5px dashed var(--point);background:var(--here-soft);color:var(--here-ink);border-radius:10px;padding:6px 12px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap}
+.proj-add b{font-size:16px;line-height:1}
+.proj-add:hover{background:var(--point);color:#fff;border-style:solid}
+@media (max-width:1150px){.proj-lbl{display:none}}
+@media (max-width:640px){.proj-add span{display:none}.proj-add{padding:5px 9px}}
+
+@media (max-width:640px){.fold-wrap{display:none}.hdr{gap:8px;padding:0 10px}.hdr-title .wm{height:16px}.nav-tog{flex:none}.proj-chip{max-width:110px}}
 </style>
 </head>
 <body>
@@ -2233,7 +2243,7 @@ label.f input,label.f select,label.f textarea{font-size:14px;padding:8px 11px}
     <g class="t-bars"><rect class="t-bar" x="102" y="40" width="10" height="16" rx="2.5" fill="#c5d6fb"/><rect class="t-bar" x="117" y="31" width="10" height="25" rx="2.5" fill="#8eb0f6"/><rect class="t-bar" x="132" y="20" width="10" height="36" rx="2.5" fill="#2563eb"/></g>
   </svg>
   <span class="hdr-title"><svg class="wm" viewBox="0 0 76 24" role="img" aria-label="ㅌㅗㅇ (통)"><g fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3H18M3 12H17M3 21H18M3 3V21"/><path d="M38 6V20M29 20H47"/><circle cx="64" cy="12" r="8.6"/></g></svg><span>설문부터 통계 해석까지</span></span>
-  <div class="proj-wrap"><button class="proj-chip" id="proj-chip" aria-haspopup="true"></button><div class="proj-pop" id="proj-pop" hidden></div></div>
+  <div class="proj-wrap"><span class="proj-lbl">연구</span><button class="proj-chip" id="proj-chip" aria-haspopup="true"></button><button class="proj-add" id="proj-add" title="새 연구 추가"><b>+</b><span>연구 추가</span></button><div class="proj-pop" id="proj-pop" hidden></div></div>
   <span class="hdr-sp"></span>
   <div class="fold-wrap"><button class="fold-chip" id="fold-chip">📁 연구 폴더</button><div class="fold-pop" id="fold-pop" hidden><div class="folder-bar" id="folder-bar"></div></div></div>
   <button class="hdr-btn" id="rp-tog" title="오른쪽 보기 창 열기·닫기">보기 창</button>
@@ -5104,7 +5114,7 @@ ${REVIEW_RULES}
       <p>ㅌㅗㅇ(통)은 통계 용어를 몰라도 <b>질문에 답하며 사다리를 내려가 내 연구에 맞는 통계 기법을 고르고</b>, 그 변인으로 <b>설문을 만들어 응답을 모으고</b>, <b>계산과 결과 해석</b>까지 이어 가는 도구입니다.</p>
       <h3>화면 구성</h3>
       <table class="gtable"><thead><tr><th>자리</th><th>하는 일</th></tr></thead><tbody>
-        <tr><td>위 띠 연구 이름 ▾</td><td>연구를 여러 개 두고 고릅니다. [+ 새 연구]·[복제]·[이름 바꾸기]·[지우기]. 연구마다 사다리 답, 설문, 분석, 해석, 대화가 따로 저장되고, PC 연구 폴더도 연구마다 따로 연결됩니다. 다른 아이디어는 [복제]해서 원래 연구를 그대로 둔 채 시험해 보세요.</td></tr>
+        <tr><td>위 띠 연구 이름 ▾ · [+ 연구 추가]</td><td>[+ 연구 추가]로 새 연구를 바로 만들고, 연구 이름 ▾에서 여러 연구 중에 고릅니다. [+ 새 연구]·[복제]·[이름 바꾸기]·[지우기]. 연구마다 사다리 답, 설문, 분석, 해석, 대화가 따로 저장되고, PC 연구 폴더도 연구마다 따로 연결됩니다. 다른 아이디어는 [복제]해서 원래 연구를 그대로 둔 채 시험해 보세요.</td></tr>
         <tr><td>왼쪽 메뉴</td><td>연구 진행 순서. 끝낸 단계는 ✓, 지금 단계는 주황색. 맨 위 ☰ 버튼으로 접었다 펼 수 있습니다.</td></tr>
         <tr><td>가운데</td><td>지금 단계에서 고르고 적는 곳. 사다리에서 답한 질문은 대화처럼 위로 쌓이고, 말풍선을 누르면 그 질문으로 돌아갑니다. 맨 아래 입력창에 궁금한 것을 물으면 답이 이어서 남습니다.</td></tr>
         <tr><td>오른쪽 보기 창</td><td>가운데와 보기 창 사이의 경계선을 끌면 너비가 바뀝니다(두 번 누르면 처음대로). [통계 방법] 고른 기법·사다리 지도·변인·분석 결정, [설문] 요약·응답 현황·응답자 화면 미리보기, [결과] 가설 판정·해석 초안·허점 점검·계산 결과표. 단계에 맞는 탭이 저절로 열리고, 직접 눌러 바꿀 수도 있습니다.</td></tr>
@@ -6581,7 +6591,7 @@ ${q}`;
     seen = o.folderSeen || {}; _set('ladder.folderSeen', seen); _set('ladder.folderSavedAt', o.folderSavedAt || '');
     projDel = '';
     renderCollect(); switchView(curView()); renderRight(); renderProj();
-    toast(`'${curProj().name}' 연구로 바꿨습니다.`);
+    if (!switchProject.quiet) toast(`'${curProj().name}' 연구로 바꿨습니다.`);
     await initFolder();
   }
   function newId() { return 'p' + Date.now().toString(36); }
@@ -6623,6 +6633,7 @@ ${q}`;
     else if (act === 'dup') { $('#proj-pop').hidden = true; const o = { ...snapshot(), folderSeen: {}, folderSavedAt: '' }; await addProject(`${curProj().name} (복사본)`, JSON.parse(JSON.stringify(o))); }
     else if (act === 'del') { if (!projDel) { projDel = projReg.cur; renderProj(); return; } $('#proj-pop').hidden = true; await deleteProject(projDel); }
   });
+  $('#proj-add').addEventListener('click', async e => { e.stopPropagation(); $('#proj-pop').hidden = true; await addProject(`새 연구 ${projReg.list.length + 1}`); toast('새 연구를 만들었습니다. 이름은 연구 이름 단추에서 바꿀 수 있어요.'); });
   renderProj();
 
 
