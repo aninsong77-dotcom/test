@@ -1863,6 +1863,23 @@ pre code { background: none; border: 0; padding: 0; }
 .gd-pager a { text-decoration: none; }
 .map-help { color: var(--on-accent); font-size: 13px; font-weight: 700; text-decoration: none; padding: 6px 12px; border-radius: 999px; background: rgba(255,255,255,.18); white-space: nowrap; }
 .page-head h2 { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.ck-body { padding: 4px 16px 14px; }
+.ck-group { margin: 12px 0 4px; font-size: 12px; font-weight: 800; letter-spacing: .04em; color: var(--ink-3); }
+.ck-row { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 10px; padding: 6px 0; font-size: 14px; }
+.ck-row b { display: block; font-weight: 700; }
+.ck-row span { color: var(--ink-2); }
+.ck { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; font-size: 13px; font-weight: 800; color: var(--on-accent); }
+.ck.ok { background: var(--ok); }
+.ck.warn { background: var(--part); }
+.ck.na { background: var(--line); color: var(--ink-3); }
+.rv-list { display: grid; gap: 12px; }
+.rv { padding: 14px 18px; border: 1px solid var(--line); border-left: 5px solid var(--navy-ink); border-radius: 10px; }
+.rv.done { opacity: .55; }
+.rv-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.rv blockquote { margin: 10px 0 0; padding: 6px 12px; border-left: 3px solid var(--orange-line); background: var(--bg-2); font-size: 14px; color: var(--ink-2); }
+.rv-q { margin: 10px 0 4px; font-weight: 700; }
+.chk.sm { font-size: 13px; }
+.chk.sm input { width: 15px; height: 15px; }
 footer { border-top: 1px solid var(--line); color: var(--ink-3); font-size: 13px; text-align: center; padding: 20px 16px 32px; }
 
 /* ---------- 휴대폰 ---------- */
@@ -1920,7 +1937,7 @@ footer { border-top: 1px solid var(--line); color: var(--ink-3); font-size: 13px
 </head>
 <body>
 
-<div class="topbar">통계 사다리 v0.4 · 기법 고르기 → 설문 → 응답 취합 → 분석 → 해석</div>
+<div class="topbar">통계 사다리 v0.5 · 기법 고르기 → 설문 → 응답 취합 → 분석 → 해석 → 허점 점검</div>
 
 <header class="brand">
   <div class="logo" aria-hidden="true"><b>STAT</b><span>통계 사다리</span></div>
@@ -3523,8 +3540,8 @@ function createSurvey() {
     const iv = matInv(XtX); if (!iv) return null;
     const b = iv.map(r => r.reduce((s, v, j) => s + v * Xty[j], 0));
     if (fast) return { b };
-    const my = mean(y); let sse = 0, sst = 0;
-    for (let i = 0; i < n; i++) { let yh = b[0]; for (let j = 0; j < k; j++) yh += b[j + 1] * X[i][j]; sse += (y[i] - yh) ** 2; sst += (y[i] - my) ** 2; }
+    const my = mean(y); let sse = 0, sst = 0; const resid = new Array(n);
+    for (let i = 0; i < n; i++) { let yh = b[0]; for (let j = 0; j < k; j++) yh += b[j + 1] * X[i][j]; resid[i] = y[i] - yh; sse += resid[i] ** 2; sst += (y[i] - my) ** 2; }
     const dfe = n - p, mse = sse / dfe;
     const cov = iv.map(r => r.map(v => v * mse));
     const se = cov.map((r, i) => Math.sqrt(r[i]));
@@ -3533,7 +3550,54 @@ function createSurvey() {
     const R2 = sst ? 1 - sse / sst : 0;
     const F = k ? (R2 / k) / ((1 - R2) / dfe) : NaN;
     return { n, k, b, se, t, p: t.map(v => ST.pT(Math.abs(v), dfe)), lo: b.map((v, i) => v - tc * se[i]), hi: b.map((v, i) => v + tc * se[i]),
-      R2, adj: 1 - (1 - R2) * (n - 1) / dfe, F, pF: k ? ST.pF(F, k, dfe) : NaN, dfe, sse, sst, mse, cov };
+      R2, adj: 1 - (1 - R2) * (n - 1) / dfe, F, pF: k ? ST.pF(F, k, dfe) : NaN, dfe, sse, sst, mse, cov, resid };
+  }
+
+  // 정규분포 분위수 (Acklam)
+  function qnorm(p) {
+    const a = [-3.969683028665376e+01, 2.209460984245205e+02, -2.759285104469687e+02, 1.383577518672690e+02, -3.066479806614716e+01, 2.506628277459239e+00];
+    const b = [-5.447609879822406e+01, 1.615858368580409e+02, -1.556989798598866e+02, 6.680131188771972e+01, -1.328068155288572e+01];
+    const c = [-7.784894002430293e-03, -3.223964580411365e-01, -2.400758277161838e+00, -2.549732539343734e+00, 4.374664141464968e+00, 2.938163982698783e+00];
+    const d = [7.784695709041462e-03, 3.224671290700398e-01, 2.445134137142996e+00, 3.754408661907416e+00];
+    const lo = 0.02425;
+    if (p < lo) { const q = Math.sqrt(-2 * Math.log(p)); return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1); }
+    if (p > 1 - lo) { const q = Math.sqrt(-2 * Math.log(1 - p)); return -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1); }
+    const q = p - 0.5, r = q * q;
+    return (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q / (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1);
+  }
+  // Shapiro–Wilk 정규성 검정 (Royston 1992·1995 근사, n = 3~5000)
+  function shapiro(x) {
+    const n = x.length; if (n < 3 || n > 5000) return null;
+    const s = [...x].sort((a, b) => a - b), m0 = mean(s), ss = s.reduce((q, v) => q + (v - m0) ** 2, 0);
+    if (!(ss > 1e-12)) return null;
+    if (n === 3) { const W = Math.min(1, (Math.SQRT1_2 * (s[2] - s[0])) ** 2 / ss); return { W, p: Math.min(1, Math.max(0, 6 / Math.PI * (Math.asin(Math.sqrt(W)) - Math.asin(Math.sqrt(0.75))))) }; }
+    const m = Array.from({ length: n }, (_, i) => qnorm((i + 1 - 0.375) / (n + 0.25)));
+    const mm = m.reduce((q, v) => q + v * v, 0), u = 1 / Math.sqrt(n);
+    const poly = (cs, v) => cs.reduce((acc, ci, i) => acc + ci * v ** i, 0);
+    const a = new Array(n);
+    const an = poly([0, 0.221157, -0.147981, -2.071190, 4.434685, -2.706056], u) + m[n - 1] / Math.sqrt(mm);
+    if (n > 5) {
+      const an1 = poly([0, 0.042981, -0.293762, -1.752461, 5.682633, -3.582633], u) + m[n - 2] / Math.sqrt(mm);
+      const phi = (mm - 2 * m[n - 1] ** 2 - 2 * m[n - 2] ** 2) / (1 - 2 * an ** 2 - 2 * an1 ** 2);
+      for (let i = 2; i < n - 2; i++) a[i] = m[i] / Math.sqrt(phi);
+      a[n - 1] = an; a[0] = -an; a[n - 2] = an1; a[1] = -an1;
+    } else {
+      const phi = (mm - 2 * m[n - 1] ** 2) / (1 - 2 * an ** 2);
+      for (let i = 1; i < n - 1; i++) a[i] = m[i] / Math.sqrt(phi);
+      a[n - 1] = an; a[0] = -an;
+    }
+    const W = Math.min(1, a.reduce((q, ai, i) => q + ai * s[i], 0) ** 2 / ss);
+    let z;
+    if (n <= 11) {
+      const g = 0.459 * n - 2.273, y0 = Math.log(1 - W);
+      if (y0 >= g) return { W, p: 0 };
+      const y = -Math.log(g - y0), mu = 0.5440 - 0.39978 * n + 0.025054 * n * n - 0.0006714 * n ** 3, sg = Math.exp(1.3822 - 0.77857 * n + 0.062767 * n * n - 0.0020322 * n ** 3);
+      z = (y - mu) / sg;
+    } else {
+      const L = Math.log(n), y = Math.log(1 - W), mu = 0.0038915 * L ** 3 - 0.083751 * L * L - 0.31082 * L - 1.5861, sg = Math.exp(0.0030302 * L * L - 0.082676 * L - 0.4803);
+      z = (y - mu) / sg;
+    }
+    return { W, p: 1 - ST.Phi(z) };
   }
 
   function rng(seed) { return () => { seed = (seed + 0x6D2B79F5) | 0; let t = seed; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
@@ -3781,6 +3845,8 @@ function createSurvey() {
     }
     const prog = $('#an-prog'); prog.textContent = '계산 중…'; await tick();
     const R = await RUN[anSel.method](r, anSel.opts, f => { prog.textContent = `부트스트랩 ${Math.round(f * 100)}%`; });
+    prog.textContent = '보고 체크리스트 점검 중…'; await tick();
+    buildChecks(R, anSel.roles);
     prog.textContent = '';
     analyses.unshift(R); saveAnalyses(); renderAnalyses(); renderInterp();
     $(`#res-${R.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -4220,6 +4286,7 @@ function createSurvey() {
         <tbody>${t.rows.map(r => `<tr>${r.map((c, i) => `<td class="${(t.num || []).includes(i) ? 'num' : ''}">${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
         ${t.foot ? `<p class="hint">${esc(t.foot)}</p>` : ''}`).join('')}
       ${a.notes.length ? `<ul class="notes">${a.notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
+      ${checksHtml(a)}
       <details class="item-detail"><summary>가설에 연결할 수 있는 효과 ${a.effects.length}개</summary>
         <div class="table-wrap"><table class="compact"><thead><tr><th>효과</th><th>통계값</th><th>유의</th></tr></thead>
         <tbody>${a.effects.map(e => `<tr><td>${esc(e.label)}</td><td>${esc(e.stat)}</td><td>${sigOf(e) ? '<span class="a-ok">유의</span>' : '<span class="hint">유의하지 않음</span>'}</td></tr>`).join('')}</tbody></table></div>
@@ -4234,6 +4301,7 @@ function createSurvey() {
   const blankIntent = () => ({ title: '', purpose: '', design: '한 시점 설문 (횡단 연구)', theory: '', concern: '', hyps: [{ text: '', effect: '', expect: '+' }], check: null, answers: [], confirmed: false, out: null, mode: '', chat: { aiText: '', myAnswers: '', draft: '' } });
   let intent = store.get('ladder.intent', null) || blankIntent();
   if (!intent.chat) intent.chat = { aiText: '', myAnswers: '', draft: '' };
+  if (!intent.review) intent.review = { text: '', paste: '', result: null, done: [] };
   const saveIntent = () => store.set('ladder.intent', intent);
   const DESIGNS = ['한 시점 설문 (횡단 연구)', '여러 시점 설문 (종단 연구)', '실험 · 준실험 (무작위 배정 있음)', '실험 · 준실험 (무작위 배정 없음)'];
   const EXPECT = { '+': '정적(+) · 앞 집단이 더 높음', '-': '부적(−) · 앞 집단이 더 낮음', '≠': '차이·관계가 있음 (방향 없음)' };
@@ -4373,7 +4441,8 @@ claude</pre>
           <div class="actions tight"><button class="btn primary" data-in-act="check-draft">초안 점검하기</button></div>
         </div>` : ''}
       </div>
-      ${outHtml}`;
+      ${outHtml}
+      ${reviewHtml(mode)}`;
   }
 
   // ---------- AI에게 보낼 자료 ----------
@@ -4383,7 +4452,8 @@ claude</pre>
     return {
       연구: { 제목: intent.title, 목적: intent.purpose, 설계: intent.design, 이론적_배경: intent.theory, 해석_시_유의점: intent.concern, 표본: lastScored ? `분석에 포함된 응답 ${lastScored.inc.length}명` : `N = ${list[0]?.n ?? '-'}` },
       가설: intent.hyps.filter(h => norm(h.text)).map((h, i) => { const e = effById(h.effect), v = verdict(h); return { 번호: i + 1, 가설: h.text, 예상_방향: EXPECT[h.expect], 검증한_효과: e ? e.label : '(연결 안 됨)', 통계값: e ? e.stat : '', 판정: v ? v.v : '판정 불가', 판정_근거: v ? v.why : '' }; }),
-      분석_결과: list.map(a => ({ 분석: a.title, N: a.n, 표: a.tables.map(t => ({ 제목: t.title, 열: t.head, 행: t.rows, ...(t.foot ? { 비고: t.foot } : {}) })), 참고: a.notes }))
+      분석_결과: list.map(a => ({ 분석: a.title, N: a.n, 표: a.tables.map(t => ({ 제목: t.title, 열: t.head, 행: t.rows, ...(t.foot ? { 비고: t.foot } : {}) })), 참고: a.notes,
+        보고_체크: (a.checks || []).map(c => `[${c.st === 'ok' ? '갖춤' : c.st === 'warn' ? '확인 필요' : '해당 없음'}] ${c.item}: ${c.note}`) }))
     };
   }
   const CHECK_TASK = `할 일:
@@ -4476,6 +4546,22 @@ ${writingRules()}
 
 ## 초안 형식 (\`해석초안.md\`)
 ${TEXT_FORMAT}
+
+## "허점 점검해줘"라고 하면
+\`해석초안.md\`(연구자가 다른 파일을 말하면 그 파일)를 읽고 깐깐한 동료로서 점검한다. 글을 고치지 않고 \`허점점검.md\` 파일에 아래 형식으로 쓴다.
+\`해석자료.json\`의 '보고_체크'(특히 '확인 필요' 항목)도 함께 본다. '갖춤'인 항목은 이미 점검된 것이니 빠졌다고 하지 않는다.
+
+${REVIEW_RULES}
+
+형식:
+[잘한 점]
+- (2~3개)
+[질문]
+1. (유형) "인용" — 질문
+   왜: …
+   고쳐 볼 방향: …
+
+유형은 ${REVIEW_TYPES.join(', ')} 중 하나로 쓴다.
 `;
   }
   function exportJson() {
@@ -4592,6 +4678,9 @@ ${TEXT_FORMAT}
     if (t.dataset.inAns != null) { intent.answers[+t.dataset.inAns] = t.value; saveIntent(); return; }
     if (t.dataset.inChat) { intent.chat[t.dataset.inChat] = t.value; saveIntent(); return; }
     if (t.id === 'in-draft') { intent.chat.draft = t.value; saveIntent(); return; }
+    if (t.id === 'rv-text') { intent.review.text = t.value; saveIntent(); return; }
+    if (t.id === 'rv-paste') { intent.review.paste = t.value; saveIntent(); return; }
+    if (t.dataset.rvDone != null) { intent.review.done[+t.dataset.rvDone] = t.checked; t.closest('.rv').classList.toggle('done', t.checked); saveIntent(); return; }
     if (t.dataset.inK) { intent[t.dataset.inK] = t.type === 'checkbox' ? t.checked : t.value; saveIntent(); }
   });
   $('#view-interp').addEventListener('click', e => {
@@ -4604,6 +4693,12 @@ ${TEXT_FORMAT}
     else if (act === 'stop') aiCtl?.abort();
     else if (b.dataset.inMode) { intent.mode = b.dataset.inMode; saveIntent(); renderInterp(); }
     else if (act === 'dl-claude-md') download('CLAUDE.md', claudeMd());
+    else if (act === 'rv-load') { intent.review.text = `[결과]\n${intent.out.results}\n\n[논의]\n${intent.out.discussion}`; saveIntent(); renderInterp(); $('#rv-card')?.scrollIntoView({ block: 'start' }); }
+    else if (act === 'rv-run') runReview();
+    else if (act === 'rv-show') {
+      if (!norm(intent.review.paste)) { toast('AI의 답을 붙여 넣어 주세요.'); return; }
+      intent.review.result = parseReview(intent.review.paste); intent.review.done = []; saveIntent(); renderInterp(); $('#rv-card')?.scrollIntoView({ block: 'start' });
+    }
     else if (act === 'dl-json') {
       if (!intent.hyps.some(h => norm(h.text) && h.effect)) { toast('가설 문장을 적고 검증할 효과를 먼저 골라 주세요.'); return; }
       download('해석자료.json', exportJson(), 'application/json');
@@ -4615,7 +4710,9 @@ ${TEXT_FORMAT}
       intent.out = o; saveIntent(); renderInterp(); $('#in-out')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
     else if (act === 'copy-prompt') {
-      const txt = b.dataset.which === 'check' ? checkPrompt('text') : writePrompt('text'), name = b.dataset.which === 'check' ? '의도확인_지시문.txt' : '초안쓰기_지시문.txt';
+      const w = b.dataset.which;
+      if (w === 'review' && !norm(reviewText())) { toast('점검할 글을 붙여 넣거나 초안을 먼저 써 주세요.'); return; }
+      const txt = w === 'check' ? checkPrompt('text') : w === 'review' ? reviewPrompt('text') : writePrompt('text'), name = w === 'check' ? '의도확인_지시문.txt' : w === 'review' ? '허점점검_지시문.txt' : '초안쓰기_지시문.txt';
       try { navigator.clipboard.writeText(txt).then(() => toast('지시문을 복사했습니다. AI 채팅에 붙여 넣으세요.'), () => showSheet(name, txt)); } catch (err) { showSheet(name, txt); }
     }
     else if (act === 'copy-out' || act === 'dl-out') {
@@ -4714,6 +4811,7 @@ ${TEXT_FORMAT}
       </tbody></table>
       <ul>
         <li>간접효과는 <b>부트스트랩</b>(기본 5,000번)으로 95% 신뢰구간을 구합니다. 시작값을 고정해 같은 자료는 늘 같은 결과가 나옵니다.</li>
+        <li>결과 아래 <b>[보고 체크리스트]</b>가 APA 7 보고 항목을 점검합니다. <a href="#guide-checks">자세히</a></li>
         <li>결과 아래 <b>[가설에 연결할 수 있는 효과]</b>가 결과 해석에서 가설과 이어집니다.</li>
         <li>반복측정·혼합설계 분산분석, 다층모형, 다항·서열 로지스틱은 계산하지 않습니다. jamovi(무료)나 SPSS를 쓰세요.</li>
       </ul>
@@ -4728,7 +4826,27 @@ ${TEXT_FORMAT}
         <li><b>자동 점검</b>: 초안에서 아래 네 가지를 찾아 알려 줍니다.
           <ul><li>결과표에 없는 숫자 (노란 표시)</li><li>코드 판정과 다른 지지·기각 서술</li><li>횡단 자료에서 인과를 단정하는 말</li><li>유의하지 않은 결과를 "효과가 없다"로 쓴 것</li></ul></li>
       </ol>
+      <p>초안을 받은 뒤 맨 아래 <b>4. 허점 점검</b>으로 깐깐한 동료의 질문을 받아 보세요. <a href="#guide-checks">자세히</a></p>
       <div class="gnote">AI 초안은 출발점입니다. 선행연구 인용은 넣지 않고 <code>[선행연구 비교: …]</code> 자리로 남기니 직접 채워 주세요.</div>` },
+
+    { id: 'checks', group: '단계별 사용법', title: '⑦ 보고 체크리스트와 허점 점검', tab: 'interp', body: `
+      <h3>보고 체크리스트 (코드가 자동으로)</h3>
+      <p>[분석]에서 계산하면 결과마다 <b>APA 7 결과 보고에 들어가야 할 항목</b>을 점검한 목록이 붙습니다. lazzzyResearch 통계 코칭의 #8 체크리스트와 같은 항목입니다.</p>
+      <table class="gtable"><thead><tr><th>묶음</th><th>점검하는 것</th></tr></thead><tbody>
+        <tr><td>기술통계</td><td>N, 평균, 표준편차</td></tr>
+        <tr><td>검정통계량</td><td>t·F·χ² 값, 자유도, 정확한 p</td></tr>
+        <tr><td>효과크기</td><td>d, r, η², ω², f², V 등과 작음·중간·큼 기준</td></tr>
+        <tr><td>신뢰구간</td><td>계수, 효과크기, 간접효과의 95% CI</td></tr>
+        <tr><td>가정 검정</td><td>정규성(Shapiro–Wilk), 등분산(Levene), 다중공선성(VIF), 기대빈도 등</td></tr>
+        <tr><td>다중비교</td><td>사후검정 방법, 여러 번 검정한 문제</td></tr>
+        <tr><td>유의성 판단</td><td>α 수준 밝히기, 통계적 유의성과 실질적 의미 구별</td></tr>
+      </tbody></table>
+      <p><span class="ck ok" style="display:inline-grid">✓</span> 갖춤 &nbsp; <span class="ck warn" style="display:inline-grid">!</span> 확인 필요 &nbsp; <span class="ck na" style="display:inline-grid">–</span> 해당 없음(이유를 함께 적음)</p>
+      <p>'확인 필요'는 이 사이트가 계산하지 않는 것(예: η²의 신뢰구간, 잔차 그림)이거나 가정이 어긋난 것입니다. SPSS나 jamovi로 보충하거나 연구의 한계에 적으세요.</p>
+      <h3>허점 점검 (AI 깐깐한 동료)</h3>
+      <p>[결과 해석] 맨 아래 <b>4. 허점 점검</b>에서 결과·논의 글을 넣으면, AI가 심사위원처럼 읽고 약한 곳을 질문합니다. 글을 고치지 않고 질문만 합니다.</p>
+      <ul><li>인과 해석, 반대 방향, 제3의 변인</li><li>작은 효과를 크게 쓴 곳, 표본보다 넓은 일반화</li><li>측정 문제, 보고 체크리스트의 '확인 필요' 항목을 넘어간 곳</li><li>유의하지 않은 결과를 "효과가 없다"로 읽은 곳</li></ul>
+      <p>세 가지 AI 연결 방법(바로 쓰기, 아무 AI 채팅, Claude Code) 모두에서 쓸 수 있습니다. 질문마다 [검토함]에 체크하며 하나씩 정리하세요.</p>` },
 
     { id: 'ai', group: 'AI 연결', title: 'AI 연결 방법 세 가지', tab: 'interp', body: `
       <table class="gtable"><thead><tr><th>방법</th><th>무료 계정</th><th>어떤 AI</th><th>쓰는 법</th></tr></thead><tbody>
@@ -4763,6 +4881,7 @@ claude</pre>
 해석자료.json을 읽었습니다. …</pre>
         <p><b>"해석해 줘"</b>라고 쓰면 의도 확인부터 시작합니다.</p></div>
       <div class="gstep"><b>STEP 5. 초안 점검</b><p>질문에 답하면 폴더에 <code>해석초안.md</code>가 생깁니다. 내용을 결과 해석 탭의 <b>[초안 점검]</b> 칸에 붙여 넣으세요. 고치고 싶으면 Claude Code에 "논의를 더 짧게"처럼 말하면 됩니다.</p></div>
+      <div class="gstep"><b>STEP 6. 허점 점검</b><p>Claude Code에 <b>"허점 점검해줘"</b>라고 하면 깐깐한 동료로서 초안을 읽고 <code>허점점검.md</code>에 질문을 씁니다. 그 내용을 결과 해석 탭 <b>4. 허점 점검</b>에 붙여 넣으면 질문별로 정리되어 보입니다.</p></div>
       <div class="gnote">가설이나 분석을 바꾸면 <code>해석자료.json</code>을 다시 받아 덮어쓰세요. CLAUDE.md는 한 번 받으면 됩니다.</div>` },
 
     { id: 'faq', group: '도움말', title: '자주 묻는 질문', body: `
@@ -4809,6 +4928,315 @@ claude</pre>
   });
   $('#view-guide').addEventListener('click', e => { const b = e.target.closest('[data-gd-tab]'); if (b) switchView(b.dataset.gdTab); });
   $('#gd-q').addEventListener('input', () => renderGuide());
+
+  // =================================================================
+  // 보고 체크리스트 (APA 7 결과 보고 항목을 코드가 점검)
+  // =================================================================
+  const CUTS = { d: [0.2, 0.5, 0.8], r: [0.1, 0.3, 0.5], eta: [0.01, 0.06, 0.14], f2: [0.02, 0.15, 0.35] };
+  function sizeLabel(kind, v, dfStar) {
+    const a = Math.abs(v); let c = CUTS[kind];
+    if (kind === 'V') c = CUTS.r.map(x => x / Math.sqrt(Math.max(1, dfStar || 1)));
+    if (!c || !isFinite(a)) return '';
+    return a < c[0] ? '아주 작음' : a < c[1] ? '작음' : a < c[2] ? '중간' : '큼';
+  }
+  const CUT_TEXT = { d: 'Cohen(1988): .20 작음, .50 중간, .80 큼', r: 'Cohen(1988): .10 작음, .30 중간, .50 큼', eta: 'Cohen(1988): .01 작음, .06 중간, .14 큼', f2: 'Cohen(1988): .02 작음, .15 중간, .35 큼' };
+  const fisherCI = (r, n, k = 0) => { const z = Math.atanh(r), se = 1 / Math.sqrt(n - 3 - k); return [Math.tanh(z - 1.96 * se), Math.tanh(z + 1.96 * se)]; };
+  const dCI = (d, n1, n2) => { const se = Math.sqrt((n1 + n2) / (n1 * n2) + d * d / (2 * (n1 + n2))); return [d - 1.96 * se, d + 1.96 * se]; };
+  const dzCI = (d, n) => { const se = Math.sqrt(1 / n + d * d / (2 * n)); return [d - 1.96 * se, d + 1.96 * se]; };
+
+  // 정규성: 여러 묶음의 Shapiro–Wilk + 왜도·첨도
+  function normality(sets) {
+    const rows = sets.map(([label, arr]) => { const sw = shapiro(arr); return { label, n: arr.length, W: sw?.W, p: sw?.p, sk: skew(arr), ku: kurt(arr) }; }).filter(r => r.n >= 3);
+    const bad = rows.filter(r => r.p < 0.05), big = rows.some(r => r.n >= 200);
+    const shapeOk = rows.every(r => !(Math.abs(r.sk) >= 2 || Math.abs(r.ku) >= 7));
+    let st = 'ok', note = '모든 묶음에서 Shapiro–Wilk p ≥ .05로 정규성 가정이 크게 어긋나지 않았습니다.';
+    if (bad.length) {
+      st = shapeOk ? 'ok' : 'warn';
+      note = `Shapiro–Wilk p < .05인 묶음이 ${bad.length}개 있습니다 (${bad.map(r => r.label).slice(0, 3).join(', ')}${bad.length > 3 ? ' 등' : ''}).` +
+        (shapeOk ? ` 다만 왜도 절댓값 2, 첨도 절댓값 7 미만이라 심하게 벗어나지는 않았다고 보고할 수 있습니다.${big ? ' 표본이 크면 작은 벗어남에도 검정이 유의해지기 쉽습니다.' : ''}` : ' 왜도나 첨도도 큰 편이라 비모수 검정이나 부트스트랩을 함께 검토하세요.');
+    }
+    return { rows, st, note };
+  }
+  const normTable = rows => ({ title: '가정 검정: 정규성 (Shapiro–Wilk)', head: ['대상', 'n', 'W', 'p', '왜도', '첨도'], num: [1, 2, 3, 4, 5], rows: rows.map(r => [r.label, String(r.n), r.W == null ? '-' : F2(r.W, 3), PV(r.p), F2(r.sk), F2(r.ku)]) });
+  const vifCheck = vifs => {
+    const mx = Math.max(...vifs.filter(isFinite));
+    return !vifs.length || !isFinite(mx) ? { item: '다중공선성 (VIF)', st: 'na', note: '예측변인이 하나라 해당 없음' }
+      : { item: '다중공선성 (VIF)', st: mx < 10 ? 'ok' : 'warn', note: `가장 큰 VIF = ${F2(mx)}${mx < 10 ? ' (10 미만)' : ' — 10 이상이라 다중공선성을 의심할 수 있습니다'}` };
+  };
+  const residPlot = { item: '잔차의 등분산성·선형성', st: 'warn', note: '이 사이트는 잔차 그림을 그리지 않습니다. SPSS·jamovi의 잔차 산점도로 확인하고 결과에 한 줄 적으세요.' };
+
+  // 방법별로 필요한 값을 다시 계산해 체크 항목을 만듦
+  const CHECKS = {
+    pearson(r, R) { return corrChecks(r.vars, R, false); },
+    spearman(r, R) { return corrChecks(r.vars, R, true); },
+    partial(r, R) {
+      const P = prep({ x: r.x, y: r.y, c: r.covs }); const k = designCols(P, r.covs).cols.length;
+      const e = R.effects[0], ci = fisherCI(e.est, P.n, k), N = normality([[P.V[r.x].name, P.col(r.x)], [P.V[r.y].name, P.col(r.y)]]);
+      return { desc: descOf(P, [r.x, r.y]), es: { text: `편상관 r = ${NZ(e.est)} (${sizeLabel('r', e.est)})`, cut: 'r' }, ci: { st: 'ok', note: `r의 95% CI ${CI(ci[0], ci[1])} (Fisher z)` }, norm: N, assum: [], post: null };
+    },
+    pointbiserial(r, R) {
+      const P = prep({ g: r.g, y: r.y }), g = P.col(r.g), y = P.col(r.y), lv = P.V[r.g].levels.filter(l => g.includes(l));
+      const G = lv.map(l => y.filter((_, i) => g[i] === l)), e = R.effects[0], ci = fisherCI(e.est, P.n), L = levene(G);
+      return { desc: descOf(P, [r.y]), es: { text: `r = ${NZ(e.est)} (${sizeLabel('r', e.est)})`, cut: 'r' }, ci: { st: 'ok', note: `r의 95% CI ${CI(ci[0], ci[1])}` }, norm: normality(G.map((x, i) => [`${P.V[r.y].name} (${lv[i]})`, x])), assum: [{ item: '등분산성 (Levene)', st: L.p >= 0.05 ? 'ok' : 'warn', note: `F = ${F2(L.F)}, ${PS(L.p)}` }], post: null };
+    },
+    chisq(r, R) {
+      const e = R.effects[0], P = prep({ a: r.a, b: r.b });
+      const ka = P.V[r.a].levels.filter(l => P.col(r.a).includes(l)).length, kb = P.V[r.b].levels.filter(l => P.col(r.b).includes(l)).length, dfs = Math.min(ka, kb) - 1;
+      const lowNote = R.tables[1]?.rows[0]?.[4] || '';
+      const lowN = +(lowNote.match(/^(\d+)/) || [0, 0])[1], cells = ka * kb;
+      return { desc: { st: 'ok', note: '교차표에 빈도와 비율을 함께 보고했습니다.' }, es: { text: `Cramér의 V = ${NZ(e.est)} (${sizeLabel('V', e.est, dfs)}, df* = ${dfs} 기준)`, cutText: `Cohen(1988), df* = ${dfs}: ${[0.1, 0.3, 0.5].map(x => NZ(x / Math.sqrt(dfs))).join(' / ')}` },
+        ci: { st: 'na', note: 'V의 신뢰구간은 이 사이트에서 계산하지 않음 — 필요하면 jamovi 등에서 보충' }, norm: { na: '빈도 자료라 정규성 가정이 없음' },
+        assum: [{ item: '기대빈도', st: lowN / cells <= 0.2 ? 'ok' : 'warn', note: `기대빈도 5 미만 칸 ${lowNote}${lowN / cells > 0.2 ? ' — 20%를 넘어 피셔 정확검정이나 범주 합치기를 검토하세요' : ''}` }], post: null };
+    },
+    onesample(r, R) {
+      const P = prep({ y: r.y }), y = P.col(r.y), d = (mean(y) - Number(anSel.opts.testValue)) / sd(y), ci = dzCI(d, P.n);
+      return { desc: descOf(P, [r.y]), es: { text: `Cohen의 d = ${F2(d)} (${sizeLabel('d', d)})`, cut: 'd' }, ci: { st: 'ok', note: `평균 차이의 95% CI 보고, d의 95% CI ${CI(ci[0], ci[1])} (근사)` }, norm: normality([[P.V[r.y].name, y]]), assum: [], post: null };
+    },
+    ind_t(r, R) {
+      const sets = [], es = [], assum = [];
+      r.ys.forEach(yk => {
+        const P = prep({ g: r.g, y: yk }), g = P.col(r.g), y = P.col(yk), lv = P.V[r.g].levels.filter(l => g.includes(l));
+        const a = y.filter((_, i) => g[i] === lv[0]), b = y.filter((_, i) => g[i] === lv[1]);
+        const sp = Math.sqrt(((a.length - 1) * variance(a) + (b.length - 1) * variance(b)) / (a.length + b.length - 2)), d = (mean(a) - mean(b)) / sp, ci = dCI(d, a.length, b.length);
+        sets.push([`${P.V[yk].name} (${lv[0]})`, a], [`${P.V[yk].name} (${lv[1]})`, b]);
+        es.push(`${P.V[yk].name}: d = ${F2(d)} (${sizeLabel('d', d)}), 95% CI ${CI(ci[0], ci[1])}`);
+        const L = levene([a, b]); assum.push({ item: `등분산성 (Levene) · ${P.V[yk].name}`, st: 'ok', note: `F = ${F2(L.F)}, ${PS(L.p)}${L.p < 0.05 ? ' — 어긋나서 Welch t를 보고했습니다' : ''}` });
+      });
+      return { desc: { st: 'ok', note: '집단별 평균(표준편차)을 보고했습니다.' }, es: { text: es.join(' / '), cut: 'd' }, ci: { st: 'ok', note: 'd의 95% CI는 근사식(Hedges & Olkin)으로 계산했습니다.' }, norm: normality(sets), assum, post: null };
+    },
+    paired_t(r, R) {
+      const P = prep({ a: r.a, b: r.b }), dif = P.col(r.a).map((v, i) => v - P.col(r.b)[i]), dz = mean(dif) / sd(dif), ci = dzCI(dz, P.n);
+      return { desc: { st: 'ok', note: '두 점수의 평균·표준편차를 보고했습니다.' }, es: { text: `Cohen의 dz = ${F2(dz)} (${sizeLabel('d', dz)}), 95% CI ${CI(ci[0], ci[1])}`, cut: 'd' }, ci: { st: 'ok', note: '평균 차이와 dz의 95% CI를 보고했습니다.' }, norm: normality([['두 점수의 차이', dif]]), assum: [], post: null };
+    },
+    oneway(r, R) {
+      const sets = [], es = [], assum = [];
+      r.ys.forEach(yk => {
+        const P = prep({ g: r.g, y: yk }), g = P.col(r.g), y = P.col(yk), lv = P.V[r.g].levels.filter(l => g.includes(l));
+        const G = lv.map(l => y.filter((_, i) => g[i] === l)), N = y.length, k = G.length, gm = mean(y);
+        const ssb = G.reduce((s, x) => s + x.length * (mean(x) - gm) ** 2, 0), ssw = G.reduce((s, x) => s + x.reduce((q, v) => q + (v - mean(x)) ** 2, 0), 0), msw = ssw / (N - k);
+        const eta = ssb / (ssb + ssw), omega = Math.max(0, (ssb - (k - 1) * msw) / (ssb + ssw + msw));
+        es.push(`${P.V[yk].name}: η² = ${NZ(eta, 3)} (${sizeLabel('eta', eta)}), ω² = ${NZ(omega, 3)}`);
+        sets.push([`${P.V[yk].name} 잔차`, G.flatMap(x => x.map(v => v - mean(x)))]);
+        const L = levene(G); assum.push({ item: `등분산성 (Levene) · ${P.V[yk].name}`, st: L.p >= 0.05 ? 'ok' : 'warn', note: `F = ${F2(L.F)}, ${PS(L.p)}${L.p < 0.05 ? ' — Welch F와 Games–Howell 사후검정을 함께 검토하세요' : ''}` });
+      });
+      return { desc: { st: 'ok', note: '집단별 n, M, SD를 보고했습니다.' }, es: { text: es.join(' / '), cut: 'eta', extra: 'ω²는 η²보다 덜 부풀려진 효과크기입니다.' }, ci: { st: 'warn', note: 'η²의 신뢰구간은 이 사이트에서 계산하지 않습니다. 필요하면 jamovi 등에서 보충하세요.' }, norm: normality(sets), assum,
+        post: { st: 'ok', note: 'Scheffé 사후검정을 보고했습니다. 사후검정 방법을 연구방법에 밝히세요.' } };
+    },
+    factorial(r, R) {
+      const P = prep({ a: r.a, b: r.b, y: r.y }), A = P.col(r.a), B = P.col(r.b), y = P.col(r.y);
+      const cells = [...new Set(A.map((a, i) => a + '' + B[i]))].map(key => y.filter((_, i) => A[i] + '' + B[i] === key));
+      const L = levene(cells.filter(c => c.length > 1));
+      return { desc: { st: 'ok', note: '칸별 평균(SD, n)을 보고했습니다.' }, es: { text: R.effects.map(e => `${e.label.replace(/ 효과.*$/, '')}: 부분 η² = ${NZ(e.est, 3)} (${sizeLabel('eta', e.est)})`).join(' / '), cut: 'eta' },
+        ci: { st: 'warn', note: '부분 η²의 신뢰구간은 계산하지 않습니다.' }, norm: normality([['칸 평균에서의 잔차', cells.flatMap(c => c.map(v => v - mean(c)))]]),
+        assum: [{ item: '등분산성 (Levene, 칸 기준)', st: L.p >= 0.05 ? 'ok' : 'warn', note: `F = ${F2(L.F)}, ${PS(L.p)}` }],
+        post: { st: R.effects[2] && sigOf(R.effects[2]) ? 'warn' : 'ok', note: R.effects[2] && sigOf(R.effects[2]) ? '상호작용이 유의합니다. 단순주효과 분석은 이 사이트에서 하지 않으니 jamovi 등에서 보충하세요.' : '상호작용이 유의하지 않아 주효과 중심으로 해석할 수 있습니다. 세 집단 이상 기준의 주효과가 유의하면 사후검정을 보충하세요.' } };
+    },
+    ancova(r, R) {
+      const P = prep({ g: r.g, y: r.y, c: r.covs }), g = P.col(r.g), y = P.col(r.y), lv = P.V[r.g].levels.filter(l => g.includes(l));
+      const dum = lv.slice(1).map(l => g.map(v => (v === l ? 1 : 0))), fit = ols(y, rowsOf([...dum, ...r.covs.map(k => P.col(k))]));
+      const slope = (R.notes.find(n => n.startsWith('회귀 기울기')) || '');
+      return { desc: descOf(P, [r.y, ...r.covs]), es: { text: `${P.V[r.g].name}: 부분 η² = ${NZ(R.effects[0].est, 3)} (${sizeLabel('eta', R.effects[0].est)})`, cut: 'eta' }, ci: { st: 'warn', note: '부분 η²의 신뢰구간은 계산하지 않습니다.' },
+        norm: normality([['잔차', fit.resid]]), assum: [{ item: '회귀 기울기 동질성', st: /전제가 어긋/.test(slope) ? 'warn' : 'ok', note: slope.replace(/^회귀 기울기 동질성: /, '') }, vifCheck(vifs(r.covs.map(k => P.col(k))))],
+        post: lv.length > 2 ? { st: 'warn', note: '세 집단 이상이면 조정된 평균의 사후 비교(Bonferroni 등)를 보충하세요.' } : null };
+    },
+    regression(r, R) { return regChecks(r.y, r.xs, R); },
+    hier(r, R) { return regChecks(r.y, [r.b1, r.b2, r.b3 || []].flat(), R, true); },
+    logistic(r, R) {
+      const P = prep({ y: r.y, x: r.xs }), D = designCols(P, r.xs);
+      return { desc: descOf(P, r.xs.filter(k => P.V[k].type === 'num')), es: { text: 'Exp(B)(승산비)와 Nagelkerke R²를 보고했습니다.', cutText: '승산비는 1에서 멀수록 효과가 큽니다. 널리 합의된 작음·중간·큼 기준은 없습니다.' }, ci: { st: 'ok', note: 'Exp(B)의 95% CI를 보고했습니다.' }, norm: { na: '로지스틱 회귀는 정규성 가정이 없음' },
+        assum: [vifCheck(vifs(D.cols)), { item: '로짓의 선형성', st: 'warn', note: '점수 예측변인과 로짓의 선형성(Box–Tidwell)은 이 사이트에서 점검하지 않습니다.' }], post: null };
+    },
+    med_parallel(r, R) { return medChecks(r.x, r.ms, r.y, r.covs, R); },
+    med_serial(r, R) { return medChecks(r.x, [r.m1, r.m2], r.y, r.covs, R, true); },
+    moderation(r, R) {
+      const P = prep({ x: r.x, w: r.w, y: r.y, c: r.covs }), X = binCode(P, r.x), W = binCode(P, r.w), y = P.col(r.y), C = designCols(P, r.covs).cols;
+      const xc = anSel.opts.center && !X.bin ? center(X.x) : X.x, wc = anSel.opts.center && !W.bin ? center(W.x) : W.x;
+      const cols = [xc, wc, xc.map((v, i) => v * wc[i]), ...C], fit = ols(y, rowsOf(cols)), red = ols(y, rowsOf([xc, wc, ...C]));
+      const f2 = (fit.R2 - red.R2) / (1 - fit.R2);
+      return { desc: descOf(P, [r.x, r.w, r.y].filter(k => P.V[k].type === 'num')), es: { text: `상호작용의 f² = ${F2(f2, 3)} (${sizeLabel('f2', f2)}), ΔR² = ${NZ(fit.R2 - red.R2, 3)}`, cut: 'f2', extra: '조절효과의 f²는 대개 작게 나오며, .005~.01 수준도 흔하다는 보고가 있습니다.' },
+        ci: { st: 'ok', note: '계수와 단순기울기의 95% CI를 보고했습니다.' }, norm: normality([['종속변인 모형 잔차', fit.resid]]), assum: [vifCheck(vifs(cols)), residPlot], post: null };
+    },
+    modmed7(r, R) { return modmedChecks(r, R, 7); },
+    modmed14(r, R) { return modmedChecks(r, R, 14); }
+  };
+  function descOf(P, keys) {
+    const ks = keys.filter(k => P.V[k]?.type === 'num'); if (!ks.length) return { st: 'ok', note: '분류 변인은 빈도로 보고하세요.' };
+    return { st: 'ok', note: '쓴 변인의 n, M, SD를 아래 기술통계 표에 넣었습니다.', table: { title: '기술통계', head: ['변인', 'n', 'M', 'SD', '최솟값', '최댓값'], num: [1, 2, 3, 4, 5], rows: ks.map(k => { const v = P.col(k); return [P.V[k].name, String(v.length), F2(mean(v)), F2(sd(v)), F2(Math.min(...v)), F2(Math.max(...v))]; }) } };
+  }
+  function corrChecks(keys, R, sp) {
+    const vs = keys.map(varByKey), n0 = lastScored.inc.length, rows = [];
+    vs.forEach((a, i) => vs.forEach((b, j) => {
+      if (j >= i) return; const idx = []; for (let q = 0; q < n0; q++) if (a.vals[q] != null && b.vals[q] != null) idx.push(q);
+      let x = idx.map(q => a.vals[q]), y = idx.map(q => b.vals[q]); if (sp) { x = ranks(x); y = ranks(y); }
+      const rr = corr(x, y), ci = fisherCI(rr, idx.length); rows.push([`${b.name} – ${a.name}`, NZ(rr), CI(ci[0], ci[1]), sizeLabel('r', rr)]);
+    }));
+    return { desc: { st: 'ok', note: '상관표에 M, SD를 함께 넣었습니다.' }, es: { text: `상관계수 자체가 효과크기입니다. 크기는 아래 표 참고.`, cut: 'r', table: { title: `${sp ? 'ρ' : 'r'}의 95% 신뢰구간 (Fisher z)`, head: ['짝', sp ? 'ρ' : 'r', '95% CI', '크기'], num: [1, 2], rows } },
+      ci: { st: 'ok', note: `${sp ? 'ρ' : 'r'}의 95% CI를 표로 넣었습니다${sp ? ' (스피어만 ρ는 근사)' : ''}.` }, norm: sp ? { na: '순위상관은 정규성 가정이 없음' } : normality(vs.map(v => [v.name, v.vals.filter(x => x != null)])), assum: [],
+      post: vs.length > 2 ? { st: 'warn', note: `상관을 ${vs.length * (vs.length - 1) / 2}쌍 함께 검정했습니다. 여러 번 검정하면 우연히 유의해질 가능성이 커지니, 가설에 해당하는 짝 위주로 해석하세요.` } : null };
+  }
+  function regChecks(yk, xs, R, hier) {
+    const P = prep({ y: yk, x: xs }), D = designCols(P, xs), fit = ols(P.col(yk), rowsOf(D.cols)), f2 = fit.R2 / (1 - fit.R2);
+    return { desc: descOf(P, [yk, ...xs]), es: { text: `β(표준화 계수)와 R² = ${NZ(fit.R2)}, f² = ${F2(f2, 3)} (${sizeLabel('f2', f2)})${hier ? ', 단계별 ΔR²' : ''}를 보고했습니다.`, cut: 'f2' },
+      ci: { st: 'ok', note: 'B의 95% CI를 보고했습니다. β의 CI가 필요하면 B의 CI에 SD(X)/SD(Y)를 곱한 근사값을 쓸 수 있습니다.' }, norm: normality([['잔차', fit.resid]]), assum: [vifCheck(vifs(D.cols)), residPlot], post: null };
+  }
+  function medChecks(xk, ms, yk, covs, R, serial) {
+    const P = prep({ x: xk, m: ms, y: yk, c: covs }), X = binCode(P, xk), C = designCols(P, covs).cols, y = P.col(yk), M = ms.map(k => P.col(k));
+    const fy = ols(y, rowsOf([X.x, ...M, ...C])), sets = [[`${P.V[yk].name} 모형 잔차`, fy.resid]];
+    M.forEach((m, j) => { const pre = serial && j === 1 ? [M[0]] : []; sets.push([`${P.V[ms[j]].name} 모형 잔차`, ols(m, rowsOf([X.x, ...pre, ...C])).resid]); });
+    return { desc: descOf(P, [xk, ...ms, yk]), es: { text: '간접효과와 완전표준화 간접효과를 보고했습니다.', cutText: '간접효과에는 널리 합의된 작음·중간·큼 기준이 없습니다. 완전표준화 효과의 크기를 그대로 적고, 크다·작다는 조심스럽게 쓰세요.' },
+      ci: { st: 'ok', note: '간접효과는 부트스트랩 95% CI, 경로계수는 95% CI를 보고했습니다.' }, stat: { st: 'ok', note: '경로계수는 t·df·p를, 간접효과는 p 대신 부트스트랩 신뢰구간으로 판단했습니다.' },
+      norm: normality(sets), assum: [vifCheck(vifs([X.x, ...M, ...C])), residPlot, { item: '부트스트랩', st: 'ok', note: `재표집 ${(+anSel.opts.boot || 5000).toLocaleString()}번, 백분위 신뢰구간 (간접효과의 정규성 가정 불필요)` }], post: null };
+  }
+  function modmedChecks(r, R, model) {
+    const P = prep({ x: r.x, m: r.m, w: r.w, y: r.y, c: r.covs }), y = P.col(r.y), m = P.col(r.m), X = binCode(P, r.x), C = designCols(P, r.covs).cols;
+    const fy = ols(y, rowsOf([X.x, m, ...C]));
+    return { desc: descOf(P, [r.x, r.m, r.w, r.y]), es: { text: '조절된 매개 지수와 조건부 간접효과를 보고했습니다.', cutText: '조절된 매개 지수에는 합의된 크기 기준이 없습니다. 신뢰구간이 0을 포함하는지로 판단합니다.' },
+      ci: { st: 'ok', note: '지수와 조건부 간접효과의 부트스트랩 95% CI를 보고했습니다.' }, stat: { st: 'ok', note: '경로계수는 t·df·p를, 지수는 부트스트랩 신뢰구간으로 판단했습니다.' },
+      norm: normality([[`${P.V[r.y].name} 모형 잔차`, fy.resid]]), assum: [residPlot, { item: '부트스트랩', st: 'ok', note: `재표집 ${(+anSel.opts.boot || 5000).toLocaleString()}번, 백분위 신뢰구간` }], post: null };
+  }
+
+  function buildChecks(R, roles) {
+    let c; try { c = CHECKS[R.method]?.(roles, R); } catch (e) { c = null; }
+    if (!c) return;
+    const L = [];
+    L.push({ g: '기술통계', item: '표본 크기 (N)', st: 'ok', note: `N = ${R.n}` });
+    L.push({ g: '기술통계', item: '평균·표준편차', st: c.desc.st, note: c.desc.note });
+    L.push({ g: '검정통계량', item: '통계량 값·자유도·정확한 p', st: c.stat?.st || 'ok', note: c.stat?.note || '표에 통계량, df, p를 넣었습니다. p는 .001 미만일 때만 "< .001"로 적습니다 (APA 7).' });
+    L.push({ g: '효과크기', item: '효과크기 지표', st: 'ok', note: c.es.text });
+    L.push({ g: '효과크기', item: '크기 해석 기준', st: 'ok', note: [c.es.cutText || CUT_TEXT[c.es.cut], c.es.extra].filter(Boolean).join(' ') });
+    L.push({ g: '신뢰구간', item: '95% 신뢰구간', st: c.ci.st, note: c.ci.note });
+    if (c.norm.na) L.push({ g: '가정 검정', item: '정규성', st: 'na', note: `해당 없음 — ${c.norm.na}` });
+    else L.push({ g: '가정 검정', item: '정규성 (Shapiro–Wilk)', st: c.norm.st, note: c.norm.note });
+    c.assum.forEach(a => L.push({ g: '가정 검정', ...a }));
+    L.push({ g: '다중비교', item: '사후검정·다중비교', st: c.post ? c.post.st : 'na', note: c.post ? c.post.note : '해당 없음 — 여러 집단을 짝지어 비교하는 분석이 아님' });
+    L.push({ g: '유의성 판단', item: 'α 수준 밝히기', st: 'ok', note: '이 사이트는 α = .05 기준입니다. 연구방법에 "유의수준 .05"를 미리 적으세요.' });
+    L.push({ g: '유의성 판단', item: '통계적 유의성과 실질적 의미 구별', st: 'ok', note: '효과크기와 크기 해석을 함께 적었습니다. 유의해도 효과가 작으면 그렇게 쓰세요.' });
+    R.checks = L;
+    if (c.desc.table) R.tables.unshift(c.desc.table);
+    if (c.es.table) R.tables.push(c.es.table);
+    if (!c.norm.na && c.norm.rows?.length) R.tables.push(normTable(c.norm.rows));
+  }
+
+  function checksHtml(a) {
+    if (!a.checks) return `<details class="item-detail"><summary>보고 체크리스트</summary><p class="hint" style="padding:0 14px 12px">이 결과는 체크리스트가 생기기 전에 계산했습니다. 다시 계산하면 생깁니다.</p></details>`;
+    const warn = a.checks.filter(c => c.st === 'warn').length;
+    const icon = st => st === 'ok' ? '<span class="ck ok" title="됨">✓</span>' : st === 'warn' ? '<span class="ck warn" title="확인 필요">!</span>' : '<span class="ck na" title="해당 없음">–</span>';
+    const groups = [...new Set(a.checks.map(c => c.g))];
+    return `<details class="item-detail checklist" ${warn ? 'open' : ''}>
+      <summary>보고 체크리스트 (APA 7) · ${warn ? `<span class="a-mid">확인할 것 ${warn}개</span>` : '<span class="a-ok">모두 갖춤</span>'}</summary>
+      <div class="ck-body">${groups.map(g => `<div class="ck-group">${esc(g)}</div>` + a.checks.filter(c => c.g === g).map(c => `<div class="ck-row ${c.st}">${icon(c.st)}<div><b>${esc(c.item)}</b><span>${esc(c.note)}</span></div></div>`).join('')).join('')}</div>
+    </details>`;
+  }
+
+  // =================================================================
+  // 허점 점검 (깐깐한 동료)
+  // =================================================================
+  const REVIEW_TYPES = ['인과 해석', '다른 설명', '효과크기 해석', '일반화', '측정', '보고 누락', '논리 비약', '유의하지 않은 결과', '기타'];
+  const REVIEW_RULES = `너는 사회과학 석사논문을 함께 읽는 공손하지만 깐깐한 동료다. 글을 고쳐 쓰지 않는다. 약한 곳을 짚어 질문만 하고, 판단은 연구자가 한다.
+다음 관점으로 읽는다.
+- 인과 해석: 한 시점 설문(횡단)이나 무작위 배정 없는 자료로 인과를 말하지 않았나. 반대 방향 관계는 배제했나.
+- 다른 설명: 두 변인에 함께 영향을 주는 제3의 변인, 표본 선택, 공통방법편의(모두 자기보고)로도 설명되지 않나.
+- 효과크기 해석: 통계적으로 유의하지만 효과가 작은데 의미를 크게 쓰지 않았나. 반대로 크기를 말하지 않았나.
+- 일반화: 표본(예: 대학생, 온라인 모집)보다 넓은 집단으로 결론을 넓히지 않았나.
+- 측정: 척도 신뢰도, 개념과 측정의 거리, 단일 문항 등 측정 문제를 결론에 반영했나.
+- 보고 누락: 보고 체크리스트에서 '확인 필요'인 항목을 글에서 다루지 않고 넘어가지 않았나. '갖춤'인 항목은 이미 계산된 것이니 빠졌다고 하지 않는다.
+- 논리 비약: 결과에서 바로 이론적 함의나 정책 제언으로 건너뛰지 않았나. 가설과 결과가 이어지나.
+- 유의하지 않은 결과: "효과가 없다"로 읽거나, 빼놓고 말하지 않았나.
+지킬 것:
+- 반드시 글에 있는 문장을 짧게 인용해서 짚는다. 글에 없는 문제를 지어내지 않는다.
+- 숫자는 [분석 결과]에 있는 것만 쓴다. 새로 계산하지 않는다.
+- 참고문헌을 지어내지 않는다.
+- 질문은 중요한 것부터 최대 8개. 잘한 점도 2~3개 짚는다.
+- 한국어, 공손한 말투("~일 수도 있지 않을까요?").`;
+
+  function reviewText() { return norm(intent.review?.text) ? intent.review.text : (intent.out ? `[결과]\n${intent.out.results}\n\n[논의]\n${intent.out.discussion}` : ''); }
+  function checkWarnings() {
+    return analyses.map(a => ({ 분석: a.title, 확인_필요: (a.checks || []).filter(c => c.st === 'warn').map(c => `${c.item}: ${c.note}`) })).filter(x => x.확인_필요.length);
+  }
+  function reviewPrompt(fmt = 'json') {
+    return `${REVIEW_RULES}
+
+[연구 자료]
+${JSON.stringify(payload(), null, 1)}
+
+[보고 체크리스트에서 확인 필요인 항목]
+${JSON.stringify(checkWarnings(), null, 1)}
+
+[점검할 글]
+${reviewText()}
+
+` + (fmt === 'json' ? `다음 JSON 하나로만 답한다:
+{"strengths": ["잘한 점"], "questions": [{"type": "${REVIEW_TYPES.join('|')} 중 하나", "quote": "글에서 짧게 인용", "question": "질문", "why": "왜 문제가 될 수 있는지 한두 문장", "suggestion": "고쳐 볼 방향 한 문장"}]}`
+      : `다음 형식으로 답한다.
+[잘한 점]
+- (2~3개)
+[질문]
+1. (유형) "인용" — 질문
+   왜: …
+   고쳐 볼 방향: …`);
+  }
+  // 붙여 넣은 텍스트 답 읽기
+  function parseReview(text) {
+    const t = String(text || '').trim();
+    const j = t.indexOf('{'); if (j >= 0) { try { const o = JSON.parse(t.slice(j, t.lastIndexOf('}') + 1)); if (Array.isArray(o.questions)) return o; } catch (e) {} }
+    const strengths = [], questions = []; let sec = '', cur = null;
+    t.split(/\r?\n/).forEach(line => {
+      const l = line.trim(); if (!l) return;
+      if (/^(\[|#+\s*|\*\*)?\s*잘한 점/.test(l)) { sec = 's'; return; }
+      if (/^(\[|#+\s*|\*\*)?\s*질문/.test(l)) { sec = 'q'; return; }
+      if (sec === 's') { strengths.push(l.replace(/^[-*•]\s*/, '')); return; }
+      if (sec === 'q') {
+        const m = l.match(/^\d+[.)]\s*(?:\(([^)]+)\)|\[([^\]]+)\])?\s*(?:["“]([^"”]+)["”])?\s*[—–-]?\s*(.*)$/);
+        if (m) { cur = { type: m[1] || m[2] || '기타', quote: m[3] || '', question: m[4] || '', why: '', suggestion: '' }; questions.push(cur); return; }
+        if (cur && /^왜\s*[:：]/.test(l)) { cur.why = l.replace(/^왜\s*[:：]\s*/, ''); return; }
+        if (cur && /^(고쳐 볼 방향|제안)\s*[:：]/.test(l)) { cur.suggestion = l.replace(/^(고쳐 볼 방향|제안)\s*[:：]\s*/, ''); return; }
+        if (cur) cur.question += (cur.question ? ' ' : '') + l;
+      }
+    });
+    return questions.length ? { strengths, questions } : { raw: t };
+  }
+
+  function reviewHtml(mode) {
+    const rv = intent.review, res = rv.result;
+    const resHtml = !res ? '' : res.raw ? `<div class="ai-text">${esc(res.raw).replace(/\n/g, '<br>')}</div>` : `
+      ${(res.strengths || []).length ? `<div class="section-title">잘한 점</div><ul class="notes">${res.strengths.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+      <div class="section-title">짚어 볼 곳 ${res.questions.length}개</div>
+      <div class="rv-list">${res.questions.map((q, i) => `<div class="rv ${rv.done[i] ? 'done' : ''}">
+        <div class="rv-head"><span class="st manual">${esc(q.type || '기타')}</span><label class="chk sm"><input type="checkbox" data-rv-done="${i}" ${rv.done[i] ? 'checked' : ''}> 검토함</label></div>
+        ${q.quote ? `<blockquote>${esc(q.quote)}</blockquote>` : ''}
+        <p class="rv-q">${esc(q.question)}</p>
+        ${q.why ? `<p class="hint"><b>왜:</b> ${esc(q.why)}</p>` : ''}
+        ${q.suggestion ? `<p class="hint"><b>고쳐 볼 방향:</b> ${esc(q.suggestion)}</p>` : ''}
+      </div>`).join('')}</div>
+      <p class="hint">질문은 제안일 뿐입니다. 동의하지 않으면 그대로 두어도 됩니다. 다만 심사에서 같은 질문을 받을 수 있으니 답을 준비해 두세요.</p>`;
+    return `<div class="card" id="rv-card">
+      <div class="res-head"><h3 class="card-title">4. 허점 점검 — 깐깐한 동료</h3><a class="guide-link" href="#guide-checks">설명</a></div>
+      <p class="hint">결과·논의 글을 심사위원처럼 읽고 약한 곳을 질문으로 짚습니다. 글은 고치지 않습니다. 보고 체크리스트에서 '확인 필요'인 항목도 함께 봅니다.</p>
+      <label class="f">점검할 글<textarea rows="6" id="rv-text" placeholder="결과·논의 글을 붙여 넣으세요. 비워 두면 위의 AI 초안을 씁니다.">${esc(rv.text)}</textarea></label>
+      <div class="actions tight">${intent.out ? '<button class="btn sm" data-in-act="rv-load">위의 초안 불러오기</button>' : ''}</div>
+      ${mode === 'auto' ? `<div class="actions"><button class="btn primary" data-in-act="rv-run" ${aiState === 'on' ? '' : 'disabled'}>허점 점검 받기</button><span class="hint" id="rv-prog"></span></div>` : ''}
+      ${mode === 'chat' ? `<div class="chat-steps" style="margin-top:12px">
+          <div class="chat-step"><span class="n">1</span><div><b>지시문을 AI 채팅에 붙여 넣기</b><div class="actions tight"><button class="btn sm primary" data-in-act="copy-prompt" data-which="review">허점 점검 지시문 복사</button></div></div></div>
+          <div class="chat-step"><span class="n">2</span><div><b>AI의 답을 붙여 넣기</b><label class="f"><textarea rows="5" id="rv-paste" placeholder="[잘한 점] [질문] 형식의 답을 붙여 넣으세요">${esc(rv.paste)}</textarea></label>
+            <div class="actions tight"><button class="btn sm primary" data-in-act="rv-show">정리해서 보기</button></div></div></div></div>` : ''}
+      ${mode === 'code' ? `<div class="chat-steps" style="margin-top:12px">
+          <div class="chat-step"><span class="n">1</span><div><b>Claude Code에 "허점 점검해줘"라고 말하기</b><p class="hint">CLAUDE.md를 이 버전에서 다시 받아야 허점 점검 규칙이 들어 있습니다. 점검할 글은 <code>해석초안.md</code>를 씁니다. 다른 글이면 폴더에 넣고 파일 이름을 말하세요.</p></div></div>
+          <div class="chat-step"><span class="n">2</span><div><b>생긴 <code>허점점검.md</code> 내용을 붙여 넣기</b><label class="f"><textarea rows="5" id="rv-paste" placeholder="허점점검.md 내용을 붙여 넣으세요">${esc(rv.paste)}</textarea></label>
+            <div class="actions tight"><button class="btn sm primary" data-in-act="rv-show">정리해서 보기</button></div></div></div></div>` : ''}
+      ${resHtml}
+    </div>`;
+  }
+
+  async function runReview() {
+    const sample = await sampleP; if (!sample) return;
+    if (!norm(reviewText())) { toast('점검할 글을 붙여 넣거나 초안을 먼저 써 주세요.'); return; }
+    const prog = $('#rv-prog'); prog.textContent = '읽는 중… (30초~2분)'; $('[data-in-act="rv-run"]').disabled = true;
+    try {
+      const res = await sample.json(reviewPrompt('json'), { modelTier: 'complex', cache: false, onText: ({ text }) => { prog.textContent = `쓰는 중… ${text.length.toLocaleString()}자`; } });
+      intent.review.result = { strengths: [].concat(res?.strengths || []).map(String), questions: [].concat(res?.questions || []).map(q => ({ type: String(q.type || '기타'), quote: String(q.quote || ''), question: String(q.question || ''), why: String(q.why || ''), suggestion: String(q.suggestion || '') })) };
+      intent.review.done = []; saveIntent(); renderInterp(); $('#rv-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (e) { if (e?.code === 'not_granted' || e?.code === 'sampling_disabled') aiState = 'denied'; renderInterp(); $('#rv-prog').textContent = aiErr(e?.code); }
+  }
 
   // ---------- 시작 ----------
   const defErrs = checkRules(DEFAULT_RULES);
