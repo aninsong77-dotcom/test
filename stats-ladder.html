@@ -2076,6 +2076,15 @@ main#scroller .page-head p { font-size: 14px; }
 .right .table-wrap td:first-child{white-space:normal;min-width:6em}
 .toast{bottom:92px}
 @media (max-width:1150px){.app.r-open .right{box-shadow:-12px 0 32px rgba(20,28,60,.18)}}
+
+.rv-why{margin:4px 0 10px;padding:0 4px;font-size:13px;line-height:1.55}.rv-why small{display:block;color:var(--i3,#8a90a3);font-size:12px;margin-top:2px}
+.rdraft h4 small{font-weight:500;color:#8a90a3;font-size:12px;margin-left:6px}
+.rdraft h5{margin:14px 0 4px;font-size:12.5px;color:var(--navy,#1f2a52)}
+.rdraft p{margin:0 0 8px;font-size:13.5px;line-height:1.75}.rdraft ul,.rdraft ol{margin:0;padding-left:20px;font-size:13px;line-height:1.65}
+.rissue{background:#fff7e0;border:1px solid #f1dc9a;border-radius:8px;padding:8px 10px;font-size:12.5px;color:#7a5d00;font-weight:700}.rissue ul{font-weight:500;margin-top:4px}
+.rok{background:#e6f5ee;border:1px solid #bfe3d1;border-radius:8px;padding:6px 10px;font-size:12.5px;color:#1f8a5b;font-weight:700}
+.rq li{margin-bottom:6px}.rq li small{display:block;color:#8a90a3}.rq li.done{opacity:.55;text-decoration:line-through}
+.rsec{margin:18px 2px 8px;font-size:13px;color:var(--navy,#1f2a52)}
 </style>
 </head>
 <body>
@@ -4811,7 +4820,8 @@ ${REVIEW_RULES}
     const issues = [];
     if (bad.size) issues.push(`분석 결과에 없는 숫자가 있습니다: ${[...bad].slice(0, 10).join(', ')}. 표의 값과 맞는지 확인하세요.`);
     if (/횡단/.test(intent.design)) {
-      const hits = ['원인', '야기', '때문에', '인과', '유발', '증명'].filter(w => text.includes(w));
+      const sentsC = text.split(/(?<=[.다])\s+|\n+/).filter(x => !/(단정할 수 없|단정하기 어렵|볼 수 없|말할 수 없|확인할 수 없|아니|않)/.test(x)).join('\n');
+      const hits = ['원인', '야기', '때문에', '인과', '유발', '증명'].filter(w => sentsC.includes(w));
       if (hits.length) issues.push(`인과를 단정하는 것처럼 읽힐 수 있는 말이 있습니다: ${hits.join(', ')}. 한 시점 설문에서는 관련성으로 표현하세요.`);
     }
     const noEff = [...text.matchAll(/(효과가 없|관계가 없|영향이 없|차이가 없)[^.\n]{0,14}/g)].filter(m => !/(뜻하지|의미하지|아니|볼 수 없|단정할 수 없|말할 수 없)/.test(m[0]));
@@ -4934,7 +4944,7 @@ ${REVIEW_RULES}
       <table class="gtable"><thead><tr><th>자리</th><th>하는 일</th></tr></thead><tbody>
         <tr><td>왼쪽 메뉴</td><td>연구 진행 순서. 끝낸 단계는 ✓, 지금 단계는 주황색. 맨 위 ☰ 버튼으로 접었다 펼 수 있습니다.</td></tr>
         <tr><td>가운데</td><td>지금 단계에서 고르고 적는 곳. 사다리에서 답한 질문은 대화처럼 위로 쌓이고, 말풍선을 누르면 그 질문으로 돌아갑니다. 맨 아래 입력창에 궁금한 것을 물으면 답이 이어서 남습니다.</td></tr>
-        <tr><td>오른쪽 보기 창</td><td>[통계 방법] 고른 기법·사다리 지도·변인·분석 결정, [설문] 요약·응답 현황·응답자 화면 미리보기, [결과] 가설 판정·계산 결과표. 단계에 맞는 탭이 저절로 열리고, 직접 눌러 바꿀 수도 있습니다.</td></tr>
+        <tr><td>오른쪽 보기 창</td><td>[통계 방법] 고른 기법·사다리 지도·변인·분석 결정, [설문] 요약·응답 현황·응답자 화면 미리보기, [결과] 가설 판정·해석 초안·허점 점검·계산 결과표. 단계에 맞는 탭이 저절로 열리고, 직접 눌러 바꿀 수도 있습니다.</td></tr>
       </tbody></table>
       <p class="hint">PC 화면(가로 1366 이상)에 맞췄습니다. 화면이 좁으면 오른쪽 보기 창은 위의 [보기 창] 버튼으로 열고 닫습니다. 휴대폰에서는 보기 위주로 쓰세요.</p>
       <h3>전체 흐름</h3>
@@ -6196,7 +6206,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
     document.querySelectorAll('.rpane').forEach(p => { p.hidden = p.dataset.rp !== t; });
     renderRight();
   }
-  document.querySelectorAll('.rtab').forEach(b => b.addEventListener('click', () => { rtabManual = true; setRtab(b.dataset.rt); }));
+  document.querySelectorAll('.rtab').forEach(b => b.addEventListener('click', () => { rtabManual = true; const same = rtab === b.dataset.rt; setRtab(b.dataset.rt); if (same || b.dataset.rt === 'results') $('#rp-' + b.dataset.rt).scrollTop = 0; }));
 
   function renderRight() {
     $('#rt-count').textContent = analyses.length || '';
@@ -6243,10 +6253,26 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
 
   function renderRightResults() {
     const hs = intent.hyps.filter(h => norm(h.text) && h.effect);
-    $('#rp-results-top').innerHTML = `<div class="card"><h4>가설 판정</h4>${hs.length ? hs.map(h => { const v = verdict(h), e = effById(h.effect), i = intent.hyps.indexOf(h); return v ? `<div class="rv-verdict ${v.v === '지지' ? 'ok' : 'no'}"><b>${v.v}</b><span>가설 ${i + 1} · ${esc(e.stat)}</span></div>` : ''; }).join('')
-      : '<p class="rempty">결과 해석에서 가설과 검증할 효과를 고르면 판정이 여기에 보입니다.</p>'}</div>`;
+    const vHtml = hs.map(h => { const v = verdict(h), e = effById(h.effect), i = intent.hyps.indexOf(h); return v ? `<div class="rv-verdict ${v.v === '지지' ? 'ok' : 'no'}"><b>${v.v}</b><span>가설 ${i + 1} · ${esc(e.stat)}</span></div>
+      <div class="rv-why"><div>${esc(h.text)}</div><small>${esc(e.label)} — ${esc(v.why)}</small></div>` : ''; }).join('');
+    const o = intent.out, rv = intent.review?.result;
+    const para = t => String(t || '').split(/\n+/).filter(x => x.trim()).map(x => `<p>${esc(x)}</p>`).join('');
+    const draft = o ? `<div class="card rdraft"><h4>해석 초안 <small>${esc(o.src || 'AI')}${o.sample ? ' · 예시(가짜) 자료' : ''}</small></h4>
+      ${o.issues?.length ? `<div class="rissue">점검할 곳 ${o.issues.length}개<ul>${o.issues.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : '<div class="rok">숫자·인과 표현·판정 점검 통과</div>'}
+      <h5>결과</h5>${para(o.results)}<h5>논의</h5>${para(o.discussion)}
+      ${o.limitations?.length ? `<h5>연구의 한계</h5><ul>${o.limitations.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+      ${o.check?.length ? `<h5>연구자가 확인할 것</h5><ul>${o.check.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
+      <div class="actions"><button class="btn sm" data-nav-go="interp">초안 고치기 →</button></div></div>`
+      : `<div class="card"><h4>해석 초안</h4><p class="rempty">결과 해석에서 AI와 초안을 쓰면 결과·논의 문단이 여기 함께 보입니다.</p>${analyses.length ? '<div class="actions"><button class="btn sm" data-nav-go="interp">결과 해석으로 →</button></div>' : ''}</div>`;
+    const done = intent.review?.done || [];
+    const review = rv ? `<div class="card rdraft"><h4>허점 점검 <small>짚어 볼 곳 ${rv.questions.length}개 · 고침 ${rv.questions.filter((_, i) => done[i]).length}개</small></h4>
+      <ol class="rq">${rv.questions.map((q, i) => `<li class="${done[i] ? 'done' : ''}"><b>[${esc(q.type)}]</b> ${esc(q.question)}${q.suggestion ? `<small>제안: ${esc(q.suggestion)}</small>` : ''}</li>`).join('')}</ol>
+      <div class="actions"><button class="btn sm" data-nav-go="review">점검 화면으로 →</button></div></div>` : '';
+    $('#rp-results-top').innerHTML = `<div class="card"><h4>가설 판정</h4>${vHtml || '<p class="rempty">결과 해석에서 가설과 검증할 효과를 고르면 판정이 여기에 보입니다.</p>'}</div>${draft}${review}
+      ${analyses.length ? '<h4 class="rsec">계산 결과표</h4>' : ''}`;
     if (!analyses.length) $('#an-results').innerHTML = '<div class="card"><p class="rempty">분석 결정·계산에서 [계산하기]를 누르면 결과표, 보고 체크리스트, R 대조가 여기에 보입니다.</p></div>';
   }
+  $('#rp-results-top').addEventListener('click', e => { const b = e.target.closest('[data-nav-go]'); if (b) gotoNav(b.dataset.navGo); });
 
   // ---------- 대화 기록 ----------
   let thread = store.get('ladder.thread', []);
