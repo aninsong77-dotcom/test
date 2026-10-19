@@ -1385,6 +1385,9 @@
 }
 </script>
 
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap">
 <style>
 :root {
   --orange: #f5841f;
@@ -1439,7 +1442,7 @@
 html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0; background: var(--bg); color: var(--ink);
-  font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
+  font-family: "Nanum Gothic", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
   font-size: 16px; line-height: 1.6; word-break: keep-all; overflow-wrap: anywhere;
 }
 button, input, select, textarea { font: inherit; color: inherit; }
@@ -1518,7 +1521,7 @@ li.on > .edge::before { color: var(--orange); }
 .tnode:hover { background: var(--bg-2); border-color: var(--line); }
 .tnode .no {
   flex: none; display: inline-grid; place-items: center; min-width: 24px; height: 22px; padding: 0 5px; border-radius: 6px;
-  background: var(--navy-soft); color: var(--navy-ink); font-size: 11px; font-weight: 800;
+  background: var(--navy-soft); color: var(--navy-ink); font-size: 12px; font-weight: 800;
 }
 .tnode.leaf { color: var(--ink); font-weight: 600; }
 .tnode.leaf .no { background: var(--ok-soft); color: var(--ok); }
@@ -1562,7 +1565,7 @@ li.on > .edge::before { color: var(--orange); }
 .q { margin: 8px 0 6px; font-size: 26px; line-height: 1.4; font-weight: 800; letter-spacing: -.01em; }
 
 .tag {
-  display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: .02em;
+  display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: .02em;
   border: 1px solid; white-space: nowrap; vertical-align: middle;
 }
 .tag.ai { color: var(--ai); border-color: var(--ai-line); background: var(--ai-soft); }
@@ -1741,7 +1744,7 @@ details.bulk textarea { width: 100%; margin-top: 8px; padding: 10px 12px; border
 textarea { font: inherit; }
 label.f textarea { resize: vertical; }
 .map-table select { padding: 6px 8px; border: 1.5px solid var(--line); border-radius: 8px; background: var(--bg); max-width: 320px; width: 100%; font-size: 13px; }
-.st { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; border: 1px solid; }
+.st { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap; border: 1px solid; }
 .st.auto { color: var(--ok); border-color: var(--ok-line); background: var(--ok-soft); }
 .st.manual { color: var(--navy-ink); border-color: var(--help-line); background: var(--navy-soft); }
 .st.missing { color: var(--warn); border-color: var(--warn-line); background: var(--warn-soft); }
@@ -1769,7 +1772,7 @@ table.preview td, table.preview th { white-space: nowrap; }
 .pv-item.bad { border-color: var(--warn); }
 .pv-q { font-size: 16px; font-weight: 600; }
 .pv-req { color: var(--warn); }
-.pv-code { font-size: 11px; font-weight: 700; color: var(--ink-3); background: var(--bg-2); border-radius: 4px; padding: 1px 6px; vertical-align: middle; }
+.pv-code { font-size: 12px; font-weight: 700; color: var(--ink-3); background: var(--bg-2); border-radius: 4px; padding: 1px 6px; vertical-align: middle; }
 .pv-help { margin-top: 6px; font-size: 14px; color: var(--ink-2); white-space: pre-line; }
 .pv-choices { display: grid; gap: 8px; margin-top: 12px; }
 .pv-choices.likert { grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); }
@@ -1977,15 +1980,15 @@ body { display: grid; grid-template-rows: 56px minmax(0, 1fr); overflow: hidden;
 .app.no-right .right { display: none; }
 /* 왼쪽 메뉴 */
 .side { background: var(--navy); color: #c9cfe3; overflow-y: auto; overflow-x: hidden; padding: 8px 0 20px; }
-.side .grp { padding: 14px 16px 4px; font-size: 11px; letter-spacing: .06em; color: #8f99bd; font-weight: 700; white-space: nowrap; }
+.side .grp { padding: 14px 16px 4px; font-size: 12px; letter-spacing: .06em; color: #8f99bd; font-weight: 700; white-space: nowrap; }
 .side .it { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 14px; background: none; border: 0; border-left: 4px solid transparent; color: #d9deee; font-weight: 600; font-size: 14px; text-align: left; white-space: nowrap; }
 .side .it:hover { background: rgba(255,255,255,.06); }
-.side .it .n { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 800; background: rgba(255,255,255,.12); color: #fff; flex: none; }
+.side .it .n { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 800; background: rgba(255,255,255,.12); color: #fff; flex: none; }
 .side .it.done .n { background: #1f8a5b; }
 .side .it.on { background: rgba(245,132,31,.18); border-left-color: var(--orange); color: #fff; }
 .side .it.on .n { background: var(--orange); }
 .side .it .lbl { overflow: hidden; text-overflow: ellipsis; }
-.side .it small { margin-left: auto; font-size: 11px; color: #8f99bd; overflow: hidden; text-overflow: ellipsis; max-width: 80px; }
+.side .it small { margin-left: auto; font-size: 12px; color: #8f99bd; overflow: hidden; text-overflow: ellipsis; max-width: 80px; }
 .app.nav-min .side .grp, .app.nav-min .side .lbl, .app.nav-min .side small { display: none; }
 .app.nav-min .side .it { justify-content: center; padding: 9px 0; }
 /* 가운데 작업 창 */
@@ -2006,24 +2009,24 @@ main#scroller .page-head p { font-size: 14px; }
 .msg.ai { background: var(--bg-2); border: 1px solid var(--line); border-top-left-radius: 4px; justify-self: start; }
 .msg.me { background: var(--navy); color: var(--on-accent); justify-self: end; border-top-right-radius: 4px; }
 .msg.sys { justify-self: center; max-width: 100%; background: none; padding: 2px 10px; font-size: 12.5px; color: var(--ink-3); }
-.msg .who { display: block; font-size: 11px; font-weight: 800; color: var(--orange-deep); margin-bottom: 2px; }
+.msg .who { display: block; font-size: 12px; font-weight: 800; color: var(--orange-deep); margin-bottom: 2px; }
 .msg .links { display: grid; gap: 4px; margin-top: 8px; white-space: normal; }
 .msg .links a { color: var(--orange-deep); font-weight: 600; }
 .msg .tools { margin-top: 8px; white-space: normal; }
 /* 사다리: 지나온 질문과 답을 대화처럼 */
 .lhist { display: grid; gap: 8px; margin-bottom: 14px; }
 .lq { justify-self: start; max-width: 88%; padding: 8px 12px; border-radius: 12px; border-top-left-radius: 4px; background: var(--bg-2); border: 1px solid var(--line); font-size: 13.5px; color: var(--ink-2); }
-.lq b { color: var(--orange-deep); font-size: 11px; display: block; }
+.lq b { color: var(--orange-deep); font-size: 12px; display: block; }
 .la { justify-self: end; max-width: 80%; padding: 8px 12px; border-radius: 12px; border-top-right-radius: 4px; background: var(--navy); color: var(--on-accent); border: 0; font-size: 14px; font-weight: 600; text-align: right; }
 .la:hover { outline: 2px solid var(--orange); }
-.la small { display: block; font-weight: 500; font-size: 11px; opacity: .75; }
+.la small { display: block; font-weight: 500; font-size: 12px; opacity: .75; }
 #view-ladder .ladder { display: block; }
 /* 오른쪽 보기 창 */
 .right { display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 0; min-width: 0; background: var(--bg-2); }
 .rtabs { display: flex; gap: 2px; padding: 6px 12px 0; border-bottom: 1px solid var(--line); background: var(--bg); }
 .rtab { background: none; border: 0; border-bottom: 3px solid transparent; padding: 9px 14px; font-weight: 700; color: var(--ink-3); font-size: 14px; }
 .rtab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--orange); }
-.rtab .c { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 4px; border-radius: 999px; background: var(--navy-soft); font-size: 11px; text-align: center; }
+.rtab .c { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 4px; border-radius: 999px; background: var(--navy-soft); font-size: 12px; text-align: center; }
 .rtab .c:empty { display: none; }
 .rpane { overflow: auto; padding: 14px 14px 30px; min-width: 0; }
 .rpane .card { padding: 16px 18px; }
@@ -2112,7 +2115,7 @@ main#scroller .page-head p { font-size: 14px; }
 /* 연구 고르기 드롭다운 */
 .proj-wrap{position:relative;margin-left:10px;padding-left:14px;border-left:1px solid var(--line,#e2e5ee);min-width:0}
 .proj-chip{display:flex;align-items:center;gap:6px;max-width:260px;border:1.5px solid var(--line,#e2e5ee);background:#fff;border-radius:10px;padding:6px 10px 6px 12px;font:inherit;font-size:13.5px;font-weight:700;color:var(--ink,#1d2333);cursor:pointer}
-.proj-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.proj-chip i{font-style:normal;color:var(--ink-3,#8a90a3);font-size:11px}
+.proj-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.proj-chip i{font-style:normal;color:var(--ink-3,#8a90a3);font-size:12px}
 .proj-chip:hover{border-color:#c9cfe0}
 .proj-pop{position:absolute;left:14px;top:calc(100% + 8px);width:min(340px,90vw);background:#fff;border:1px solid var(--line,#e2e5ee);border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.16);padding:12px;z-index:30}
 .pj-h{font-size:11.5px;font-weight:700;color:var(--ink-3,#8a90a3);margin:0 4px 6px}
@@ -2235,6 +2238,11 @@ label.f input,label.f select,label.f textarea{font-size:14px;padding:8px 11px}
 .pj-new:hover{background:var(--point);color:#fff;border-style:solid}
 
 .side .it.on small{color:var(--ink-3)}
+
+/* 나눔고딕 + 작은 글씨 한 단계 키움 (11px → 12px) */
+button,input,textarea,select{font-family:inherit}
+.side .grp,.side .it .n,.side .it small{font-size:12px}
+.side .it small{max-width:90px}
 </style>
 </head>
 <body>
