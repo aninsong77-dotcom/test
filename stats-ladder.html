@@ -2164,6 +2164,40 @@ label.f input,label.f select,label.f textarea{font-size:14px;padding:8px 11px}
 .actions{margin-top:20px;padding-top:16px}
 .composer textarea,#cmp-text{font-size:14px}
 @media (max-width:640px){.q{font-size:18px}.card{padding:18px 16px}}
+
+/* 색: 로고 파랑이 주인공, 주황은 중요한 버튼에만 (밝은 왼쪽 메뉴) */
+:root{
+  --orange:#2563eb; --orange-deep:#1d4fd0; --orange-soft:#eef3ff; --orange-line:#c9d8fb;
+  --point:#f5841f; --point-deep:#e06f0b;
+  --side-bg:#fafbfd; --side-ink:#2b3245; --side-mute:#9aa1b4; --side-hover:#f0f3f9; --side-n:#eef1f7; --side-n-ink:#5a6280; --side-on:#eef3ff; --side-on-ink:#1d3fa8;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --orange:#4a84f5; --orange-deep:#8fb2ff; --orange-soft:#16224a; --orange-line:#2d4384;
+  --side-bg:#161a27; --side-ink:#d5dbea; --side-mute:#7d849b; --side-hover:#1e2335; --side-n:#262c40; --side-n-ink:#aab2c8; --side-on:#1b2850; --side-on-ink:#bcd0ff;
+}}
+:root[data-theme="dark"]{
+  --orange:#4a84f5; --orange-deep:#8fb2ff; --orange-soft:#16224a; --orange-line:#2d4384;
+  --side-bg:#161a27; --side-ink:#d5dbea; --side-mute:#7d849b; --side-hover:#1e2335; --side-n:#262c40; --side-n-ink:#aab2c8; --side-on:#1b2850; --side-on-ink:#bcd0ff;
+}
+.hdr{border-bottom:1px solid var(--line)}
+.side{background:var(--side-bg);color:var(--side-ink);border-right:1px solid var(--line)}
+.side .grp{color:var(--side-mute)}
+.side .it{color:var(--side-ink)}
+.side .it:hover{background:var(--side-hover)}
+.side .it .n{background:var(--side-n);color:var(--side-n-ink)}
+.side .it.done .n{background:var(--orange-soft);color:var(--orange)}
+.side .it.on{background:var(--side-on);border-left-color:var(--orange);color:var(--side-on-ink)}
+.side .it.on .n{background:var(--orange);color:#fff}
+.side .it small{color:var(--side-mute)}
+.btn.primary,#cmp-send{background:var(--point);border-color:var(--point);color:#fff}
+.btn.primary:hover,#cmp-send:hover{background:var(--point-deep);border-color:var(--point-deep)}
+
+.hdr-title .wm{color:var(--navy-ink)}
+.proj-chip,.proj-pop{background:var(--bg);color:var(--ink)}
+.pj-it{color:var(--ink)}.pj-it:hover{background:var(--bg-2)}.pj-it.on{background:var(--orange-soft)}
+.pj-name input{background:var(--bg);color:var(--ink)}
+#splash{background:var(--bg)}
+.tnode.here{box-shadow:0 4px 12px rgba(37,99,235,.25)}
 </style>
 </head>
 <body>
@@ -2183,7 +2217,7 @@ label.f input,label.f select,label.f textarea{font-size:14px;padding:8px 11px}
     </g>
     <g class="t-bars"><rect class="t-bar" x="102" y="40" width="10" height="16" rx="2.5" fill="#c5d6fb"/><rect class="t-bar" x="117" y="31" width="10" height="25" rx="2.5" fill="#8eb0f6"/><rect class="t-bar" x="132" y="20" width="10" height="36" rx="2.5" fill="#2563eb"/></g>
   </svg>
-  <span class="hdr-title"><svg class="wm" viewBox="0 0 76 24" role="img" aria-label="ㅌㅗㅇ (통)"><g fill="none" stroke="#1f2a52" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3H18M3 12H17M3 21H18M3 3V21"/><path d="M38 6V20M29 20H47"/><circle cx="64" cy="12" r="8.6"/></g></svg><span>설문부터 통계 해석까지</span></span>
+  <span class="hdr-title"><svg class="wm" viewBox="0 0 76 24" role="img" aria-label="ㅌㅗㅇ (통)"><g fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3H18M3 12H17M3 21H18M3 3V21"/><path d="M38 6V20M29 20H47"/><circle cx="64" cy="12" r="8.6"/></g></svg><span>설문부터 통계 해석까지</span></span>
   <div class="proj-wrap"><button class="proj-chip" id="proj-chip" aria-haspopup="true"></button><div class="proj-pop" id="proj-pop" hidden></div></div>
   <span class="hdr-sp"></span>
   <div class="fold-wrap"><button class="fold-chip" id="fold-chip">📁 연구 폴더</button><div class="fold-pop" id="fold-pop" hidden><div class="folder-bar" id="folder-bar"></div></div></div>
