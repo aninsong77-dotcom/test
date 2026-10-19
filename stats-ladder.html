@@ -2198,6 +2198,21 @@ label.f input,label.f select,label.f textarea{font-size:14px;padding:8px 11px}
 .pj-name input{background:var(--bg);color:var(--ink)}
 #splash{background:var(--bg)}
 .tnode.here{box-shadow:0 4px 12px rgba(37,99,235,.25)}
+
+/* 주황 = "지금 여기"와 핵심 버튼, 파랑 = 지나온 길·완료·정보 */
+:root{--here-soft:#fff3e8;--here-ink:#c25a00}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--point:#ff9d4a;--point-deep:#ffb575;--here-soft:#3a2615;--here-ink:#ffb575}}
+:root[data-theme="dark"]{--point:#ff9d4a;--point-deep:#ffb575;--here-soft:#3a2615;--here-ink:#ffb575}
+.hdr{border-bottom:2px solid var(--point)}
+.side .it.on{background:var(--here-soft);border-left-color:var(--point);color:var(--here-ink)}
+.side .it.on .n{background:var(--point);color:#fff}
+.stepper .s.cur .dot{background:var(--point);border-color:var(--point);color:#fff}
+.kicker{color:var(--here-ink)}
+.tnode.here{background:var(--point);border-color:var(--point);color:#fff;box-shadow:0 4px 12px rgba(245,132,31,.3)}
+.rtab[aria-selected="true"]{border-bottom-color:var(--point)}
+
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .tnode.here,:root:not([data-theme="light"]) .tnode.here .no{color:#1f1206}}
+:root[data-theme="dark"] .tnode.here,:root[data-theme="dark"] .tnode.here .no{color:#1f1206}
 </style>
 </head>
 <body>
@@ -2437,7 +2452,7 @@ label.f input,label.f select,label.f textarea{font-size:14px;padding:8px 11px}
         </div>
         <div class="map-body" id="map-body">
           <div class="legend">
-            <span><i style="background:var(--orange)"></i>지금 위치</span>
+            <span><i style="background:var(--point)"></i>지금 위치</span>
             <span><i style="background:var(--orange-soft);border:1px solid var(--orange-line)"></i>지나온 길</span>
             <span><i style="background:var(--ok-soft)"></i>도착점(기법)</span>
           </div>
