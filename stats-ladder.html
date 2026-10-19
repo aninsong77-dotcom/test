@@ -1890,6 +1890,17 @@ pre code { background: none; border: 0; padding: 0; }
 .dec-opt span { color: var(--ink-3); font-size: 12.5px; line-height: 1.5; }
 .dec-opt.on { border-color: var(--orange); background: var(--orange-soft); }
 .dec-why { width: 100%; min-width: 180px; padding: 6px 8px; border: 1.5px solid var(--warn-line); border-radius: 8px; background: var(--bg); font-size: 13px; }
+.folder-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px 20px; flex-wrap: wrap; margin-bottom: 24px; padding: 12px 18px; border: 1.5px dashed var(--line); border-radius: 12px; background: var(--bg-2); }
+.folder-bar.on { border-style: solid; border-color: var(--ok-line); background: var(--ok-soft); }
+.fb-main { display: flex; gap: 12px; align-items: center; min-width: 0; flex: 1 1 360px; }
+.fb-main > div { display: grid; min-width: 0; }
+.fb-main b { font-size: 15px; }
+.fb-main span { font-size: 13px; color: var(--ink-2); }
+.fb-main a { color: var(--orange-deep); font-weight: 600; }
+.fb-icon { font-size: 22px; filter: grayscale(1); opacity: .6; }
+.fb-icon.on { filter: none; opacity: 1; }
+.fb-btns { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.fb-choice { flex-basis: 100%; padding: 12px 14px; border-radius: 10px; background: var(--orange-soft); border: 1px solid var(--orange-line); font-size: 14px; display: grid; gap: 8px; }
 footer { border-top: 1px solid var(--line); color: var(--ink-3); font-size: 13px; text-align: center; padding: 20px 16px 32px; }
 
 /* ---------- 휴대폰 ---------- */
@@ -1947,7 +1958,7 @@ footer { border-top: 1px solid var(--line); color: var(--ink-3); font-size: 13px
 </head>
 <body>
 
-<div class="topbar">통계 사다리 v0.6 · 기법 고르기 → 설문 → 응답 취합 → 분석 결정 → 분석 (R 확인) → 해석 → 허점 점검</div>
+<div class="topbar">통계 사다리 v0.7 · 연구 폴더 · 기법 고르기 → 설문 → 응답 취합 → 분석 결정 → 분석 (R 확인) → 해석 → 허점 점검</div>
 
 <header class="brand">
   <div class="logo" aria-hidden="true"><b>STAT</b><span>통계 사다리</span></div>
@@ -1971,6 +1982,7 @@ footer { border-top: 1px solid var(--line); color: var(--ink-3); font-size: 13px
 </nav>
 
 <main>
+  <div class="folder-bar" id="folder-bar"></div>
   <!-- 사다리 -->
   <section class="view" id="view-ladder">
     <div class="ladder">
@@ -2191,11 +2203,12 @@ footer { border-top: 1px solid var(--line); color: var(--ink-3); font-size: 13px
     if (hasClaude) {
       const dl = await dlP;
       if (dl) {
-        const fname = /\.(txt|csv|json|md)$/i.test(name) ? name : name + '.txt';
+        const fname = /\.(txt|csv|json|md|zip)$/i.test(name) ? name : name + '.txt';
         try { await dl.save({ filename: fname, data: text }); toast('저장했습니다.'); return; }
         catch (e) { if (e && e.code === 'declined') { toast('저장을 취소했습니다.'); return; } }
       }
-      showSheet(name, text); return;
+      if (typeof text === 'string') showSheet(name, text); else toast('이 화면에서는 파일을 저장할 수 없습니다.');
+      return;
     }
     try {
       const a = document.createElement('a');
@@ -2204,7 +2217,7 @@ footer { border-top: 1px solid var(--line); color: var(--ink-3); font-size: 13px
       setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
       return;
     } catch (e) {}
-    showSheet(name, text);
+    if (typeof text === 'string') showSheet(name, text);
   };
   const showSheet = (name, text) => {
     $('#sheet-title').textContent = name;
@@ -3170,6 +3183,7 @@ function createSurvey() {
   }
 
   function loadRaw(text, label) {
+    rawText = text;
     try { raw = parseTable(text); }
     catch (err) { $('#co-status').textContent = '읽지 못했습니다: ' + err.message; raw = null; renderCollect(); return; }
     autoMap();
@@ -3365,6 +3379,7 @@ function createSurvey() {
 
     lastScored = { people, inc, items, scaleInfo, demoInfo, unknown, sample: !!raw.sample };
     dataVersion++;
+    scheduleSave();
     renderScored();
   }
 
@@ -3731,7 +3746,7 @@ function createSurvey() {
 
   function ensureSel() {
     const lm = LADDER_TO_METHOD[ladderResultId()];
-    if (!anSel || !METHODS[anSel.method]) anSel = { method: lm || 'pearson', roles: {}, opts: { boot: 5000, center: true, testValue: 3 } };
+    if (!anSel || !METHODS[anSel.method]) anSel = { method: lm || 'pearson', roles: {}, opts: { boot: 5000, center: true, testValue: 3, ...(anSel?.opts || {}) } };
     const valid = new Set(dataVars().map(v => v.key));
     const r = anSel.roles || {};
     const bad = METHODS[anSel.method].slots.some(s => s.multi ? (r[s.k] || []).some(k => !valid.has(k)) : (r[s.k] && !valid.has(r[s.k])));
@@ -3816,9 +3831,9 @@ function createSurvey() {
     else if (act === 'csv') { const a = analyses.find(x => x.id === b.dataset.id); download(`분석결과_${a.title.replace(/[^\w가-힣]+/g, '_').slice(0, 40)}.csv`, toCsv(analysisCsvRows(a)), 'text/csv'); }
     else if (act === 'to-interp') switchView('interp');
     else if (act === 'lock-plan') { plan.locked = new Date().toLocaleString('ko-KR'); savePlan(); renderAnalysis(); toast('분석 결정을 확정했습니다. 이후 바꾸면 기록에 남습니다.'); }
-    else if (act === 'plan-dl') download('분석계획서.md', planText());
-    else if (act === 'r-data') download('분석용자료.csv', toCsv(analysisRows()), 'text/csv');
-    else if (act === 'r-code') download('분석.R', rScript(analyses.slice().reverse()));
+    else if (act === 'plan-dl') download('analysis_plan.md', planText());
+    else if (act === 'r-data') download('analysis_data.csv', toCsv(analysisRows()), 'text/csv');
+    else if (act === 'r-code') download('analysis.R', rScript(analyses.slice().reverse()));
     else if (act === 'rcompare') {
       const a = analyses.find(x => x.id === b.dataset.id), txt = $(`[data-rpaste="${a.id}"]`).value;
       const parsed = parseROut(txt), rows = parsed[a.id] || parsed._ || (Object.keys(parsed).length === 1 ? Object.values(parsed)[0] : null);
@@ -4459,14 +4474,14 @@ function createSurvey() {
           <p class="hint">lazzzyResearch처럼 내 컴퓨터의 Claude Code로 대화하며 해석합니다. Claude Code는 Claude 유료 요금제(Pro 이상)가 필요합니다. 처음이면 <a href="#guide-claude-code">설치부터 실행까지 안내</a>를 보세요.</p>
           <div class="chat-steps">
             <div class="chat-step"><span class="n">1</span><div><b>새 폴더를 하나 만들고, 아래 두 파일을 받아 그 폴더에 넣기</b>
-              <div class="actions tight"><button class="btn sm primary" data-in-act="dl-claude-md">CLAUDE.md 받기</button><button class="btn sm primary" data-in-act="dl-json">해석자료.json 받기</button></div>
-              <p class="hint">CLAUDE.md는 Claude가 지킬 규칙, 해석자료.json은 연구 의도·가설·판정·결과표입니다. 응답 원자료는 들어 있지 않습니다. 가설이나 분석을 바꾸면 해석자료.json을 다시 받으세요.</p></div></div>
+              <div class="actions tight"><button class="btn sm primary" data-in-act="dl-claude-md">CLAUDE.md 받기</button><button class="btn sm primary" data-in-act="dl-json">interpretation.json 받기</button></div>
+              <p class="hint">CLAUDE.md는 Claude가 지킬 규칙, interpretation.json은 연구 의도·가설·판정·결과표입니다. 응답 원자료는 들어 있지 않습니다. 가설이나 분석을 바꾸면 interpretation.json을 다시 받으세요.</p></div></div>
             <div class="chat-step"><span class="n">2</span><div><b>터미널에서 그 폴더로 가서 <code>claude</code> 실행</b>
               <pre class="cmd">cd 폴더경로
 claude</pre>
               <p class="hint">"통계 사다리 해석 모드입니다."가 나오면 성공입니다. "해석해 줘"라고 쓰면 시작합니다.</p></div></div>
-            <div class="chat-step"><span class="n">3</span><div><b>Claude가 묻는 것에 답하면 폴더에 <code>해석초안.md</code>가 생깁니다</b></div></div>
-            <div class="chat-step"><span class="n">4</span><div><b>해석초안.md 내용을 아래 [초안 점검] 칸에 붙여 넣기</b></div></div>
+            <div class="chat-step"><span class="n">3</span><div><b>Claude가 묻는 것에 답하면 폴더에 <code>draft.md</code>가 생깁니다</b></div></div>
+            <div class="chat-step"><span class="n">4</span><div><b>draft.md 내용을 아래 [초안 점검] 칸에 붙여 넣기</b></div></div>
           </div>` : ''}
         ${mode !== 'auto' ? `<div class="paste-box">
           <label class="f">초안 점검: AI가 쓴 초안 붙여 넣기<textarea rows="7" id="in-draft" placeholder="[결과] [논의] [연구의 한계] [확인할 것] 제목이 있는 초안을 붙여 넣으세요">${esc(intent.chat.draft)}</textarea></label>
@@ -4560,39 +4575,44 @@ ${writingRules()}
 이 폴더는 통계 사다리(https://claude.ai/artifact/Gaiius2CkfmCTb1pJWx2kd)에서 내보낸 분석 결과를 바탕으로,
 사회과학 석사논문의 결과·논의 초안을 함께 쓰는 곳이다. 너는 연구자를 돕는 통계 해석 조교다.
 
+## 파일 위치
+- 통계 사다리의 **연구 폴더**라면 파일이 하위 폴더에 있다: \`2_data/analysis_data.csv\`, \`3_analysis/analysis.R\`, \`4_interpretation/interpretation.json\`. 파일을 하나씩 받아 넣었다면 모두 이 폴더 맨 위에 있다. 둘 중 있는 곳을 찾아서 쓴다.
+- 만드는 파일은 입력 파일 옆에 둔다: \`R_output.txt\`·\`R_results.csv\`는 \`analysis.R\` 옆, \`draft.md\`·\`review.md\`는 \`interpretation.json\` 옆, \`decision_log.md\`는 이 폴더 맨 위. 통계 사다리는 이 위치에서 파일을 읽어 와 대조·점검한다.
+- \`project.json\`, \`README.md\`, \`1_survey\`의 파일은 통계 사다리가 관리하니 고치지 않는다.
+
 ## 시작할 때
-첫 답에서 "통계 사다리 해석 모드입니다."라고 말하고, 같은 폴더의 \`해석자료.json\`을 읽은 뒤 다음 순서로 진행한다.
-파일이 없으면 통계 사다리의 결과 해석 탭 → [Claude Code] → [해석자료.json 받기]로 받아 이 폴더에 넣으라고 안내한다.
+첫 답에서 "통계 사다리 해석 모드입니다."라고 말하고, 같은 폴더의 \`interpretation.json\`을 읽은 뒤 다음 순서로 진행한다.
+파일이 없으면 통계 사다리의 결과 해석 탭 → [Claude Code] → [interpretation.json 받기]로 받아 이 폴더에 넣으라고 안내한다.
 
 ## 진행 순서
 1. **의도 확인**: 해석하기 전에 아래를 한국어로 보여 주고, 연구자가 답할 때까지 기다린다.
 ${CHECK_TASK.replace(/^할 일:\n/, '').split('\n').map(l => '   ' + l).join('\n')}
-2. **초안 쓰기**: 연구자가 답하면 \`해석초안.md\` 파일을 만들어 아래 형식으로 쓴다. 연구자가 고쳐 달라고 하면 그 파일을 고친다.
-3. **스스로 점검**: 다 쓴 뒤 초안의 숫자가 모두 \`해석자료.json\`에 그대로 있는지, 가설마다 판정과 같게 썼는지, 금지 표현이 없는지 확인하고 결과를 짧게 알린다.
+2. **초안 쓰기**: 연구자가 답하면 \`draft.md\` 파일을 만들어 아래 형식으로 쓴다. 연구자가 고쳐 달라고 하면 그 파일을 고친다.
+3. **스스로 점검**: 다 쓴 뒤 초안의 숫자가 모두 \`interpretation.json\`에 그대로 있는지, 가설마다 판정과 같게 썼는지, 금지 표현이 없는지 확인하고 결과를 짧게 알린다.
 4. **마무리 안내**: "초안을 통계 사다리 결과 해석 탭의 [초안 점검] 칸에 붙여 넣으면 숫자와 판정을 한 번 더 점검합니다."라고 알린다.
 
 ## 반드시 지킬 것
-아래에서 [연구 자료]는 \`해석자료.json\`을 말한다.
+아래에서 [연구 자료]는 \`interpretation.json\`을 말한다.
 ${writingRules()}
-11. \`해석자료.json\`은 고치지 않는다. 판정이나 숫자가 이상해 보이면 고치지 말고 연구자에게 알린다.
+11. \`interpretation.json\`은 고치지 않는다. 판정이나 숫자가 이상해 보이면 고치지 말고 연구자에게 알린다.
 12. 응답 원자료는 이 폴더에 없다. 원자료가 필요한 분석을 새로 하지 않는다.
 
-## 초안 형식 (\`해석초안.md\`)
+## 초안 형식 (\`draft.md\`)
 ${TEXT_FORMAT}
 
 ## "R로 분석해줘"라고 하면
-이 폴더의 \`분석.R\`과 \`분석용자료.csv\`로 R 분석을 실행한다. \`분석.R\`은 통계 사다리가 연구자의 분석 결정대로 만든 코드다. 파일 이름이 \`분석.R.txt\`이면 \`분석.R\`로 바꾼다.
+이 폴더의 \`analysis.R\`과 \`analysis_data.csv\`로 R 분석을 실행한다. \`analysis.R\`은 통계 사다리가 연구자의 분석 결정대로 만든 코드다. 파일 이름이 \`analysis.R.txt\`이면 \`analysis.R\`로 바꾼다.
 1. \`Rscript --version\`으로 R이 있는지 확인한다. 없으면 설치 방법을 알려 준다 (맥·윈도우: https://cran.r-project.org 설치 파일, 맥은 \`brew install r\`도 가능). 연구자가 허락하면 설치를 돕는다.
-2. \`Rscript 분석.R > R출력.txt 2>&1\`로 실행한다. 추가 패키지는 필요 없다.
-3. 숫자는 \`R출력.txt\`와 \`R결과.csv\`에 나온 값만 쓴다. 직접 계산하거나 고치지 않는다.
-4. \`분석.R\`의 분석 내용(변인, 방법, 분석 결정)을 바꾸지 않는다. 실행 오류가 나면 원인을 설명하고, 파일 경로·인코딩처럼 분석과 관계없는 문제만 연구자의 허락을 받아 고친다. 고친 것은 \`결정기록.md\`에 적는다.
-5. \`분석용자료.csv\`의 내용을 화면에 출력하거나 대화에 옮기지 않는다. 열 이름 확인만 한다.
-6. R 출력에 계획에 없던 문제(경고, 수렴 실패, 가정이 크게 어긋남 등)가 보이면 멈추고, 선택지와 각 선택의 결과를 쉬운 말로 설명해 연구자에게 묻는다. 연구자가 고른 것과 이유를 \`결정기록.md\`에 "결과를 본 뒤의 결정"으로 적는다. 더 유의하게 나오는 쪽을 권하지 않는다.
-7. 끝나면 주요 결과를 짧은 표로 보여 주고, "R출력.txt 내용을 통계 사다리 분석 탭의 [R 결과와 맞춰 보기]에 붙여 넣으면 숫자를 대조합니다."라고 알린다.
+2. \`analysis.R\`이 있는 폴더에서 \`Rscript analysis.R > R_output.txt 2>&1\`로 실행한다 (연구 폴더라면 \`cd 3_analysis\` 후). 추가 패키지는 필요 없다.
+3. 숫자는 \`R_output.txt\`와 \`R_results.csv\`에 나온 값만 쓴다. 직접 계산하거나 고치지 않는다.
+4. \`analysis.R\`의 분석 내용(변인, 방법, 분석 결정)을 바꾸지 않는다. 실행 오류가 나면 원인을 설명하고, 파일 경로·인코딩처럼 분석과 관계없는 문제만 연구자의 허락을 받아 고친다. 고친 것은 \`decision_log.md\`에 적는다.
+5. \`analysis_data.csv\`의 내용을 화면에 출력하거나 대화에 옮기지 않는다. 열 이름 확인만 한다.
+6. R 출력에 계획에 없던 문제(경고, 수렴 실패, 가정이 크게 어긋남 등)가 보이면 멈추고, 선택지와 각 선택의 결과를 쉬운 말로 설명해 연구자에게 묻는다. 연구자가 고른 것과 이유를 \`decision_log.md\`에 "결과를 본 뒤의 결정"으로 적는다. 더 유의하게 나오는 쪽을 권하지 않는다.
+7. 끝나면 주요 결과를 짧은 표로 보여 주고, "R_output.txt 내용을 통계 사다리 분석 탭의 [R 결과와 맞춰 보기]에 붙여 넣으면 숫자를 대조합니다."라고 알린다.
 
 ## "허점 점검해줘"라고 하면
-\`해석초안.md\`(연구자가 다른 파일을 말하면 그 파일)를 읽고 깐깐한 동료로서 점검한다. 글을 고치지 않고 \`허점점검.md\` 파일에 아래 형식으로 쓴다.
-\`해석자료.json\`의 '보고_체크'(특히 '확인 필요' 항목)도 함께 본다. '갖춤'인 항목은 이미 점검된 것이니 빠졌다고 하지 않는다.
+\`draft.md\`(연구자가 다른 파일을 말하면 그 파일)를 읽고 깐깐한 동료로서 점검한다. 글을 고치지 않고 \`review.md\` 파일에 아래 형식으로 쓴다.
+\`interpretation.json\`의 '보고_체크'(특히 '확인 필요' 항목)도 함께 본다. '갖춤'인 항목은 이미 점검된 것이니 빠졌다고 하지 않는다.
 
 ${REVIEW_RULES}
 
@@ -4744,7 +4764,7 @@ ${REVIEW_RULES}
     }
     else if (act === 'dl-json') {
       if (!intent.hyps.some(h => norm(h.text) && h.effect)) { toast('가설 문장을 적고 검증할 효과를 먼저 골라 주세요.'); return; }
-      download('해석자료.json', exportJson(), 'application/json');
+      download('interpretation.json', exportJson(), 'application/json');
     }
     else if (act === 'check-draft') {
       const txt = intent.chat.draft;
@@ -4789,6 +4809,24 @@ ${REVIEW_RULES}
       </tbody></table>
       <h3>먼저 해 보기</h3>
       <p>[분석] 탭에서 <b>[예시 자료로 해 보기]</b>를 누르면 예시 설문과 가짜 응답 300명으로 전체 흐름을 바로 볼 수 있습니다. 예시 자료는 화면 확인용이라 논문에 쓰면 안 됩니다.</p>` },
+
+    { id: 'folder', group: '시작하기', title: '연구 폴더 (PC)', body: `
+      <p>교수님의 lazzzyResearch처럼 <b>연구 하나 = 폴더 하나</b>로 작업합니다. PC의 폴더를 연결하면 통계 사다리에서 한 일이 그 폴더에 파일로 <b>자동 저장</b>되고, 같은 폴더에서 Claude Code를 실행하면 Claude가 그 파일들로 일합니다.</p>
+      <h3>준비</h3>
+      <ul><li><b>PC의 크롬·엣지·웨일</b>이 필요합니다. 사파리·파이어폭스·휴대폰, 그리고 claude.ai 링크 안에서는 폴더 연결이 막혀 있습니다.</li>
+        <li><code>stats-ladder.html</code> 파일을 PC에 받아 두고 더블클릭해서 엽니다. (claude.ai 링크에서는 [연구 폴더 zip 받기]·[불러오기]로 대신합니다.)</li></ul>
+      <div class="gstep"><b>STEP 1. 폴더 연결</b><p>맨 위 <b>[연구 폴더 연결]</b> → 새 폴더(예: <code>내논문</code>)를 고르고 → "편집 허용"을 누릅니다.</p></div>
+      <div class="gstep"><b>STEP 2. 평소처럼 작업</b><p>설문 설계, 응답 취합, 분석 결정, 계산, 해석이 모두 폴더에 저장됩니다.</p>
+        <pre>내논문/
+├─ CLAUDE.md          Claude Code 규칙
+├─ project.json       다시 불러오기용 (고치지 마세요)
+├─ 1_survey/  survey.md (설문 설계), codebook.csv (코드북), google_form.gs
+├─ 2_data/  analysis_data.csv (분석용 자료), item_analysis.csv (+ raw_responses.csv 선택)
+├─ 3_analysis/  analysis_plan.md (분석 계획서), analysis.R, results.csv (결과표)
+└─ 4_interpretation/  interpretation.json (해석 자료)</pre></div>
+      <div class="gstep"><b>STEP 3. 같은 폴더에서 Claude Code</b><p>터미널에서 <code>cd 내논문</code> → <code>claude</code> → "R로 분석해줘", "해석해 줘", "허점 점검해줘". Claude가 만든 <code>R_output.txt</code>, <code>draft.md</code>, <code>review.md</code>는 통계 사다리 화면으로 돌아오면 <b>자동으로 읽어 와</b> 대조·점검합니다.</p></div>
+      <div class="gstep"><b>STEP 4. 다음에 이어 하기</b><p>stats-ladder.html을 다시 열면 지난 폴더가 보입니다. <b>[다시 연결]</b>만 누르면 됩니다. 응답 원자료도 저장해 두었다면 점수까지 바로 다시 만들어집니다.</p></div>
+      <div class="gnote"><b>응답 원자료 저장</b>은 기본으로 꺼져 있습니다. 켜면 다시 열 때 응답을 넣지 않아도 되지만, 폴더가 구글 드라이브처럼 동기화되는 곳이면 개인정보 보관 규정을 확인하세요.</div>` },
 
     { id: 'ladder', group: '단계별 사용법', title: '① 사다리로 기법 고르기', tab: 'ladder', body: `
       <p>질문 5개에 답하면 통계 기법에 도착합니다. 왼쪽 지도에 전체 갈림길이 보이고, 지금 위치는 주황색입니다.</p>
@@ -4890,10 +4928,10 @@ ${REVIEW_RULES}
     { id: 'r', group: '단계별 사용법', title: '⑤-2 R로 확인하기', tab: 'analysis', body: `
       <p>통계 사다리의 숫자를 <b>R</b>로 다시 계산해 대조합니다. R은 무료이고 연구에서 널리 쓰는 표준 통계 프로그램입니다. R 문법은 몰라도 됩니다.</p>
       <ul><li>R 코드는 통계 사다리가 <b>분석 결정 그대로</b> 만듭니다. AI가 즉석에서 짜지 않습니다.</li><li><b>기본 R만</b> 씁니다. 추가 패키지 설치가 필요 없습니다.</li><li>숫자는 R이 만듭니다. AI는 R을 대신 실행하고 결과를 정리할 뿐입니다.</li></ul>
-      <div class="gstep"><b>STEP 1. 파일 받기</b><p>[분석] 탭 → [R로 확인하기]에서 <code>분석용자료.csv</code>와 <code>분석.R</code>을 받아 한 폴더에 넣습니다. claude.ai에서 받으면 <code>분석.R.txt</code>로 저장될 수 있습니다. 이름에서 <code>.txt</code>를 지우세요 (Claude Code는 알아서 바꿉니다).</p></div>
-      <div class="gstep"><b>STEP 2-가. Claude Code가 대신 실행</b><p>새로 받은 CLAUDE.md도 그 폴더에 넣고 <code>claude</code> 실행 → <b>"R로 분석해줘"</b>. R이 없으면 설치를 도와주고, 실행 결과를 <code>R출력.txt</code>로 남깁니다. 계획에 없던 문제가 보이면 멈추고 묻습니다.</p></div>
-      <div class="gstep"><b>STEP 2-나. RStudio에서 직접</b><p><a href="https://posit.co/download/rstudio-desktop/" target="_blank" rel="noopener">R과 RStudio</a>를 설치하고, <code>분석.R</code>을 열어 오른쪽 위 <b>[Source]</b>를 누릅니다. 작업 폴더가 파일 위치와 같아야 합니다 ([Session → Set Working Directory → To Source File Location]).</p></div>
-      <div class="gstep"><b>STEP 3. 대조</b><p>R 출력(또는 <code>R결과.csv</code>)을 각 분석 결과의 <b>[R 결과와 맞춰 보기]</b>에 붙여 넣으면 효과마다 일치 여부가 표로 나옵니다. 부트스트랩 신뢰구간은 난수가 달라 소수 셋째 자리에서 조금 다를 수 있고, 판정(0 포함 여부)이 같으면 일치로 봅니다.</p></div>
+      <div class="gstep"><b>STEP 1. 파일 받기</b><p>[분석] 탭 → [R로 확인하기]에서 <code>analysis_data.csv</code>와 <code>analysis.R</code>을 받아 한 폴더에 넣습니다. claude.ai에서 받으면 <code>analysis.R.txt</code>로 저장될 수 있습니다. 이름에서 <code>.txt</code>를 지우세요 (Claude Code는 알아서 바꿉니다).</p></div>
+      <div class="gstep"><b>STEP 2-가. Claude Code가 대신 실행</b><p>새로 받은 CLAUDE.md도 그 폴더에 넣고 <code>claude</code> 실행 → <b>"R로 분석해줘"</b>. R이 없으면 설치를 도와주고, 실행 결과를 <code>R_output.txt</code>로 남깁니다. 계획에 없던 문제가 보이면 멈추고 묻습니다.</p></div>
+      <div class="gstep"><b>STEP 2-나. RStudio에서 직접</b><p><a href="https://posit.co/download/rstudio-desktop/" target="_blank" rel="noopener">R과 RStudio</a>를 설치하고, <code>analysis.R</code>을 열어 오른쪽 위 <b>[Source]</b>를 누릅니다. 작업 폴더가 파일 위치와 같아야 합니다 ([Session → Set Working Directory → To Source File Location]).</p></div>
+      <div class="gstep"><b>STEP 3. 대조</b><p>R 출력(또는 <code>R_results.csv</code>)을 각 분석 결과의 <b>[R 결과와 맞춰 보기]</b>에 붙여 넣으면 효과마다 일치 여부가 표로 나옵니다. 부트스트랩 신뢰구간은 난수가 달라 소수 셋째 자리에서 조금 다를 수 있고, 판정(0 포함 여부)이 같으면 일치로 봅니다.</p></div>
       <div class="gnote">논문에는 "분석은 통계 사다리로 수행하고 R 4.x로 재계산해 확인하였다"처럼 적을 수 있습니다. 표준 도구로 확인했다는 근거가 됩니다.</div>` },
 
     { id: 'checks', group: '단계별 사용법', title: '⑦ 보고 체크리스트와 허점 점검', tab: 'interp', body: `
@@ -4940,21 +4978,21 @@ ${REVIEW_RULES}
         <p class="hint">윈도우 (PowerShell)</p><pre>irm https://claude.ai/install.ps1 | iex</pre>
         <p class="hint">설치 방법은 바뀔 수 있으니 안 되면 <a href="https://claude.com/product/claude-code" target="_blank" rel="noopener">Claude Code 공식 안내</a>를 확인하세요.</p></div>
       <div class="gstep"><b>STEP 3. 해석 폴더 만들기</b><p>바탕화면 등에 새 폴더(예: <code>통계해석</code>)를 만들고, 결과 해석 탭 → [Claude Code]에서 두 파일을 받아 넣습니다.</p>
-        <ul><li><code>CLAUDE.md</code> — Claude가 지킬 규칙 (판정 그대로, 숫자 그대로, 인과 단정 금지, 인용 지어내지 않기)</li><li><code>해석자료.json</code> — 연구 의도, 가설, 코드 판정, 결과표 (응답 원자료 없음)</li></ul></div>
+        <ul><li><code>CLAUDE.md</code> — Claude가 지킬 규칙 (판정 그대로, 숫자 그대로, 인과 단정 금지, 인용 지어내지 않기)</li><li><code>interpretation.json</code> — 연구 의도, 가설, 코드 판정, 결과표 (응답 원자료 없음)</li></ul></div>
       <div class="gstep"><b>STEP 4. AI 조교 실행</b><p>터미널에서 폴더로 이동해 실행합니다.</p><pre>cd 바탕화면/통계해석
 claude</pre>
         <p>처음이면 브라우저가 열리고 Claude 계정으로 로그인합니다. 화면에 이렇게 나오면 성공입니다.</p>
         <pre>통계 사다리 해석 모드입니다.
-해석자료.json을 읽었습니다. …</pre>
+interpretation.json을 읽었습니다. …</pre>
         <p><b>"해석해 줘"</b>라고 쓰면 의도 확인부터 시작합니다.</p></div>
-      <div class="gstep"><b>STEP 5. 초안 점검</b><p>질문에 답하면 폴더에 <code>해석초안.md</code>가 생깁니다. 내용을 결과 해석 탭의 <b>[초안 점검]</b> 칸에 붙여 넣으세요. 고치고 싶으면 Claude Code에 "논의를 더 짧게"처럼 말하면 됩니다.</p></div>
-      <div class="gstep"><b>STEP 6. 허점 점검</b><p>Claude Code에 <b>"허점 점검해줘"</b>라고 하면 깐깐한 동료로서 초안을 읽고 <code>허점점검.md</code>에 질문을 씁니다. 그 내용을 결과 해석 탭 <b>4. 허점 점검</b>에 붙여 넣으면 질문별로 정리되어 보입니다.</p></div>
-      <div class="gnote">가설이나 분석을 바꾸면 <code>해석자료.json</code>을 다시 받아 덮어쓰세요. CLAUDE.md는 한 번 받으면 됩니다.</div>` },
+      <div class="gstep"><b>STEP 5. 초안 점검</b><p>질문에 답하면 폴더에 <code>draft.md</code>가 생깁니다. 내용을 결과 해석 탭의 <b>[초안 점검]</b> 칸에 붙여 넣으세요. 고치고 싶으면 Claude Code에 "논의를 더 짧게"처럼 말하면 됩니다.</p></div>
+      <div class="gstep"><b>STEP 6. 허점 점검</b><p>Claude Code에 <b>"허점 점검해줘"</b>라고 하면 깐깐한 동료로서 초안을 읽고 <code>review.md</code>에 질문을 씁니다. 그 내용을 결과 해석 탭 <b>4. 허점 점검</b>에 붙여 넣으면 질문별로 정리되어 보입니다.</p></div>
+      <div class="gnote">가설이나 분석을 바꾸면 <code>interpretation.json</code>을 다시 받아 덮어쓰세요. CLAUDE.md는 한 번 받으면 됩니다.</div>` },
 
     { id: 'faq', group: '도움말', title: '자주 묻는 질문', body: `
       <dl class="faq">
         <dt>돈이 드나요?</dt><dd>이 페이지는 무료입니다. 구글 폼도 무료입니다. AI 해석은 무료 AI 채팅으로도 할 수 있고, Claude Code는 Claude 유료 요금제가 필요합니다.</dd>
-        <dt>내 자료는 어디에 저장되나요?</dt><dd>설문 설계, 연구 의도, 계산 결과(집계표)는 이 브라우저에만 저장됩니다. 응답 원자료는 저장하지 않습니다. 다른 컴퓨터에서는 보이지 않으니, 코드북과 결과 CSV를 받아 두세요.</dd>
+        <dt>내 자료는 어디에 저장되나요?</dt><dd><a href="#guide-folder">연구 폴더</a>를 연결하면 그 폴더에 파일로 저장됩니다. 연결하지 않으면 이 브라우저에만 저장되어, 브라우저 기록을 지우거나 다른 컴퓨터에서는 보이지 않습니다. 이때는 [연구 폴더 zip 받기]로 백업하세요.</dd>
         <dt>SPSS 결과와 조금 달라요.</dt><dd>먼저 같은 응답을 제외했는지(비동의, 빈 응답, 불성실), 역문항 표시가 같은지 확인하세요. 부트스트랩 신뢰구간은 재표집이 무작위라 프로그램마다 소수 셋째 자리에서 조금 다를 수 있습니다.</dd>
         <dt>AI 초안에 노란 숫자가 있어요.</dt><dd>결과표에서 찾지 못한 숫자입니다. AI가 잘못 옮겼거나 새로 계산한 값일 수 있으니 표와 대조해 고치세요.</dd>
         <dt>사다리가 고른 기법이 지도교수님 말씀과 달라요.</dt><dd>교수님 의견을 따르세요. 갈림길 규칙은 아직 교재 근거 없이 만든 것이라, [검증 기록] 탭에 차이를 적어 주시면 규칙을 고치는 데 씁니다.</dd>
@@ -5287,8 +5325,8 @@ ${reviewText()}
           <div class="chat-step"><span class="n">2</span><div><b>AI의 답을 붙여 넣기</b><label class="f"><textarea rows="5" id="rv-paste" placeholder="[잘한 점] [질문] 형식의 답을 붙여 넣으세요">${esc(rv.paste)}</textarea></label>
             <div class="actions tight"><button class="btn sm primary" data-in-act="rv-show">정리해서 보기</button></div></div></div></div>` : ''}
       ${mode === 'code' ? `<div class="chat-steps" style="margin-top:12px">
-          <div class="chat-step"><span class="n">1</span><div><b>Claude Code에 "허점 점검해줘"라고 말하기</b><p class="hint">CLAUDE.md를 이 버전에서 다시 받아야 허점 점검 규칙이 들어 있습니다. 점검할 글은 <code>해석초안.md</code>를 씁니다. 다른 글이면 폴더에 넣고 파일 이름을 말하세요.</p></div></div>
-          <div class="chat-step"><span class="n">2</span><div><b>생긴 <code>허점점검.md</code> 내용을 붙여 넣기</b><label class="f"><textarea rows="5" id="rv-paste" placeholder="허점점검.md 내용을 붙여 넣으세요">${esc(rv.paste)}</textarea></label>
+          <div class="chat-step"><span class="n">1</span><div><b>Claude Code에 "허점 점검해줘"라고 말하기</b><p class="hint">CLAUDE.md를 이 버전에서 다시 받아야 허점 점검 규칙이 들어 있습니다. 점검할 글은 <code>draft.md</code>를 씁니다. 다른 글이면 폴더에 넣고 파일 이름을 말하세요.</p></div></div>
+          <div class="chat-step"><span class="n">2</span><div><b>생긴 <code>review.md</code> 내용을 붙여 넣기</b><label class="f"><textarea rows="5" id="rv-paste" placeholder="review.md 내용을 붙여 넣으세요">${esc(rv.paste)}</textarea></label>
             <div class="actions tight"><button class="btn sm primary" data-in-act="rv-show">정리해서 보기</button></div></div></div></div>` : ''}
       ${resHtml}
     </div>`;
@@ -5311,7 +5349,7 @@ ${reviewText()}
   let plan = store.get('ladder.plan', null) || { dec: { minPct: '80', straight: 'keep' }, locked: '', seen: false, log: [] };
   const savePlan = () => store.set('ladder.plan', plan);
   const AO = () => { ensureSelLite(); return anSel.opts; };
-  function ensureSelLite() { if (!anSel) anSel = { method: 'pearson', roles: {}, opts: {} }; const o = anSel.opts; if (o.boot == null) o.boot = 5000; if (o.center == null) o.center = true; if (!o.welch) o.welch = 'auto'; if (!o.posthoc) o.posthoc = 'scheffe'; if (o.testValue == null) o.testValue = 3; }
+  function ensureSelLite() { if (!anSel) anSel = { method: null, roles: {}, opts: {} }; const o = anSel.opts; if (o.boot == null) o.boot = 5000; if (o.center == null) o.center = true; if (!o.welch) o.welch = 'auto'; if (!o.posthoc) o.posthoc = 'scheffe'; if (o.testValue == null) o.testValue = 3; }
 
   // scope: 'data'는 모든 분석에, 그 밖은 해당 방법에만
   const DECISIONS = [
@@ -5407,7 +5445,9 @@ ${reviewText()}
   const R_HEAD = `options(warn = 1)
 # 한글을 읽으려면 UTF-8 환경이어야 합니다 (R 4.2 이상의 윈도우·맥은 기본값). 아니면 바꿔 봅니다.
 if (!isTRUE(l10n_info()[["UTF-8"]])) for (loc in c("C.UTF-8", "en_US.UTF-8", "ko_KR.UTF-8", "Korean_Korea.utf8")) if (nzchar(suppressWarnings(Sys.setlocale("LC_CTYPE", loc)))) break
-d <- read.csv("분석용자료.csv", fileEncoding = "UTF-8-BOM", check.names = FALSE, stringsAsFactors = FALSE, na.strings = c("", "NA"))
+DATA <- c("analysis_data.csv", "../2_data/analysis_data.csv", "2_data/analysis_data.csv"); DATA <- DATA[file.exists(DATA)][1]
+if (is.na(DATA)) stop("analysis_data.csv를 찾지 못했습니다. 이 R 파일과 같은 폴더나 ../2_data 폴더에 두세요.")
+d <- read.csv(DATA, fileEncoding = "UTF-8-BOM", check.names = FALSE, stringsAsFactors = FALSE, na.strings = c("", "NA"))
 EFF <- data.frame(analysis = character(), label = character(), est = numeric(), lo = numeric(), hi = numeric(), p = numeric(), stringsAsFactors = FALSE)
 AID <- ""
 g8 <- function(x) if (is.na(x)) "NA" else sprintf("%.8g", x)
@@ -5620,15 +5660,15 @@ ${RGEN[a.spec.method](a.spec).split('\n').map(l => '  ' + l).join('\n')}
 ${DECISIONS.map(d => `#   - ${d.q} → ${decLabel(d, d.get())}`).join('\n')}
 ${plan.log.filter(l => l.after).map(l => `#   * 사후 변경: ${l.q} ${l.from} → ${l.to}${l.reason ? ` (이유: ${l.reason})` : ''}`).join('\n')}
 #
-# 실행: 이 파일과 분석용자료.csv를 같은 폴더에 두고
-#   터미널:  Rscript 분석.R > R출력.txt
+# 실행: 이 파일과 analysis_data.csv를 같은 폴더에 두고 (연구 폴더라면 3_analysis 폴더에서 그대로)
+#   터미널:  Rscript analysis.R > R_output.txt
 #   RStudio: 파일을 열고 [Source]
 # 끝에 나오는 EFFECT 줄을 통계 사다리 [R 결과와 맞춰 보기]에 붙여 넣으면 숫자를 대조합니다.
 # =====================================================================
 ${R_HEAD}${parts.join('\n')}
 
-write.csv(EFF, "R결과.csv", row.names = FALSE, fileEncoding = "UTF-8")
-cat("\\n완료: 효과", nrow(EFF), "개 (R결과.csv에 저장)\\n")
+write.csv(EFF, "R_results.csv", row.names = FALSE, fileEncoding = "UTF-8")
+cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
 `;
   }
 
@@ -5640,7 +5680,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R결과.csv에 저장)\\n")
       if (a[0] === 'ANALYSIS') { cur = a[1]; return; }
       if (a[0] === 'EFFECT' && a.length >= 6) (out[cur] = out[cur] || []).push({ label: a[1], est: +a[2], lo: a[3] === 'NA' ? null : +a[3], hi: a[4] === 'NA' ? null : +a[4], p: a[5] === 'NA' ? null : +a[5] });
     });
-    // R결과.csv를 붙여 넣은 경우
+    // R_results.csv를 붙여 넣은 경우
     if (!Object.keys(out).length && /"?analysis"?,"?label"?/.test(text)) {
       parseTable(text).rows.forEach(r => (out[r[0]] = out[r[0]] || []).push({ label: r[1], est: +r[2], lo: r[3] === 'NA' || r[3] === '' ? null : +r[3], hi: r[4] === 'NA' || r[4] === '' ? null : +r[4], p: r[5] === 'NA' || r[5] === '' ? null : +r[5] }));
     }
@@ -5675,7 +5715,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R결과.csv에 저장)\\n")
     })() : '';
     return `<details class="item-detail" ${c ? 'open' : ''}><summary>R 결과와 맞춰 보기 ${c ? (compareR(a, c.rows).every(x => x.st === 'ok') ? '<span class="a-ok">· R과 일치</span>' : '<span class="a-mid">· 차이 있음</span>') : ''}</summary>
       <div style="padding:4px 16px 14px">
-        <p class="hint">위의 [R로 확인하기]에서 받은 코드를 R로 돌린 출력(R출력.txt)이나 R결과.csv를 붙여 넣으세요.</p>
+        <p class="hint">위의 [R로 확인하기]에서 받은 코드를 R로 돌린 출력(R_output.txt)이나 R_results.csv를 붙여 넣으세요.</p>
         <textarea rows="3" class="code-box" style="height:auto" data-rpaste="${a.id}" placeholder="EFFECT 줄이 들어 있는 R 출력"></textarea>
         <div class="actions tight"><button class="btn sm primary" data-an-act="rcompare" data-id="${a.id}">대조하기</button></div>
         ${tbl}
@@ -5689,14 +5729,268 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R결과.csv에 저장)\\n")
       <p class="hint">통계 사다리의 숫자를 표준 통계 프로그램인 R로 다시 계산해 대조합니다. R 코드는 위의 분석 결정을 그대로 따르고, 추가 패키지 없이 기본 R만 씁니다. AI가 숫자를 만들지 않습니다.</p>
       <div class="chat-steps">
         <div class="chat-step"><span class="n">1</span><div><b>두 파일을 받아 한 폴더에 넣기</b>
-          <div class="actions tight"><button class="btn sm primary" data-an-act="r-data" ${lastScored ? '' : 'disabled'}>분석용자료.csv 받기</button><button class="btn sm primary" data-an-act="r-code" ${n ? '' : 'disabled'}>분석.R 받기 (분석 ${n}개)</button></div>
-          ${lastScored ? '' : '<p class="hint">분석용자료.csv는 [응답 취합]에서 점수를 만든 뒤 받을 수 있습니다.</p>'}</div></div>
+          <div class="actions tight"><button class="btn sm primary" data-an-act="r-data" ${lastScored ? '' : 'disabled'}>analysis_data.csv 받기</button><button class="btn sm primary" data-an-act="r-code" ${n ? '' : 'disabled'}>analysis.R 받기 (분석 ${n}개)</button></div>
+          ${lastScored ? '' : '<p class="hint">analysis_data.csv는 [응답 취합]에서 점수를 만든 뒤 받을 수 있습니다.</p>'}</div></div>
         <div class="chat-step"><span class="n">2</span><div><b>R 실행</b> — 둘 중 하나
           <ul class="notes"><li><b>Claude Code</b>: 그 폴더에서 <code>claude</code> 실행 → <b>"R로 분석해줘"</b>. Claude가 R을 대신 돌리고 결과를 정리합니다. (CLAUDE.md를 이 버전에서 다시 받으세요)</li>
-          <li><b>RStudio</b>: <code>분석.R</code>을 열고 [Source]. R을 몰라도 버튼 하나면 됩니다.</li></ul></div></div>
+          <li><b>RStudio</b>: <code>analysis.R</code>을 열고 [Source]. R을 몰라도 버튼 하나면 됩니다.</li></ul></div></div>
         <div class="chat-step"><span class="n">3</span><div><b>R 출력을 각 결과의 [R 결과와 맞춰 보기]에 붙여 넣기</b><p class="hint">효과마다 사이트와 R의 숫자가 같은지 표로 보여 줍니다.</p></div></div>
       </div>
     </div>`;
+  }
+
+  // =================================================================
+  // 연구 폴더 (PC): 폴더에 자동 저장, Claude Code가 만든 파일 읽어 오기
+  // =================================================================
+  const FS_OK = (() => { try { return 'showDirectoryPicker' in window && window.self === window.top; } catch (e) { return false; } })();
+  let dirHandle = null, folderState = 'off';  // off | need-permission | on
+  let folderInfo = { savedAt: '', pending: null, lastErr: '' };
+  let rawText = '';                             // 마지막으로 넣은 응답 원자료 (폴더 저장용)
+  let folderOpts = store.get('ladder.folderOpts', { saveRaw: false });
+  const written = new Map();                    // 경로 → 마지막으로 쓴 내용 (바뀐 것만 씀)
+  let seen = store.get('ladder.folderSeen', {}); // Claude Code 파일의 마지막 수정 시각
+
+  // ---------- IndexedDB에 폴더 손잡이 보관 (다음에 다시 연결) ----------
+  const idb = (mode, fn) => new Promise((res, rej) => {
+    const rq = indexedDB.open('stats-ladder', 1);
+    rq.onupgradeneeded = () => rq.result.createObjectStore('kv');
+    rq.onsuccess = () => { const tx = rq.result.transaction('kv', mode); const r = fn(tx.objectStore('kv')); tx.oncomplete = () => res(r && r.result); tx.onerror = () => rej(tx.error); };
+    rq.onerror = () => rej(rq.error);
+  });
+  const saveHandle = h => idb('readwrite', s => s.put(h, 'dir')).catch(() => {});
+  const loadHandle = () => idb('readonly', s => s.get('dir')).catch(() => null);
+  const dropHandle = () => idb('readwrite', s => s.delete('dir')).catch(() => {});
+
+  // ---------- 파일 읽고 쓰기 ----------
+  async function subdir(root, parts, create) { let d = root; for (const p of parts) d = await d.getDirectoryHandle(p, { create }); return d; }
+  async function fwrite(rel, content) {
+    const key = typeof content === 'string' ? content : null;
+    if (key != null && written.get(rel) === key) return false;
+    const parts = rel.split('/'), name = parts.pop(), dir = await subdir(dirHandle, parts, true);
+    const fh = await dir.getFileHandle(name, { create: true }), w = await fh.createWritable();
+    await w.write(content); await w.close();
+    if (key != null) written.set(rel, key);
+    return true;
+  }
+  async function fread(rel) {
+    try { const parts = rel.split('/'), name = parts.pop(), dir = await subdir(dirHandle, parts, false); const f = await (await dir.getFileHandle(name)).getFile(); return { text: await f.text(), mod: f.lastModified }; }
+    catch (e) { return null; }
+  }
+
+  // ---------- 프로젝트 상태 ----------
+  function projectState() {
+    return { app: '통계 사다리', version: '0.7', savedAt: new Date().toISOString(), path, vars, sv, plan, anSel, analyses, intent, log, rules: customRules ? RULES : null };
+  }
+  function applyProject(o) {
+    if (!o || o.app !== '통계 사다리') throw new Error('통계 사다리 프로젝트 파일이 아닙니다.');
+    if (o.rules && !checkRules(o.rules).length) { RULES = o.rules; customRules = true; store.set('ladder.rules', o.rules); }
+    vars = o.vars || vars; if (!Array.isArray(vars.others)) vars.others = []; saveVars();
+    sv = o.sv || blankSurvey(); saveSv();
+    plan = o.plan || plan; savePlan();
+    anSel = o.anSel || null; if (anSel) saveAnSel();
+    analyses = o.analyses || []; saveAnalyses();
+    intent = o.intent || blankIntent(); if (!intent.chat) intent.chat = { aiText: '', myAnswers: '', draft: '' }; if (!intent.review) intent.review = { text: '', paste: '', result: null, done: [] }; saveIntent();
+    log = o.log || []; store.set('ladder.log', log);
+    go(o.path || []); renderSurvey(); renderLog(); renderRules(); renderAnalyses(); renderInterp();
+    if (!$('#view-analysis').hidden) renderAnalysis();
+  }
+
+  // 폴더에 들어갈 파일 목록
+  function surveyMd() {
+    const L = [`# 설문 설계 — ${sv.title || '(제목 없음)'}`, '', sv.intro || '', ''];
+    if (sv.consent.on) L.push('## 연구 참여 동의', '', sv.consent.text, '');
+    sv.scales.forEach((s, si) => {
+      L.push(`## ${scaleCode(s, si)} ${s.name || ''} (${s.role}, ${s.points}점 척도)`, `선택지: ${s.labels.map((l, k) => `${k + 1}=${l}`).join(', ')}`, s.source ? `출처: ${s.source}` : '', '');
+      s.items.forEach((it, ii) => norm(it.text) && L.push(`${ii + 1}. ${it.text}${it.reverse ? ' (역문항)' : ''}`)); L.push('');
+    });
+    if (sv.demos.length) { L.push('## 기본 정보'); sv.demos.forEach((d, di) => L.push(`- ${demoCode(d, di)} ${d.text}${d.type === 'choice' ? ` (${d.options.join(', ')})` : d.type === 'number' ? ' (숫자)' : ''}`)); }
+    return L.join('\n');
+  }
+  function folderFiles() {
+    const F = [
+      ['CLAUDE.md', claudeMd()],
+      ['project.json', JSON.stringify(projectState(), null, 1)],
+      ['README.md', `# 통계 사다리 연구 폴더\n\n통계 사다리가 자동으로 저장하는 폴더입니다. 마지막 저장: ${new Date().toLocaleString('ko-KR')}\n\n- 1_survey: 설문 설계, 코드북, 구글 폼 스크립트\n- 2_data: 분석용 자료${folderOpts.saveRaw ? ', 응답 원자료' : ''}\n- 3_analysis: 분석 계획서, R 코드, 결과표 (Claude Code가 만든 R_output.txt도 여기)\n- 4_interpretation: 해석 자료 (Claude Code가 만든 draft.md, review.md도 여기)\n\n이 폴더에서 \`claude\`를 실행하면 Claude Code가 CLAUDE.md의 규칙대로 일합니다.\nproject.json은 통계 사다리가 다시 불러올 때 쓰니 고치지 마세요.\n`]
+    ];
+    if (sv.scales.length || sv.demos.length) F.push(['1_survey/survey.md', surveyMd()], ['1_survey/codebook.csv', codebookCsv()], ['1_survey/google_form.gs', buildScript()]);
+    if (lastScored) F.push(['2_data/analysis_data.csv', toCsv(analysisRows())], ['2_data/item_analysis.csv', toCsv(itemStatsRows())]);
+    if (folderOpts.saveRaw && rawText) F.push(['2_data/raw_responses.csv', rawText]);
+    F.push(['3_analysis/analysis_plan.md', planText()]);
+    if (analyses.some(a => a.spec)) F.push(['3_analysis/analysis.R', rScript(analyses.slice().reverse())]);
+    if (analyses.length) F.push(['3_analysis/results.csv', toCsv(analyses.slice().reverse().flatMap(a => analysisCsvRows(a).concat([[]])))]);
+    if (intent.hyps.some(h => norm(h.text))) F.push(['4_interpretation/interpretation.json', exportJson()]);
+    if (intent.out && !intent.out.src) F.push(['4_interpretation/site_draft.md', `[결과]\n${intent.out.results}\n\n[논의]\n${intent.out.discussion}\n\n[연구의 한계]\n${(intent.out.limitations || []).map(x => '- ' + x).join('\n')}\n\n[확인할 것]\n${(intent.out.check || []).map(x => '- ' + x).join('\n')}\n`]);
+    return F;
+  }
+
+  // ---------- 저장 (바뀐 뒤 잠시 기다렸다가) ----------
+  let saveTimer = null, saving = false;
+  function scheduleSave() { if (folderState !== 'on' || folderInfo.pending) return; clearTimeout(saveTimer); saveTimer = setTimeout(saveFolder, 1200); }
+  async function saveFolder() {
+    if (folderState !== 'on' || saving) return;
+    saving = true;
+    try {
+      const files = folderFiles();
+      for (const [rel, c] of files) await fwrite(rel, c);
+      const pj = files.find(f => f[0] === 'project.json'); try { _set('ladder.folderSavedAt', JSON.parse(pj[1]).savedAt); } catch (e) {}
+      folderInfo.savedAt = new Date().toLocaleTimeString('ko-KR'); folderInfo.lastErr = '';
+    } catch (e) {
+      folderInfo.lastErr = e?.name === 'NotAllowedError' ? '폴더 권한이 끊겼습니다. [다시 연결]을 눌러 주세요.' : `저장하지 못했습니다: ${e?.message || e}`;
+      if (e?.name === 'NotAllowedError') folderState = 'need-permission';
+    }
+    saving = false; renderFolderBar();
+  }
+  // 저장소에 쓸 때마다 폴더 저장 예약
+  const _set = store.set; store.set = (k, v) => { _set(k, v); if (k !== 'ladder.folderSeen' && k !== 'ladder.view') scheduleSave(); };
+
+  // ---------- 연결 ----------
+  async function connectFolder() {
+    try { dirHandle = await window.showDirectoryPicker({ id: 'stats-ladder', mode: 'readwrite' }); }
+    catch (e) { if (e?.name !== 'AbortError') toast('폴더를 연결하지 못했습니다: ' + (e?.message || e)); return; }
+    await saveHandle(dirHandle); await afterConnect();
+  }
+  async function reconnect() {
+    if (!dirHandle) return connectFolder();
+    try { if ((await dirHandle.requestPermission({ mode: 'readwrite' })) === 'granted') await afterConnect(); else toast('폴더 편집을 허용해야 연결됩니다.'); }
+    catch (e) { connectFolder(); }
+  }
+  async function afterConnect() {
+    folderState = 'on'; written.clear();
+    const pj = await fread('project.json');
+    if (pj) {
+      let o = null; try { o = JSON.parse(pj.text); } catch (e) {}
+      const mine = analyses.length || sv.scales.length || intent.hyps.some(h => norm(h.text));
+      if (o && o.app === '통계 사다리') {
+        if (o.savedAt && o.savedAt === store.get('ladder.folderSavedAt', '')) { await saveFolder(); }   // 이 브라우저가 마지막으로 저장한 그대로
+        else if (!mine) { await loadFromFolder(o); toast(`'${dirHandle.name}' 폴더의 연구를 불러왔습니다.`); }
+        else folderInfo.pending = o;     // 화면에도 내용이 있으면 고르게 함
+      }
+    } else { await saveFolder(); toast(`'${dirHandle.name}' 폴더에 연구를 저장하기 시작했습니다.`); }
+    renderFolderBar();
+    if (!folderInfo.pending) await readClaudeFiles(true);
+  }
+  async function loadFromFolder(o) {
+    folderInfo.pending = null;
+    applyProject(o);
+    written.clear();
+    const raw0 = await fread('2_data/raw_responses.csv');
+    if (raw0) { loadRaw(raw0.text, '폴더의 응답 원자료'); if (raw) { runScoring(); renderAnalysis(); } }
+    await saveFolder();
+  }
+  async function disconnectFolder() { dirHandle = null; folderState = 'off'; folderInfo = { savedAt: '', pending: null, lastErr: '' }; await dropHandle(); renderFolderBar(); }
+
+  // ---------- Claude Code가 만든 파일 읽어 오기 ----------
+  async function readClaudeFiles(quiet) {
+    if (folderState !== 'on') return;
+    const msgs = [];
+    const fresh = async rels => { for (const rel of rels) { const f = await fread(rel); if (f && f.mod !== seen[rel]) { seen[rel] = f.mod; return f; } } return null; };
+    const rOut = await fresh(['3_analysis/R_output.txt', 'R_output.txt']) || await fresh(['3_analysis/R_results.csv', 'R_results.csv']);
+    if (rOut) {
+      const parsed = parseROut(rOut.text); let n = 0;
+      analyses.forEach(a => { if (parsed[a.id]) { a.rcheck = { at: new Date().toLocaleString('ko-KR') + ' (폴더)', rows: parsed[a.id] }; n++; } });
+      if (n) { saveAnalyses(); renderAnalyses(); msgs.push(`R 결과로 분석 ${n}개를 대조했습니다`); }
+    }
+    const draft = await fresh(['4_interpretation/draft.md', 'draft.md']);
+    if (draft) {
+      intent.chat.draft = draft.text; const o = parseDraft(draft.text); Object.assign(o, postCheck(o)); o.sample = analyses.some(a => a.sample); o.src = 'Claude Code (폴더)';
+      intent.out = o; saveIntent(); msgs.push('draft.md를 읽어 점검했습니다');
+    }
+    const rv = await fresh(['4_interpretation/review.md', 'review.md']);
+    if (rv) { intent.review.paste = rv.text; intent.review.result = parseReview(rv.text); intent.review.done = []; saveIntent(); msgs.push('review.md를 읽었습니다'); }
+    _set('ladder.folderSeen', seen);
+    if (draft || rv) renderInterp();
+    if (msgs.length && !quiet) toast(msgs.join(' · '));
+    else if (msgs.length) toast(msgs.join(' · '));
+  }
+  window.addEventListener('focus', () => readClaudeFiles());
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) readClaudeFiles(); });
+
+  // ---------- zip (폴더 연결이 안 되는 곳) ----------
+  const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  const crc32 = b => { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+  function makeZip(files) {
+    const enc = new TextEncoder(), parts = [], cen = []; let off = 0;
+    files.forEach(([path, data]) => {
+      const nm = enc.encode(path), d = typeof data === 'string' ? enc.encode(data) : data, crc = crc32(d);
+      const h = new DataView(new ArrayBuffer(30));
+      [[0, 0x04034b50, 4], [4, 20, 2], [6, 0x0800, 2], [8, 0, 2], [10, 0, 2], [12, 0x21, 2], [14, crc, 4], [18, d.length, 4], [22, d.length, 4], [26, nm.length, 2], [28, 0, 2]].forEach(([o, v, s]) => s === 4 ? h.setUint32(o, v, true) : h.setUint16(o, v, true));
+      parts.push(new Uint8Array(h.buffer), nm, d);
+      const c = new DataView(new ArrayBuffer(46));
+      [[0, 0x02014b50, 4], [4, 20, 2], [6, 20, 2], [8, 0x0800, 2], [10, 0, 2], [12, 0, 2], [14, 0x21, 2], [16, crc, 4], [20, d.length, 4], [24, d.length, 4], [28, nm.length, 2], [42, off, 4]].forEach(([o, v, s]) => s === 4 ? c.setUint32(o, v, true) : c.setUint16(o, v, true));
+      cen.push(new Uint8Array(c.buffer), nm); off += 30 + nm.length + d.length;
+    });
+    const size = cen.reduce((s, a) => s + a.length, 0), e = new DataView(new ArrayBuffer(22));
+    e.setUint32(0, 0x06054b50, true); e.setUint16(8, files.length, true); e.setUint16(10, files.length, true); e.setUint32(12, size, true); e.setUint32(16, off, true);
+    return new Blob([...parts, ...cen, new Uint8Array(e.buffer)], { type: 'application/zip' });
+  }
+  async function readZip(buf) {
+    const v = new DataView(buf), u8 = new Uint8Array(buf), dec = new TextDecoder(); let e = buf.byteLength - 22;
+    while (e >= 0 && v.getUint32(e, true) !== 0x06054b50) e--;
+    if (e < 0) throw new Error('zip 파일을 읽지 못했습니다.');
+    const n = v.getUint16(e + 10, true); let p = v.getUint32(e + 16, true); const out = {};
+    for (let i = 0; i < n; i++) {
+      const method = v.getUint16(p + 10, true), csize = v.getUint32(p + 20, true), nl = v.getUint16(p + 28, true), xl = v.getUint16(p + 30, true), cl = v.getUint16(p + 32, true), lo = v.getUint32(p + 42, true);
+      const name = dec.decode(u8.subarray(p + 46, p + 46 + nl)); p += 46 + nl + xl + cl;
+      const start = lo + 30 + v.getUint16(lo + 26, true) + v.getUint16(lo + 28, true), data = u8.subarray(start, start + csize);
+      if (method === 0) out[name] = dec.decode(data);
+      else if (method === 8 && 'DecompressionStream' in window) out[name] = await new Response(new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
+    }
+    return out;
+  }
+  async function importFile(file) {
+    let o = null, files = {};
+    if (/\.zip$/i.test(file.name)) {
+      files = await readZip(await file.arrayBuffer());
+      const k = Object.keys(files).find(k => /(^|\/)project\.json$/.test(k)); if (!k) throw new Error('zip 안에 project.json이 없습니다.');
+      o = JSON.parse(files[k]);
+    } else o = JSON.parse(await file.text());
+    applyProject(o);
+    const rawK = Object.keys(files).find(k => /raw_responses\.csv$/.test(k));
+    if (rawK) { loadRaw(files[rawK], '불러온 응답 원자료'); if (raw) runScoring(); }
+    toast('연구를 불러왔습니다.');
+  }
+
+  // ---------- 화면 ----------
+  function renderFolderBar() {
+    const bar = $('#folder-bar'); if (!bar) return;
+    const zipBtns = `<button class="btn sm" data-fd="zip">연구 폴더 zip 받기</button><label class="btn sm" style="cursor:pointer">불러오기<input type="file" id="fd-import" accept=".json,.zip" hidden></label>`;
+    let h;
+    if (!FS_OK) h = `<div class="fb-main"><span class="fb-icon">📁</span><div><b>연구 폴더</b><span>이 화면에서는 폴더 연결을 쓸 수 없습니다 (claude.ai 링크, 휴대폰, 사파리·파이어폭스). PC의 크롬·엣지·웨일에서 <code>stats-ladder.html</code>을 열면 폴더에 자동 저장됩니다. <a href="#guide-folder">방법</a></span></div></div><div class="fb-btns">${zipBtns}</div>`;
+    else if (folderState === 'on') h = `<div class="fb-main"><span class="fb-icon on">📁</span><div><b>${esc(dirHandle.name)}</b><span>${folderInfo.lastErr ? `<span class="a-low">${esc(folderInfo.lastErr)}</span>` : folderInfo.savedAt ? `자동 저장됨 ${esc(folderInfo.savedAt)} · Claude Code가 만든 파일은 이 화면으로 돌아오면 읽어 옵니다` : '연결됨'}</span></div></div>
+      <div class="fb-btns"><label class="chk sm"><input type="checkbox" id="fd-raw" ${folderOpts.saveRaw ? 'checked' : ''}> 응답 원자료도 저장</label><button class="btn sm" data-fd="read">폴더 새로 읽기</button>${zipBtns}<button class="btn sm" data-fd="off">연결 끊기</button></div>`;
+    else if (folderState === 'need-permission') h = `<div class="fb-main"><span class="fb-icon">📁</span><div><b>${esc(dirHandle?.name || '연구 폴더')}</b><span>지난번에 쓰던 폴더입니다. 다시 연결하면 이어서 저장합니다.</span></div></div><div class="fb-btns"><button class="btn sm primary" data-fd="re">다시 연결</button><button class="btn sm" data-fd="connect">다른 폴더</button>${zipBtns}</div>`;
+    else h = `<div class="fb-main"><span class="fb-icon">📁</span><div><b>연구 폴더</b><span>PC의 폴더를 연결하면 작업이 그 폴더에 파일로 자동 저장되고, 같은 폴더에서 Claude Code를 쓸 수 있습니다. <a href="#guide-folder">자세히</a></span></div></div><div class="fb-btns"><button class="btn sm primary" data-fd="connect">연구 폴더 연결</button>${zipBtns}</div>`;
+    if (folderInfo.pending) {
+      const o = folderInfo.pending;
+      h += `<div class="fb-choice"><b>이 폴더에 저장된 연구가 있습니다</b> (마지막 저장 ${esc(new Date(o.savedAt).toLocaleString('ko-KR'))}, 분석 ${(o.analyses || []).length}개). 지금 화면에도 작업 내용이 있습니다. 어느 쪽을 쓸까요?
+        <div class="fb-btns"><button class="btn sm primary" data-fd="use-folder">폴더 내용 불러오기</button><button class="btn sm" data-fd="use-screen">지금 화면 내용으로 폴더 덮어쓰기</button></div></div>`;
+    }
+    bar.className = 'folder-bar' + (folderState === 'on' ? ' on' : '');
+    bar.innerHTML = h;
+  }
+  $('#folder-bar').addEventListener('click', async e => {
+    const b = e.target.closest('[data-fd]'); if (!b) return;
+    const a = b.dataset.fd;
+    if (a === 'connect') connectFolder();
+    else if (a === 're') reconnect();
+    else if (a === 'off') disconnectFolder();
+    else if (a === 'read') { await readClaudeFiles(); await saveFolder(); toast('폴더를 다시 읽고 저장했습니다.'); }
+    else if (a === 'zip') download(`통계사다리_${(sv.title || '연구').replace(/[^\w가-힣]+/g, '_').slice(0, 20)}_${today()}.zip`, makeZip(folderFiles()), 'application/zip');
+    else if (a === 'use-folder') { await loadFromFolder(folderInfo.pending); renderFolderBar(); await readClaudeFiles(true); toast('폴더의 연구를 불러왔습니다.'); }
+    else if (a === 'use-screen') { if (!twice(b, '한 번 더 누르면 폴더 내용을 덮어씁니다')) return; folderInfo.pending = null; written.clear(); await saveFolder(); toast('지금 화면 내용으로 폴더에 저장했습니다.'); }
+  });
+  $('#folder-bar').addEventListener('change', async e => {
+    if (e.target.id === 'fd-raw') { folderOpts.saveRaw = e.target.checked; _set('ladder.folderOpts', folderOpts); scheduleSave(); }
+    if (e.target.id === 'fd-import') { const f = e.target.files[0]; e.target.value = ''; if (!f) return; try { await importFile(f); scheduleSave(); } catch (err) { toast('불러오지 못했습니다: ' + (err.message || err)); } }
+  });
+
+  async function initFolder() {
+    renderFolderBar();
+    if (!FS_OK) return;
+    const h = await loadHandle(); if (!h) return;
+    dirHandle = h;
+    try { folderState = (await h.queryPermission({ mode: 'readwrite' })) === 'granted' ? 'on' : 'need-permission'; } catch (e) { folderState = 'need-permission'; }
+    if (folderState === 'on') await afterConnect(); else renderFolderBar();
   }
 
   // ---------- 시작 ----------
@@ -5712,6 +6006,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R결과.csv에 저장)\\n")
   renderRules();
   const hashGuide = (location.hash || '').match(/^#guide-([\w-]+)$/);
   if (hashGuide) openGuide(hashGuide[1]); else switchView(store.get('ladder.view', 'ladder'));
+  initFolder();
 })();
 </script>
 </body>
