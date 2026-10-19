@@ -2260,6 +2260,19 @@ button,input,textarea,select{font-family:inherit}
 .zoom-ctl sub,.zoom-ctl sup{font-size:10px;margin-left:1px}
 .zoom-ctl span{font-size:11.5px;color:var(--ink-3);min-width:34px;text-align:center;cursor:default;user-select:none}
 @media (max-width:640px){.zoom-ctl{display:none}}
+
+/* AI 연결 상태 */
+.ai-note{display:flex;gap:10px;align-items:flex-start;margin:0 14px;padding:10px 12px;border:1px solid var(--orange-line);background:var(--orange-soft);border-radius:12px 12px 0 0;border-bottom:0;font-size:13px;line-height:1.55}
+.ai-note .an-ic{flex:none;width:20px;height:20px;border-radius:50%;background:var(--orange);color:#fff;display:grid;place-items:center;font-weight:800;font-size:12px;margin-top:1px;font-style:italic;font-family:Georgia,serif}
+.ai-note .an-tx{flex:1;min-width:0}.ai-note .an-tx > b{display:block;margin-bottom:2px}
+.ai-note .an-bt{display:flex;gap:4px;align-items:center;flex:none}
+.ai-note .an-x{border:0;background:none;font-size:18px;line-height:1;color:var(--ink-3);cursor:pointer;padding:2px 6px}
+.ai-dot{display:inline-flex;align-items:center;gap:5px;flex:none;align-self:center;border:0;background:none;font:inherit;font-size:11.5px;color:var(--ink-3);cursor:pointer;padding:4px 2px;white-space:nowrap}
+.ai-dot i{width:8px;height:8px;border-radius:50%;background:#b8bfcf}
+.ai-dot.on i{background:#1f8a5b;box-shadow:0 0 0 3px rgba(31,138,91,.15)}.ai-dot.on{color:#1f8a5b}
+.ai-dot.wait i{background:#d9a400}
+.ai-dot:hover span{text-decoration:underline}
+@media (max-width:640px){.ai-dot span{display:none}.ai-note .an-tx span{display:none}}
 </style>
 </head>
 <body>
@@ -2476,7 +2489,8 @@ button,input,textarea,select{font-family:inherit}
   </section>
   <div class="thread" id="thread"></div>
 </main>
-<form class="composer" id="composer" autocomplete="off">
+<div class="ai-note" id="ai-note" hidden></div>
+<form class="composer" id="composer" autocomplete="off"><button type="button" class="ai-dot" id="ai-dot" title="AI 연결 상태"><i></i><span>확인 중</span></button>
   <textarea id="cmp-text" rows="1" placeholder="궁금한 것을 물어보세요 (예: 이 결정은 어떤 걸 고르는 게 좋아?)"></textarea>
   <button class="btn primary" type="submit" id="cmp-send">보내기</button>
 </form>
@@ -5084,7 +5098,7 @@ ${REVIEW_RULES}
       saveIntent(); renderInterp();
       if (which === 'write') $('#in-out')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch (e) {
-      if (e?.code === 'not_granted' || e?.code === 'sampling_disabled') aiState = 'denied';
+      if (e?.code === 'not_granted' || e?.code === 'sampling_disabled') { aiState = 'denied'; renderAiNote(); }
       renderInterp(); $('#in-prog').textContent = aiErr(e?.code);
     } finally { aiCtl = null; }
   }
@@ -5321,6 +5335,13 @@ ${REVIEW_RULES}
       <p>세 가지 AI 연결 방법(바로 쓰기, 아무 AI 채팅, Claude Code) 모두에서 쓸 수 있습니다. 질문마다 [검토함]에 체크하며 하나씩 정리하세요.</p>` },
 
     { id: 'ai', group: 'AI 연결', title: 'AI 연결 방법 세 가지', tab: 'interp', body: `
+      <h3>내 화면에서 AI가 되나요?</h3>
+      <p>대화창 왼쪽 아래 점을 보세요. <b style="color:#1f8a5b">● AI 연결됨</b>이면 대화창과 결과 해석에서 AI가 바로 답합니다. <b style="color:#8a90a3">● AI 없음</b>이면 아래 방법 중 하나로 씁니다.</p>
+      <table class="gtable"><thead><tr><th>어디서 열었나</th><th>대화창에 물으면</th></tr></thead><tbody>
+        <tr><td>claude.ai 링크 (<a href="${ARTIFACT_URL}" target="_blank" rel="noopener">바로 쓰기 링크</a>)</td><td>AI가 바로 답합니다. 처음 한 번 "Claude 사용 허용"을 누릅니다.</td></tr>
+        <tr><td>일반 웹 주소, 내 컴퓨터의 파일</td><td>사용 설명에서 관련된 곳을 찾아 주고, <b>[AI에게 물을 지시문 복사]</b> 버튼이 나옵니다. 복사해서 ChatGPT, Gemini, Claude 같은 AI 채팅에 붙여 넣으면 같은 답을 받을 수 있습니다.</td></tr>
+      </tbody></table>
+      <h3>결과 해석에서 쓰는 방법</h3>
       <table class="gtable"><thead><tr><th>방법</th><th>무료 계정</th><th>어떤 AI</th><th>쓰는 법</th></tr></thead><tbody>
         <tr><td><b>바로 쓰기</b></td><td>claude.ai 계정 필요. 요금제별 한도는 claude.ai 정책을 따름</td><td>Claude</td><td>claude.ai 링크로 열고 버튼 두 번</td></tr>
         <tr><td><b>아무 AI 채팅</b></td><td><b>됨</b></td><td>ChatGPT, Gemini, Claude 등 아무거나</td><td>지시문 복사 → 채팅에 붙여 넣기 → 답을 다시 붙여 넣기</td></tr>
@@ -6582,7 +6603,7 @@ ${q}`;
       const res = await sample(helperPrompt(q), { cache: false, onText: ({ text }) => { m.text = text; const el = bubble(); if (el) { el.innerHTML = '<span class="who">도우미</span>' + esc(text); const sc = $('#scroller'); sc.scrollTop = sc.scrollHeight; } } });
       m.text = res.text;
     } catch (e) {
-      if (e?.code === 'not_granted' || e?.code === 'sampling_disabled') aiState = 'denied';
+      if (e?.code === 'not_granted' || e?.code === 'sampling_disabled') { aiState = 'denied'; renderAiNote(); }
       m.text = (e?.text ? e.text + '\n\n' : '') + aiErr(e?.code); m.prompt = helperPrompt(q); m.links = guideSearch(q);
     }
     m.choices = curChoices();
@@ -6734,6 +6755,30 @@ ${q}`;
     $('#zm-v').addEventListener('dblclick', () => { z = null; _set('ladder.zoom', null); apply(); toast('글씨 크기를 처음대로 돌렸습니다.'); });
     apply();
   })();
+
+
+  // ---------- AI 연결 상태: 대화창 옆 점, 처음 한 번 안내 ----------
+  function renderAiNote() {
+    const st = aiState, on = st === 'on', checking = st === 'checking';
+    const dot = $('#ai-dot'); dot.className = 'ai-dot ' + (on ? 'on' : checking ? 'wait' : 'off');
+    dot.querySelector('span').textContent = on ? 'AI 연결됨' : checking ? '확인 중' : 'AI 없음';
+    dot.title = on ? '이 화면에서 AI가 바로 답합니다' : checking ? 'AI 연결을 확인하는 중' : 'AI가 연결되지 않았습니다 · 눌러서 연결 방법 보기';
+    $('#cmp-text').placeholder = on || checking ? '궁금한 것을 물어보세요 (예: 이 결정은 어떤 걸 고르는 게 좋아?)'
+      : '궁금한 것을 물어보세요 (다른 AI에 물을 질문으로 만들어 드려요)';
+    const note = $('#ai-note'), show = !on && !checking && !store.get('ladder.aiNoteClosed', false);
+    note.hidden = !show;
+    if (show) note.innerHTML = `<div class="an-ic">i</div><div class="an-tx"><b>${st === 'denied' ? 'AI 사용이 허용되지 않았어요.' : '이 화면에서는 AI가 바로 연결되지 않아요.'}</b>
+      <span>${st === 'denied' ? 'claude.ai에서 이 페이지의 Claude 사용을 허용하면 바로 답합니다.' : '<b>claude.ai 링크</b>로 열면 화면 안에서 바로 답합니다.'} 지금은 대화창에 물으면 사용 설명에서 찾아 드리고, 같은 질문을 <b>ChatGPT·Gemini·Claude</b> 같은 AI 채팅에 붙여 넣을 수 있게 만들어 드려요.</span></div>
+      <div class="an-bt"><button class="btn sm" data-an="guide">AI 연결 방법 보기</button><button class="an-x" data-an="close" title="닫기">×</button></div>`;
+  }
+  $('#ai-note').addEventListener('click', e => {
+    const b = e.target.closest('[data-an]'); if (!b) return;
+    if (b.dataset.an === 'guide') openGuide('ai');
+    else { _set('ladder.aiNoteClosed', true); renderAiNote(); toast('대화창 왼쪽 아래 점을 누르면 언제든 연결 방법을 볼 수 있어요.'); }
+  });
+  $('#ai-dot').addEventListener('click', () => { if (aiState === 'on') toast('AI가 연결되어 있습니다. 대화창에 바로 물어보세요.'); else openGuide('ai'); });
+  sampleP.then(() => setTimeout(renderAiNote, 0));
+  renderAiNote();
 
   // ---------- 시작 ----------
   const defErrs = checkRules(DEFAULT_RULES);
