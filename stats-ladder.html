@@ -1971,7 +1971,7 @@ body { display: grid; grid-template-rows: 56px minmax(0, 1fr); overflow: hidden;
 .fold-pop { position: absolute; right: 0; top: calc(100% + 8px); width: min(600px, 92vw); z-index: 20; box-shadow: 0 10px 30px rgba(0,0,0,.18); border-radius: 12px; }
 .fold-pop .folder-bar { margin: 0; background: var(--bg); }
 #rp-tog { display: none; }
-.app { display: grid; grid-template-columns: var(--nav-w, 220px) minmax(0, 1fr) minmax(360px, .92fr); min-height: 0; }
+.app { display: grid; grid-template-columns: var(--nav-w, 220px) minmax(0, 1fr) var(--rw, minmax(360px, .92fr)); min-height: 0; }
 .app.nav-min { --nav-w: 58px; }
 .app.no-right { grid-template-columns: var(--nav-w, 220px) minmax(0, 1fr); }
 .app.no-right .right { display: none; }
@@ -2054,7 +2054,7 @@ main#scroller .page-head p { font-size: 14px; }
 @media (max-width: 1150px) {
   .app, .app.no-right { grid-template-columns: var(--nav-w, 58px) minmax(0, 1fr); }
   #rp-tog { display: inline-block; }
-  .right { position: fixed; right: 0; top: 56px; bottom: 0; width: min(460px, 94vw); z-index: 15; box-shadow: -10px 0 30px rgba(0,0,0,.18); transform: translateX(105%); transition: transform .2s; display: grid !important; }
+  .right { position: fixed; right: 0; top: 56px; bottom: 0; width: min(var(--rw, 460px), 94vw); z-index: 15; box-shadow: -10px 0 30px rgba(0,0,0,.18); transform: translateX(105%); transition: transform .2s; display: grid !important; }
   .app.r-open .right { transform: none; }
   .hdr-title span { display: none; }
 }
@@ -2126,6 +2126,17 @@ main#scroller .page-head p { font-size: 14px; }
 .pj-acts .btn.danger{background:#c0392b;border-color:#c0392b;color:#fff}
 .pj-hint{margin:10px 2px 0;font-size:11.5px;color:var(--ink-3,#8a90a3);line-height:1.5}
 @media (max-width:640px){.proj-wrap{margin-left:4px;padding-left:8px}.proj-chip{max-width:96px;padding:5px 8px;font-size:12.5px}.proj-pop{left:auto;right:-120px}}
+
+/* 가운데 ↔ 보기 창 너비 조절 */
+@media (min-width:1151px){.right{position:relative}}
+.rsplit{position:absolute;left:-6px;top:0;bottom:0;width:12px;cursor:col-resize;z-index:6;touch-action:none;outline:none}
+.rsplit::after{content:'';position:absolute;left:5px;top:0;bottom:0;width:2px;background:transparent;transition:background .15s}
+.rsplit::before{content:'';position:absolute;left:3px;top:50%;width:6px;height:40px;margin-top:-20px;border-radius:4px;background:#cfd5e3;transition:background .15s}
+.rsplit:hover::after,.rsplit.drag::after,.rsplit:focus-visible::after{background:var(--orange,#f5841f)}
+.rsplit:hover::before,.rsplit.drag::before,.rsplit:focus-visible::before{background:var(--orange,#f5841f)}
+body.resizing{cursor:col-resize;user-select:none}
+body.resizing .right{transition:none!important}
+@media (max-width:640px){.rsplit{display:none}}
 </style>
 </head>
 <body>
@@ -2346,7 +2357,7 @@ main#scroller .page-head p { font-size: 14px; }
   <button class="btn primary" type="submit" id="cmp-send">보내기</button>
 </form>
 </div>
-<aside class="right" id="right">
+<aside class="right" id="right"><div class="rsplit" id="rsplit" role="separator" aria-orientation="vertical" tabindex="0" aria-label="보기 창 너비 조절" title="끌어서 너비 조절 · 두 번 누르면 처음대로"></div>
   <div class="rtabs" role="tablist">
     <button class="rtab" data-rt="method" role="tab">통계 방법</button>
     <button class="rtab" data-rt="survey" role="tab">설문</button>
@@ -5020,7 +5031,7 @@ ${REVIEW_RULES}
         <tr><td>위 띠 연구 이름 ▾</td><td>연구를 여러 개 두고 고릅니다. [+ 새 연구]·[복제]·[이름 바꾸기]·[지우기]. 연구마다 사다리 답, 설문, 분석, 해석, 대화가 따로 저장되고, PC 연구 폴더도 연구마다 따로 연결됩니다. 다른 아이디어는 [복제]해서 원래 연구를 그대로 둔 채 시험해 보세요.</td></tr>
         <tr><td>왼쪽 메뉴</td><td>연구 진행 순서. 끝낸 단계는 ✓, 지금 단계는 주황색. 맨 위 ☰ 버튼으로 접었다 펼 수 있습니다.</td></tr>
         <tr><td>가운데</td><td>지금 단계에서 고르고 적는 곳. 사다리에서 답한 질문은 대화처럼 위로 쌓이고, 말풍선을 누르면 그 질문으로 돌아갑니다. 맨 아래 입력창에 궁금한 것을 물으면 답이 이어서 남습니다.</td></tr>
-        <tr><td>오른쪽 보기 창</td><td>[통계 방법] 고른 기법·사다리 지도·변인·분석 결정, [설문] 요약·응답 현황·응답자 화면 미리보기, [결과] 가설 판정·해석 초안·허점 점검·계산 결과표. 단계에 맞는 탭이 저절로 열리고, 직접 눌러 바꿀 수도 있습니다.</td></tr>
+        <tr><td>오른쪽 보기 창</td><td>가운데와 보기 창 사이의 경계선을 끌면 너비가 바뀝니다(두 번 누르면 처음대로). [통계 방법] 고른 기법·사다리 지도·변인·분석 결정, [설문] 요약·응답 현황·응답자 화면 미리보기, [결과] 가설 판정·해석 초안·허점 점검·계산 결과표. 단계에 맞는 탭이 저절로 열리고, 직접 눌러 바꿀 수도 있습니다.</td></tr>
       </tbody></table>
       <p class="hint">PC 화면(가로 1366 이상)에 맞췄습니다. 화면이 좁으면 오른쪽 보기 창은 위의 [보기 창] 버튼으로 열고 닫습니다. 휴대폰에서는 보기 위주로 쓰세요.</p>
       <h3>전체 흐름</h3>
@@ -6537,6 +6548,29 @@ ${q}`;
     else if (act === 'del') { if (!projDel) { projDel = projReg.cur; renderProj(); return; } $('#proj-pop').hidden = true; await deleteProject(projDel); }
   });
   renderProj();
+
+
+  // ---------- 가운데 ↔ 보기 창 너비 조절 (끌기 · 화살표 · 두 번 눌러 처음대로) ----------
+  (function () {
+    const app = $('#app'), rs = $('#rsplit'), drawerMode = () => innerWidth <= 1150;
+    const clampRW = w => {
+      const max = drawerMode() ? innerWidth * 0.94 : app.getBoundingClientRect().width - $('#side').getBoundingClientRect().width - 440;
+      return Math.max(320, Math.min(max, w));
+    };
+    const setRW = w => { if (w == null) app.style.removeProperty('--rw'); else app.style.setProperty('--rw', Math.round(clampRW(w)) + 'px'); };
+    const saveRW = () => _set('ladder.rightW', parseFloat(app.style.getPropertyValue('--rw')) || null);
+    setRW(store.get('ladder.rightW', null));
+    rs.addEventListener('pointerdown', e => { e.preventDefault(); rs.setPointerCapture(e.pointerId); rs.classList.add('drag'); document.body.classList.add('resizing'); });
+    rs.addEventListener('pointermove', e => { if (rs.classList.contains('drag')) setRW((drawerMode() ? innerWidth : app.getBoundingClientRect().right) - e.clientX); });
+    const end = () => { if (!rs.classList.contains('drag')) return; rs.classList.remove('drag'); document.body.classList.remove('resizing'); saveRW(); };
+    rs.addEventListener('pointerup', end); rs.addEventListener('pointercancel', end);
+    rs.addEventListener('dblclick', () => { setRW(null); _set('ladder.rightW', null); toast('보기 창 너비를 처음대로 돌렸습니다.'); });
+    rs.addEventListener('keydown', e => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      e.preventDefault(); setRW($('#right').getBoundingClientRect().width + (e.key === 'ArrowLeft' ? 32 : -32)); saveRW();
+    });
+    addEventListener('resize', () => setRW(store.get('ladder.rightW', null)));
+  })();
 
   // ---------- 시작 ----------
   const defErrs = checkRules(DEFAULT_RULES);
