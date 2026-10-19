@@ -2251,6 +2251,15 @@ button,input,textarea,select{font-family:inherit}
 .mc-opt b{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:6px;background:var(--navy);color:#fff;font-size:12px}
 .mc-opt small{display:block;font-size:12px;color:var(--ink-3)}
 .mc-opt:hover{border-color:var(--orange);background:var(--orange-soft)}
+
+/* 글씨 크기 단추 */
+.zoom-ctl{display:inline-flex;align-items:center;border:1.5px solid var(--line);border-radius:999px;background:var(--bg);overflow:hidden;flex:none}
+.zoom-ctl button{border:0;background:none;font:inherit;font-weight:800;color:var(--ink-2);padding:5px 9px;cursor:pointer;font-size:13px;line-height:1}
+.zoom-ctl button:hover:not(:disabled){background:var(--bg-2);color:var(--orange)}
+.zoom-ctl button:disabled{opacity:.35;cursor:default}
+.zoom-ctl sub,.zoom-ctl sup{font-size:10px;margin-left:1px}
+.zoom-ctl span{font-size:11.5px;color:var(--ink-3);min-width:34px;text-align:center;cursor:default;user-select:none}
+@media (max-width:640px){.zoom-ctl{display:none}}
 </style>
 </head>
 <body>
@@ -2275,6 +2284,7 @@ button,input,textarea,select{font-family:inherit}
   <span class="hdr-sp"></span>
   <div class="fold-wrap"><button class="fold-chip" id="fold-chip">📁 연구 폴더</button><div class="fold-pop" id="fold-pop" hidden><div class="folder-bar" id="folder-bar"></div></div></div>
   <button class="hdr-btn" id="rp-tog" title="오른쪽 보기 창 열기·닫기">보기 창</button>
+  <div class="zoom-ctl" role="group" aria-label="글씨 크기"><button id="zm-dn" title="글씨 작게">가<sub>−</sub></button><span id="zm-v">100%</span><button id="zm-up" title="글씨 크게">가<sup>+</sup></button></div>
   <a class="hdr-btn" href="#guide-start">? 사용 설명</a>
   <span id="log-count" hidden></span><span id="ai-count" hidden></span>
 </header>
@@ -5143,6 +5153,7 @@ ${REVIEW_RULES}
       <h3>화면 구성</h3>
       <table class="gtable"><thead><tr><th>자리</th><th>하는 일</th></tr></thead><tbody>
         <tr><td>위 띠 연구 이름 단추</td><td>누르면 연구 목록이 열립니다. [+ 새 연구 추가]로 새 연구를 만들고, 목록에서 연구를 고릅니다. [+ 새 연구]·[복제]·[이름 바꾸기]·[지우기]. 연구마다 사다리 답, 설문, 분석, 해석, 대화가 따로 저장되고, PC 연구 폴더도 연구마다 따로 연결됩니다. 다른 아이디어는 [복제]해서 원래 연구를 그대로 둔 채 시험해 보세요.</td></tr>
+        <tr><td>위 띠 [가− 90% 가+]</td><td>화면 전체 글씨 크기를 80~120%로 바꿉니다. 노트북 화면 배율(125~150%)에서는 90%로 시작합니다. 숫자를 두 번 누르면 처음대로.</td></tr>
         <tr><td>왼쪽 메뉴</td><td>연구 진행 순서. 끝낸 단계는 ✓, 지금 단계는 주황색. 맨 위 ☰ 버튼으로 접었다 펼 수 있습니다.</td></tr>
         <tr><td>가운데</td><td>지금 단계에서 고르고 적는 곳. 사다리에서 답한 질문은 대화처럼 위로 쌓이고, 말풍선을 누르면 그 질문으로 돌아갑니다. 맨 아래 입력창에 궁금한 것을 물으면 답이 이어서 남습니다.</td></tr>
         <tr><td>오른쪽 보기 창</td><td>가운데와 보기 창 사이의 경계선을 끌면 너비가 바뀝니다(두 번 누르면 처음대로). [통계 방법] 고른 기법·사다리 지도·변인·분석 결정, [설문] 요약·응답 현황·응답자 화면 미리보기, [결과] 가설 판정·해석 초안·허점 점검·계산 결과표. 단계에 맞는 탭이 저절로 열리고, 직접 눌러 바꿀 수도 있습니다.</td></tr>
@@ -6683,24 +6694,45 @@ ${q}`;
 
   // ---------- 가운데 ↔ 보기 창 너비 조절 (끌기 · 화살표 · 두 번 눌러 처음대로) ----------
   (function () {
-    const app = $('#app'), rs = $('#rsplit'), drawerMode = () => innerWidth <= 1150;
+    const app = $('#app'), rs = $('#rsplit'), zf = () => parseFloat(document.documentElement.style.zoom) || 1, drawerMode = () => innerWidth / zf() <= 1150;
     const clampRW = w => {
-      const max = drawerMode() ? innerWidth * 0.94 : app.getBoundingClientRect().width - $('#side').getBoundingClientRect().width - 440;
+      const max = drawerMode() ? innerWidth / zf() * 0.94 : (app.getBoundingClientRect().width - $('#side').getBoundingClientRect().width) / zf() - 440;
       return Math.max(320, Math.min(max, w));
     };
     const setRW = w => { if (w == null) app.style.removeProperty('--rw'); else app.style.setProperty('--rw', Math.round(clampRW(w)) + 'px'); };
     const saveRW = () => _set('ladder.rightW', parseFloat(app.style.getPropertyValue('--rw')) || null);
     setRW(store.get('ladder.rightW', null));
     rs.addEventListener('pointerdown', e => { e.preventDefault(); rs.setPointerCapture(e.pointerId); rs.classList.add('drag'); document.body.classList.add('resizing'); });
-    rs.addEventListener('pointermove', e => { if (rs.classList.contains('drag')) setRW((drawerMode() ? innerWidth : app.getBoundingClientRect().right) - e.clientX); });
+    rs.addEventListener('pointermove', e => { if (rs.classList.contains('drag')) setRW(((drawerMode() ? innerWidth : app.getBoundingClientRect().right) - e.clientX) / zf()); });
     const end = () => { if (!rs.classList.contains('drag')) return; rs.classList.remove('drag'); document.body.classList.remove('resizing'); saveRW(); };
     rs.addEventListener('pointerup', end); rs.addEventListener('pointercancel', end);
     rs.addEventListener('dblclick', () => { setRW(null); _set('ladder.rightW', null); toast('보기 창 너비를 처음대로 돌렸습니다.'); });
     rs.addEventListener('keydown', e => {
       if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-      e.preventDefault(); setRW($('#right').getBoundingClientRect().width + (e.key === 'ArrowLeft' ? 32 : -32)); saveRW();
+      e.preventDefault(); setRW($('#right').getBoundingClientRect().width / zf() + (e.key === 'ArrowLeft' ? 32 : -32)); saveRW();
     });
     addEventListener('resize', () => setRW(store.get('ladder.rightW', null)));
+  })();
+
+
+  // ---------- 글씨 크기 (화면 전체 배율) ----------
+  // 노트북 화면 배율(125~150%)에서는 같은 글씨도 크게 보여서, 좁은 화면은 조금 작게 시작
+  (function () {
+    const STEPS = [0.8, 0.85, 0.9, 1, 1.1, 1.2];
+    const auto = () => (innerWidth * (devicePixelRatio || 1) >= 1800 && innerWidth <= 1440) ? 0.9 : 1;
+    let z = store.get('ladder.zoom', null);
+    const apply = () => {
+      const v = z ?? auto();
+      document.documentElement.style.zoom = v === 1 ? '' : v;
+      $('#zm-v').textContent = Math.round(v * 100) + '%';
+      $('#zm-dn').disabled = v <= STEPS[0]; $('#zm-up').disabled = v >= STEPS[STEPS.length - 1];
+      dispatchEvent(new Event('resize'));
+    };
+    const step = d => { const cur = z ?? auto(); let i = STEPS.findIndex(x => Math.abs(x - cur) < 0.001); if (i < 0) i = 3; i = Math.max(0, Math.min(STEPS.length - 1, i + d)); z = STEPS[i]; _set('ladder.zoom', z); apply(); };
+    $('#zm-dn').addEventListener('click', () => step(-1));
+    $('#zm-up').addEventListener('click', () => step(1));
+    $('#zm-v').addEventListener('dblclick', () => { z = null; _set('ladder.zoom', null); apply(); toast('글씨 크기를 처음대로 돌렸습니다.'); });
+    apply();
   })();
 
   // ---------- 시작 ----------
