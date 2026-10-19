@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>통계 사다리</title>
+<title>통 · 설문부터 통계 해석까지</title>
 <meta name="description" content="질문에 답하며 사다리를 내려가 내 연구 설계에 맞는 통계 기법을 찾는 시제품">
 <link rel="icon" href="favicon.ico">
 
@@ -1959,9 +1959,9 @@ footer { border-top: 1px solid var(--line); color: var(--ink-3); font-size: 13px
 html, body { height: 100%; }
 body { display: grid; grid-template-rows: 56px minmax(0, 1fr); overflow: hidden; }
 .hdr { display: flex; align-items: center; gap: 10px; padding: 0 14px; border-bottom: 3px solid var(--orange); background: var(--bg); position: relative; z-index: 6; min-width: 0; }
-.hdr-logo { border: 2px solid var(--orange); color: var(--orange); border-radius: 6px; padding: 1px 8px; font-weight: 800; letter-spacing: .05em; font-size: 14px; }
-.hdr-title { font-weight: 800; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-.hdr-title span { font-weight: 500; color: var(--ink-3); font-size: 13px; margin-left: 8px; }
+.hdr-logo { width: 36px; height: 36px; flex: none; display: block; }
+.hdr-title { font-weight: 900; font-size: 22px; color: #1f6fff; letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.hdr-title span { font-weight: 500; color: var(--ink-3); font-size: 13px; margin-left: 10px; letter-spacing: 0; }
 .hdr-sp { flex: 1; }
 .nav-tog, .hdr-btn, .fold-chip { border: 1.5px solid var(--line); background: var(--bg); border-radius: 999px; padding: 5px 12px; font-size: 13px; font-weight: 700; color: var(--ink-2); text-decoration: none; white-space: nowrap; }
 .nav-tog { width: 34px; height: 34px; padding: 0; border-radius: 8px; font-size: 16px; }
@@ -2059,7 +2059,6 @@ main#scroller .page-head p { font-size: 14px; }
   .hdr-title span { display: none; }
 }
 @media (max-width: 640px) {
-  .hdr-logo { display: none; }
   .hdr-btn[href] { display: none; }
   main#scroller { padding: 14px 14px 10px; }
 }
@@ -2091,8 +2090,19 @@ main#scroller .page-head p { font-size: 14px; }
 
 <header class="hdr">
   <button class="nav-tog" id="nav-tog" aria-label="메뉴 접기·펴기" title="메뉴 접기·펴기">☰</button>
-  <span class="hdr-logo">STAT</span>
-  <span class="hdr-title">통계 사다리<span>내 연구 설계에 맞는 통계 기법 찾기</span></span>
+  <svg class="hdr-logo" viewBox="0 0 64 64" aria-hidden="true">
+    <defs><linearGradient id="tong-g" x1="0" x2="1"><stop offset="0" stop-color="#4d94ff"/><stop offset=".45" stop-color="#1f6fff"/><stop offset="1" stop-color="#1257d6"/></linearGradient></defs>
+    <path d="M11 13 Q11 8 32 8 Q53 8 53 13 V53 Q53 58 32 58 Q11 58 11 53 Z" fill="url(#tong-g)"/>
+    <ellipse cx="32" cy="12" rx="21" ry="5" fill="#2f7bff" stroke="#1257d6" stroke-width="1.6"/>
+    <ellipse cx="25" cy="11" rx="4" ry="1.6" fill="#eef2f8"/>
+    <path d="M11 24 Q32 29 53 24 M11 43 Q32 48 53 43" fill="none" stroke="#1257d6" stroke-width="2.2" stroke-linecap="round"/>
+    <rect x="15" y="17" width="4" height="34" rx="2" fill="#fff" opacity=".22"/>
+    <circle cx="26" cy="32" r="2.6" fill="#0d1b3a"/><circle cx="26.8" cy="31.2" r=".8" fill="#fff"/>
+    <path d="M36 31.5 l3.5 -1.6 M36 31.5 l3.5 1.6" stroke="#0d1b3a" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M28 36.5 Q31.5 39.5 35 36.5" fill="none" stroke="#0d1b3a" stroke-width="1.6" stroke-linecap="round"/>
+    <ellipse cx="21.5" cy="36" rx="2.6" ry="1.6" fill="#ffb3a7" opacity=".85"/><ellipse cx="41" cy="36" rx="2.6" ry="1.6" fill="#ffb3a7" opacity=".85"/>
+  </svg>
+  <span class="hdr-title">통<span>설문부터 통계 해석까지</span></span>
   <span class="hdr-sp"></span>
   <div class="fold-wrap"><button class="fold-chip" id="fold-chip">📁 연구 폴더</button><div class="fold-pop" id="fold-pop" hidden><div class="folder-bar" id="folder-bar"></div></div></div>
   <button class="hdr-btn" id="rp-tog" title="오른쪽 보기 창 열기·닫기">보기 창</button>
