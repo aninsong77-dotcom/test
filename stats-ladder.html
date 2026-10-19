@@ -2343,6 +2343,22 @@ button,input,textarea,select{font-family:inherit}
 .ai-dot.copy i{background:var(--orange)}.ai-dot.copy{color:var(--orange-deep)}
 .ai-dot.off i{background:#c0392b}.ai-dot.off{color:#c0392b}
 .ai-dot.none i{background:#b8bfcf}
+
+/* 오른쪽 보기 창의 사용 설명 */
+.rg-top{display:flex;gap:6px;align-items:center;margin-bottom:8px}
+.rg-top input{flex:1;min-width:0;padding:7px 12px;border:1.5px solid var(--line);border-radius:999px;background:var(--bg);color:var(--ink);font:inherit;font-size:13px}
+.rg-top input:focus{outline:none;border-color:var(--orange)}
+#rg-sel{width:100%;margin-bottom:10px;padding:7px 10px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit;font-size:13px}
+.rg-card{padding:18px 18px 14px}
+.rg-title{margin:2px 0 10px;font-size:17px}
+.rg-inner{padding:0;font-size:13.5px;line-height:1.7}
+.rg-inner .gtable{font-size:12.5px}
+.rtabs .rtab{padding-left:11px;padding-right:11px}
+
+.rg-inner h3{font-size:15px;margin:16px 0 6px}
+.rg-inner .gstep{padding:10px 12px}
+
+.g-sum{font-size:1.02em;background:var(--orange-soft);border-radius:10px;padding:10px 14px;margin:0 0 14px}
 </style>
 </head>
 <body>
@@ -2573,6 +2589,7 @@ button,input,textarea,select{font-family:inherit}
     <button class="rtab" data-rt="method" role="tab">통계 방법</button>
     <button class="rtab" data-rt="survey" role="tab">설문</button>
     <button class="rtab" data-rt="results" role="tab">결과<span class="c" id="rt-count"></span></button>
+    <button class="rtab" data-rt="guide" role="tab">사용 설명</button>
   </div>
   <div class="rpane" id="rp-method" data-rp="method">
     <div id="rp-method-top"></div>
@@ -2602,6 +2619,7 @@ button,input,textarea,select{font-family:inherit}
     <div id="rp-results-top"></div>
     <div id="an-results"></div>
   </div>
+  <div class="rpane" id="rp-guide" data-rp="guide" hidden></div>
 </aside>
 </div>
 
@@ -4892,10 +4910,10 @@ function createSurvey() {
         <p class="hint">어느 방법을 쓰든 판정은 위의 코드 판정을 따르고, 초안의 숫자와 판정은 이 화면이 다시 점검합니다.</p>
         ${mode === 'off' ? `<div class="notice">AI를 쓰지 않도록 설정했습니다. 아무것도 밖으로 보내지 않습니다. 가설 판정과 결과표는 그대로 쓸 수 있으니, 해석 글은 직접 쓰고 아래 [초안 점검] 칸에 붙여 넣으면 숫자·판정을 점검합니다. <button class="btn sm" data-ai-mode-open>AI 방식 바꾸기</button></div>` : ''}
         <div class="mode-tabs" role="tablist" ${mode === 'off' ? 'hidden' : ''}>
-          ${[['auto', '바로 쓰기', 'claude.ai 링크'], ['chat', '아무 AI 채팅', '무료 계정도 됨'], ['code', 'Claude Code', '유료 구독']].filter(([k]) => k !== 'auto' || aiMode === 'auto').map(([k, l, sub]) => `<button class="mode-tab" role="tab" data-in-mode="${k}" aria-selected="${mode === k}"><b>${l}</b><span>${sub}</span></button>`).join('')}
+          ${[['auto', 'Claude 바로 쓰기', 'claude.ai 링크'], ['chat', '다른 AI (복사)', 'ChatGPT·Gemini 등'], ['code', 'Claude Code', '연구 폴더 · 유료']].filter(([k]) => k !== 'auto' || aiMode === 'auto').map(([k, l, sub]) => `<button class="mode-tab" role="tab" data-in-mode="${k}" aria-selected="${mode === k}"><b>${l}</b><span>${sub}</span></button>`).join('')}
         </div>
         ${mode === 'auto' ? `
-          ${aiOn() ? '' : `<div class="notice">이 화면에서는 바로 쓰기를 할 수 없습니다. ${aiState === 'denied' ? 'AI 사용이 허용되지 않았거나 이 계정에서 쓸 수 없습니다.' : 'claude.ai 링크에서 열면 됩니다.'} 다른 방법은 위의 [아무 AI 채팅]이나 [Claude Code]를 고르세요.</div>`}
+          ${aiOn() ? '' : `<div class="notice">이 화면에서는 Claude 바로 쓰기를 할 수 없습니다. ${aiState === 'denied' ? 'AI 사용이 허용되지 않았거나 이 계정에서 쓸 수 없습니다.' : 'claude.ai 링크에서 열면 됩니다.'} 다른 방법은 위의 [다른 AI (복사)]나 [Claude Code]를 고르세요.</div>`}
           <ol class="steps">
             <li><b>의도 확인</b>: AI가 연구 목적과 가설을 다시 말해 보고, 효과 연결이 맞는지 보고, 빠진 정보를 묻습니다.</li>
             <li><b>초안 쓰기</b>: 판정과 숫자를 그대로 써서 결과·논의 문단을 씁니다. 쓴 뒤 코드가 다시 점검합니다.</li>
@@ -5241,153 +5259,157 @@ ${REVIEW_RULES}
   // 사용 설명 (위키)
   // =================================================================
   const ARTIFACT_URL = 'https://claude.ai/artifact/Gaiius2CkfmCTb1pJWx2kd';
+  const TONG_URL = 'https://aninsong77-dotcom.github.io/tong/';
   const GUIDE = [
     { id: 'start', group: '시작하기', title: '처음 오셨나요', body: `
-      <p>ㅌㅗㅇ(통)은 통계 용어를 몰라도 <b>질문에 답하며 사다리를 내려가 내 연구에 맞는 통계 기법을 고르고</b>, 그 변인으로 <b>설문을 만들어 응답을 모으고</b>, <b>계산과 결과 해석</b>까지 이어 가는 도구입니다.</p>
-      <h3>화면 구성</h3>
-      <table class="gtable"><thead><tr><th>자리</th><th>하는 일</th></tr></thead><tbody>
-        <tr><td>위 띠 연구 이름 단추</td><td>누르면 연구 목록이 열립니다. [+ 새 연구 추가]로 새 연구를 만들고, 목록에서 연구를 고릅니다. [+ 새 연구]·[복제]·[이름 바꾸기]·[지우기]. 연구마다 사다리 답, 설문, 분석, 해석, 대화가 따로 저장되고, PC 연구 폴더도 연구마다 따로 연결됩니다. 다른 아이디어는 [복제]해서 원래 연구를 그대로 둔 채 시험해 보세요.</td></tr>
-        <tr><td>위 띠 [가− 90% 가+]</td><td>화면 전체 글씨 크기를 80~120%로 바꿉니다. 노트북 화면 배율(125~150%)에서는 90%로 시작합니다. 숫자를 두 번 누르면 처음대로.</td></tr>
-        <tr><td>왼쪽 메뉴</td><td>연구 진행 순서. 끝낸 단계는 ✓, 지금 단계는 주황색. 맨 위 ☰ 버튼으로 접었다 펼 수 있습니다.</td></tr>
-        <tr><td>가운데</td><td>지금 단계에서 고르고 적는 곳. 사다리에서 답한 질문은 대화처럼 위로 쌓이고, 말풍선을 누르면 그 질문으로 돌아갑니다. 맨 아래 입력창에 궁금한 것을 물으면 답이 이어서 남습니다.</td></tr>
-        <tr><td>오른쪽 보기 창</td><td>가운데와 보기 창 사이의 경계선을 끌면 너비가 바뀝니다(두 번 누르면 처음대로). [통계 방법] 고른 기법·사다리 지도·변인·분석 결정, [설문] 요약·응답 현황·응답자 화면 미리보기, [결과] 가설 판정·해석 초안·허점 점검·계산 결과표. 단계에 맞는 탭이 저절로 열리고, 직접 눌러 바꿀 수도 있습니다.</td></tr>
-      </tbody></table>
-      <p class="hint">PC 화면(가로 1366 이상)에 맞췄습니다. 화면이 좁으면 오른쪽 보기 창은 위의 [보기 창] 버튼으로 열고 닫습니다. 휴대폰에서는 보기 위주로 쓰세요.</p>
-      <h3>전체 흐름</h3>
+      <p class="g-sum">ㅌㅗㅇ은 <b>통계 기법 고르기 → 설문 만들기 → 응답 모으기 → 계산 → 해석</b>을 한곳에서 돕습니다. 통계 용어를 몰라도 됩니다.</p>
+      <h3>순서</h3>
       <ol class="flow">
-        <li><a href="#guide-ladder">사다리</a> — 질문에 답해 통계 기법 고르기, 변인 적고 잠그기</li>
-        <li><a href="#guide-survey">설문 설계</a> — 변인마다 문항 적기, 응답자 화면 미리보기</li>
-        <li><a href="#guide-gform">구글 폼 만들기</a> — 스크립트 한 번 실행으로 폼과 응답 시트 만들기, 링크 배포</li>
-        <li><a href="#guide-collect">응답 취합</a> — 응답 시트를 넣어 변인 점수·신뢰도 만들기</li>
-        <li><a href="#guide-analysis">분석</a> — 고른 기법 계산 (매개·조절 포함)</li>
-        <li><a href="#guide-interp">결과 해석</a> — 가설 판정, AI와 결과·논의 초안 쓰기</li>
+        <li><a href="#guide-ladder">통계 기법 고르기</a> — 질문에 답하면 기법이 정해집니다.</li>
+        <li><a href="#guide-survey">설문 만들기</a> — 변인마다 문항을 넣습니다. 척도 PDF·사진에서 자동으로도 됩니다.</li>
+        <li><a href="#guide-gform">구글 폼 배포</a> — 스크립트 한 번 실행으로 폼이 만들어집니다.</li>
+        <li><a href="#guide-collect">응답 취합</a> — 응답 파일을 넣으면 점수와 신뢰도가 나옵니다.</li>
+        <li><a href="#guide-analysis">분석 결정·계산</a> — 분석 방법을 정하고 계산합니다.</li>
+        <li><a href="#guide-interp">결과 해석</a> — 가설 판정을 보고, AI와 결과·논의 초안을 씁니다.</li>
       </ol>
-      <h3>무엇이 필요한가요</h3>
-      <table class="gtable"><thead><tr><th>하는 일</th><th>필요한 것</th></tr></thead><tbody>
-        <tr><td>기법 고르기, 설문 설계, 응답 취합, 분석</td><td>없음 (무료, 로그인 없이 이 페이지에서)</td></tr>
-        <tr><td>구글 폼으로 설문 배포</td><td>연구자의 구글 계정 (무료). 응답자는 계정 없이 답함</td></tr>
-        <tr><td>AI 결과 해석</td><td>아무 AI 계정 (무료 계정도 됨). <a href="#guide-ai">세 가지 방법</a> 중 고르기</td></tr>
-      </tbody></table>
       <h3>먼저 해 보기</h3>
-      <p>[분석] 메뉴에서 <b>[예시 자료로 해 보기]</b>를 누르면 예시 설문과 가짜 응답 300명으로 전체 흐름을 바로 볼 수 있습니다. 예시 자료는 화면 확인용이라 논문에 쓰면 안 됩니다.</p>` },
+      <p>왼쪽 메뉴 <b>분석 결정·계산</b> → <b>[예시 자료로 해 보기]</b>. 가짜 응답 300명으로 전체 흐름을 볼 수 있습니다. 예시 자료는 논문에 쓰면 안 됩니다.</p>
+      <h3>화면</h3>
+      <table class="gtable"><thead><tr><th>자리</th><th>하는 일</th></tr></thead><tbody>
+        <tr><td>왼쪽 메뉴</td><td>진행 순서. 끝낸 단계는 ✓, 지금 단계는 주황색. ☰로 접고 폅니다.</td></tr>
+        <tr><td>가운데</td><td>고르고 적는 곳. 맨 아래 입력창에 궁금한 것을 물을 수 있습니다.</td></tr>
+        <tr><td>오른쪽 보기 창</td><td>[통계 방법] [설문] [결과] [사용 설명] 탭. 단계에 맞는 탭이 저절로 열립니다. 가운데와의 경계선을 끌면 너비가 바뀝니다.</td></tr>
+        <tr><td>위 띠</td><td>로고: 첫 화면으로 · 연구 이름: 연구 바꾸기·추가 · [📁 연구 폴더] · [가− 가+]: 글씨 크기</td></tr>
+      </tbody></table>
+      <h3>필요한 것</h3>
+      <table class="gtable"><thead><tr><th>하는 일</th><th>필요한 것</th></tr></thead><tbody>
+        <tr><td>기법 고르기, 설문, 응답 취합, 계산</td><td>없음. 무료, 로그인 없음</td></tr>
+        <tr><td>구글 폼 배포</td><td>연구자의 구글 계정(무료). 응답자는 계정이 없어도 됩니다.</td></tr>
+        <tr><td>AI 해석</td><td>AI 계정(무료도 됨). <a href="#guide-ai">AI 방식</a> 참고</td></tr>
+      </tbody></table>
+      <p class="hint">PC 화면에 맞춰 만들었습니다. 휴대폰에서는 보기 위주로 쓰세요.</p>` },
 
-    { id: 'folder', group: '시작하기', title: '연구 폴더 (PC)', body: `
-      <p>교수님의 lazzzyResearch처럼 <b>연구 하나 = 폴더 하나</b>로 작업합니다. PC의 폴더를 연결하면 ㅌㅗㅇ에서 한 일이 그 폴더에 파일로 <b>자동 저장</b>되고, 같은 폴더에서 Claude Code를 실행하면 Claude가 그 파일들로 일합니다.</p>
+    { id: 'projects', group: '시작하기', title: '연구 여러 개 다루기', kw: '새 연구 복제 연구 추가', body: `
+      <p class="g-sum">위 띠의 <b>연구 이름 단추</b>로 연구를 여러 개 두고 바꿔 가며 작업합니다.</p>
+      <ul>
+        <li><b>[+ 새 연구 추가]</b>: 빈 연구를 만듭니다.</li>
+        <li><b>[복제]</b>: 지금 연구를 그대로 복사합니다. 다른 아이디어를 원래 연구를 건드리지 않고 시험할 때 씁니다.</li>
+        <li><b>[이름 바꾸기]</b>, <b>[지우기]</b>(두 번 눌러야 지워짐)</li>
+      </ul>
+      <p>연구마다 사다리 답, 설문, 분석, 해석, 대화가 따로 저장됩니다. 연구 폴더도 연구마다 따로 연결합니다. 검증 기록과 갈림길 규칙은 모든 연구가 함께 씁니다.</p>` },
+
+    { id: 'folder', group: '시작하기', title: '연구 폴더 (PC)', kw: '폴더 저장 백업', body: `
+      <p class="g-sum">내 컴퓨터 폴더를 연결하면 작업이 그 폴더에 <b>파일로 자동 저장</b>됩니다. 연구 하나에 폴더 하나입니다.</p>
       <h3>준비</h3>
-      <ul><li><b>PC의 크롬·엣지·웨일</b>이 필요합니다. 사파리·파이어폭스·휴대폰, 그리고 claude.ai 링크 안에서는 폴더 연결이 막혀 있습니다.</li>
-        <li>PC의 크롬·엣지·웨일에서 <b>ㅌㅗㅇ 웹 주소</b>(<a href="https://aninsong77-dotcom.github.io/tong/" target="_blank" rel="noopener">aninsong77-dotcom.github.io/tong/</a>)로 엽니다. 설치할 것은 없습니다. (claude.ai 링크에서는 보안상 폴더 연결이 막혀 있어 [연구 폴더 zip 받기]·[불러오기]로 대신합니다.)</li></ul>
-      <div class="gstep"><b>STEP 1. 폴더 연결</b><p>맨 위 <b>[연구 폴더 연결]</b> → 새 폴더(예: <code>내논문</code>)를 고르고 → "편집 허용"을 누릅니다.</p></div>
-      <div class="gstep"><b>STEP 2. 평소처럼 작업</b><p>설문 설계, 응답 취합, 분석 결정, 계산, 해석이 모두 폴더에 저장됩니다.</p>
+      <ul>
+        <li>PC의 <b>크롬·엣지·웨일</b>에서 <a href="${TONG_URL}" target="_blank" rel="noopener">ㅌㅗㅇ 웹 주소</a>로 엽니다. 설치는 없습니다.</li>
+        <li>claude.ai 링크, 사파리, 파이어폭스, 휴대폰에서는 연결이 안 됩니다. 이때는 [연구 폴더 zip 받기]로 백업하세요.</li>
+      </ul>
+      <div class="gstep"><b>STEP 1. 연결</b><p>위 띠 <b>[📁 연구 폴더]</b> → <b>[연구 폴더 연결]</b> → 새 폴더를 고르고 "편집 허용"을 누릅니다.</p></div>
+      <div class="gstep"><b>STEP 2. 평소처럼 작업</b><p>설문, 응답, 분석, 해석이 모두 폴더에 저장됩니다.</p>
         <pre>내논문/
-├─ CLAUDE.md          Claude Code 규칙
+├─ CLAUDE.md          Claude Code가 지킬 규칙
+├─ decision_log.md    분석 결정과 바꾼 기록
 ├─ project.json       다시 불러오기용 (고치지 마세요)
-├─ 1_survey/  survey.md (설문 설계), codebook.csv (코드북), google_form.gs
-├─ 2_data/  analysis_data.csv (분석용 자료), item_analysis.csv (+ raw_responses.csv 선택)
-├─ 3_analysis/  analysis_plan.md (분석 계획서), analysis.R, results.csv (결과표)
-└─ 4_interpretation/  interpretation.json (해석 자료)</pre></div>
-      <div class="gstep"><b>STEP 3. 같은 폴더에서 Claude Code</b><p><b>Claude 데스크톱 앱</b> → 위쪽 <b>Code</b> 탭 → <b>Local</b> → <b>Select folder</b>로 이 폴더를 열고(터미널 필요 없음, <a href="#guide-claude-code">자세히</a>) "R로 분석해줘", "해석해 줘", "허점 점검해줘"라고 씁니다. Claude가 만든 <code>R_output.txt</code>, <code>draft.md</code>, <code>review.md</code>는 ㅌㅗㅇ 화면으로 돌아오면 <b>자동으로 읽어 와</b> 대조·점검합니다.</p></div>
-      <div class="gstep"><b>STEP 4. 다음에 이어 하기</b><p>같은 브라우저로 ㅌㅗㅇ 주소를 다시 열면 지난 폴더가 보입니다. <b>[다시 연결]</b>만 누르면 됩니다. 응답 원자료도 저장해 두었다면 점수까지 바로 다시 만들어집니다.</p></div>
-      <div class="gnote"><b>응답 원자료 저장</b>은 기본으로 꺼져 있습니다. 켜면 다시 열 때 응답을 넣지 않아도 되지만, 폴더가 구글 드라이브처럼 동기화되는 곳이면 개인정보 보관 규정을 확인하세요.</div>` },
+├─ 1_survey/          설문, 코드북, 구글 폼 스크립트
+├─ 2_data/            분석용 자료, 문항 분석 (+ 응답 원자료: 고를 때만)
+├─ 3_analysis/        분석 계획서, R 코드, 결과표
+└─ 4_interpretation/  해석 자료, 초안</pre></div>
+      <div class="gstep"><b>STEP 3. AI에게 맡기기 (선택)</b><p>같은 폴더를 Claude Code로 열면 해석, R 분석, 허점 점검을 맡길 수 있습니다. 결과 파일은 ㅌㅗㅇ이 저절로 읽어 옵니다. <a href="#guide-claude-code">따라 하기</a></p></div>
+      <div class="gstep"><b>STEP 4. 다음에 이어 하기</b><p>같은 브라우저로 다시 열고 <b>[다시 연결]</b>을 누릅니다.</p></div>
+      <div class="gnote"><b>응답 원자료 저장</b>은 기본으로 꺼져 있습니다. 켜면 다시 열 때 응답을 다시 넣지 않아도 됩니다. 폴더가 구글 드라이브처럼 동기화되는 곳이면 개인정보 규정을 먼저 확인하세요.</div>` },
 
-    { id: 'ladder', group: '단계별 사용법', title: '① 사다리로 기법 고르기', tab: 'ladder', body: `
-      <p>질문 5개에 답하면 통계 기법에 도착합니다. 왼쪽 지도에 전체 갈림길이 보이고, 지금 위치는 주황색입니다.</p>
+    { id: 'ladder', group: '단계별 사용법', title: '① 통계 기법 고르기', tab: 'ladder', body: `
+      <p class="g-sum">질문 5개에 답하면 통계 기법이 정해집니다.</p>
       <ol>
-        <li><b>알고 싶은 것</b>: 집단끼리 차이 / 두 가지가 같이 움직이는지 / 무엇으로 무엇을 예측하는지</li>
+        <li><b>알고 싶은 것</b>: 집단 차이 / 같이 움직이는지 / 무엇으로 무엇을 예측하는지</li>
         <li><b>결과로 잰 것</b>: 점수 같은 숫자 / 예·아니오나 유형 같은 분류</li>
-        <li><b>원인 쪽에 놓은 것</b>: 몇 개인지, 집단이면 몇 집단인지</li>
-        <li><b>여러 번 측정했는지</b>: 같은 사람이 여러 조건을 겪었는지</li>
+        <li><b>원인 쪽</b>: 몇 개인지, 집단이면 몇 집단인지</li>
+        <li><b>여러 번 측정</b>: 같은 사람을 여러 번 쟀는지</li>
         <li><b>다른 변인</b>: 사이를 거쳐 가는 변인(매개), 효과를 바꾸는 변인(조절)</li>
       </ol>
-      <p>질문마다 <b>[설명 보기]</b>에 쉬운 설명과 예시가 있습니다. <b>[뒤로 가기]</b>나 지도의 갈림길을 눌러 언제든 되돌아갈 수 있습니다.</p>
+      <ul>
+        <li>모르는 질문은 <b>[설명 보기]</b>를 누르세요. 쉬운 설명과 예시가 있습니다.</li>
+        <li>답한 질문은 위에 쌓입니다. 누르면 그 질문으로 돌아갑니다.</li>
+        <li>오른쪽 <b>[통계 방법]</b> 탭의 사다리 지도에서 지금 위치(주황색)를 볼 수 있습니다.</li>
+      </ul>
       <h3>도착하면</h3>
       <ul>
-        <li>기법 이름과 고른 이유, 함께 확인할 것(비모수 대안 등), 내가 고른 답이 나옵니다.</li>
-        <li><b>변인 고정칸</b>에 독립변인(이름·수준), 종속변인, 매개·조절·통제변인을 적고 <b>🔒 잠그기</b>를 누르면 나중에 바뀌지 않았는지 확인하는 기준이 됩니다.</li>
-        <li><b>[이 변인으로 설문 만들기]</b>를 누르면 설문 설계로 이어집니다.</li>
+        <li>기법 이름, 고른 이유, 함께 확인할 것이 나옵니다.</li>
+        <li><b>변인 고정칸</b>에 변인을 적고 <b>[🔒 잠그기]</b>를 누르세요. 나중에 바뀌지 않았는지 확인하는 기준이 됩니다.</li>
+        <li><b>[이 변인으로 설문 만들기 →]</b>로 설문 만들기로 넘어갑니다.</li>
       </ul>
-      <div class="gnote">갈림길 규칙은 아직 교재 자료 없이 통계 지식으로 만든 것이라 모두 <span class="tag ai">AI 지식</span> 꼬리표가 붙어 있습니다. 왼쪽 [갈림길 규칙] 메뉴에서 하나씩 볼 수 있습니다.</div>` },
+      <div class="gnote">갈림길 규칙은 아직 교재 근거 없이 통계 지식으로 만들어 모두 <span class="tag ai">AI 지식</span> 꼬리표가 붙어 있습니다. 지도교수님 의견과 다르면 교수님 의견을 따르세요.</div>` },
 
-    { id: 'survey', group: '단계별 사용법', title: '② 설문 설계', tab: 'survey', body: `
-      <h3>척도 원본으로 한 번에 만들기</h3>
-      <p>설문 만들기 위쪽 <b>[📄 척도 원본으로 만들기]</b>를 누르고 척도를 넣으면 문항, 응답 선택지, 역문항, 하위요인을 찾아 칸을 채웁니다.</p>
+    { id: 'survey', group: '단계별 사용법', title: '② 설문 만들기', kw: '설문지 문항 척도 원본 PDF 사진', tab: 'survey', body: `
+      <p class="g-sum">변인마다 문항과 응답 선택지를 넣습니다. 척도 원본이 있으면 자동으로 채울 수 있습니다.</p>
+      <h3>척도 원본으로 만들기</h3>
+      <p>위쪽 <b>[📄 척도 원본으로 만들기]</b>를 누르고 원본을 넣습니다.</p>
       <table class="gtable"><thead><tr><th>원본</th><th>읽는 방법</th></tr></thead><tbody>
-        <tr><td>PDF (글자를 고를 수 있는 PDF)</td><td>이 화면에서 바로 글자를 읽습니다. AI가 필요 없습니다.</td></tr>
-        <tr><td>사진, 스캔한 PDF (글자를 고를 수 없음)</td><td>AI가 글자를 읽습니다. claude.ai 링크에서는 바로 되고, 그 밖에서는 [지시문 복사]를 눌러 ChatGPT·Gemini 같은 AI 채팅에 사진과 함께 붙여 넣은 뒤 답을 [글 붙여 넣기]에 넣습니다.</td></tr>
-        <tr><td>복사한 글</td><td>[글 붙여 넣기]에 넣고 [문항 찾기]. "1. 문항" 처럼 번호가 붙어 있으면 대부분 잘 됩니다.</td></tr>
+        <tr><td>PDF (글자를 고를 수 있는 것)</td><td>바로 읽습니다. AI가 필요 없습니다.</td></tr>
+        <tr><td>사진, 스캔한 PDF</td><td>AI가 읽습니다. AI가 연결되지 않았으면 [지시문 복사]를 눌러 ChatGPT 등에 사진과 함께 붙여 넣고, 답을 [글 붙여 넣기]에 넣습니다.</td></tr>
+        <tr><td>복사한 글</td><td>[글 붙여 넣기] → [문항 찾기]</td></tr>
       </tbody></table>
       <ul>
-        <li>찾는 것: 척도 이름과 출처, 지시문, 응답 선택지(<code>1=전혀 그렇지 않다 … 5=매우 그렇다</code>, 표 머리줄, 문항 끝 응답 칸 개수), 역문항(<code>(R)</code> <code>(역)</code> <code>*</code>, "역채점 문항: 3, 7번"), 하위요인(제목줄, "정서적 고갈(1, 2, 3)")</li>
-        <li><b>미리보기에서 원본과 한 문항씩 대조</b>하고, 문장·역문항·넣을지 여부를 고친 뒤 [설문에 넣기]. 하위요인은 따로 변인으로 넣을지 합칠지 고릅니다.</li>
-        <li>사다리에서 가져온 빈 변인이 있으면 그 변인에 바로 채울 수 있습니다.</li>
-        <li>원척도가 0점부터 시작하면 설문에는 1점부터 저장됩니다. 원척도 점수로 보고하려면 평균에서 1을 빼세요.</li>
+        <li>문항, 응답 선택지, 역문항(거꾸로 채점하는 문항), 하위요인을 찾아 줍니다.</li>
+        <li><b>미리보기에서 원본과 한 문항씩 대조</b>한 뒤 [설문에 넣기]를 누르세요.</li>
+        <li>원척도가 0점부터면 설문에는 1점부터로 저장됩니다. 원척도 점수로 보고하려면 평균에서 1을 빼세요.</li>
       </ul>
-      <div class="gnote">척도는 저작권이 있는 경우가 많습니다. 저자 허락이나 공개 사용 조건을 확인하고, 논문에 출처를 밝히세요.</div>
+      <div class="gnote">척도는 저작권이 있는 경우가 많습니다. 사용 허락을 확인하고 논문에 출처를 밝히세요.</div>
       <h3>직접 만들기</h3>
       <ol>
-        <li><b>설문 기본 정보</b>: 제목, 첫 화면 인사말, 연구 참여 동의문(○○ 자리를 실제 내용으로), 점수 계산 방식(평균 권장)</li>
-        <li><b>변인(척도)</b>: 이름, 약칭(영문 추천, 예: SCO), 역할(독립·매개·조절·종속·통제), 응답 방식(2~11점), 선택지, 척도 출처</li>
-        <li><b>문항</b>: 하나씩 적거나 [문항 여러 개 한 번에 붙여 넣기]로 넣습니다. 줄 끝에 <code>(역)</code>을 붙이면 역문항이 됩니다.</li>
-        <li><b>기본 정보 문항</b>: 성별, 나이처럼 설문 끝에 묻는 문항. 이름·연락처처럼 사람을 알아볼 수 있는 정보는 받지 않는 것을 권합니다.</li>
+        <li><b>설문 기본 정보</b>: 제목, 인사말, 참여 동의문. 동의문의 ○○ 자리를 실제 내용으로 바꾸세요.</li>
+        <li><b>변인(척도)</b>: 이름, 약칭(영문, 예: SCO), 역할, 응답 방식(2~11점), 선택지, 출처</li>
+        <li><b>문항</b>: 하나씩 적거나 [문항 여러 개 한 번에 붙여 넣기]. 줄 끝에 <code>(역)</code>을 붙이면 역문항입니다.</li>
+        <li><b>기본 정보 문항</b>: 성별, 나이 등. 이름·연락처는 받지 않는 것을 권합니다.</li>
       </ol>
-      <p>오른쪽 <b>[설문 한눈에 보기]</b>에 문항 수, 예상 응답 시간, 빠진 곳이 나옵니다. <b>[응답자 화면 미리보기]</b>로 실제 폼과 같은 쪽 나눔으로 답해 볼 수 있습니다.</p>
-      <p><b>[코드북 내려받기]</b>는 변수 이름, 문항, 역문항, 응답 범위를 정리한 표입니다. 논문 부록이나 분석 프로그램 작업에 씁니다.</p>` },
+      <p>위쪽 버튼 줄의 <b>[미리보기]</b>로 응답자 화면을, 오른쪽 <b>[설문]</b> 탭에서 문항 수와 예상 시간을 봅니다. <b>[코드북 CSV]</b>는 변수 이름과 문항을 정리한 표입니다.</p>` },
 
-    { id: 'gform', group: '단계별 사용법', title: '③ 구글 폼 만들기와 배포', tab: 'survey', body: `
-      <p>연구자에게 구글 계정이 있어야 합니다(무료). 응답자는 계정 없이 링크로 답합니다.</p>
-      <div class="gstep"><b>STEP 1. 스크립트 복사</b><p>왼쪽 메뉴 [③ 구글 폼 배포]를 누르거나, 설문 만들기 화면 위쪽 <b>[구글 폼 스크립트]</b> → <b>[코드 복사]</b></p></div>
-      <div class="gstep"><b>STEP 2. 구글 앱스 스크립트에 붙여 넣기</b><p><a href="https://script.google.com/home/projects/create" target="_blank" rel="noopener">script.google.com 새 프로젝트</a>를 열고, 원래 있던 코드를 지운 뒤 붙여 넣고 저장(Ctrl+S)합니다.</p></div>
-      <div class="gstep"><b>STEP 3. 실행</b><p>위쪽에서 함수가 <code>createSurvey</code>인지 확인하고 [실행]을 누릅니다. 처음 한 번은 [권한 검토] → 내 계정 → [고급] → [(프로젝트 이름)(으)로 이동] → [허용]이 필요합니다. 내가 만든 스크립트라서 나오는 확인 절차입니다.</p></div>
-      <div class="gstep"><b>STEP 4. 링크 배포</b><p>아래 [실행 로그]에 세 링크가 나옵니다.</p>
-        <ul><li><b>응답자에게 보낼 링크</b> — 카톡, 메일, 커뮤니티에 공유</li><li><b>폼 고치기</b> — 마감 설정 등</li><li><b>응답 시트</b> — 응답이 한 줄씩 쌓이는 곳</li></ul></div>
-      <div class="gnote">문항 문장을 구글 폼에서 직접 고치면 응답을 합칠 때 자동 연결이 안 될 수 있습니다. 고칠 일이 있으면 설문 설계에서 고치고 스크립트를 다시 만드세요.</div>` },
+    { id: 'gform', group: '단계별 사용법', title: '③ 구글 폼 배포', kw: '구글 폼 만들기 폼 배포 링크 스크립트 앱스', tab: 'survey', body: `
+      <p class="g-sum">스크립트를 한 번 실행하면 내 구글 드라이브에 폼과 응답 시트가 생깁니다.</p>
+      <div class="gstep"><b>STEP 1. 복사</b><p>왼쪽 메뉴 <b>구글 폼 배포</b> → <b>[코드 복사]</b></p></div>
+      <div class="gstep"><b>STEP 2. 붙여 넣기</b><p><a href="https://script.google.com/home/projects/create" target="_blank" rel="noopener">구글 앱스 스크립트 새 프로젝트</a>를 열고, 있던 코드를 지운 뒤 붙여 넣고 저장(Ctrl+S)합니다.</p></div>
+      <div class="gstep"><b>STEP 3. 실행</b><p>위쪽 함수가 <code>createSurvey</code>인지 보고 [실행]을 누릅니다. 처음 한 번은 [권한 검토] → 내 계정 → [고급] → [(프로젝트)(으)로 이동] → [허용]. 내가 만든 스크립트라서 나오는 확인입니다.</p></div>
+      <div class="gstep"><b>STEP 4. 배포</b><p>아래 [실행 로그]에 링크 세 개가 나옵니다.</p>
+        <ul><li><b>응답자용 링크</b>: 카톡, 메일로 보냅니다.</li><li><b>폼 고치기</b>: 마감 설정 등</li><li><b>응답 시트</b>: 응답이 쌓이는 곳</li></ul></div>
+      <div class="gnote">문항을 구글 폼에서 직접 고치면 나중에 응답이 자동으로 연결되지 않을 수 있습니다. ㅌㅗㅇ에서 고치고 스크립트를 다시 만드세요.</div>` },
 
-    { id: 'collect', group: '단계별 사용법', title: '④ 응답 취합', tab: 'collect', body: `
+    { id: 'collect', group: '단계별 사용법', title: '④ 응답 취합', kw: '응답 CSV 점수 신뢰도', tab: 'collect', body: `
+      <p class="g-sum">응답 파일을 넣으면 변인 점수와 신뢰도가 나옵니다.</p>
       <ol>
-        <li>응답 시트에서 <b>[파일 → 다운로드 → 쉼표로 구분된 값(.csv)]</b>으로 받습니다.</li>
-        <li>[응답 취합] 메뉴에서 <b>[CSV 파일 고르기]</b>로 넣습니다. 시트를 전체 복사해 붙여 넣어도 됩니다.</li>
-        <li><b>열 연결 확인</b>: 문항 문장이 같은 열을 자동으로 찾습니다. 틀리거나 빈 곳만 직접 고르세요.</li>
-        <li><b>[점수 만들기]</b>: 글로 된 응답을 숫자로 바꾸고, 역문항을 뒤집어 변인 점수를 만듭니다.</li>
+        <li>응답 시트에서 <b>[파일 → 다운로드 → 쉼표로 구분된 값(.csv)]</b></li>
+        <li><b>[CSV 파일 고르기]</b>로 넣습니다. 시트를 복사해 붙여 넣어도 됩니다.</li>
+        <li><b>열 연결</b>을 확인합니다. 대부분 자동으로 맞춰집니다.</li>
+        <li><b>[점수 만들기]</b>를 누릅니다. 역문항은 저절로 뒤집힙니다.</li>
       </ol>
-      <h3>결과에서 볼 것</h3>
+      <h3>볼 것</h3>
       <ul>
-        <li><b>제외된 응답</b>: 비동의, 빈 응답, (선택하면) 모든 문항에 같은 답을 한 불성실 의심 응답</li>
-        <li><b>크론바흐 α</b>: 보통 .70 이상이면 받아들일 만합니다.</li>
-        <li><b>문항 분석</b>: 문항-총점 상관이 .30보다 낮거나 지웠을 때 α가 오르는 문항(빨간 숫자)은 먼저 역문항 표시가 맞는지 확인하세요.</li>
-        <li><b>왜도·첨도</b>: 절댓값이 각각 2, 7보다 작으면 정규분포에서 크게 벗어나지 않았다고 보는 기준이 흔히 쓰입니다.</li>
+        <li><b>제외된 응답</b>: 동의 안 함, 빈 응답, (고른 경우) 모두 같은 번호로 답한 응답</li>
+        <li><b>신뢰도(크론바흐 α)</b>: 보통 .70 이상이면 받아들일 만합니다.</li>
+        <li><b>문항 분석</b>: 빨간 숫자 문항은 역문항 표시가 맞는지 먼저 확인하세요.</li>
+        <li><b>왜도·첨도</b>: 절댓값이 2, 7보다 작으면 정규분포에서 크게 벗어나지 않았다고 흔히 봅니다.</li>
       </ul>
-      <p><b>[분석용 자료 내려받기]</b>로 받은 CSV는 SPSS, jamovi, R에서 그대로 불러올 수 있습니다.</p>
-      <div class="gnote">시트를 '웹에 게시'하지 마세요. 링크를 아는 누구나 응답을 볼 수 있게 됩니다. 응답 원자료는 이 페이지에 저장되지 않아서, 다시 열면 CSV를 다시 넣어야 합니다.</div>` },
+      <p><b>[분석용 자료 내려받기]</b>로 받은 파일은 SPSS, jamovi, R에서 바로 열립니다.</p>
+      <div class="gnote">응답 원자료는 저장하지 않습니다(연구 폴더에 저장을 켠 경우만 예외). 다시 열면 CSV를 다시 넣으세요. 응답 시트를 '웹에 게시'하지 마세요.</div>` },
 
-    { id: 'analysis', group: '단계별 사용법', title: '⑤ 분석', tab: 'analysis', body: `
-      <p>사다리가 고른 기법이 먼저 선택되고, 설문 설계의 역할대로 변인이 채워집니다. 확인하고 <b>[계산하기]</b>를 누르세요.</p>
-      <table class="gtable"><thead><tr><th>묶음</th><th>기법</th></tr></thead><tbody>
-        <tr><td>관계</td><td>피어슨·스피어만 상관, 편상관, 점이연 상관, 카이제곱</td></tr>
-        <tr><td>집단 차이</td><td>단일표본·독립표본·대응표본 t검정, 일원·이원분산분석, 공분산분석</td></tr>
+    { id: 'analysis', group: '단계별 사용법', title: '⑤ 분석 결정·계산', tab: 'analysis', body: `
+      <p class="g-sum">고른 기법과 변인이 미리 채워집니다. 분석 결정을 확인하고 <b>[계산하기]</b>를 누르세요.</p>
+      <table class="gtable"><thead><tr><th>묶음</th><th>계산하는 기법</th></tr></thead><tbody>
+        <tr><td>관계</td><td>상관(피어슨·스피어만·편상관·점이연), 카이제곱</td></tr>
+        <tr><td>집단 차이</td><td>t검정(단일·독립·대응), 일원·이원분산분석, 공분산분석</td></tr>
         <tr><td>예측</td><td>단순·다중·위계적 회귀, 이항 로지스틱 회귀</td></tr>
-        <tr><td>매개·조절</td><td>단순·병렬 매개(Model 4), 순차매개(Model 6), 조절(Model 1), 조절된 매개(Model 7·14)</td></tr>
+        <tr><td>매개·조절</td><td>단순·병렬 매개, 순차매개, 조절, 조절된 매개</td></tr>
       </tbody></table>
       <ul>
-        <li>간접효과는 <b>부트스트랩</b>(기본 5,000번)으로 95% 신뢰구간을 구합니다. 시작값을 고정해 같은 자료는 늘 같은 결과가 나옵니다.</li>
-        <li>결과 아래 <b>[보고 체크리스트]</b>가 APA 7 보고 항목을 점검합니다. <a href="#guide-checks">자세히</a></li>
-        <li>결과 아래 <b>[가설에 연결할 수 있는 효과]</b>가 결과 해석에서 가설과 이어집니다.</li>
-        <li>반복측정·혼합설계 분산분석, 다층모형, 다항·서열 로지스틱은 계산하지 않습니다. jamovi(무료)나 SPSS를 쓰세요.</li>
+        <li>결과는 오른쪽 <b>[결과]</b> 탭에 나옵니다.</li>
+        <li>간접효과는 부트스트랩(기본 5,000번)으로 신뢰구간을 구합니다. 같은 자료는 늘 같은 결과가 나옵니다.</li>
+        <li>결과마다 <a href="#guide-checks">보고 체크리스트</a>가 붙습니다.</li>
+        <li>반복측정·혼합설계, 다층모형, 다항·서열 로지스틱은 계산하지 않습니다. jamovi나 SPSS를 쓰세요.</li>
       </ul>
-      <div class="gnote">이 계산은 같은 자료로 통계 프로그램(statsmodels·scipy)과 대조해 소수 둘째 자리까지 같은 것을 확인했습니다. 그래도 논문에 쓰기 전에는 지도교수님께 확인받는 것을 권합니다.</div>` },
+      <div class="gnote">계산 결과는 통계 프로그램(Python statsmodels·scipy, R)과 대조해 같은 것을 확인했습니다. 그래도 논문에 쓰기 전에 지도교수님께 확인받으세요.</div>` },
 
-    { id: 'interp', group: '단계별 사용법', title: '⑥ 결과 해석', tab: 'interp', body: `
-      <ol>
-        <li><b>연구 의도</b>: 제목, 목적, 설계(횡단·종단·실험), 이론적 배경, 해석할 때 신경 쓰는 점</li>
-        <li><b>가설과 판정</b>: 가설 문장을 적고, 검증할 통계 효과와 예상 방향(+/−)을 고르면 코드가 바로 판정합니다.
-          <ul><li>간접효과: 95% 신뢰구간이 0을 포함하지 않으면 유의</li><li>나머지: p &lt; .05이면 유의</li><li>유의하고 예상 방향과 같을 때만 <b>지지</b></li></ul></li>
-        <li><b>AI와 함께 해석</b>: AI가 먼저 내 의도를 다시 말해 보고 묻습니다. 답하면 판정과 숫자 그대로 결과·논의 초안을 씁니다. <a href="#guide-ai">AI 연결 방법</a></li>
-        <li><b>자동 점검</b>: 초안에서 아래 네 가지를 찾아 알려 줍니다.
-          <ul><li>결과표에 없는 숫자 (노란 표시)</li><li>코드 판정과 다른 지지·기각 서술</li><li>횡단 자료에서 인과를 단정하는 말</li><li>유의하지 않은 결과를 "효과가 없다"로 쓴 것</li></ul></li>
-      </ol>
-      <p>초안을 받은 뒤 맨 아래 <b>4. 허점 점검</b>으로 깐깐한 동료의 질문을 받아 보세요. <a href="#guide-checks">자세히</a></p>
-      <div class="gnote">AI 초안은 출발점입니다. 선행연구 인용은 넣지 않고 <code>[선행연구 비교: …]</code> 자리로 남기니 직접 채워 주세요.</div>` },
-
-    { id: 'decisions', group: '단계별 사용법', title: '⑤-1 분석 결정', tab: 'analysis', body: `
-      <p>같은 자료도 <b>어떻게 분석하느냐</b>에 따라 결과가 달라집니다. 이 선택은 연구자의 판단이자 책임입니다. [분석] 탭의 <b>분석 결정</b>에서 결과를 보기 전에 정해 두세요.</p>
+    { id: 'decisions', group: '단계별 사용법', title: '⑤-1 분석 결정', kw: 'p해킹 사후 변경 결정', tab: 'analysis', body: `
+      <p class="g-sum">같은 자료도 분석 방법에 따라 결과가 달라집니다. <b>결과를 보기 전에</b> 정해 두세요.</p>
       <table class="gtable"><thead><tr><th>결정</th><th>선택지</th></tr></thead><tbody>
         <tr><td>점수 만드는 법</td><td>문항 평균 / 합계</td></tr>
         <tr><td>점수를 줄 최소 응답</td><td>모두 / 80% 이상 / 절반 이상</td></tr>
@@ -5397,107 +5419,109 @@ ${REVIEW_RULES}
         <tr><td>부트스트랩 횟수 (매개)</td><td>1,000 / 5,000 / 10,000</td></tr>
         <tr><td>평균중심화 (조절)</td><td>함 / 안 함</td></tr>
       </tbody></table>
-      <p>선택지마다 쉬운 설명이 붙어 있습니다. 빠진 값 처리, 유의수준, 기준 집단처럼 정해진 기본값도 함께 보여 줍니다.</p>
+      <p>선택지마다 쉬운 설명이 있습니다. 정했으면 <b>[결정 확정하기]</b>를 누르세요.</p>
       <h3>왜 미리 정하나요?</h3>
-      <p>결과를 보고 유의하게 나오는 쪽으로 방법을 바꾸면, 우연한 결과를 진짜처럼 보고하게 됩니다(흔히 p-해킹이라고 부름). 그래서 <b>[결정 확정하기]</b>로 미리 정하고, 결과를 본 뒤 바꾼 것은 <b>사후 변경</b>으로 기록되어 이유를 적게 됩니다. 기록은 <b>[분석 계획서 받기]</b>로 받아 논문 부록이나 심사 자료로 쓸 수 있습니다.</p>` },
+      <p>결과를 보고 유의하게 나오는 쪽으로 방법을 바꾸면 우연한 결과를 진짜처럼 보고하게 됩니다(p-해킹). 확정한 뒤 바꾸면 <b>사후 변경</b>으로 기록되고 이유를 적게 됩니다. <b>[분석 계획서 받기]</b>로 받아 논문 부록에 쓸 수 있습니다.</p>` },
 
-    { id: 'r', group: '단계별 사용법', title: '⑤-2 R로 확인하기', tab: 'analysis', body: `
-      <p>ㅌㅗㅇ의 숫자를 <b>R</b>로 다시 계산해 대조합니다. R은 무료이고 연구에서 널리 쓰는 표준 통계 프로그램입니다. R 문법은 몰라도 됩니다.</p>
-      <ul><li>R 코드는 ㅌㅗㅇ이 <b>분석 결정 그대로</b> 만듭니다. AI가 즉석에서 짜지 않습니다.</li><li><b>기본 R만</b> 씁니다. 추가 패키지 설치가 필요 없습니다.</li><li>숫자는 R이 만듭니다. AI는 R을 대신 실행하고 결과를 정리할 뿐입니다.</li></ul>
-      <div class="gstep"><b>STEP 1. 파일 받기</b><p>[분석] 탭 → [R로 확인하기]에서 <code>analysis_data.csv</code>와 <code>analysis.R</code>을 받아 한 폴더에 넣습니다. claude.ai에서 받으면 <code>analysis.R.txt</code>로 저장될 수 있습니다. 이름에서 <code>.txt</code>를 지우세요 (Claude Code는 알아서 바꿉니다).</p></div>
-      <div class="gstep"><b>STEP 2-가. Claude Code가 대신 실행</b><p>새로 받은 CLAUDE.md도 그 폴더에 넣고 <code>claude</code> 실행 → <b>"R로 분석해줘"</b>. R이 없으면 설치를 도와주고, 실행 결과를 <code>R_output.txt</code>로 남깁니다. 계획에 없던 문제가 보이면 멈추고 묻습니다.</p></div>
-      <div class="gstep"><b>STEP 2-나. RStudio에서 직접</b><p><a href="https://posit.co/download/rstudio-desktop/" target="_blank" rel="noopener">R과 RStudio</a>를 설치하고, <code>analysis.R</code>을 열어 오른쪽 위 <b>[Source]</b>를 누릅니다. 작업 폴더가 파일 위치와 같아야 합니다 ([Session → Set Working Directory → To Source File Location]).</p></div>
-      <div class="gstep"><b>STEP 3. 대조</b><p>R 출력(또는 <code>R_results.csv</code>)을 각 분석 결과의 <b>[R 결과와 맞춰 보기]</b>에 붙여 넣으면 효과마다 일치 여부가 표로 나옵니다. 부트스트랩 신뢰구간은 난수가 달라 소수 셋째 자리에서 조금 다를 수 있고, 판정(0 포함 여부)이 같으면 일치로 봅니다.</p></div>
-      <div class="gnote">논문에는 "분석은 ㅌㅗㅇ으로 수행하고 R 4.x로 재계산해 확인하였다"처럼 적을 수 있습니다. 표준 도구로 확인했다는 근거가 됩니다.</div>` },
+    { id: 'r', group: '단계별 사용법', title: '⑤-2 R로 확인하기', kw: 'R RStudio 재계산', tab: 'analysis', body: `
+      <p class="g-sum">ㅌㅗㅇ의 숫자를 무료 통계 프로그램 <b>R</b>로 다시 계산해 맞는지 봅니다. R 문법은 몰라도 됩니다.</p>
+      <ul><li>R 코드는 ㅌㅗㅇ이 분석 결정 그대로 만듭니다.</li><li>기본 R만 씁니다. 추가 설치가 없습니다.</li></ul>
+      <div class="gstep"><b>STEP 1. 파일 받기</b><p>오른쪽 [결과] 탭의 <b>R로 확인하기</b>에서 <code>analysis_data.csv</code>와 <code>analysis.R</code>을 받아 한 폴더에 둡니다. 연구 폴더를 연결했다면 이미 들어 있습니다. 파일 이름이 <code>analysis.R.txt</code>로 저장되면 <code>.txt</code>를 지우세요.</p></div>
+      <div class="gstep"><b>STEP 2-가. AI에게 맡기기</b><p>Claude Code로 그 폴더를 열고 <b>"R로 분석해줘"</b>. 결과가 <code>R_output.txt</code>로 남습니다. <a href="#guide-claude-code">따라 하기</a></p></div>
+      <div class="gstep"><b>STEP 2-나. 직접 실행</b><p><a href="https://posit.co/download/rstudio-desktop/" target="_blank" rel="noopener">R과 RStudio</a>를 설치하고 <code>analysis.R</code>을 연 뒤 [Source]를 누릅니다.</p></div>
+      <div class="gstep"><b>STEP 3. 대조</b><p>R 출력을 <b>[R 결과와 맞춰 보기]</b>에 붙여 넣으면 효과마다 일치 여부가 나옵니다. 연구 폴더를 연결했다면 저절로 대조합니다. 부트스트랩 신뢰구간은 소수 셋째 자리가 조금 다를 수 있습니다.</p></div>
+      <div class="gnote">논문에는 "ㅌㅗㅇ으로 분석하고 R로 재계산해 확인하였다"처럼 적을 수 있습니다.</div>` },
+
+    { id: 'interp', group: '단계별 사용법', title: '⑥ 결과 해석', tab: 'interp', body: `
+      <p class="g-sum">가설마다 지지·기각을 <b>코드가 판정</b>하고, AI는 그 판정과 숫자 그대로 초안을 씁니다.</p>
+      <ol>
+        <li><b>연구 의도</b>: 제목, 목적, 설계, 이론적 배경을 적습니다.</li>
+        <li><b>가설과 판정</b>: 가설 문장, 검증할 효과, 예상 방향(+/−)을 고르면 바로 판정됩니다.
+          <ul><li>간접효과: 95% 신뢰구간이 0을 포함하지 않으면 유의</li><li>나머지: p &lt; .05이면 유의</li><li>유의하고 방향까지 맞아야 <b>지지</b></li></ul></li>
+        <li><b>AI와 해석</b>: AI가 먼저 내 의도를 확인하고 질문합니다. 답하면 결과·논의 초안을 씁니다. <a href="#guide-ai">AI 방식</a></li>
+        <li><b>자동 점검</b>: 초안에서 아래를 찾아 알려 줍니다.
+          <ul><li>결과표에 없는 숫자 (노란 표시)</li><li>판정과 다른 지지·기각 서술</li><li>한 시점 자료에서 인과를 단정하는 말</li><li>유의하지 않은 결과를 "효과가 없다"로 쓴 것</li></ul></li>
+      </ol>
+      <p>직접 쓴 글도 <b>[초안 점검]</b>에 붙여 넣으면 같은 점검을 받습니다. 판정, 초안, 허점 점검은 오른쪽 <b>[결과]</b> 탭에도 모여 보입니다.</p>
+      <div class="gnote">AI 초안은 출발점입니다. 선행연구 인용은 <code>[선행연구 비교: …]</code> 자리로 남기니 직접 채우세요.</div>` },
 
     { id: 'checks', group: '단계별 사용법', title: '⑦ 보고 체크리스트와 허점 점검', tab: 'interp', body: `
-      <h3>보고 체크리스트 (코드가 자동으로)</h3>
-      <p>[분석]에서 계산하면 결과마다 <b>APA 7 결과 보고에 들어가야 할 항목</b>을 점검한 목록이 붙습니다. lazzzyResearch 통계 코칭의 #8 체크리스트와 같은 항목입니다.</p>
+      <h3>보고 체크리스트 (자동)</h3>
+      <p class="g-sum">계산하면 결과마다 <b>APA 7 보고 항목</b>을 갖췄는지 점검합니다.</p>
       <table class="gtable"><thead><tr><th>묶음</th><th>점검하는 것</th></tr></thead><tbody>
         <tr><td>기술통계</td><td>N, 평균, 표준편차</td></tr>
-        <tr><td>검정통계량</td><td>t·F·χ² 값, 자유도, 정확한 p</td></tr>
-        <tr><td>효과크기</td><td>d, r, η², ω², f², V 등과 작음·중간·큼 기준</td></tr>
+        <tr><td>검정통계량</td><td>t·F·χ², 자유도, 정확한 p</td></tr>
+        <tr><td>효과크기</td><td>d, r, η², f² 등과 크기 기준</td></tr>
         <tr><td>신뢰구간</td><td>계수, 효과크기, 간접효과의 95% CI</td></tr>
-        <tr><td>가정 검정</td><td>정규성(Shapiro–Wilk), 등분산(Levene), 다중공선성(VIF), 기대빈도 등</td></tr>
-        <tr><td>다중비교</td><td>사후검정 방법, 여러 번 검정한 문제</td></tr>
-        <tr><td>유의성 판단</td><td>α 수준 밝히기, 통계적 유의성과 실질적 의미 구별</td></tr>
+        <tr><td>가정</td><td>정규성, 등분산, 다중공선성 등</td></tr>
+        <tr><td>다중비교·유의성</td><td>사후검정, α 수준, 통계적 유의성과 실질적 의미 구별</td></tr>
       </tbody></table>
-      <p><span class="ck ok" style="display:inline-grid">✓</span> 갖춤 &nbsp; <span class="ck warn" style="display:inline-grid">!</span> 확인 필요 &nbsp; <span class="ck na" style="display:inline-grid">–</span> 해당 없음(이유를 함께 적음)</p>
-      <p>'확인 필요'는 이 사이트가 계산하지 않는 것(예: η²의 신뢰구간, 잔차 그림)이거나 가정이 어긋난 것입니다. SPSS나 jamovi로 보충하거나 연구의 한계에 적으세요.</p>
-      <h3>허점 점검 (AI 깐깐한 동료)</h3>
-      <p>[결과 해석] 맨 아래 <b>4. 허점 점검</b>에서 결과·논의 글을 넣으면, AI가 심사위원처럼 읽고 약한 곳을 질문합니다. 글을 고치지 않고 질문만 합니다.</p>
-      <ul><li>인과 해석, 반대 방향, 제3의 변인</li><li>작은 효과를 크게 쓴 곳, 표본보다 넓은 일반화</li><li>측정 문제, 보고 체크리스트의 '확인 필요' 항목을 넘어간 곳</li><li>유의하지 않은 결과를 "효과가 없다"로 읽은 곳</li></ul>
-      <p>세 가지 AI 연결 방법(바로 쓰기, 아무 AI 채팅, Claude Code) 모두에서 쓸 수 있습니다. 질문마다 [검토함]에 체크하며 하나씩 정리하세요.</p>` },
+      <p><span class="ck ok" style="display:inline-grid">✓</span> 갖춤 &nbsp; <span class="ck warn" style="display:inline-grid">!</span> 확인 필요 &nbsp; <span class="ck na" style="display:inline-grid">–</span> 해당 없음</p>
+      <p>'확인 필요'는 ㅌㅗㅇ이 계산하지 않는 것이거나 가정이 어긋난 것입니다. SPSS·jamovi로 보충하거나 연구의 한계에 적으세요.</p>
+      <h3>허점 점검 (AI)</h3>
+      <p>왼쪽 메뉴 <b>허점 점검 (AI)</b>에서 결과·논의 글을 넣으면, AI가 심사위원처럼 약한 곳을 <b>질문</b>합니다. 글은 고치지 않습니다.</p>
+      <ul><li>인과 해석, 반대 방향, 제3의 변인</li><li>작은 효과를 크게 쓴 곳, 지나친 일반화</li><li>측정 문제, 체크리스트의 '확인 필요'를 넘어간 곳</li></ul>
+      <p>질문마다 [검토함]에 체크하며 정리하세요.</p>` },
 
-    { id: 'ai', group: 'AI 연결', title: 'AI 연결 방법 세 가지', tab: 'interp', body: `
-      <h3>AI 방식 고르기</h3>
-      <p>대화창 왼쪽 아래 점을 누르면 고를 수 있습니다. 고른 방식은 대화창, 결과 해석, 허점 점검, 척도 사진 읽기에 모두 적용됩니다.</p>
-      <table class="gtable"><thead><tr><th>방식</th><th>이럴 때</th></tr></thead><tbody>
-        <tr><td><b>Claude 바로 쓰기</b></td><td>claude.ai 링크로 열었을 때. 화면 안에서 바로 답합니다.</td></tr>
-        <tr><td><b>다른 AI 쓰기</b></td><td>ChatGPT·Gemini 등 쓰던 AI를 쓰고 싶을 때. 지시문을 복사해 붙여 넣습니다.</td></tr>
-        <tr><td><b>AI 쓰지 않기</b></td><td>기관·IRB 규정상 외부 AI에 연구 자료를 보내면 안 될 때. 아무것도 밖으로 보내지 않습니다.</td></tr>
+    { id: 'ai', group: 'AI 연결', title: 'AI 방식', kw: 'AI 연결 ChatGPT 챗GPT Gemini 복사', tab: 'interp', body: `
+      <p class="g-sum">대화창 왼쪽 아래 <b>점</b>을 누르면 AI 방식을 고릅니다. 대화창, 결과 해석, 허점 점검, 척도 사진 읽기에 모두 적용됩니다.</p>
+      <table class="gtable"><thead><tr><th>방식</th><th>쓰는 법</th><th>필요한 것</th></tr></thead><tbody>
+        <tr><td><b>Claude 바로 쓰기</b></td><td>화면 안에서 바로 답합니다.</td><td>claude.ai 링크로 열기 (claude.ai 계정, 무료도 됨)</td></tr>
+        <tr><td><b>다른 AI 쓰기</b></td><td>[지시문 복사] → ChatGPT·Gemini 등에 붙여 넣기 → 답을 다시 붙여 넣기</td><td>아무 AI 계정 (무료도 됨)</td></tr>
+        <tr><td><b>AI 쓰지 않기</b></td><td>AI 기능을 끄고 아무것도 밖으로 보내지 않습니다.</td><td>없음</td></tr>
       </tbody></table>
-      <h3>내 화면에서 AI가 되나요?</h3>
-      <p>대화창 왼쪽 아래 점을 보세요. <b style="color:#1f8a5b">● AI 연결됨</b>이면 대화창과 결과 해석에서 AI가 바로 답합니다. <b style="color:#8a90a3">● AI 없음</b>이면 아래 방법 중 하나로 씁니다.</p>
-      <table class="gtable"><thead><tr><th>어디서 열었나</th><th>대화창에 물으면</th></tr></thead><tbody>
-        <tr><td>claude.ai 링크 (<a href="${ARTIFACT_URL}" target="_blank" rel="noopener">바로 쓰기 링크</a>)</td><td>AI가 바로 답합니다. 처음 한 번 "Claude 사용 허용"을 누릅니다.</td></tr>
-        <tr><td>일반 웹 주소, 내 컴퓨터의 파일</td><td>사용 설명에서 관련된 곳을 찾아 주고, <b>[AI에게 물을 지시문 복사]</b> 버튼이 나옵니다. 복사해서 ChatGPT, Gemini, Claude 같은 AI 채팅에 붙여 넣으면 같은 답을 받을 수 있습니다.</td></tr>
-      </tbody></table>
-      <h3>결과 해석에서 쓰는 방법</h3>
-      <table class="gtable"><thead><tr><th>방법</th><th>무료 계정</th><th>어떤 AI</th><th>쓰는 법</th></tr></thead><tbody>
-        <tr><td><b>바로 쓰기</b></td><td>claude.ai 계정 필요. 요금제별 한도는 claude.ai 정책을 따름</td><td>Claude</td><td>claude.ai 링크로 열고 버튼 두 번</td></tr>
-        <tr><td><b>아무 AI 채팅</b></td><td><b>됨</b></td><td>ChatGPT, Gemini, Claude 등 아무거나</td><td>지시문 복사 → 채팅에 붙여 넣기 → 답을 다시 붙여 넣기</td></tr>
-        <tr><td><b>Claude Code</b></td><td>안 됨 (Pro 이상)</td><td>Claude</td><td>데스크톱 앱(터미널 필요 없음)이나 터미널에서 연구 폴더를 맡겨 대화 (<a href="#guide-claude-code">따라 하기</a>)</td></tr>
-      </tbody></table>
-      <p>어느 방법이든 <b>가설 판정은 코드가 정하고, 초안의 숫자와 판정은 이 페이지가 다시 점검</b>합니다. 그래서 어떤 AI를 써도 안전장치는 같습니다.</p>
-      <h3>아무 AI 채팅으로 하기 (무료)</h3>
+      <p>점 색으로 지금 상태를 알 수 있습니다: <b style="color:#1f8a5b">● Claude 연결됨</b> · <b style="color:#e06f0b">● 다른 AI (복사)</b> · <b style="color:#8a90a3">● AI 없음</b> · <b style="color:#c0392b">● AI 끔</b></p>
+      <p>Claude에게 연구 폴더를 통째로 맡기는 방법도 있습니다(유료 요금제). <a href="#guide-claude-code">Claude Code로 맡기기</a></p>
+      <h3>다른 AI로 해석하기</h3>
       <ol>
-        <li>결과 해석 메뉴 → [아무 AI 채팅] → <b>[① 의도 확인 지시문 복사]</b> → AI 채팅에 붙여 넣기</li>
-        <li>AI의 답을 [AI의 답] 칸에 붙여 넣고, AI가 물은 것에 [내 답] 칸에 답하기</li>
+        <li>결과 해석 → <b>[다른 AI (복사)]</b> → <b>[① 의도 확인 지시문 복사]</b> → AI 채팅에 붙여 넣기</li>
+        <li>AI의 답과 AI가 물은 것에 대한 내 답을 칸에 넣기</li>
         <li><b>[② 초안 쓰기 지시문 복사]</b> → 같은 채팅에 붙여 넣기</li>
-        <li>AI가 쓴 초안을 <b>[초안 점검]</b> 칸에 붙여 넣고 [초안 점검하기]</li>
+        <li>AI의 초안을 <b>[초안 점검]</b> 칸에 붙여 넣고 [초안 점검하기]</li>
       </ol>
-      <div class="gnote">AI에게는 연구 의도와 집계된 결과표만 갑니다. 응답 원자료는 가지 않습니다. 다만 그 결과표가 내가 고른 AI 회사로 간다는 점은 알고 쓰세요.</div>
-      <p>바로 쓰기 링크: <a href="${ARTIFACT_URL}" target="_blank" rel="noopener">${ARTIFACT_URL}</a></p>` },
+      <div class="gnote">어느 방식이든 <b>판정은 코드가 정하고, 초안의 숫자와 판정은 ㅌㅗㅇ이 다시 점검</b>합니다. AI에게는 연구 의도와 집계된 결과표만 갑니다. 응답 원자료는 가지 않습니다.</div>
+      <p class="hint">Claude 바로 쓰기 링크: <a href="${ARTIFACT_URL}" target="_blank" rel="noopener">${ARTIFACT_URL}</a> (만든 사람이 공유를 켜야 다른 사람이 열 수 있습니다)</p>` },
 
-    { id: 'claude-code', group: 'AI 연결', title: 'Claude Code로 맡기기 (폴더 방식)', tab: 'interp', body: `
-      <p>lazzzyResearch처럼 내 컴퓨터의 <b>Claude Code</b>에게 연구 폴더를 맡겨 해석 초안, R 분석, 허점 점검을 시키는 방법입니다. 내 Claude 구독으로 동작해서 API 키가 필요 없습니다. Claude <b>Pro 이상</b> 요금제가 필요합니다. 무료 요금제라면 <a href="#guide-ai">아무 AI 채팅</a> 방법을 쓰세요.</p>
-      <h3>방법 1. Claude 데스크톱 앱 (추천 · 터미널 필요 없음)</h3>
-      <div class="gstep"><b>STEP 1. 앱 설치</b><p><a href="https://claude.ai/download" target="_blank" rel="noopener">Claude 데스크톱 앱</a>(윈도우·맥)을 설치하고 Claude 계정으로 로그인합니다.</p></div>
-      <div class="gstep"><b>STEP 2. 연구 폴더 준비</b><p>ㅌㅗㅇ 위 띠의 <b>[📁 연구 폴더] → [연구 폴더 연결]</b>로 폴더를 연결하면 필요한 파일(<code>CLAUDE.md</code>, 해석 자료, R 코드)이 저절로 들어갑니다. (연구 폴더는 크롬·엣지에서 github.io 주소나 내려받은 파일로 열었을 때 됩니다.) 폴더를 연결하지 않았다면 결과 해석 메뉴 → [Claude Code]에서 <code>CLAUDE.md</code>와 <code>interpretation.json</code>을 받아 새 폴더에 넣으세요.</p></div>
-      <div class="gstep"><b>STEP 3. 앱에서 폴더 열기</b><p>앱 위쪽 가운데 <b>Code</b> 탭 → <b>Local</b> → <b>Select folder</b> → STEP 2의 폴더를 고릅니다.</p></div>
-      <div class="gstep"><b>STEP 4. 말로 시키기</b><p>입력창에 <b>"해석해 줘"</b>, <b>"R로 분석해줘"</b>, <b>"허점 점검해줘"</b>라고 씁니다. 첫 답에 <b>"ㅌㅗㅇ 해석 모드입니다."</b>가 나오면 제대로 연결된 것입니다. Claude가 파일을 만들거나 R을 실행할 때 허락을 물으면 확인하고 허용하세요. (R로 분석하려면 컴퓨터에 <a href="https://cran.r-project.org/" target="_blank" rel="noopener">R</a>이 설치되어 있어야 합니다.)</p></div>
-      <div class="gstep"><b>STEP 5. 결과 보기</b><p>Claude가 폴더에 만든 <code>draft.md</code>(초안), <code>R_output.txt</code>(R 결과), <code>review.md</code>(허점 점검)는 ㅌㅗㅇ 화면으로 돌아오면 <b>저절로 읽어 와</b> 점검합니다. 폴더를 연결하지 않았다면 내용을 결과 해석 메뉴의 [초안 점검]·[허점 점검] 칸에 붙여 넣으세요.</p></div>
-      <p class="hint">앱 화면은 바뀔 수 있습니다. 메뉴 이름이 다르면 <a href="https://code.claude.com/docs/en/desktop-quickstart" target="_blank" rel="noopener">공식 안내</a>를 확인하세요.</p>
+    { id: 'claude-code', group: 'AI 연결', title: 'Claude Code로 맡기기', kw: 'Claude Code 클로드 데스크톱 터미널 폴더 방식', tab: 'interp', body: `
+      <p class="g-sum">내 컴퓨터의 <b>Claude Code</b>에게 연구 폴더를 맡겨 해석, R 분석, 허점 점검을 시킵니다. Claude <b>Pro 이상</b> 요금제가 필요합니다.</p>
+      <p>채팅과 다른 점: AI가 폴더의 파일을 직접 읽고, R을 직접 실행하고, 결과를 파일로 남깁니다. 복사·붙여 넣기가 없습니다.</p>
+      <h3>방법 1. Claude 데스크톱 앱 (추천 · 터미널 없음)</h3>
+      <div class="gstep"><b>STEP 1. 앱 설치</b><p><a href="https://claude.ai/download" target="_blank" rel="noopener">Claude 데스크톱 앱</a>을 설치하고 로그인합니다.</p></div>
+      <div class="gstep"><b>STEP 2. 연구 폴더 연결</b><p>ㅌㅗㅇ에서 <b>[📁 연구 폴더] → [연구 폴더 연결]</b>. 필요한 파일이 저절로 들어갑니다. <a href="#guide-folder">연구 폴더</a></p></div>
+      <div class="gstep"><b>STEP 3. 앱에서 폴더 열기</b><p>앱 위쪽 <b>Code</b> 탭 → <b>Local</b> → <b>Select folder</b> → 연구 폴더</p></div>
+      <div class="gstep"><b>STEP 4. 말로 시키기</b><p><b>"해석해 줘"</b>, <b>"R로 분석해줘"</b>, <b>"허점 점검해줘"</b>. 첫 답에 "ㅌㅗㅇ 해석 모드입니다."가 나오면 성공입니다. 허락을 물으면 확인하고 허용하세요. R 분석은 컴퓨터에 <a href="https://cran.r-project.org/" target="_blank" rel="noopener">R</a>이 있어야 합니다.</p></div>
+      <div class="gstep"><b>STEP 5. 결과 보기</b><p>Claude가 만든 초안, R 결과, 허점 점검은 ㅌㅗㅇ 창을 다시 누르면 저절로 들어옵니다.</p></div>
+      <p class="hint">앱 메뉴 이름이 다르면 <a href="https://code.claude.com/docs/en/desktop-quickstart" target="_blank" rel="noopener">공식 안내</a>를 보세요.</p>
       <h3>방법 2. 터미널 (익숙한 분)</h3>
-      <div class="gstep"><b>설치 (처음 한 번)</b><p>터미널을 열고 입력합니다.</p>
+      <div class="gstep"><b>설치 (처음 한 번)</b>
         <p class="hint">윈도우 (PowerShell)</p><pre>irm https://claude.ai/install.ps1 | iex</pre>
-        <p class="hint">맥</p><pre>curl -fsSL https://claude.ai/install.sh | bash</pre>
-        <p class="hint">설치 방법은 바뀔 수 있으니 안 되면 <a href="https://claude.com/product/claude-code" target="_blank" rel="noopener">Claude Code 공식 안내</a>를 확인하세요.</p></div>
-      <div class="gstep"><b>연구 폴더에서 터미널 열기 (cd 명령 없이)</b>
-        <ul><li><b>윈도우 11</b>: 파일 탐색기에서 연구 폴더를 열고, 빈 곳을 오른쪽 클릭 → <b>터미널에서 열기</b></li>
-          <li><b>윈도우 10</b>: 연구 폴더를 연 뒤 위쪽 주소창을 누르고 <code>powershell</code>이라고 쓰고 Enter</li>
-          <li><b>맥</b>: Finder에서 연구 폴더를 Dock의 <b>터미널</b> 아이콘 위로 끌어다 놓기 (또는 폴더 오른쪽 클릭 → 서비스 → 폴더에서 새로운 터미널 열기)</li></ul>
-        <p>열린 터미널에 <code>claude</code>라고 쓰고 Enter. 처음이면 브라우저가 열리고 로그인합니다. 그다음은 방법 1의 STEP 4와 같습니다.</p></div>
-      <div class="gnote">가설이나 분석을 바꾸면 ㅌㅗㅇ이 연구 폴더의 해석 자료를 자동으로 새로 저장합니다. 폴더 없이 받은 경우에는 <code>interpretation.json</code>을 다시 받아 덮어쓰세요.</div>` },
+        <p class="hint">맥 (터미널)</p><pre>curl -fsSL https://claude.ai/install.sh | bash</pre></div>
+      <div class="gstep"><b>연구 폴더에서 터미널 열기</b>
+        <ul><li><b>윈도우 11</b>: 폴더 빈 곳 오른쪽 클릭 → <b>터미널에서 열기</b></li>
+          <li><b>윈도우 10</b>: 폴더 주소창에 <code>powershell</code> 입력 → Enter</li>
+          <li><b>맥</b>: 폴더를 Dock의 터미널 아이콘 위로 끌어다 놓기</li></ul>
+        <p><code>claude</code> 입력 → Enter. 그다음은 방법 1의 STEP 4와 같습니다.</p></div>
+      <div class="gnote">연구 폴더 없이 쓰려면 결과 해석 → [Claude Code]에서 <code>CLAUDE.md</code>와 <code>interpretation.json</code>을 받아 새 폴더에 넣고 그 폴더를 여세요.</div>` },
 
     { id: 'faq', group: '도움말', title: '자주 묻는 질문', body: `
       <dl class="faq">
-        <dt>돈이 드나요?</dt><dd>이 페이지는 무료입니다. 구글 폼도 무료입니다. AI 해석은 무료 AI 채팅으로도 할 수 있고, Claude Code는 Claude 유료 요금제가 필요합니다.</dd>
-        <dt>내 자료는 어디에 저장되나요?</dt><dd><a href="#guide-folder">연구 폴더</a>를 연결하면 그 폴더에 파일로 저장됩니다. 연결하지 않으면 이 브라우저에만 저장되어, 브라우저 기록을 지우거나 다른 컴퓨터에서는 보이지 않습니다. 이때는 [연구 폴더 zip 받기]로 백업하세요.</dd>
-        <dt>SPSS 결과와 조금 달라요.</dt><dd>먼저 같은 응답을 제외했는지(비동의, 빈 응답, 불성실), 역문항 표시가 같은지 확인하세요. 부트스트랩 신뢰구간은 재표집이 무작위라 프로그램마다 소수 셋째 자리에서 조금 다를 수 있습니다.</dd>
-        <dt>AI 초안에 노란 숫자가 있어요.</dt><dd>결과표에서 찾지 못한 숫자입니다. AI가 잘못 옮겼거나 새로 계산한 값일 수 있으니 표와 대조해 고치세요.</dd>
-        <dt>사다리가 고른 기법이 지도교수님 말씀과 달라요.</dt><dd>교수님 의견을 따르세요. 갈림길 규칙은 아직 교재 근거 없이 만든 것이라, [검증 기록] 탭에 차이를 적어 주시면 규칙을 고치는 데 씁니다.</dd>
-        <dt>페이지를 다시 여니 분석 탭이 비었어요.</dt><dd>응답 원자료는 저장하지 않아서 [응답 취합]에 CSV를 다시 넣고 [점수 만들기]를 누르면 됩니다. 이전 계산 결과표는 남아 있습니다.</dd>
+        <dt>돈이 드나요?</dt><dd>ㅌㅗㅇ과 구글 폼은 무료입니다. AI는 무료 계정으로도 쓸 수 있습니다. Claude Code만 유료 요금제가 필요합니다.</dd>
+        <dt>내 자료는 어디에 저장되나요?</dt><dd>연구 폴더를 연결하면 그 폴더에, 아니면 이 브라우저에만 저장됩니다. 브라우저 기록을 지우면 사라지니 [연구 폴더 zip 받기]로 백업하세요.</dd>
+        <dt>다시 여니 점수가 없어요.</dt><dd>응답 원자료는 저장하지 않습니다. [응답 취합]에 CSV를 다시 넣고 [점수 만들기]를 누르세요. 계산 결과표는 남아 있습니다.</dd>
+        <dt>SPSS 결과와 조금 달라요.</dt><dd>제외한 응답(동의 안 함, 빈 응답, 불성실)과 역문항 표시가 같은지 보세요. 부트스트랩 신뢰구간은 프로그램마다 소수 셋째 자리가 조금 다를 수 있습니다.</dd>
+        <dt>AI 초안에 노란 숫자가 있어요.</dt><dd>결과표에 없는 숫자입니다. 표와 대조해 고치세요.</dd>
+        <dt>고른 기법이 교수님 말씀과 달라요.</dt><dd>교수님 의견을 따르세요. 왼쪽 메뉴 [검증 기록]에 적어 주시면 규칙을 고치는 데 씁니다.</dd>
+        <dt>글씨가 너무 크거나 작아요.</dt><dd>위 띠의 [가−] [가+]로 바꾸세요.</dd>
       </dl>` },
 
-    { id: 'privacy', group: '도움말', title: '개인정보와 연구윤리', body: `
+    { id: 'privacy', group: '도움말', title: '개인정보와 연구윤리', kw: 'IRB 개인정보 윤리 동의', body: `
       <ul>
-        <li><b>동의</b>: 설문 첫 문항에 연구 참여 동의를 받고, 동의하지 않으면 바로 끝나게 되어 있습니다. 동의문의 ○○ 자리를 소속, 연구자, 연락처, 소요 시간으로 채우세요.</li>
-        <li><b>식별 정보</b>: 이름·연락처·학번처럼 사람을 알아볼 수 있는 정보는 받지 않는 것이 기본입니다. 꼭 필요하면(사례품 등) 별도 폼으로 분리하세요.</li>
-        <li><b>응답 자료 보관</b>: 응답은 연구자의 구글 드라이브에만 쌓입니다. 시트를 '웹에 게시'하거나 링크 공유를 '링크가 있는 모든 사용자'로 열지 마세요.</li>
-        <li><b>AI 사용</b>: AI에게는 집계된 결과표만 보냅니다. 소속 기관이 AI 사용 사실을 밝히도록 요구하면, 결과 서술 초안 작성에 AI를 썼다고 적으세요.</li>
-        <li><b>IRB</b>: 소속 기관의 심의 대상인지 먼저 확인하세요. 온라인 설문 도구(구글 폼), 자료 보관 장소(구글 드라이브), 보관 기간을 심의 서류에 적게 됩니다.</li>
+        <li><b>동의</b>: 설문 첫 문항에서 동의를 받고, 동의하지 않으면 바로 끝납니다. 동의문의 ○○ 자리를 채우세요.</li>
+        <li><b>식별 정보</b>: 이름·연락처·학번은 받지 않는 것이 기본입니다. 사례품 때문에 필요하면 별도 폼으로 받으세요.</li>
+        <li><b>응답 보관</b>: 응답은 연구자의 구글 드라이브에만 쌓입니다. 시트를 '웹에 게시'하거나 '링크가 있는 모든 사용자'로 열지 마세요.</li>
+        <li><b>AI에 가는 것</b>: 연구 의도, 집계된 결과표, 대화창 질문, (척도 읽기를 쓸 때) 척도 원본. 응답 원자료는 보내지 않습니다. 외부 AI를 쓸 수 없는 기관이면 AI 방식을 <b>AI 쓰지 않기</b>로 두세요.</li>
+        <li><b>AI 사용 밝히기</b>: 기관이 요구하면 결과 서술 초안에 AI를 썼다고 적으세요.</li>
+        <li><b>IRB</b>: 심의 대상인지 먼저 확인하세요. 설문 도구(구글 폼), 자료 보관 장소, 보관 기간을 서류에 적게 됩니다.</li>
       </ul>` }
   ];
 
@@ -5527,14 +5551,14 @@ ${REVIEW_RULES}
   const gIndex = new Map();
   function guideScore(g, q) {
     q = expandQ(q);
-    let t = gIndex.get(g.id); if (!t) { t = { title: squash(g.title), all: squash(g.title + ' ' + g.body) }; gIndex.set(g.id, t); }
+    let t = gIndex.get(g.id); if (!t) { t = { title: squash(g.title + ' ' + (g.kw || '')), all: squash(g.title + ' ' + (g.kw || '') + ' ' + g.body) }; gIndex.set(g.id, t); }
     const whole = squash(q); if (!whole) return 0;
     let score = t.all.includes(whole) ? 5 + (t.title.includes(whole) ? 5 : 0) : 0;
     const words = String(q).split(/[\s,.?!~]+/).map(w => squash(w).replace(JOSA, '')).filter(w => w.length >= 2);
     words.forEach(w => { if (t.all.includes(w)) score += 1 + (t.title.includes(w) ? 2 : 0); });
     return score;
   }
-  function markGuide(q) {
+  function markGuide(q, root = $('#gd-body')) {
     q = expandQ(q);
     const rx = w => [...w].map(c => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('\\s*');   // 글자 사이 띄어쓰기 무시
     const whole = squash(q);
@@ -5542,7 +5566,7 @@ ${REVIEW_RULES}
     const pats = [whole, ...words].filter(w => w.length >= 2).sort((a, b) => b.length - a.length).map(rx);
     if (!pats.length) return;
     const re = new RegExp('(' + pats.join('|') + ')', 'gi');
-    const walker = document.createTreeWalker($('#gd-body'), NodeFilter.SHOW_TEXT); const nodes = [];
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); const nodes = [];
     while (walker.nextNode()) nodes.push(walker.currentNode);
     let first = null;
     nodes.forEach(n => {
@@ -5550,13 +5574,16 @@ ${REVIEW_RULES}
       const span = document.createElement('span'); span.innerHTML = esc(n.nodeValue).replace(re, '<mark class="gd-mark">$1</mark>');
       n.replaceWith(...span.childNodes);
     });
-    first = $('#gd-body .gd-mark'); if (first) first.scrollIntoView({ block: 'center' });
+    first = root.querySelector('.gd-mark'); if (first) first.scrollIntoView({ block: 'center' });
   }
   function openGuide(id) { switchView('guide'); renderGuide(id); $('#view-guide').scrollIntoView({ block: 'start' }); }
   // #guide-xxx 링크는 어디서 눌러도 사용 설명으로
   document.addEventListener('click', e => {
     const a = e.target.closest('a[href^="#guide-"]'); if (!a) return;
-    e.preventDefault(); openGuide(a.getAttribute('href').slice(7));
+    e.preventDefault();
+    const id = a.getAttribute('href').slice(7);
+    // 사용 설명 화면 안에서는 그 화면에서, 그 밖(대화·작업 화면)에서는 오른쪽 보기 창에서 연다
+    if (a.closest('#view-guide') || curView() === 'guide') openGuide(id); else openGuideRight(id);
     try { history.replaceState(null, '', a.getAttribute('href')); } catch (err) {}
   });
   $('#view-guide').addEventListener('click', e => { const b = e.target.closest('[data-gd-tab]'); if (b) switchView(b.dataset.gdTab); });
@@ -6587,6 +6614,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
     $('#rt-count').textContent = analyses.length || '';
     if (rtab === 'method') renderRightMethod();
     else if (rtab === 'survey') renderRightSurvey();
+    else if (rtab === 'guide') renderRightGuide();
     else renderRightResults();
   }
   function renderRightMethod() {
@@ -6942,7 +6970,7 @@ ${q}`;
   $('#ai-pop').addEventListener('change', e => { if (e.target.name === 'ai-mode') { setAiMode(e.target.value); renderAiPop(); } });
   $('#ai-note').addEventListener('click', e => {
     const b = e.target.closest('[data-an]'); if (!b) return;
-    if (b.dataset.an === 'guide') openGuide('ai');
+    if (b.dataset.an === 'guide') openGuideRight('ai');
     else { _set('ladder.aiNoteClosed', true); renderAiNote(); toast('대화창 왼쪽 아래 점을 누르면 언제든 연결 방법을 볼 수 있어요.'); }
   });
   $('#ai-dot').addEventListener('click', () => { const pop = $('#ai-pop'); if (pop.hidden) openAiPop(); else pop.hidden = true; });
@@ -7379,6 +7407,45 @@ ${q}`;
   });
   $('#sv-import').addEventListener('input', e => { if (e.target.id === 'si-text') imp.text = e.target.value; });
   function openImport() { imp.open = true; renderImport(); $('#sv-import').scrollIntoView({ block: 'start', behavior: 'smooth' }); }
+
+
+  // ---------- 오른쪽 보기 창의 [사용 설명] 탭: 작업·대화를 그대로 두고 설명 보기 ----------
+  let rg = { id: 'start', q: '' };
+  function rgPageHtml() {
+    const i = GUIDE.findIndex(g => g.id === rg.id), g = GUIDE[i] || GUIDE[0], prev = GUIDE[i - 1], next = GUIDE[i + 1];
+    return `<div class="gd-crumb">${esc(g.group)}</div><h2 class="rg-title">${esc(g.title)}</h2><div class="gd-body rg-inner">${g.body}</div>
+      ${g.tab ? `<div class="actions tight"><button class="btn sm navy" data-gd-tab="${g.tab}">이 화면으로 가기 →</button></div>` : ''}
+      <div class="gd-pager">${prev ? `<a href="#guide-${prev.id}">← ${esc(prev.title)}</a>` : '<span></span>'}${next ? `<a href="#guide-${next.id}">${esc(next.title)} →</a>` : ''}</div>`;
+  }
+  function renderRightGuide(bodyOnly) {
+    const box = $('#rp-guide'); if (!box) return;
+    if (!bodyOnly || !$('#rg-body')) {
+      const groups = [...new Set(GUIDE.map(g => g.group))];
+      box.innerHTML = `<div class="rg-top"><input id="rg-q" type="search" placeholder="사용 설명 찾기 (예: 역문항, 폴더)" value="${esc(rg.q)}" aria-label="사용 설명 찾기"><button class="btn sm" data-rg="full" title="넓은 화면으로">크게 보기</button></div>
+        <select id="rg-sel" aria-label="사용 설명 쪽">${groups.map(gr => `<optgroup label="${esc(gr)}">${GUIDE.filter(g => g.group === gr).map(g => `<option value="${g.id}">${esc(g.title)}</option>`).join('')}</optgroup>`).join('')}</select>
+        <div class="card rg-card" id="rg-body"></div>`;
+    }
+    $('#rg-sel').value = rg.id;
+    $('#rg-body').innerHTML = rgPageHtml();
+    if (norm(rg.q)) markGuide(rg.q, $('#rg-body')); else $('#rp-guide').scrollTop = 0;
+  }
+  function openGuideRight(id) {
+    if (id && GUIDE.some(g => g.id === id)) rg.id = id;
+    rg.q = ''; setRtab('guide'); openRight(); renderRightGuide();
+  }
+  $('#rp-guide').addEventListener('input', e => {
+    if (e.target.id !== 'rg-q') return;
+    rg.q = e.target.value;
+    if (norm(rg.q)) { const best = GUIDE.map(g => [g, guideScore(g, rg.q)]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1])[0]; if (best) rg.id = best[0].id; }
+    renderRightGuide(true);
+  });
+  $('#rp-guide').addEventListener('change', e => { if (e.target.id === 'rg-sel') { rg.id = e.target.value; rg.q = ''; $('#rg-q').value = ''; renderRightGuide(true); } });
+  $('#rp-guide').addEventListener('click', e => {
+    const a = e.target.closest('a[href^="#guide-"]');
+    if (a) { e.preventDefault(); e.stopPropagation(); rg.id = a.getAttribute('href').slice(7); rg.q = ''; $('#rg-q').value = ''; renderRightGuide(true); return; }
+    const t = e.target.closest('[data-gd-tab]'); if (t) { switchView(t.dataset.gdTab); return; }
+    if (e.target.closest('[data-rg="full"]')) { const id = rg.id; openGuide(id); }
+  }, true);
 
   // ---------- 시작 ----------
   const defErrs = checkRules(DEFAULT_RULES);

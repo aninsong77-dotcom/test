@@ -128,9 +128,9 @@ AI 연결은 세 가지 중 고릅니다. 어느 방법이든 판정은 코드�
 
 | 방법 | 무료 계정 | AI |
 |---|---|---|
-| 바로 쓰기 (claude.ai 링크) | claude.ai 계정, 요금제 한도는 claude.ai 정책 | Claude |
-| 아무 AI 채팅 (지시문 복사·붙여넣기) | 됨 | ChatGPT, Gemini, Claude 등 |
-| Claude Code 해석 모드 (`claude-code/`) | 안 됨 (Pro 이상) | Claude |
+| Claude 바로 쓰기 (claude.ai 링크) | claude.ai 계정, 요금제 한도는 claude.ai 정책 | Claude |
+| 다른 AI (지시문 복사·붙여넣기) | 됨 | ChatGPT, Gemini, Claude 등 |
+| Claude Code로 맡기기 (연구 폴더, 데스크톱 앱 또는 터미널) | 안 됨 (Pro 이상) | Claude |
 
 AI에게는 연구 의도와 집계된 결과표만 보내고 응답 원자료는 보내지 않습니다.
 
