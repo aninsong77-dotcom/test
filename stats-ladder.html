@@ -4921,14 +4921,13 @@ function createSurvey() {
             <div class="chat-step"><span class="n">4</span><div><b>AI가 쓴 초안을 아래 [초안 점검] 칸에 붙여 넣기</b></div></div>
           </div>` : ''}
         ${mode === 'code' ? `
-          <p class="hint">lazzzyResearch처럼 내 컴퓨터의 Claude Code로 대화하며 해석합니다. Claude Code는 Claude 유료 요금제(Pro 이상)가 필요합니다. 처음이면 <a href="#guide-claude-code">설치부터 실행까지 안내</a>를 보세요.</p>
+          <p class="hint">lazzzyResearch처럼 내 컴퓨터의 Claude Code로 대화하며 해석합니다. Claude 유료 요금제(Pro 이상)가 필요하고, <b>Claude 데스크톱 앱</b>으로 하면 터미널이 필요 없습니다. 처음이면 <a href="#guide-claude-code">처음부터 따라 하기</a>를 보세요.</p>
           <div class="chat-steps">
             <div class="chat-step"><span class="n">1</span><div><b>새 폴더를 하나 만들고, 아래 두 파일을 받아 그 폴더에 넣기</b>
               <div class="actions tight"><button class="btn sm primary" data-in-act="dl-claude-md">CLAUDE.md 받기</button><button class="btn sm primary" data-in-act="dl-json">interpretation.json 받기</button></div>
               <p class="hint">CLAUDE.md는 Claude가 지킬 규칙, interpretation.json은 연구 의도·가설·판정·결과표입니다. 응답 원자료는 들어 있지 않습니다. 가설이나 분석을 바꾸면 interpretation.json을 다시 받으세요.</p></div></div>
-            <div class="chat-step"><span class="n">2</span><div><b>터미널에서 그 폴더로 가서 <code>claude</code> 실행</b>
-              <pre class="cmd">cd 폴더경로
-claude</pre>
+            <div class="chat-step"><span class="n">2</span><div><b>Claude 데스크톱 앱에서 그 폴더 열기</b>
+              <p class="hint" style="margin-top:4px">앱 위쪽 <b>Code</b> 탭 → <b>Local</b> → <b>Select folder</b>. 터미널이 필요 없습니다. (<a href="https://claude.ai/download" target="_blank" rel="noopener">앱 설치</a> · 터미널이 익숙하면 그 폴더에서 <code>claude</code> 실행)</p>
               <p class="hint">"ㅌㅗㅇ 해석 모드입니다."가 나오면 성공입니다. "해석해 줘"라고 쓰면 시작합니다.</p></div></div>
             <div class="chat-step"><span class="n">3</span><div><b>Claude가 묻는 것에 답하면 폴더에 <code>draft.md</code>가 생깁니다</b></div></div>
             <div class="chat-step"><span class="n">4</span><div><b>draft.md 내용을 아래 [초안 점검] 칸에 붙여 넣기</b></div></div>
@@ -5286,7 +5285,7 @@ ${REVIEW_RULES}
 ├─ 2_data/  analysis_data.csv (분석용 자료), item_analysis.csv (+ raw_responses.csv 선택)
 ├─ 3_analysis/  analysis_plan.md (분석 계획서), analysis.R, results.csv (결과표)
 └─ 4_interpretation/  interpretation.json (해석 자료)</pre></div>
-      <div class="gstep"><b>STEP 3. 같은 폴더에서 Claude Code</b><p>터미널에서 <code>cd 내논문</code> → <code>claude</code> → "R로 분석해줘", "해석해 줘", "허점 점검해줘". Claude가 만든 <code>R_output.txt</code>, <code>draft.md</code>, <code>review.md</code>는 ㅌㅗㅇ 화면으로 돌아오면 <b>자동으로 읽어 와</b> 대조·점검합니다.</p></div>
+      <div class="gstep"><b>STEP 3. 같은 폴더에서 Claude Code</b><p><b>Claude 데스크톱 앱</b> → 위쪽 <b>Code</b> 탭 → <b>Local</b> → <b>Select folder</b>로 이 폴더를 열고(터미널 필요 없음, <a href="#guide-claude-code">자세히</a>) "R로 분석해줘", "해석해 줘", "허점 점검해줘"라고 씁니다. Claude가 만든 <code>R_output.txt</code>, <code>draft.md</code>, <code>review.md</code>는 ㅌㅗㅇ 화면으로 돌아오면 <b>자동으로 읽어 와</b> 대조·점검합니다.</p></div>
       <div class="gstep"><b>STEP 4. 다음에 이어 하기</b><p>stats-ladder.html을 다시 열면 지난 폴더가 보입니다. <b>[다시 연결]</b>만 누르면 됩니다. 응답 원자료도 저장해 두었다면 점수까지 바로 다시 만들어집니다.</p></div>
       <div class="gnote"><b>응답 원자료 저장</b>은 기본으로 꺼져 있습니다. 켜면 다시 열 때 응답을 넣지 않아도 되지만, 폴더가 구글 드라이브처럼 동기화되는 곳이면 개인정보 보관 규정을 확인하세요.</div>` },
 
@@ -5448,7 +5447,7 @@ ${REVIEW_RULES}
       <table class="gtable"><thead><tr><th>방법</th><th>무료 계정</th><th>어떤 AI</th><th>쓰는 법</th></tr></thead><tbody>
         <tr><td><b>바로 쓰기</b></td><td>claude.ai 계정 필요. 요금제별 한도는 claude.ai 정책을 따름</td><td>Claude</td><td>claude.ai 링크로 열고 버튼 두 번</td></tr>
         <tr><td><b>아무 AI 채팅</b></td><td><b>됨</b></td><td>ChatGPT, Gemini, Claude 등 아무거나</td><td>지시문 복사 → 채팅에 붙여 넣기 → 답을 다시 붙여 넣기</td></tr>
-        <tr><td><b>Claude Code</b></td><td>안 됨 (Pro 이상)</td><td>Claude</td><td>내 컴퓨터 터미널에서 대화 (<a href="#guide-claude-code">설치 안내</a>)</td></tr>
+        <tr><td><b>Claude Code</b></td><td>안 됨 (Pro 이상)</td><td>Claude</td><td>데스크톱 앱(터미널 필요 없음)이나 터미널에서 연구 폴더를 맡겨 대화 (<a href="#guide-claude-code">따라 하기</a>)</td></tr>
       </tbody></table>
       <p>어느 방법이든 <b>가설 판정은 코드가 정하고, 초안의 숫자와 판정은 이 페이지가 다시 점검</b>합니다. 그래서 어떤 AI를 써도 안전장치는 같습니다.</p>
       <h3>아무 AI 채팅으로 하기 (무료)</h3>
@@ -5461,24 +5460,26 @@ ${REVIEW_RULES}
       <div class="gnote">AI에게는 연구 의도와 집계된 결과표만 갑니다. 응답 원자료는 가지 않습니다. 다만 그 결과표가 내가 고른 AI 회사로 간다는 점은 알고 쓰세요.</div>
       <p>바로 쓰기 링크: <a href="${ARTIFACT_URL}" target="_blank" rel="noopener">${ARTIFACT_URL}</a></p>` },
 
-    { id: 'claude-code', group: 'AI 연결', title: 'Claude Code 해석 모드', tab: 'interp', body: `
-      <p>lazzzyResearch처럼 내 컴퓨터의 <b>Claude Code</b>로 대화하며 해석하는 방법입니다. 내 Claude 구독으로 동작해서 API 키가 필요 없습니다.</p>
-      <div class="gstep"><b>STEP 1. 준비</b><p>Claude <b>Pro 이상</b> 요금제가 필요합니다. 무료 요금제에서는 Claude Code를 쓸 수 없습니다. 이 경우 <a href="#guide-ai">아무 AI 채팅</a> 방법을 쓰세요.</p></div>
-      <div class="gstep"><b>STEP 2. Claude Code 설치</b><p>터미널(맥: 터미널, 윈도우: PowerShell)을 열고 입력합니다.</p>
-        <p class="hint">맥·리눅스</p><pre>curl -fsSL https://claude.ai/install.sh | bash</pre>
+    { id: 'claude-code', group: 'AI 연결', title: 'Claude Code로 맡기기 (폴더 방식)', tab: 'interp', body: `
+      <p>lazzzyResearch처럼 내 컴퓨터의 <b>Claude Code</b>에게 연구 폴더를 맡겨 해석 초안, R 분석, 허점 점검을 시키는 방법입니다. 내 Claude 구독으로 동작해서 API 키가 필요 없습니다. Claude <b>Pro 이상</b> 요금제가 필요합니다. 무료 요금제라면 <a href="#guide-ai">아무 AI 채팅</a> 방법을 쓰세요.</p>
+      <h3>방법 1. Claude 데스크톱 앱 (추천 · 터미널 필요 없음)</h3>
+      <div class="gstep"><b>STEP 1. 앱 설치</b><p><a href="https://claude.ai/download" target="_blank" rel="noopener">Claude 데스크톱 앱</a>(윈도우·맥)을 설치하고 Claude 계정으로 로그인합니다.</p></div>
+      <div class="gstep"><b>STEP 2. 연구 폴더 준비</b><p>ㅌㅗㅇ 위 띠의 <b>[📁 연구 폴더] → [연구 폴더 연결]</b>로 폴더를 연결하면 필요한 파일(<code>CLAUDE.md</code>, 해석 자료, R 코드)이 저절로 들어갑니다. (연구 폴더는 크롬·엣지에서 github.io 주소나 내려받은 파일로 열었을 때 됩니다.) 폴더를 연결하지 않았다면 결과 해석 메뉴 → [Claude Code]에서 <code>CLAUDE.md</code>와 <code>interpretation.json</code>을 받아 새 폴더에 넣으세요.</p></div>
+      <div class="gstep"><b>STEP 3. 앱에서 폴더 열기</b><p>앱 위쪽 가운데 <b>Code</b> 탭 → <b>Local</b> → <b>Select folder</b> → STEP 2의 폴더를 고릅니다.</p></div>
+      <div class="gstep"><b>STEP 4. 말로 시키기</b><p>입력창에 <b>"해석해 줘"</b>, <b>"R로 분석해줘"</b>, <b>"허점 점검해줘"</b>라고 씁니다. 첫 답에 <b>"ㅌㅗㅇ 해석 모드입니다."</b>가 나오면 제대로 연결된 것입니다. Claude가 파일을 만들거나 R을 실행할 때 허락을 물으면 확인하고 허용하세요. (R로 분석하려면 컴퓨터에 <a href="https://cran.r-project.org/" target="_blank" rel="noopener">R</a>이 설치되어 있어야 합니다.)</p></div>
+      <div class="gstep"><b>STEP 5. 결과 보기</b><p>Claude가 폴더에 만든 <code>draft.md</code>(초안), <code>R_output.txt</code>(R 결과), <code>review.md</code>(허점 점검)는 ㅌㅗㅇ 화면으로 돌아오면 <b>저절로 읽어 와</b> 점검합니다. 폴더를 연결하지 않았다면 내용을 결과 해석 메뉴의 [초안 점검]·[허점 점검] 칸에 붙여 넣으세요.</p></div>
+      <p class="hint">앱 화면은 바뀔 수 있습니다. 메뉴 이름이 다르면 <a href="https://code.claude.com/docs/en/desktop-quickstart" target="_blank" rel="noopener">공식 안내</a>를 확인하세요.</p>
+      <h3>방법 2. 터미널 (익숙한 분)</h3>
+      <div class="gstep"><b>설치 (처음 한 번)</b><p>터미널을 열고 입력합니다.</p>
         <p class="hint">윈도우 (PowerShell)</p><pre>irm https://claude.ai/install.ps1 | iex</pre>
+        <p class="hint">맥</p><pre>curl -fsSL https://claude.ai/install.sh | bash</pre>
         <p class="hint">설치 방법은 바뀔 수 있으니 안 되면 <a href="https://claude.com/product/claude-code" target="_blank" rel="noopener">Claude Code 공식 안내</a>를 확인하세요.</p></div>
-      <div class="gstep"><b>STEP 3. 해석 폴더 만들기</b><p>바탕화면 등에 새 폴더(예: <code>통계해석</code>)를 만들고, 결과 해석 메뉴 → [Claude Code]에서 두 파일을 받아 넣습니다.</p>
-        <ul><li><code>CLAUDE.md</code> — Claude가 지킬 규칙 (판정 그대로, 숫자 그대로, 인과 단정 금지, 인용 지어내지 않기)</li><li><code>interpretation.json</code> — 연구 의도, 가설, 코드 판정, 결과표 (응답 원자료 없음)</li></ul></div>
-      <div class="gstep"><b>STEP 4. AI 조교 실행</b><p>터미널에서 폴더로 이동해 실행합니다.</p><pre>cd 바탕화면/통계해석
-claude</pre>
-        <p>처음이면 브라우저가 열리고 Claude 계정으로 로그인합니다. 화면에 이렇게 나오면 성공입니다.</p>
-        <pre>ㅌㅗㅇ 해석 모드입니다.
-interpretation.json을 읽었습니다. …</pre>
-        <p><b>"해석해 줘"</b>라고 쓰면 의도 확인부터 시작합니다.</p></div>
-      <div class="gstep"><b>STEP 5. 초안 점검</b><p>질문에 답하면 폴더에 <code>draft.md</code>가 생깁니다. 내용을 결과 해석 메뉴의 <b>[초안 점검]</b> 칸에 붙여 넣으세요. 고치고 싶으면 Claude Code에 "논의를 더 짧게"처럼 말하면 됩니다.</p></div>
-      <div class="gstep"><b>STEP 6. 허점 점검</b><p>Claude Code에 <b>"허점 점검해줘"</b>라고 하면 깐깐한 동료로서 초안을 읽고 <code>review.md</code>에 질문을 씁니다. 그 내용을 결과 해석 메뉴 <b>4. 허점 점검</b>에 붙여 넣으면 질문별로 정리되어 보입니다.</p></div>
-      <div class="gnote">가설이나 분석을 바꾸면 <code>interpretation.json</code>을 다시 받아 덮어쓰세요. CLAUDE.md는 한 번 받으면 됩니다.</div>` },
+      <div class="gstep"><b>연구 폴더에서 터미널 열기 (cd 명령 없이)</b>
+        <ul><li><b>윈도우 11</b>: 파일 탐색기에서 연구 폴더를 열고, 빈 곳을 오른쪽 클릭 → <b>터미널에서 열기</b></li>
+          <li><b>윈도우 10</b>: 연구 폴더를 연 뒤 위쪽 주소창을 누르고 <code>powershell</code>이라고 쓰고 Enter</li>
+          <li><b>맥</b>: Finder에서 연구 폴더를 Dock의 <b>터미널</b> 아이콘 위로 끌어다 놓기 (또는 폴더 오른쪽 클릭 → 서비스 → 폴더에서 새로운 터미널 열기)</li></ul>
+        <p>열린 터미널에 <code>claude</code>라고 쓰고 Enter. 처음이면 브라우저가 열리고 로그인합니다. 그다음은 방법 1의 STEP 4와 같습니다.</p></div>
+      <div class="gnote">가설이나 분석을 바꾸면 ㅌㅗㅇ이 연구 폴더의 해석 자료를 자동으로 새로 저장합니다. 폴더 없이 받은 경우에는 <code>interpretation.json</code>을 다시 받아 덮어쓰세요.</div>` },
 
     { id: 'faq', group: '도움말', title: '자주 묻는 질문', body: `
       <dl class="faq">
@@ -6341,7 +6342,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
     const F = [
       ['CLAUDE.md', claudeMd()],
       ['project.json', JSON.stringify(projectState(), null, 1)],
-      ['README.md', `# ㅌㅗㅇ 연구 폴더\n\nㅌㅗㅇ이 자동으로 저장하는 폴더입니다. 마지막 저장: ${new Date().toLocaleString('ko-KR')}\n\n- 1_survey: 설문 설계, 코드북, 구글 폼 스크립트\n- 2_data: 분석용 자료${folderOpts.saveRaw ? ', 응답 원자료' : ''}\n- 3_analysis: 분석 계획서, R 코드, 결과표 (Claude Code가 만든 R_output.txt도 여기)\n- 4_interpretation: 해석 자료 (Claude Code가 만든 draft.md, review.md도 여기)\n\n이 폴더에서 \`claude\`를 실행하면 Claude Code가 CLAUDE.md의 규칙대로 일합니다.\nproject.json은 ㅌㅗㅇ이 다시 불러올 때 쓰니 고치지 마세요.\n`]
+      ['README.md', `# ㅌㅗㅇ 연구 폴더\n\nㅌㅗㅇ이 자동으로 저장하는 폴더입니다. 마지막 저장: ${new Date().toLocaleString('ko-KR')}\n\n- 1_survey: 설문 설계, 코드북, 구글 폼 스크립트\n- 2_data: 분석용 자료${folderOpts.saveRaw ? ', 응답 원자료' : ''}\n- 3_analysis: 분석 계획서, R 코드, 결과표 (Claude Code가 만든 R_output.txt도 여기)\n- 4_interpretation: 해석 자료 (Claude Code가 만든 draft.md, review.md도 여기)\n\nClaude 데스크톱 앱의 Code 탭 → Local → Select folder로 이 폴더를 열거나(터미널 필요 없음), 이 폴더에서 \`claude\`를 실행하면 Claude Code가 CLAUDE.md의 규칙대로 일합니다.\nproject.json은 ㅌㅗㅇ이 다시 불러올 때 쓰니 고치지 마세요.\n`]
     ];
     if (sv.scales.length || sv.demos.length) F.push(['1_survey/survey.md', surveyMd()], ['1_survey/codebook.csv', codebookCsv()], ['1_survey/google_form.gs', buildScript()]);
     if (lastScored) F.push(['2_data/analysis_data.csv', toCsv(analysisRows())], ['2_data/item_analysis.csv', toCsv(itemStatsRows())]);
