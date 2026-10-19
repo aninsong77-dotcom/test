@@ -12,7 +12,7 @@
   갈림길 규칙 (화면 코드와 분리된 데이터)
   ----------------------------------------------------------------
   규칙만 고치려면 아래 JSON만 손보면 됩니다. 화면 코드는 건드릴 필요가 없습니다.
-  화면의 [AI 지식 규칙] 메뉴에서 규칙 파일을 내려받아 고친 뒤 다시 불러올 수도 있습니다.
+  화면의 왼쪽 [갈림길 규칙] 메뉴에서 규칙 파일을 내려받아 고친 뒤 다시 불러올 수도 있습니다.
 
   start        : 첫 질문의 id
   stepNames    : 질문 번호(step)별 이름
@@ -1954,57 +1954,149 @@ footer { border-top: 1px solid var(--line); color: var(--ink-3); font-size: 13px
   .it-row { grid-template-columns: 40px minmax(0, 1fr) 36px; }
   .it-row .rev { grid-column: 2; grid-row: 2; justify-self: start; }
 }
+
+/* ===== 세 칸 화면 (제목줄 · 메뉴 · 작업 창 · 보기 창) ===== */
+html, body { height: 100%; }
+body { display: grid; grid-template-rows: 56px minmax(0, 1fr); overflow: hidden; }
+.hdr { display: flex; align-items: center; gap: 10px; padding: 0 14px; border-bottom: 3px solid var(--orange); background: var(--bg); position: relative; z-index: 6; min-width: 0; }
+.hdr-logo { border: 2px solid var(--orange); color: var(--orange); border-radius: 6px; padding: 1px 8px; font-weight: 800; letter-spacing: .05em; font-size: 14px; }
+.hdr-title { font-weight: 800; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.hdr-title span { font-weight: 500; color: var(--ink-3); font-size: 13px; margin-left: 8px; }
+.hdr-sp { flex: 1; }
+.nav-tog, .hdr-btn, .fold-chip { border: 1.5px solid var(--line); background: var(--bg); border-radius: 999px; padding: 5px 12px; font-size: 13px; font-weight: 700; color: var(--ink-2); text-decoration: none; white-space: nowrap; }
+.nav-tog { width: 34px; height: 34px; padding: 0; border-radius: 8px; font-size: 16px; }
+.fold-chip.on { border-color: var(--ok-line); background: var(--ok-soft); color: var(--ok); }
+.fold-chip.warn { border-color: var(--warn-line); background: var(--warn-soft); color: var(--warn); }
+.fold-wrap { position: relative; }
+.fold-pop { position: absolute; right: 0; top: calc(100% + 8px); width: min(600px, 92vw); z-index: 20; box-shadow: 0 10px 30px rgba(0,0,0,.18); border-radius: 12px; }
+.fold-pop .folder-bar { margin: 0; background: var(--bg); }
+#rp-tog { display: none; }
+.app { display: grid; grid-template-columns: var(--nav-w, 220px) minmax(0, 1fr) minmax(360px, .92fr); min-height: 0; }
+.app.nav-min { --nav-w: 58px; }
+.app.no-right { grid-template-columns: var(--nav-w, 220px) minmax(0, 1fr); }
+.app.no-right .right { display: none; }
+/* 왼쪽 메뉴 */
+.side { background: var(--navy); color: #c9cfe3; overflow-y: auto; overflow-x: hidden; padding: 8px 0 20px; }
+.side .grp { padding: 14px 16px 4px; font-size: 11px; letter-spacing: .06em; color: #8f99bd; font-weight: 700; white-space: nowrap; }
+.side .it { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 14px; background: none; border: 0; border-left: 4px solid transparent; color: #d9deee; font-weight: 600; font-size: 14px; text-align: left; white-space: nowrap; }
+.side .it:hover { background: rgba(255,255,255,.06); }
+.side .it .n { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 800; background: rgba(255,255,255,.12); color: #fff; flex: none; }
+.side .it.done .n { background: #1f8a5b; }
+.side .it.on { background: rgba(245,132,31,.18); border-left-color: var(--orange); color: #fff; }
+.side .it.on .n { background: var(--orange); }
+.side .it .lbl { overflow: hidden; text-overflow: ellipsis; }
+.side .it small { margin-left: auto; font-size: 11px; color: #8f99bd; overflow: hidden; text-overflow: ellipsis; max-width: 80px; }
+.app.nav-min .side .grp, .app.nav-min .side .lbl, .app.nav-min .side small { display: none; }
+.app.nav-min .side .it { justify-content: center; padding: 9px 0; }
+/* 가운데 작업 창 */
+.center { display: flex; flex-direction: column; min-height: 0; min-width: 0; border-right: 1px solid var(--line); background: var(--bg); }
+main#scroller { flex: 1; min-height: 0; overflow: auto; max-width: none; margin: 0; padding: 18px 22px 14px; scroll-behavior: smooth; }
+main#scroller .page-head { margin-bottom: 14px; }
+main#scroller .page-head h2 { font-size: 21px; }
+main#scroller .page-head p { font-size: 14px; }
+.composer { display: flex; gap: 8px; align-items: flex-end; padding: 10px 14px 12px; border-top: 1px solid var(--line); background: var(--bg); }
+.composer textarea { flex: 1; resize: none; min-height: 44px; max-height: 160px; padding: 10px 14px; border: 1.5px solid var(--line); border-radius: 14px; background: var(--bg); font-size: 15px; line-height: 1.5; }
+.composer textarea:focus { outline: none; border-color: var(--orange); }
+.thread { display: grid; gap: 10px; margin-top: 18px; }
+.thread:empty { display: none; }
+.th-head { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--ink-3); font-weight: 700; }
+.th-head::before, .th-head::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.th-head button { background: none; border: 0; color: var(--orange-deep); font-weight: 700; font-size: 12px; }
+.msg { max-width: 88%; padding: 10px 14px; border-radius: 14px; font-size: 14.5px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
+.msg.ai { background: var(--bg-2); border: 1px solid var(--line); border-top-left-radius: 4px; justify-self: start; }
+.msg.me { background: var(--navy); color: var(--on-accent); justify-self: end; border-top-right-radius: 4px; }
+.msg.sys { justify-self: center; max-width: 100%; background: none; padding: 2px 10px; font-size: 12.5px; color: var(--ink-3); }
+.msg .who { display: block; font-size: 11px; font-weight: 800; color: var(--orange-deep); margin-bottom: 2px; }
+.msg .links { display: grid; gap: 4px; margin-top: 8px; white-space: normal; }
+.msg .links a { color: var(--orange-deep); font-weight: 600; }
+.msg .tools { margin-top: 8px; white-space: normal; }
+/* 사다리: 지나온 질문과 답을 대화처럼 */
+.lhist { display: grid; gap: 8px; margin-bottom: 14px; }
+.lq { justify-self: start; max-width: 88%; padding: 8px 12px; border-radius: 12px; border-top-left-radius: 4px; background: var(--bg-2); border: 1px solid var(--line); font-size: 13.5px; color: var(--ink-2); }
+.lq b { color: var(--orange-deep); font-size: 11px; display: block; }
+.la { justify-self: end; max-width: 80%; padding: 8px 12px; border-radius: 12px; border-top-right-radius: 4px; background: var(--navy); color: var(--on-accent); border: 0; font-size: 14px; font-weight: 600; text-align: right; }
+.la:hover { outline: 2px solid var(--orange); }
+.la small { display: block; font-weight: 500; font-size: 11px; opacity: .75; }
+#view-ladder .ladder { display: block; }
+/* 오른쪽 보기 창 */
+.right { display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 0; min-width: 0; background: var(--bg-2); }
+.rtabs { display: flex; gap: 2px; padding: 6px 12px 0; border-bottom: 1px solid var(--line); background: var(--bg); }
+.rtab { background: none; border: 0; border-bottom: 3px solid transparent; padding: 9px 14px; font-weight: 700; color: var(--ink-3); font-size: 14px; }
+.rtab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--orange); }
+.rtab .c { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 4px; border-radius: 999px; background: var(--navy-soft); font-size: 11px; text-align: center; }
+.rtab .c:empty { display: none; }
+.rpane { overflow: auto; padding: 14px 14px 30px; min-width: 0; }
+.rpane .card { padding: 16px 18px; }
+.rpane .card + .card, .rpane .map + .card, .rpane .card + .map { margin-top: 12px; }
+.rpane .card-title { font-size: 16px; }
+.rpane h4 { margin: 0 0 8px; font-size: 13px; color: var(--navy-ink); }
+.rpane .map { position: static; box-shadow: none; }
+.rpane .map-head { padding: 12px 16px; }
+.rpane .map-head h2 { font-size: 15px; }
+.rpane .map-body { max-height: none; }
+.rpane .map-toggle, .rpane .map-help { display: none; }
+.rkv { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 4px 10px; font-size: 13.5px; }
+.rkv span:nth-child(odd) { color: var(--ink-3); }
+.rmethod { font-size: 19px; font-weight: 800; line-height: 1.35; }
+.rmethod small { display: block; font-size: 12.5px; color: var(--ink-3); font-weight: 600; }
+.rempty { color: var(--ink-3); font-size: 13.5px; }
+.rpane .result-card { padding: 16px; }
+.rpane .result-card .card-title { font-size: 15px; }
+.rv-verdict { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border-radius: 8px; border: 1px solid; font-size: 13px; margin-top: 6px; }
+.rv-verdict b { flex: none; border-radius: 6px; padding: 1px 8px; color: var(--on-accent); }
+.rv-verdict.ok { background: var(--ok-soft); border-color: var(--ok-line); } .rv-verdict.ok b { background: var(--ok); }
+.rv-verdict.no { background: var(--warn-soft); border-color: var(--warn-line); } .rv-verdict.no b { background: var(--warn); }
+.rpv .pv-frame { max-width: none; }
+.rpv .pv-choices.likert { grid-template-columns: repeat(auto-fit, minmax(70px, 1fr)); }
+.rpv .pv-choices.likert .pv-choice { font-size: 12px; padding: 8px 2px; }
+.rpv .pv-item { padding: 14px 16px; } .rpv .pv-head { padding: 14px 16px; } .rpv .pv-head h3 { font-size: 17px; }
+/* 좁은 화면: 보기 창은 버튼으로 열고 닫음 */
+@media (max-width: 1150px) {
+  .app, .app.no-right { grid-template-columns: var(--nav-w, 58px) minmax(0, 1fr); }
+  #rp-tog { display: inline-block; }
+  .right { position: fixed; right: 0; top: 56px; bottom: 0; width: min(460px, 94vw); z-index: 15; box-shadow: -10px 0 30px rgba(0,0,0,.18); transform: translateX(105%); transition: transform .2s; display: grid !important; }
+  .app.r-open .right { transform: none; }
+  .hdr-title span { display: none; }
+}
+@media (max-width: 640px) {
+  .hdr-logo { display: none; }
+  .hdr-btn[href] { display: none; }
+  main#scroller { padding: 14px 14px 10px; }
+}
+
+/* 설문: 가운데는 한 줄, 요약은 오른쪽 설문 탭 */
+.center .sv-layout{grid-template-columns:1fr;gap:14px}
+.center .sv-side{position:static;order:-1}.sv-actbar .side-btns{margin-top:0}
+.sv-actbar{background:var(--bg2,#f7f8fb);border:1px solid var(--line,#e2e5ee);border-radius:12px;padding:12px 14px}
+.sv-actinfo{font-size:13px;margin-bottom:8px}.sv-warnn{color:#8a6d00;font-weight:700}.sv-okn{color:#1f8a5b;font-weight:700}
+.sv-actbar .warn-list{margin:0 0 8px;font-size:12.5px}
+.sv-actbar .side-btns{display:flex;flex-wrap:wrap;gap:6px}.sv-actbar .side-btns .btn{width:auto;padding:7px 12px;font-size:12.5px}
+
+.right .table-wrap th,.right .table-wrap td{padding:7px 9px;font-size:12.5px;white-space:nowrap}
+.right .table-wrap td:first-child{white-space:normal;min-width:6em}
+.toast{bottom:92px}
+@media (max-width:1150px){.app.r-open .right{box-shadow:-12px 0 32px rgba(20,28,60,.18)}}
 </style>
 </head>
 <body>
 
-<div class="topbar">통계 사다리 v0.7 · 연구 폴더 · 기법 고르기 → 설문 → 응답 취합 → 분석 결정 → 분석 (R 확인) → 해석 → 허점 점검</div>
-
-<header class="brand">
-  <div class="logo" aria-hidden="true"><b>STAT</b><span>통계 사다리</span></div>
-  <div class="title-pill">
-    <h1>내 연구 설계에 맞는 통계 기법 찾기</h1>
-    <p>질문에 답하며 기법을 고르고, 설문을 만들어 응답을 모으고, 계산과 해석까지 이어 갑니다.</p>
-  </div>
+<header class="hdr">
+  <button class="nav-tog" id="nav-tog" aria-label="메뉴 접기·펴기" title="메뉴 접기·펴기">☰</button>
+  <span class="hdr-logo">STAT</span>
+  <span class="hdr-title">통계 사다리<span>내 연구 설계에 맞는 통계 기법 찾기</span></span>
+  <span class="hdr-sp"></span>
+  <div class="fold-wrap"><button class="fold-chip" id="fold-chip">📁 연구 폴더</button><div class="fold-pop" id="fold-pop" hidden><div class="folder-bar" id="folder-bar"></div></div></div>
+  <button class="hdr-btn" id="rp-tog" title="오른쪽 보기 창 열기·닫기">보기 창</button>
+  <a class="hdr-btn" href="#guide-start">? 사용 설명</a>
+  <span id="log-count" hidden></span><span id="ai-count" hidden></span>
 </header>
-
-<nav class="nav" aria-label="메뉴">
-  <div class="nav-inner" role="tablist">
-    <button class="tab" role="tab" data-view="ladder" aria-selected="true">사다리</button>
-    <button class="tab" role="tab" data-view="survey" aria-selected="false">설문 설계</button>
-    <button class="tab" role="tab" data-view="collect" aria-selected="false">응답 취합</button>
-    <button class="tab" role="tab" data-view="analysis" aria-selected="false">분석</button>
-    <button class="tab" role="tab" data-view="interp" aria-selected="false">결과 해석</button>
-    <button class="tab" role="tab" data-view="log" aria-selected="false">검증 기록<span class="count" id="log-count">0</span></button>
-    <button class="tab" role="tab" data-view="guide" aria-selected="false">사용 설명</button>
-    <button class="tab" role="tab" data-view="rules" aria-selected="false">AI 지식 규칙<span class="count" id="ai-count">0</span></button>
-  </div>
-</nav>
-
-<main>
-  <div class="folder-bar" id="folder-bar"></div>
+<div class="app" id="app">
+<nav class="side" id="side" aria-label="진행 순서"></nav>
+<div class="center">
+<main id="scroller">
   <!-- 사다리 -->
   <section class="view" id="view-ladder">
     <div class="ladder">
-      <aside class="map" id="map">
-        <div class="map-head">
-          <div>
-            <h2>사다리 지도</h2>
-            <p>지나온 길과 지금 위치 · 눌러서 이동</p>
-          </div>
-          <a class="map-help" href="#guide-ladder">사용 설명</a>
-          <button class="map-toggle" id="map-toggle" aria-expanded="true">접기</button>
-        </div>
-        <div class="map-body" id="map-body">
-          <div class="legend">
-            <span><i style="background:var(--orange)"></i>지금 위치</span>
-            <span><i style="background:var(--orange-soft);border:1px solid var(--orange-line)"></i>지나온 길</span>
-            <span><i style="background:var(--ok-soft)"></i>도착점(기법)</span>
-          </div>
-          <ul class="tree" id="tree"></ul>
-          <div class="gate-box" id="gate-box"></div>
-        </div>
-      </aside>
       <div id="stage"></div>
     </div>
   </section>
@@ -2069,7 +2161,6 @@ footer { border-top: 1px solid var(--line); color: var(--ink-3); font-size: 13px
       </div>
     </div>
     <div id="an-main"></div>
-    <div id="an-results"></div>
   </section>
 
   <!-- 결과 해석 -->
@@ -2164,9 +2255,50 @@ footer { border-top: 1px solid var(--line); color: var(--ink-3); font-size: 13px
     <div id="rule-source-note"></div>
     <div class="rule-list" id="rule-list"></div>
   </section>
+  <div class="thread" id="thread"></div>
 </main>
+<form class="composer" id="composer" autocomplete="off">
+  <textarea id="cmp-text" rows="1" placeholder="궁금한 것을 물어보세요 (예: 이 결정은 어떤 걸 고르는 게 좋아?)"></textarea>
+  <button class="btn primary" type="submit" id="cmp-send">보내기</button>
+</form>
+</div>
+<aside class="right" id="right">
+  <div class="rtabs" role="tablist">
+    <button class="rtab" data-rt="method" role="tab">통계 방법</button>
+    <button class="rtab" data-rt="survey" role="tab">설문</button>
+    <button class="rtab" data-rt="results" role="tab">결과<span class="c" id="rt-count"></span></button>
+  </div>
+  <div class="rpane" id="rp-method" data-rp="method">
+    <div id="rp-method-top"></div>
+    <aside class="map" id="map">
+        <div class="map-head">
+          <div>
+            <h2>사다리 지도</h2>
+            <p>지나온 길과 지금 위치 · 눌러서 이동</p>
+          </div>
+          <a class="map-help" href="#guide-ladder">사용 설명</a>
+          <button class="map-toggle" id="map-toggle" aria-expanded="true">접기</button>
+        </div>
+        <div class="map-body" id="map-body">
+          <div class="legend">
+            <span><i style="background:var(--orange)"></i>지금 위치</span>
+            <span><i style="background:var(--orange-soft);border:1px solid var(--orange-line)"></i>지나온 길</span>
+            <span><i style="background:var(--ok-soft)"></i>도착점(기법)</span>
+          </div>
+          <ul class="tree" id="tree"></ul>
+          <div class="gate-box" id="gate-box"></div>
+        </div>
+      </aside>
+    <div id="rp-method-bottom"></div>
+  </div>
+  <div class="rpane" id="rp-survey" data-rp="survey" hidden></div>
+  <div class="rpane" id="rp-results" data-rp="results" hidden>
+    <div id="rp-results-top"></div>
+    <div id="an-results"></div>
+  </div>
+</aside>
+</div>
 
-<footer>통계 사다리 시제품 · 갈림길 규칙은 이 파일 안 <code>rules-data</code> 부분에 따로 들어 있습니다.</footer>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="sheet" id="sheet" hidden>
   <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
@@ -2353,8 +2485,9 @@ footer { border-top: 1px solid var(--line); color: var(--ink-3); font-size: 13px
 
     // 지금 위치가 보이게 지도 안에서만 스크롤
     const here = $('#map-body').querySelector('.tnode.here');
-    const body = $('#map-body');
-    if (here) {
+    let body = $('#map-body');
+    if (body.scrollHeight <= body.clientHeight + 2) body = $('#rp-method') || body;
+    if (here && body.clientHeight) {
       const top = here.getBoundingClientRect().top - body.getBoundingClientRect().top + body.scrollTop;
       if (top < body.scrollTop + 40 || top > body.scrollTop + body.clientHeight - 60) body.scrollTop = Math.max(0, top - body.clientHeight / 3);
     }
@@ -2399,7 +2532,7 @@ footer { border-top: 1px solid var(--line); color: var(--ink-3); font-size: 13px
         <span class="arrow">›</span>
       </button>`).join('');
     const src = node.source || {};
-    return `<div class="card">
+    return `${ladderHist()}<div class="card">
       ${stepper(node.step)}
       <div class="kicker">질문 ${esc(node.step)} · ${esc(stepName(node.step))} ${tagHtml(src)}</div>
       <h2 class="q">${esc(node.question)}</h2>
@@ -2422,7 +2555,7 @@ footer { border-top: 1px solid var(--line); color: var(--ink-3); font-size: 13px
   // ---------- 결과 화면 ----------
   function renderResult(w) {
     const r = RULES.results[w.cur.id];
-    return `<div class="card">
+    return `${ladderHist()}<div class="card">
       ${stepper('5', true)}
       <div class="result-hero">
         <div class="kicker">도착한 기법 ${tagHtml(r.source)}</div>
@@ -2447,7 +2580,7 @@ footer { border-top: 1px solid var(--line); color: var(--ink-3); font-size: 13px
   function renderOut(w) {
     const r = RULES.results[w.cur.id];
     const last = w.steps[w.steps.length - 1];
-    return `<div class="card">
+    return `${ladderHist()}<div class="card">
       ${stepper('5', true)}
       <div class="kicker">질문 5 · ${esc(stepName('5'))} ${tagHtml(RULES.gate.source)}</div>
       <h2 class="q">이번 버전의 범위 밖입니다</h2>
@@ -2533,9 +2666,11 @@ footer { border-top: 1px solid var(--line); color: var(--ink-3); font-size: 13px
     else html = renderOut(w);
     $('#stage').innerHTML = html;
     renderTree();
+    if (curView() === 'ladder' && path.length) { const c = $('#stage > .card'); if (c) $('#scroller').scrollTop = Math.max(0, c.offsetTop - 70); }
   }
 
   $('#stage').addEventListener('click', e => {
+    const lg = e.target.closest('[data-lgo]'); if (lg) { go(path.slice(0, +lg.dataset.lgo)); return; }
     const o = e.target.closest('[data-opt]');
     if (o) { o.classList.add('picked'); go(path.concat(Number(o.dataset.opt))); return; }
     const b = e.target.closest('[data-act]'); if (!b) return;
@@ -2569,10 +2704,14 @@ footer { border-top: 1px solid var(--line); color: var(--ink-3); font-size: 13px
   });
 
   // ---------- 탭 ----------
-  function switchView(v) {
-    document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.view === v)));
+  function switchView(v, nav) {
     document.querySelectorAll('.view').forEach(s => { s.hidden = s.id !== 'view-' + v; });
     store.set('ladder.view', v);
+    const cur = NAV.find(n => n.id === navCur);
+    if (!nav && (!cur || cur.view !== v)) { navCur = (NAV.find(n => n.view === v && !n.after) || {}).id || navCur; _set('ladder.navCur', navCur); }
+    $('#app').classList.toggle('no-right', ['log', 'rules', 'guide'].includes(v));
+    if (!rtabManual) setRtab(defaultRtab(v, nav)); else renderRight();
+    renderNav(); renderThread();
     if (v === 'survey') renderSurvey();
     if (v === 'analysis') renderAnalysis();
     if (v === 'interp') renderInterp();
@@ -2862,19 +3001,13 @@ footer { border-top: 1px solid var(--line); color: var(--ink-3); font-size: 13px
     const total = nItems + sv.demos.length + (sv.consent.on ? 1 : 0);
     const mins = Math.max(1, Math.round(total * 7 / 60));
     const w = surveyWarnings();
-    $('#sv-side').innerHTML = `<div class="card">
-      <h3 class="card-title">설문 한눈에 보기</h3>
-      <div class="kv">
-        <div><span>변인(척도)</span><b>${sv.scales.length}개</b></div>
-        <div><span>척도 문항</span><b>${nItems}개 (역문항 ${nRev}개)</b></div>
-        <div><span>기본 정보 문항</span><b>${sv.demos.length}개</b></div>
-        <div><span>예상 응답 시간</span><b>약 ${mins}분</b></div>
-      </div>
-      <ul class="warn-list">${w.length ? w.map(x => `<li>${esc(x)}</li>`).join('') : '<li class="ok">빠진 곳이 없습니다.</li>'}</ul>
+    $('#sv-side').innerHTML = `<div class="sv-actbar">
+      <div class="sv-actinfo"><b>문항 ${nItems}개</b> · 기본 정보 ${sv.demos.length}개 · 약 ${mins}분${w.length ? ` · <span class="sv-warnn">확인할 곳 ${w.length}개</span>` : ' · <span class="sv-okn">빠진 곳 없음</span>'}</div>
+      ${w.length ? `<ul class="warn-list">${w.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
       <div class="side-btns">
-        <button class="btn" data-sv-act="preview">응답자 화면 미리보기</button>
-        <button class="btn primary" data-sv-act="script">구글 폼 만들기 스크립트</button>
-        <button class="btn" data-sv-act="codebook">코드북 내려받기 (CSV)</button>
+        <button class="btn" data-sv-act="preview">미리보기</button>
+        <button class="btn primary" data-sv-act="script">구글 폼 스크립트</button>
+        <button class="btn" data-sv-act="codebook">코드북 CSV</button>
         <button class="btn" data-sv-act="to-collect">응답 취합으로 →</button>
       </div>
     </div>`;
@@ -3109,7 +3242,8 @@ function createSurvey() {
     else if (act === 'example') { if (sv.scales.length && !twice(b, '한 번 더 누르면 지금 설문을 바꿉니다')) return; sv = exampleSurvey(); toast('예시 설문을 불러왔습니다.'); }
     else if (act === 'clear') { if (!twice(b, '한 번 더 눌러 모두 지우기')) return; sv = blankSurvey(); $('#sv-script').innerHTML = ''; }
     else if (act === 'script') { renderScript(); return; }
-    else if (act === 'preview' || act === 'pv-restart') { pv = { page: 0, ans: {} }; renderPreview(); $('#sv-script-card').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
+    else if (act === 'preview') { rtabManual = true; rpv.page = 0; setRtab('survey'); openRight(); return; }
+    else if (act === 'pv-restart') { pv = { page: 0, ans: {} }; renderPreview(); $('#sv-script-card').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     else if (act === 'pv-next') { previewNext(); return; }
     else if (act === 'pv-prev') { pv.page--; renderPreview(); $('#sv-script-card').scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
     else if (act === 'script-close') { $('#sv-script').innerHTML = ''; return; }
@@ -3253,7 +3387,7 @@ function createSurvey() {
     if (!raw) { $('#co-map').innerHTML = ''; $('#co-result').innerHTML = ''; return; }
     const items = designItems();
     if (!items.length) {
-      $('#co-map').innerHTML = `<div class="card"><div class="errbox">설문 설계에 문항이 없어 어떤 열이 어떤 문항인지 알 수 없습니다. [설문 설계] 탭에서 문항을 먼저 넣어 주세요.</div></div>`;
+      $('#co-map').innerHTML = `<div class="card"><div class="errbox">설문 설계에 문항이 없어 어떤 열이 어떤 문항인지 알 수 없습니다. [설문 설계] 메뉴에서 문항을 먼저 넣어 주세요.</div></div>`;
       $('#co-result').innerHTML = ''; return;
     }
     const hOpts = sel => `<option value="-1" ${sel < 0 ? 'selected' : ''}>(연결 안 함)</option>` + raw.headers.map((h, i) => `<option value="${i}" ${i === sel ? 'selected' : ''}>${i + 1}. ${esc(h.length > 40 ? h.slice(0, 40) + '…' : h)}</option>`).join('');
@@ -3762,7 +3896,7 @@ function createSurvey() {
     if (!lastScored) {
       box.innerHTML = `<div class="card">
         <h3 class="card-title">분석할 자료가 아직 없습니다</h3>
-        <p class="hint">[응답 취합] 탭에서 응답을 넣고 [점수 만들기]를 누르면 여기서 계산할 수 있습니다. 응답 원자료는 저장하지 않아서, 페이지를 새로 열었다면 다시 넣어야 합니다.</p>
+        <p class="hint">[응답 취합] 메뉴에서 응답을 넣고 [점수 만들기]를 누르면 여기서 계산할 수 있습니다. 응답 원자료는 저장하지 않아서, 페이지를 새로 열었다면 다시 넣어야 합니다.</p>
         <p class="hint">${ladderNote}</p>
         <div class="actions"><button class="btn primary" data-an-act="demo">예시 자료로 해 보기</button><button class="btn" data-an-act="to-collect">응답 취합으로</button></div>
       </div>`;
@@ -3796,7 +3930,7 @@ function createSurvey() {
     renderAnalyses();
   }
 
-  $('#view-analysis').addEventListener('change', e => {
+  $('#app').addEventListener('change', e => {
     const t = e.target;
     if (t.id === 'an-method') { anSel.method = t.value; anSel.roles = autoRoles(t.value); saveAnSel(); renderAnalysis(); return; }
     if (t.dataset.slot) {
@@ -3808,11 +3942,11 @@ function createSurvey() {
     if (t.dataset.opt) { anSel.opts[t.dataset.opt] = t.type === 'checkbox' ? t.checked : t.value; saveAnSel(); }
     if (t.dataset.dec) { changeDecision(t.dataset.dec, t.value); renderAnalysis(); }
   });
-  $('#view-analysis').addEventListener('input', e => {
+  $('#app').addEventListener('input', e => {
     const t = e.target;
     if (t.dataset.decWhy != null) { plan.log[+t.dataset.decWhy].reason = t.value; savePlan(); }
   });
-  $('#view-analysis').addEventListener('click', async e => {
+  $('#app').addEventListener('click', async e => {
     const b = e.target.closest('[data-an-act]'); if (!b) return;
     const act = b.dataset.anAct;
     if (act === 'to-collect') switchView('collect');
@@ -3830,7 +3964,7 @@ function createSurvey() {
     else if (act === 'del') { analyses = analyses.filter(a => a.id !== b.dataset.id); saveAnalyses(); renderAnalyses(); renderInterp(); }
     else if (act === 'csv') { const a = analyses.find(x => x.id === b.dataset.id); download(`분석결과_${a.title.replace(/[^\w가-힣]+/g, '_').slice(0, 40)}.csv`, toCsv(analysisCsvRows(a)), 'text/csv'); }
     else if (act === 'to-interp') switchView('interp');
-    else if (act === 'lock-plan') { plan.locked = new Date().toLocaleString('ko-KR'); savePlan(); renderAnalysis(); toast('분석 결정을 확정했습니다. 이후 바꾸면 기록에 남습니다.'); }
+    else if (act === 'lock-plan') { plan.locked = new Date().toLocaleString('ko-KR'); savePlan(); renderAnalysis(); addSys('analysis', '분석 결정을 확정했습니다.'); toast('분석 결정을 확정했습니다. 이후 바꾸면 기록에 남습니다.'); }
     else if (act === 'plan-dl') download('analysis_plan.md', planText());
     else if (act === 'r-data') download('analysis_data.csv', toCsv(analysisRows()), 'text/csv');
     else if (act === 'r-code') download('analysis.R', rScript(analyses.slice().reverse()));
@@ -3893,7 +4027,9 @@ function createSurvey() {
     buildChecks(R, anSel.roles);
     prog.textContent = '';
     analyses.unshift(R); saveAnalyses(); renderAnalyses(); renderInterp();
-    $(`#res-${R.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    addSys('analysis', `계산했습니다: ${R.title} (N = ${R.n}). 결과는 오른쪽 [결과] 탭에 있습니다.`);
+    rtabManual = false; setRtab('results'); openRight();
+    $(`#res-${R.id}`)?.scrollIntoView({ block: 'start' });
   }
 
   function regTable(fit, names, ysd, xsds, title) {
@@ -4417,7 +4553,7 @@ function createSurvey() {
     </div>` : '';
 
     box.innerHTML = `
-      ${!analyses.length ? `<div class="card"><div class="errbox">아직 계산한 결과가 없습니다. [분석] 탭에서 먼저 계산해 주세요. 가설마다 검증할 효과를 골라야 판정할 수 있습니다.</div><div class="actions"><button class="btn primary" data-in-act="to-analysis">분석으로</button></div></div>` : ''}
+      ${!analyses.length ? `<div class="card"><div class="errbox">아직 계산한 결과가 없습니다. [분석] 메뉴에서 먼저 계산해 주세요. 가설마다 검증할 효과를 골라야 판정할 수 있습니다.</div><div class="actions"><button class="btn primary" data-in-act="to-analysis">분석으로</button></div></div>` : ''}
       <div class="card">
         <div class="res-head"><h3 class="card-title">1. 연구 의도</h3>${aiChip}</div>
         <p class="hint">AI는 여기 적은 내용과 계산 결과표만 봅니다. 응답 원자료는 보내지 않습니다.</p>
@@ -4719,9 +4855,11 @@ ${REVIEW_RULES}
       if (which === 'check') {
         intent.check = { understanding: String(res?.understanding || ''), hypotheses: Array.isArray(res?.hypotheses) ? res.hypotheses : [], questions: Array.isArray(res?.questions) ? res.questions.map(String).slice(0, 4) : [] };
         intent.answers = []; intent.confirmed = false;
+        addMsg('interp', 'ai', `연구 의도를 이렇게 이해했습니다.\n${intent.check.understanding}${intent.check.questions.length ? '\n\n확인할 질문:\n' + intent.check.questions.map((q, i) => `${i + 1}. ${q}`).join('\n') : ''}\n\n아래 카드에서 답하고 [AI가 이해한 내용이 맞습니다]에 체크해 주세요.`);
       } else {
         const o = { results: String(res?.results || ''), discussion: String(res?.discussion || ''), limitations: Array.isArray(res?.limitations) ? res.limitations.map(String) : [], check: Array.isArray(res?.check) ? res.check.map(String) : [] };
         Object.assign(o, postCheck(o)); o.sample = analyses.some(a => a.sample); intent.out = o;
+        addSys('interp', `결과·논의 초안을 썼습니다. 자동 점검: 확인할 곳 ${o.issues.length}개`);
       }
       saveIntent(); renderInterp();
       if (which === 'write') $('#in-out')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -4792,6 +4930,13 @@ ${REVIEW_RULES}
   const GUIDE = [
     { id: 'start', group: '시작하기', title: '처음 오셨나요', body: `
       <p>통계 사다리는 통계 용어를 몰라도 <b>질문에 답하며 내 연구에 맞는 통계 기법을 고르고</b>, 그 변인으로 <b>설문을 만들어 응답을 모으고</b>, <b>계산과 결과 해석</b>까지 이어 가는 도구입니다.</p>
+      <h3>화면 구성</h3>
+      <table class="gtable"><thead><tr><th>자리</th><th>하는 일</th></tr></thead><tbody>
+        <tr><td>왼쪽 메뉴</td><td>연구 진행 순서. 끝낸 단계는 ✓, 지금 단계는 주황색. 맨 위 ☰ 버튼으로 접었다 펼 수 있습니다.</td></tr>
+        <tr><td>가운데</td><td>지금 단계에서 고르고 적는 곳. 사다리에서 답한 질문은 대화처럼 위로 쌓이고, 말풍선을 누르면 그 질문으로 돌아갑니다. 맨 아래 입력창에 궁금한 것을 물으면 답이 이어서 남습니다.</td></tr>
+        <tr><td>오른쪽 보기 창</td><td>[통계 방법] 고른 기법·사다리 지도·변인·분석 결정, [설문] 요약·응답 현황·응답자 화면 미리보기, [결과] 가설 판정·계산 결과표. 단계에 맞는 탭이 저절로 열리고, 직접 눌러 바꿀 수도 있습니다.</td></tr>
+      </tbody></table>
+      <p class="hint">PC 화면(가로 1366 이상)에 맞췄습니다. 화면이 좁으면 오른쪽 보기 창은 위의 [보기 창] 버튼으로 열고 닫습니다. 휴대폰에서는 보기 위주로 쓰세요.</p>
       <h3>전체 흐름</h3>
       <ol class="flow">
         <li><a href="#guide-ladder">사다리</a> — 질문에 답해 통계 기법 고르기, 변인 적고 잠그기</li>
@@ -4808,7 +4953,7 @@ ${REVIEW_RULES}
         <tr><td>AI 결과 해석</td><td>아무 AI 계정 (무료 계정도 됨). <a href="#guide-ai">세 가지 방법</a> 중 고르기</td></tr>
       </tbody></table>
       <h3>먼저 해 보기</h3>
-      <p>[분석] 탭에서 <b>[예시 자료로 해 보기]</b>를 누르면 예시 설문과 가짜 응답 300명으로 전체 흐름을 바로 볼 수 있습니다. 예시 자료는 화면 확인용이라 논문에 쓰면 안 됩니다.</p>` },
+      <p>[분석] 메뉴에서 <b>[예시 자료로 해 보기]</b>를 누르면 예시 설문과 가짜 응답 300명으로 전체 흐름을 바로 볼 수 있습니다. 예시 자료는 화면 확인용이라 논문에 쓰면 안 됩니다.</p>` },
 
     { id: 'folder', group: '시작하기', title: '연구 폴더 (PC)', body: `
       <p>교수님의 lazzzyResearch처럼 <b>연구 하나 = 폴더 하나</b>로 작업합니다. PC의 폴더를 연결하면 통계 사다리에서 한 일이 그 폴더에 파일로 <b>자동 저장</b>되고, 같은 폴더에서 Claude Code를 실행하면 Claude가 그 파일들로 일합니다.</p>
@@ -4844,7 +4989,7 @@ ${REVIEW_RULES}
         <li><b>변인 고정칸</b>에 독립변인(이름·수준), 종속변인, 매개·조절·통제변인을 적고 <b>🔒 잠그기</b>를 누르면 나중에 바뀌지 않았는지 확인하는 기준이 됩니다.</li>
         <li><b>[이 변인으로 설문 만들기]</b>를 누르면 설문 설계로 이어집니다.</li>
       </ul>
-      <div class="gnote">갈림길 규칙은 아직 교재 자료 없이 통계 지식으로 만든 것이라 모두 <span class="tag ai">AI 지식</span> 꼬리표가 붙어 있습니다. [AI 지식 규칙] 탭에서 하나씩 볼 수 있습니다.</div>` },
+      <div class="gnote">갈림길 규칙은 아직 교재 자료 없이 통계 지식으로 만든 것이라 모두 <span class="tag ai">AI 지식</span> 꼬리표가 붙어 있습니다. 왼쪽 [갈림길 규칙] 메뉴에서 하나씩 볼 수 있습니다.</div>` },
 
     { id: 'survey', group: '단계별 사용법', title: '② 설문 설계', tab: 'survey', body: `
       <ol>
@@ -4868,7 +5013,7 @@ ${REVIEW_RULES}
     { id: 'collect', group: '단계별 사용법', title: '④ 응답 취합', tab: 'collect', body: `
       <ol>
         <li>응답 시트에서 <b>[파일 → 다운로드 → 쉼표로 구분된 값(.csv)]</b>으로 받습니다.</li>
-        <li>[응답 취합] 탭에서 <b>[CSV 파일 고르기]</b>로 넣습니다. 시트를 전체 복사해 붙여 넣어도 됩니다.</li>
+        <li>[응답 취합] 메뉴에서 <b>[CSV 파일 고르기]</b>로 넣습니다. 시트를 전체 복사해 붙여 넣어도 됩니다.</li>
         <li><b>열 연결 확인</b>: 문항 문장이 같은 열을 자동으로 찾습니다. 틀리거나 빈 곳만 직접 고르세요.</li>
         <li><b>[점수 만들기]</b>: 글로 된 응답을 숫자로 바꾸고, 역문항을 뒤집어 변인 점수를 만듭니다.</li>
       </ol>
@@ -5340,6 +5485,7 @@ ${reviewText()}
       const res = await sample.json(reviewPrompt('json'), { modelTier: 'complex', cache: false, onText: ({ text }) => { prog.textContent = `쓰는 중… ${text.length.toLocaleString()}자`; } });
       intent.review.result = { strengths: [].concat(res?.strengths || []).map(String), questions: [].concat(res?.questions || []).map(q => ({ type: String(q.type || '기타'), quote: String(q.quote || ''), question: String(q.question || ''), why: String(q.why || ''), suggestion: String(q.suggestion || '') })) };
       intent.review.done = []; saveIntent(); renderInterp(); $('#rv-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      addSys('interp', `허점 점검: 짚어 볼 곳 ${intent.review.result.questions.length}개`);
     } catch (e) { if (e?.code === 'not_granted' || e?.code === 'sampling_disabled') aiState = 'denied'; renderInterp(); $('#rv-prog').textContent = aiErr(e?.code); }
   }
 
@@ -5391,6 +5537,7 @@ ${reviewText()}
     d.set(v);
     plan.log.push({ at: new Date().toLocaleString('ko-KR'), id, q: d.q, from: decLabel(d, from), to: decLabel(d, v), after: !!plan.seen, reason: '' });
     savePlan(); saveAnSel();
+    addSys('analysis', `분석 결정: ${d.q} → ${decLabel(d, v)}${plan.seen ? ' (결과를 본 뒤 바꿈: 사후 변경으로 기록)' : ''}`);
     if (d.scope === 'data' && raw && lastScored) { runScoring(); toast('바뀐 결정으로 점수를 다시 만들었습니다.'); }
   }
 
@@ -5779,7 +5926,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
 
   // ---------- 프로젝트 상태 ----------
   function projectState() {
-    return { app: '통계 사다리', version: '0.7', savedAt: new Date().toISOString(), path, vars, sv, plan, anSel, analyses, intent, log, rules: customRules ? RULES : null };
+    return { app: '통계 사다리', version: '0.8', savedAt: new Date().toISOString(), path, vars, sv, plan, anSel, analyses, intent, log, rules: customRules ? RULES : null };
   }
   function applyProject(o) {
     if (!o || o.app !== '통계 사다리') throw new Error('통계 사다리 프로젝트 파일이 아닙니다.');
@@ -5967,6 +6114,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
     }
     bar.className = 'folder-bar' + (folderState === 'on' ? ' on' : '');
     bar.innerHTML = h;
+    updateFoldChip();
   }
   $('#folder-bar').addEventListener('click', async e => {
     const b = e.target.closest('[data-fd]'); if (!b) return;
@@ -5993,6 +6141,227 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
     if (folderState === 'on') await afterConnect(); else renderFolderBar();
   }
 
+  // =================================================================
+  // 세 칸 화면: 왼쪽 진행 메뉴 · 가운데 작업 창(대화) · 오른쪽 보기 창
+  // =================================================================
+  const NAV = [
+    { grp: '설계' },
+    { id: 'ladder', n: '1', label: '통계 기법 고르기', view: 'ladder', sum: () => { const id = ladderResultId(); return id ? RULES.results[id].name.replace(/\s*\(.*\)$/, '') : path.length ? `질문 ${Math.min(path.length + 1, 5)}` : ''; }, done: () => !!ladderResultId() },
+    { id: 'survey', n: '2', label: '설문 만들기', view: 'survey', sum: () => { const n = sv.scales.reduce((a, s) => a + s.items.filter(i => norm(i.text)).length, 0); return n ? `${n}문항` : ''; }, done: () => sv.scales.some(s => s.items.some(i => norm(i.text))) },
+    { id: 'gform', n: '3', label: '구글 폼 배포', view: 'survey', after: () => { renderScript(); }, done: () => !!lastScored || analyses.length > 0 },
+    { grp: '자료와 분석' },
+    { id: 'collect', n: '4', label: '응답 취합', view: 'collect', sum: () => (lastScored ? `${lastScored.inc.length}명` : ''), done: () => !!lastScored || analyses.length > 0 },
+    { id: 'analysis', n: '5', label: '분석 결정·계산', view: 'analysis', sum: () => (analyses.length ? `분석 ${analyses.length}개` : ''), done: () => analyses.length > 0 },
+    { grp: '글쓰기' },
+    { id: 'interp', n: '6', label: '결과 해석 (AI)', view: 'interp', done: () => !!intent.out },
+    { id: 'review', n: '7', label: '허점 점검 (AI)', view: 'interp', after: () => $('#rv-card')?.scrollIntoView({ block: 'start' }), done: () => !!intent.review?.result },
+    { grp: '도구' },
+    { id: 'rcheck', n: 'R', label: 'R로 확인하기', view: 'analysis', right: 'results', after: () => { openRight(); $('#an-results')?.scrollIntoView({ block: 'start' }); }, done: () => analyses.some(a => a.rcheck) },
+    { id: 'log', n: '✓', label: '검증 기록', view: 'log', sum: () => (log.length ? `${log.length}건` : '') },
+    { id: 'rules', n: '≡', label: '갈림길 규칙', view: 'rules' },
+    { id: 'guide', n: '?', label: '사용 설명', view: 'guide' }
+  ];
+  let navCur = store.get('ladder.navCur', 'ladder');
+  let rtab = 'method', rtabManual = false;
+  const VIEW_NAME = { ladder: '통계 기법 고르기', survey: '설문 만들기', collect: '응답 취합', analysis: '분석 결정·계산', interp: '결과 해석', log: '검증 기록', rules: '갈림길 규칙', guide: '사용 설명' };
+
+  function renderNav() {
+    $('#side').innerHTML = NAV.map(x => {
+      if (x.grp) return `<div class="grp">${esc(x.grp)}</div>`;
+      const done = x.done && x.done(), on = x.id === navCur, sm = x.sum && x.sum();
+      return `<button class="it ${on ? 'on' : ''} ${done ? 'done' : ''}" data-nav="${x.id}" title="${esc(x.label)}"><span class="n">${done && !on ? '✓' : esc(x.n)}</span><span class="lbl">${esc(x.label)}</span>${sm ? `<small>${esc(sm)}</small>` : ''}</button>`;
+    }).join('');
+  }
+  function gotoNav(id) {
+    const x = NAV.find(n => n.id === id); if (!x) return;
+    navCur = id; _set('ladder.navCur', id); rtabManual = false;
+    switchView(x.view, x);
+    $('#scroller').scrollTop = 0;
+    if (x.after) setTimeout(x.after, 60);
+    if (window.matchMedia('(max-width: 1150px)').matches) $('#app').classList.add('nav-min');
+  }
+  $('#side').addEventListener('click', e => { const b = e.target.closest('[data-nav]'); if (b) gotoNav(b.dataset.nav); });
+  $('#nav-tog').addEventListener('click', () => { const m = $('#app').classList.toggle('nav-min'); _set('ladder.navMin', m); });
+  const openRight = () => $('#app').classList.add('r-open');
+  $('#rp-tog').addEventListener('click', () => $('#app').classList.toggle('r-open'));
+
+  // ---------- 오른쪽 보기 창 ----------
+  function defaultRtab(v, nav) {
+    if (nav && nav.right) return nav.right;
+    return { ladder: 'method', survey: 'survey', collect: 'survey', analysis: analyses.length ? 'results' : 'method', interp: 'results' }[v] || rtab;
+  }
+  function setRtab(t) {
+    rtab = t;
+    document.querySelectorAll('.rtab').forEach(b => b.setAttribute('aria-selected', String(b.dataset.rt === t)));
+    document.querySelectorAll('.rpane').forEach(p => { p.hidden = p.dataset.rp !== t; });
+    renderRight();
+  }
+  document.querySelectorAll('.rtab').forEach(b => b.addEventListener('click', () => { rtabManual = true; setRtab(b.dataset.rt); }));
+
+  function renderRight() {
+    $('#rt-count').textContent = analyses.length || '';
+    if (rtab === 'method') renderRightMethod();
+    else if (rtab === 'survey') renderRightSurvey();
+    else renderRightResults();
+  }
+  function renderRightMethod() {
+    const lid = ladderResultId(), w = walk(path);
+    let top;
+    if (lid) {
+      const r = RULES.results[lid], base = w.cur.base && w.cur.base !== lid ? RULES.results[w.cur.base] : null;
+      top = `<div class="card"><h4>고른 통계 방법</h4><div class="rmethod">${esc(r.name)}<small>${esc(r.en)}</small></div>${base ? `<p class="hint" style="margin:8px 0 0">기본이 되는 기법: ${esc(base.name)}</p>` : ''}</div>`;
+    } else if (w.cur.type === 'out') top = `<div class="card"><h4>고른 통계 방법</h4><p class="rempty">이번 버전의 범위 밖으로 안내되었습니다.</p></div>`;
+    else top = `<div class="card"><h4>고른 통계 방법</h4><p class="rempty">아직 고르는 중입니다 · 질문 ${Math.min(w.steps.length + 1, 5)}단계${w.steps.length ? ` (${w.steps.length}개 답함)` : ''}</p></div>`;
+    $('#rp-method-top').innerHTML = top;
+    const ivs = vars.ivs.filter(v => norm(v.name)), oth = vars.others.filter(o => norm(o.name));
+    const varRows = ivs.map(v => `<span>독립</span><span>${esc(v.name)}${v.levels ? ` <small class="hint">(${esc(v.levels)})</small>` : ''}</span>`).join('')
+      + oth.map(o => `<span>${esc(o.role)}</span><span>${esc(o.name)}</span>`).join('') + (norm(vars.dv) ? `<span>종속</span><span>${esc(vars.dv)}</span>` : '');
+    $('#rp-method-bottom').innerHTML = `
+      <div class="card"><h4>변인 ${vars.locked ? '🔒 잠김' : ''}</h4>${varRows ? `<div class="rkv">${varRows}</div>` : '<p class="rempty">사다리 도착 화면의 변인 고정칸에 적으면 여기에 보입니다.</p>'}</div>
+      <div class="card"><h4>분석 결정 ${plan.locked ? `<span class="st auto">확정</span>` : '<span class="st missing">미확정</span>'} ${plan.log.some(l => l.after) ? `<span class="st manual">사후 변경 ${plan.log.filter(l => l.after).length}</span>` : ''}</h4>
+        <div class="rkv">${DECISIONS.map(d => `<span>${esc({ scoring: '점수', minPct: '최소 응답', straight: '불성실 응답', welch: '분산 다를 때', posthoc: '사후검정', boot: '부트스트랩', center: '평균중심화' }[d.id] || d.id)}</span><span>${esc(decLabel(d, d.get()))}</span>`).join('')}</div></div>`;
+  }
+
+  let rpv = { page: 0 };
+  function renderRightSurvey() {
+    const nItems = sv.scales.reduce((a, s) => a + s.items.filter(i => norm(i.text)).length, 0);
+    const nRev = sv.scales.reduce((a, s) => a + s.items.filter(i => norm(i.text) && i.reverse).length, 0);
+    const pages = previewPages(); if (rpv.page >= pages.length) rpv.page = Math.max(0, pages.length - 1);
+    const pg = pages[rpv.page];
+    const item = it => `<div class="pv-item"><div class="pv-q">${esc(it.title)}${it.required ? ' <span class="pv-req">*</span>' : ''}${it.code ? ` <span class="pv-code">${esc(it.code)}</span>` : ''}</div>${it.help ? `<div class="pv-help">${esc(it.help)}</div>` : ''}
+      ${it.type === 'choice' ? `<div class="pv-choices ${it.choices.length >= 4 && it.choices.length <= 7 && !it.id.startsWith('d') && it.id !== 'consent' ? 'likert' : ''}">${it.choices.map(c => `<label class="pv-choice"><input type="radio" name="rpv-${it.id}"><span>${esc(c)}</span></label>`).join('')}</div>` : '<input class="pv-text" placeholder="내 답변">'}</div>`;
+    const status = lastScored ? `<div class="card"><h4>응답 현황</h4><div class="rkv"><span>응답</span><span>${lastScored.people.length}명 → 분석 ${lastScored.inc.length}명</span><span>신뢰도 α</span><span>${lastScored.scaleInfo.map(x => `${esc(scaleCode(x.s, x.si))} ${fr(x.a)}`).join(' · ')}</span></div></div>` : '';
+    $('#rp-survey').innerHTML = `
+      <div class="card"><h4>설문 한눈에 보기</h4><div class="rkv"><span>제목</span><span>${esc(sv.title || '-')}</span><span>변인</span><span>${sv.scales.length}개</span><span>척도 문항</span><span>${nItems}개 (역문항 ${nRev}개)</span><span>기본 정보</span><span>${sv.demos.length}개</span><span>예상 시간</span><span>약 ${Math.max(1, Math.round((nItems + sv.demos.length + (sv.consent.on ? 1 : 0)) * 7 / 60))}분</span></div></div>
+      ${status}
+      <div class="card rpv"><h4>응답자 화면 미리보기 · ${pages.length ? rpv.page + 1 : 0} / ${pages.length}쪽</h4>
+        ${pg ? `<div class="pv-frame"><div class="pv-head ${pg.first ? '' : 'sub'}"><h3>${esc(pg.title)}</h3>${pg.help ? `<p>${esc(pg.help)}</p>` : ''}</div>${pg.items.map(item).join('')}
+          <div class="actions tight"><button class="btn sm" data-rpv="prev" ${rpv.page ? '' : 'disabled'}>이전 쪽</button><button class="btn sm primary" data-rpv="next" ${rpv.page < pages.length - 1 ? '' : 'disabled'}>다음 쪽</button><span class="hint" style="align-self:center">답은 저장되지 않습니다</span></div></div>` : '<p class="rempty">설문 만들기에서 문항을 적으면 여기에 응답자 화면이 바로 보입니다.</p>'}
+      </div>`;
+  }
+  $('#rp-survey').addEventListener('click', e => { const b = e.target.closest('[data-rpv]'); if (!b) return; rpv.page += b.dataset.rpv === 'next' ? 1 : -1; renderRightSurvey(); $('#rp-survey').scrollTop = 0; });
+
+  function renderRightResults() {
+    const hs = intent.hyps.filter(h => norm(h.text) && h.effect);
+    $('#rp-results-top').innerHTML = `<div class="card"><h4>가설 판정</h4>${hs.length ? hs.map(h => { const v = verdict(h), e = effById(h.effect), i = intent.hyps.indexOf(h); return v ? `<div class="rv-verdict ${v.v === '지지' ? 'ok' : 'no'}"><b>${v.v}</b><span>가설 ${i + 1} · ${esc(e.stat)}</span></div>` : ''; }).join('')
+      : '<p class="rempty">결과 해석에서 가설과 검증할 효과를 고르면 판정이 여기에 보입니다.</p>'}</div>`;
+    if (!analyses.length) $('#an-results').innerHTML = '<div class="card"><p class="rempty">분석 결정·계산에서 [계산하기]를 누르면 결과표, 보고 체크리스트, R 대조가 여기에 보입니다.</p></div>';
+  }
+
+  // ---------- 대화 기록 ----------
+  let thread = store.get('ladder.thread', []);
+  let threadAll = false;
+  const saveThread = () => _set('ladder.thread', thread.slice(-300));
+  function addMsg(view, role, text, extra = {}) { const m = { view, role, text, at: new Date().toLocaleString('ko-KR'), ...extra }; thread.push(m); saveThread(); renderThread(true); return m; }
+  const addSys = (view, text) => addMsg(view, 'sys', text);
+  const curView = () => store.get('ladder.view', 'ladder');
+  function msgHtml(m, i) {
+    if (m.role === 'sys') return `<div class="msg sys">${esc(m.text)}</div>`;
+    return `<div class="msg ${m.role}" data-mi="${i}">${m.role === 'ai' ? '<span class="who">도우미</span>' : ''}${esc(m.text)}${m.links?.length ? `<div class="links">${m.links.map(l => `<a href="${esc(l.href)}">${esc(l.title)}</a>`).join('')}</div>` : ''}${m.prompt ? '<div class="tools"><button class="btn sm" data-copy-prompt="' + i + '">AI에게 물을 지시문 복사</button></div>' : ''}</div>`;
+  }
+  function renderThread(scroll) {
+    const v = curView(), list = thread.map((m, i) => [m, i]).filter(([m]) => threadAll || m.view === v);
+    const others = thread.length - list.length;
+    $('#thread').innerHTML = (list.length || others) ? `<div class="th-head">${threadAll ? '모든 단계의 대화' : `${esc(VIEW_NAME[v] || '')} 대화`}${others || threadAll ? ` <button data-th="all">${threadAll ? '이 단계만 보기' : `다른 단계 ${others}개 보기`}</button>` : ''}</div>` + list.map(([m, i]) => msgHtml(m, i)).join('') : '';
+    if (scroll) { const sc = $('#scroller'); sc.scrollTop = sc.scrollHeight; }
+  }
+  $('#thread').addEventListener('click', e => {
+    if (e.target.closest('[data-th]')) { threadAll = !threadAll; renderThread(); return; }
+    const c = e.target.closest('[data-copy-prompt]');
+    if (c) { const m = thread[+c.dataset.copyPrompt]; try { navigator.clipboard.writeText(m.prompt).then(() => toast('지시문을 복사했습니다. AI 채팅에 붙여 넣으세요.'), () => showSheet('지시문.txt', m.prompt)); } catch (err) { showSheet('지시문.txt', m.prompt); } }
+  });
+
+  // ---------- 도우미 (가운데 아래 입력창) ----------
+  function helperContext() {
+    const w = walk(path), lid = ladderResultId();
+    const node = w.cur.type === 'node' ? RULES.nodes[w.cur.id] : w.cur.type === 'gate' ? RULES.gate : null;
+    return {
+      지금_화면: VIEW_NAME[curView()] || curView(),
+      사다리: { 지나온_답: w.steps.map(s => `${s.node.question} → ${s.opt.label}`), 지금_질문: node ? { 질문: node.question, 선택지: node.options.map(o => `${o.label}${o.term ? ` (${o.term})` : ''}`), 설명: node.help?.text } : null, 고른_기법: lid ? RULES.results[lid].name : null },
+      변인: { 독립: vars.ivs.filter(v => norm(v.name)).map(v => v.name + (v.levels ? `(${v.levels})` : '')), 종속: vars.dv, 그밖: vars.others.map(o => `${o.role}: ${o.name}`) },
+      설문: sv.scales.map((s, si) => `${s.name || scaleCode(s, si)}(${s.role}, ${s.items.filter(i => norm(i.text)).length}문항)`),
+      응답: lastScored ? `분석에 포함 ${lastScored.inc.length}명` : '아직 없음',
+      분석_결정: DECISIONS.map(d => `${d.q} → ${decLabel(d, d.get())}`),
+      분석_결과: analyses.slice(0, 4).map(a => ({ 분석: a.title, N: a.n, 효과: a.effects.slice(0, 12).map(e => `${e.label}: ${e.stat}`), 확인_필요: (a.checks || []).filter(c => c.st === 'warn').map(c => c.item) })),
+      가설: intent.hyps.filter(h => norm(h.text)).map((h, i) => { const v = verdict(h); return `가설 ${i + 1}: ${h.text}${v ? ` → 판정 ${v.v}` : ''}`; })
+    };
+  }
+  function helperPrompt(q) {
+    const recent = thread.filter(m => m.role !== 'sys').slice(-8).map(m => `${m.role === 'me' ? '연구자' : '도우미'}: ${m.text}`).join('\n');
+    return `너는 '통계 사다리'의 도우미다. 통계를 잘 모르는 사회과학 대학원생이 통계 기법을 고르고, 설문을 만들고, 분석하고, 결과를 해석하는 것을 돕는다.
+지킬 것:
+- 쉬운 한국어로 짧게(대개 3~8문장) 답한다. 통계 용어는 괄호로 덧붙인다.
+- 연구자의 결정을 대신 내리지 않는다. 선택지가 있으면 각각의 장단점을 말하고, 이 연구 상황에서 흔히 쓰는 쪽을 근거와 함께 제안하되 결정은 연구자에게 맡긴다.
+- 숫자는 [현재 상태]에 있는 것만 쓴다. 새로 계산하지 않는다. 계산이 필요하면 통계 사다리의 어느 단계에서 무엇을 누르면 되는지 안내한다.
+- 가설 판정은 [현재 상태]의 판정을 따른다. 참고문헌을 지어내지 않는다.
+- 마크다운 표나 제목 없이 평범한 문장과 짧은 목록으로 쓴다.
+
+[현재 상태]
+${JSON.stringify(helperContext(), null, 1)}
+
+[최근 대화]
+${recent || '(없음)'}
+
+[연구자의 질문]
+${q}`;
+  }
+  function guideSearch(q) {
+    const words = q.split(/[\s,.?!~]+/).map(w => w.replace(/(은|는|이|가|을|를|에|의|로|으로|와|과|도|만|요|까|해|야)$/, '')).filter(w => w.length >= 2);
+    return GUIDE.map(g => { const t = (g.title + ' ' + g.body.replace(/<[^>]+>/g, ' ')).toLowerCase(); return [g, words.reduce((s, w) => s + (t.includes(w.toLowerCase()) ? 1 : 0), 0)]; })
+      .filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([g]) => ({ href: '#guide-' + g.id, title: `사용 설명 · ${g.title}` }));
+  }
+  let helperBusy = false;
+  async function askHelper(q) {
+    const v = curView();
+    addMsg(v, 'me', q);
+    const sample = await sampleP;
+    if (!sample || aiState === 'denied') {
+      const links = guideSearch(q);
+      addMsg(v, 'ai', `지금 화면에서는 AI가 연결되어 있지 않아 사용 설명에서 관련된 곳을 찾았습니다.${links.length ? '' : ' 맞는 쪽을 찾지 못했습니다.'} claude.ai 링크로 열면 바로 답하고, 아래 버튼으로 같은 질문을 다른 AI 채팅에 물을 수도 있습니다.`, { links, prompt: helperPrompt(q) });
+      return;
+    }
+    helperBusy = true; $('#cmp-send').disabled = true;
+    const m = addMsg(v, 'ai', '생각하는 중…');
+    const idx = thread.indexOf(m);
+    const bubble = () => $(`#thread [data-mi="${idx}"]`);
+    try {
+      const res = await sample(helperPrompt(q), { cache: false, onText: ({ text }) => { m.text = text; const el = bubble(); if (el) { el.innerHTML = '<span class="who">도우미</span>' + esc(text); const sc = $('#scroller'); sc.scrollTop = sc.scrollHeight; } } });
+      m.text = res.text;
+    } catch (e) {
+      if (e?.code === 'not_granted' || e?.code === 'sampling_disabled') aiState = 'denied';
+      m.text = (e?.text ? e.text + '\n\n' : '') + aiErr(e?.code); m.prompt = helperPrompt(q); m.links = guideSearch(q);
+    }
+    saveThread(); renderThread(true); helperBusy = false; $('#cmp-send').disabled = false;
+  }
+  const cmp = $('#cmp-text');
+  cmp.addEventListener('input', () => { cmp.style.height = 'auto'; cmp.style.height = Math.min(160, cmp.scrollHeight) + 'px'; });
+  cmp.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); $('#composer').requestSubmit(); } });
+  $('#composer').addEventListener('submit', e => {
+    e.preventDefault(); const q = norm(cmp.value); if (!q || helperBusy) return;
+    cmp.value = ''; cmp.style.height = 'auto'; askHelper(q);
+  });
+
+  // ---------- 사다리: 지나온 질문과 답 ----------
+  function ladderHist() {
+    const w = walk(path); if (!w.steps.length) return '';
+    return `<div class="lhist">${w.steps.map((s, i) => `<div class="lq"><b>질문 ${esc(s.node.step)}</b>${esc(s.node.question)}</div><button class="la" data-lgo="${i}" title="이 질문으로 돌아가 다시 고르기">${esc(s.opt.label)}${s.opt.term ? `<small>${esc(s.opt.term)}</small>` : ''}</button>`).join('')}</div>`;
+  }
+
+  // 화면을 자주 바꾸는 저장 뒤에 메뉴와 보기 창 갱신
+  let uiTimer = null;
+  const scheduleUI = () => { clearTimeout(uiTimer); uiTimer = setTimeout(() => { renderNav(); if (rtab !== 'results') renderRight(); else { $('#rt-count').textContent = analyses.length || ''; renderRightResults(); } }, 120); };
+  const _set3 = store.set; store.set = (k, v) => { _set3(k, v); if (k !== 'ladder.thread') scheduleUI(); };
+
+  // 폴더 표시를 제목줄 칩에
+  $('#fold-chip').addEventListener('click', e => { e.stopPropagation(); $('#fold-pop').hidden = !$('#fold-pop').hidden; });
+  document.addEventListener('click', e => { if (!$('#fold-pop').hidden && !e.target.closest('.fold-wrap')) $('#fold-pop').hidden = true; });
+  function updateFoldChip() {
+    const c = $('#fold-chip'); if (!c) return;
+    c.className = 'fold-chip' + (folderState === 'on' ? (folderInfo.lastErr ? ' warn' : ' on') : folderState === 'need-permission' ? ' warn' : '');
+    c.textContent = folderState === 'on' ? `📁 ${dirHandle.name}${folderInfo.savedAt ? ' · 저장됨 ' + folderInfo.savedAt : ''}` : folderState === 'need-permission' ? '📁 다시 연결 필요' : '📁 연구 폴더';
+    if (folderInfo.pending) $('#fold-pop').hidden = false;
+  }
+
   // ---------- 시작 ----------
   const defErrs = checkRules(DEFAULT_RULES);
   if (defErrs.length) console.warn('기본 규칙 점검:', defErrs);
@@ -6004,6 +6373,8 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
   renderAnalyses();
   renderLog();
   renderRules();
+  if (store.get('ladder.navMin', window.innerWidth < 1150)) $('#app').classList.add('nav-min');
+  renderNav();
   const hashGuide = (location.hash || '').match(/^#guide-([\w-]+)$/);
   if (hashGuide) openGuide(hashGuide[1]); else switchView(store.get('ladder.view', 'ladder'));
   initFolder();
