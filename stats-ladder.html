@@ -2288,6 +2288,15 @@ button,input,textarea,select{font-family:inherit}
 @keyframes wm-ng{0%,100%{transform:none}28%,72%{transform:translate(9.71px,14.7px) scale(.442)}}
 @keyframes wm-sw{0%,100%{stroke-width:2.8}28%,72%{stroke-width:2.3}}
 @media (prefers-reduced-motion: reduce){.wm.merge .j1,.wm.merge .j2,.wm.merge .j3,.wm.merge .wm-g{animation:none}}
+
+/* 시작 화면에서도 ㅌㅗㅇ → 통 → ㅌㅗㅇ */
+#splash .sp-wm{overflow:visible}
+#splash .sp-wm .j1{animation:wm-t 2.2s 1.95s cubic-bezier(.6,0,.3,1)}
+#splash .sp-wm .j2{animation:wm-o 2.2s 1.95s cubic-bezier(.6,0,.3,1)}
+#splash .sp-wm .j3{animation:wm-ng 2.2s 1.95s cubic-bezier(.6,0,.3,1)}
+#splash .sp-wm .wm-g{animation:wm-sw 2.2s 1.95s cubic-bezier(.6,0,.3,1)}
+.home-link{cursor:pointer}
+.home-link:focus-visible{outline:2px solid var(--orange);outline-offset:3px;border-radius:6px}
 </style>
 </head>
 <body>
@@ -2332,9 +2341,9 @@ button,input,textarea,select{font-family:inherit}
     (wm ? wm.outerHTML.replace('class="wm"', 'class="wm sp-wm"') : '') + '<p class="sp-tag">설문부터 통계 해석까지</p><button type="button" class="sp-skip">건너뛰기</button>';
   document.body.appendChild(d);
   var done = false;
-  function close() { if (done) return; done = true; d.classList.add('out'); setTimeout(function () { d.remove(); if (window.tongMerge) window.tongMerge(); }, 450); }
+  function close() { if (done) return; done = true; d.classList.add('out'); setTimeout(function () { d.remove(); }, 450); }
   d.addEventListener('click', close); document.addEventListener('keydown', close, { once: true });
-  setTimeout(close, 2900);
+  setTimeout(close, 4300);
 })();
 </script>
 <div class="app" id="app">
@@ -6839,8 +6848,17 @@ ${q}`;
     window.tongMerge = play;
     $('.hdr-title').addEventListener('mouseenter', play);
     let reduce = false; try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
-    if (!reduce && !document.getElementById('splash')) setTimeout(play, 700);
+    if (!reduce && !document.getElementById('splash')) setTimeout(play, 700);   // 시작 애니메이션이 없을 때만 (있으면 그 안에서 합쳐짐)
   })();
+
+
+  // ---------- 로고를 누르면 처음 화면(통계 기법 고르기)으로 ----------
+  document.querySelectorAll('.hdr-logo, .hdr-title').forEach(el => {
+    el.classList.add('home-link'); el.setAttribute('role', 'link'); el.setAttribute('tabindex', '0'); el.setAttribute('title', '처음 화면으로');
+    const home = () => { gotoNav('ladder'); $('#scroller').scrollTop = 0; };
+    el.addEventListener('click', home);
+    el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); home(); } });
+  });
 
   // ---------- 시작 ----------
   const defErrs = checkRules(DEFAULT_RULES);
