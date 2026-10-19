@@ -2273,6 +2273,8 @@ button,input,textarea,select{font-family:inherit}
 .ai-dot.wait i{background:#d9a400}
 .ai-dot:hover span{text-decoration:underline}
 @media (max-width:640px){.ai-dot span{display:none}.ai-note .an-tx span{display:none}}
+
+.gd-mark{background:#ffe7c7;color:inherit;border-radius:3px;padding:0 1px}
 </style>
 </head>
 <body>
@@ -5239,7 +5241,7 @@ ${REVIEW_RULES}
 
     { id: 'gform', group: '단계별 사용법', title: '③ 구글 폼 만들기와 배포', tab: 'survey', body: `
       <p>연구자에게 구글 계정이 있어야 합니다(무료). 응답자는 계정 없이 링크로 답합니다.</p>
-      <div class="gstep"><b>STEP 1. 스크립트 복사</b><p>설문 설계 오른쪽 <b>[구글 폼 만들기 스크립트]</b> → <b>[코드 복사]</b></p></div>
+      <div class="gstep"><b>STEP 1. 스크립트 복사</b><p>왼쪽 메뉴 [③ 구글 폼 배포]를 누르거나, 설문 만들기 화면 위쪽 <b>[구글 폼 스크립트]</b> → <b>[코드 복사]</b></p></div>
       <div class="gstep"><b>STEP 2. 구글 앱스 스크립트에 붙여 넣기</b><p><a href="https://script.google.com/home/projects/create" target="_blank" rel="noopener">script.google.com 새 프로젝트</a>를 열고, 원래 있던 코드를 지운 뒤 붙여 넣고 저장(Ctrl+S)합니다.</p></div>
       <div class="gstep"><b>STEP 3. 실행</b><p>위쪽에서 함수가 <code>createSurvey</code>인지 확인하고 [실행]을 누릅니다. 처음 한 번은 [권한 검토] → 내 계정 → [고급] → [(프로젝트 이름)(으)로 이동] → [허용]이 필요합니다. 내가 만든 스크립트라서 나오는 확인 절차입니다.</p></div>
       <div class="gstep"><b>STEP 4. 링크 배포</b><p>아래 [실행 로그]에 세 링크가 나옵니다.</p>
@@ -5401,8 +5403,10 @@ interpretation.json을 읽었습니다. …</pre>
   function renderGuide(id) {
     if (id && GUIDE.some(g => g.id === id)) guideCur = id;
     const groups = [...new Set(GUIDE.map(g => g.group))];
-    const q = norm($('#gd-q')?.value || '').toLowerCase();
-    const hit = g => !q || (g.title + g.body.replace(/<[^>]+>/g, ' ')).toLowerCase().includes(q);
+    const q = norm($('#gd-q')?.value || '');
+    const hit = g => !q || guideScore(g, q) > 0;
+    if (q && q !== renderGuide.lastQ) { const best = GUIDE.map(g => [g, guideScore(g, q)]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1])[0]; if (best) guideCur = best[0].id; }
+    renderGuide.lastQ = q;
     $('#gd-nav').innerHTML = groups.map(gr => {
       const items = GUIDE.filter(g => g.group === gr && hit(g));
       return items.length ? `<div class="gd-group">${esc(gr)}</div>` + items.map(g => `<a class="gd-item ${g.id === guideCur ? 'on' : ''}" href="#guide-${g.id}">${esc(g.title)}</a>`).join('') : '';
@@ -5411,6 +5415,40 @@ interpretation.json을 읽었습니다. …</pre>
     $('#gd-body').innerHTML = `<div class="gd-crumb">${esc(g.group)}</div><h2>${esc(g.title)}</h2>${g.body}
       ${g.tab ? `<div class="actions"><button class="btn navy" data-gd-tab="${g.tab}">이 화면으로 가기 →</button></div>` : ''}
       <div class="gd-pager">${prev ? `<a href="#guide-${prev.id}">← ${esc(prev.title)}</a>` : '<span></span>'}${next ? `<a href="#guide-${next.id}">${esc(next.title)} →</a>` : ''}</div>`;
+    if (q) markGuide(q);
+  }
+  // 띄어쓰기·대소문자·문장부호를 무시하고 찾기. 여러 낱말이면 낱말마다 찾아 점수를 매김
+  const squash = t => String(t || '').toLowerCase().replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/g, ' ').replace(/[\s.,·:;!?~"'“”‘’()\[\]{}<>\/\\|_\-–—…]+/g, '');
+  const JOSA = /(은|는|이|가|을|를|에|에서|의|로|으로|와|과|도|만|요|까|해|야|하려면|하나요|인가요|어떻게|뭐야)$/;
+  const ALIAS = [[/클로드\s*코드/g, 'claude code'], [/클로드/g, 'claude'], [/챗\s*gpt|쳇\s*gpt|챗지피티|지피티/gi, 'chatgpt'], [/제미나이|제미니/g, 'gemini'], [/구글\s*포?폼/g, '구글 폼'], [/스프레드\s*시트/g, '시트'], [/(^|\s)알(로|에서|을|이)?(\s|$)/g, ' R '], [/에스피에스에스/g, 'spss']];
+  const expandQ = q => ALIAS.reduce((t, [re, to]) => t.replace(re, to), String(q));
+  const gIndex = new Map();
+  function guideScore(g, q) {
+    q = expandQ(q);
+    let t = gIndex.get(g.id); if (!t) { t = { title: squash(g.title), all: squash(g.title + ' ' + g.body) }; gIndex.set(g.id, t); }
+    const whole = squash(q); if (!whole) return 0;
+    let score = t.all.includes(whole) ? 5 + (t.title.includes(whole) ? 5 : 0) : 0;
+    const words = String(q).split(/[\s,.?!~]+/).map(w => squash(w).replace(JOSA, '')).filter(w => w.length >= 2);
+    words.forEach(w => { if (t.all.includes(w)) score += 1 + (t.title.includes(w) ? 2 : 0); });
+    return score;
+  }
+  function markGuide(q) {
+    q = expandQ(q);
+    const rx = w => [...w].map(c => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('\\s*');   // 글자 사이 띄어쓰기 무시
+    const whole = squash(q);
+    const words = [...new Set(String(q).split(/[\s,.?!~]+/).map(w => squash(w).replace(JOSA, '')).filter(w => w.length >= 2))];
+    const pats = [whole, ...words].filter(w => w.length >= 2).sort((a, b) => b.length - a.length).map(rx);
+    if (!pats.length) return;
+    const re = new RegExp('(' + pats.join('|') + ')', 'gi');
+    const walker = document.createTreeWalker($('#gd-body'), NodeFilter.SHOW_TEXT); const nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    let first = null;
+    nodes.forEach(n => {
+      if (!re.test(n.nodeValue)) return; re.lastIndex = 0;
+      const span = document.createElement('span'); span.innerHTML = esc(n.nodeValue).replace(re, '<mark class="gd-mark">$1</mark>');
+      n.replaceWith(...span.childNodes);
+    });
+    first = $('#gd-body .gd-mark'); if (first) first.scrollIntoView({ block: 'center' });
   }
   function openGuide(id) { switchView('guide'); renderGuide(id); $('#view-guide').scrollIntoView({ block: 'start' }); }
   // #guide-xxx 링크는 어디서 눌러도 사용 설명으로
@@ -6574,8 +6612,7 @@ ${recent || '(없음)'}
 ${q}`;
   }
   function guideSearch(q) {
-    const words = q.split(/[\s,.?!~]+/).map(w => w.replace(/(은|는|이|가|을|를|에|의|로|으로|와|과|도|만|요|까|해|야)$/, '')).filter(w => w.length >= 2);
-    return GUIDE.map(g => { const t = (g.title + ' ' + g.body.replace(/<[^>]+>/g, ' ')).toLowerCase(); return [g, words.reduce((s, w) => s + (t.includes(w.toLowerCase()) ? 1 : 0), 0)]; })
+    return GUIDE.map(g => [g, guideScore(g, q)])
       .filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([g]) => ({ href: '#guide-' + g.id, title: `사용 설명 · ${g.title}` }));
   }
   let helperBusy = false;
