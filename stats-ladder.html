@@ -1959,7 +1959,7 @@ footer { border-top: 1px solid var(--line); color: var(--ink-3); font-size: 13px
 html, body { height: 100%; }
 body { display: grid; grid-template-rows: 56px minmax(0, 1fr); overflow: hidden; }
 .hdr { display: flex; align-items: center; gap: 10px; padding: 0 14px; border-bottom: 3px solid var(--orange); background: var(--bg); position: relative; z-index: 6; min-width: 0; }
-.hdr-logo { height: 44px; width: auto; flex: none; display: block; }
+.hdr-logo { height: 34px; width: auto; flex: none; display: block; }
 .hdr-title { font-weight: 900; font-size: 22px; color: #1f6fff; letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .hdr-title span { font-weight: 500; color: var(--ink-3); font-size: 13px; margin-left: 10px; letter-spacing: 0; }
 .hdr-sp { flex: 1; }
@@ -2085,60 +2085,48 @@ main#scroller .page-head p { font-size: 14px; }
 .rq li{margin-bottom:6px}.rq li small{display:block;color:#8a90a3}.rq li.done{opacity:.55;text-decoration:line-through}
 .rsec{margin:18px 2px 8px;font-size:13px;color:var(--navy,#1f2a52)}
 
-.hdr-title{display:flex;align-items:center}.hdr-title .wm{height:22px;width:auto;flex:none;display:block}
+.hdr-title{display:flex;align-items:center}.hdr-title .wm{height:19px;margin-left:4px;width:auto;flex:none;display:block}
 
-/* 로고 ㅌㅗㅇ: 동그라미 → 통 → 그래프 */
+/* 로고 ㅌㅗㅇ: 동그라미 → 통 → 막대 */
 .tong .t-eye-open{opacity:0}
-#splash{position:fixed;inset:0;z-index:100;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity .4s;cursor:pointer}
+#splash{position:fixed;inset:0;z-index:100;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;transition:opacity .35s;cursor:pointer}
 #splash.out{opacity:0;pointer-events:none}
-#splash .tong{width:min(560px,86vw);height:auto;overflow:visible}
-#splash .sp-wm{height:44px;width:auto;opacity:0;animation:t-fade .5s 2.1s forwards}
-#splash .sp-tag{margin:0;color:var(--ink-3,#8a90a3);font-size:15px;opacity:0;animation:t-fade .5s 2.3s forwards}
-#splash .sp-skip{position:absolute;right:20px;bottom:20px;border:1.5px solid var(--line,#e2e5ee);background:#fff;border-radius:999px;padding:6px 14px;font:inherit;font-size:13px;color:var(--ink-2,#4a5168);cursor:pointer}
-.tong.anim .t-dot{transform-box:fill-box;transform-origin:center;animation:t-in .75s cubic-bezier(.5,0,.7,.4) both}
-.tong.anim .t-dot:nth-child(1){animation-delay:.25s}.tong.anim .t-dot:nth-child(2){animation-delay:.4s}.tong.anim .t-dot:nth-child(3){animation-delay:.55s}.tong.anim .t-dot:nth-child(4){animation-delay:.7s}.tong.anim .t-dot:nth-child(5){animation-delay:.85s}
-@keyframes t-in{0%{transform:none;opacity:1}55%{transform:translate(calc(var(--dx)*.55px),calc(var(--dy)*.55px - 16px));opacity:1}100%{transform:translate(calc(var(--dx)*1px),calc(var(--dy)*1px)) scale(.3);opacity:0}}
-.tong.anim .t-arr1{animation:t-fade .4s .05s both}.tong.anim .t-arr2{animation:t-fade .4s 1.6s both}
-.tong.anim .t-barrel{transform-box:fill-box;transform-origin:50% 100%;animation:t-wob .55s 1.15s ease-in-out both}
-@keyframes t-wob{0%,100%{transform:none}25%{transform:rotate(-5deg)}55%{transform:rotate(4deg)}80%{transform:rotate(-2deg)}}
-.tong.anim .t-eye-open{animation:t-out .01s 1.45s both}.tong.anim .t-eye-wink{animation:t-fade .01s 1.45s both}
+#splash .tong{width:min(340px,72vw);height:auto;overflow:visible}
+#splash .sp-wm{height:30px;width:auto;opacity:0;animation:t-fade .45s 1.55s forwards}
+#splash .sp-tag{margin:-10px 0 0;color:var(--ink-3,#8a90a3);font-size:13px;letter-spacing:.02em;opacity:0;animation:t-fade .45s 1.7s forwards}
+#splash .sp-skip{position:absolute;right:20px;bottom:20px;border:0;background:none;padding:6px 10px;font:inherit;font-size:12.5px;color:var(--ink-3,#8a90a3);cursor:pointer}
+.tong.anim .t-dot{transform-box:fill-box;transform-origin:center;animation:t-in .55s cubic-bezier(.55,0,.75,.45) both}
+.tong.anim .t-dot:nth-child(1){animation-delay:.15s}.tong.anim .t-dot:nth-child(2){animation-delay:.3s}.tong.anim .t-dot:nth-child(3){animation-delay:.45s}
+@keyframes t-in{0%{transform:none;opacity:1}60%{transform:translate(calc(var(--dx)*.6px),calc(var(--dy)*.6px - 10px));opacity:1}100%{transform:translate(calc(var(--dx)*1px),calc(var(--dy)*1px)) scale(.2);opacity:0}}
+.tong.anim .t-barrel{transform-box:fill-box;transform-origin:50% 100%;animation:t-gulp .4s 1s ease-out both}
+@keyframes t-gulp{0%,100%{transform:none}40%{transform:scale(1.04,.93)}75%{transform:scale(.98,1.03)}}
+.tong.anim .t-eye-open{animation:t-out .01s 1.2s both}.tong.anim .t-eye-wink{animation:t-fade .01s 1.2s both}
 @keyframes t-out{from{opacity:1}to{opacity:0}}
-.tong.anim .t-bar{transform-box:fill-box;transform-origin:50% 100%;animation:t-grow .45s cubic-bezier(.3,1.4,.6,1) both}
-.tong.anim .t-bar:nth-child(1){animation-delay:1.75s}.tong.anim .t-bar:nth-child(2){animation-delay:1.9s}.tong.anim .t-bar:nth-child(3){animation-delay:2.05s}
+.tong.anim .t-bar{transform-box:fill-box;transform-origin:50% 100%;animation:t-grow .4s cubic-bezier(.2,.8,.3,1) both}
+.tong.anim .t-bar:nth-child(1){animation-delay:1.2s}.tong.anim .t-bar:nth-child(2){animation-delay:1.3s}.tong.anim .t-bar:nth-child(3){animation-delay:1.4s}
 @keyframes t-grow{from{transform:scaleY(0)}to{transform:none}}
-.tong.anim .t-curve{stroke-dasharray:1 2;animation:t-draw .5s 2.25s ease-out both}
-@keyframes t-draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
-.tong.anim .t-head{animation:t-fade .2s 2.7s both}
 @keyframes t-fade{from{opacity:0}to{opacity:1}}
-@media (max-width:640px){.hdr-logo .t-dots,.hdr-logo .t-arr,.hdr-logo .t-bars,.hdr-logo .t-up{display:none}}
+@media (max-width:640px){.hdr-logo .t-dots,.hdr-logo .t-bars{display:none}}
 </style>
 </head>
 <body>
 
 <header class="hdr">
   <button class="nav-tog" id="nav-tog" aria-label="메뉴 접기·펴기" title="메뉴 접기·펴기">☰</button>
-  <svg class="hdr-logo tong" viewBox="0 0 200 64" aria-hidden="true">
-    <defs><linearGradient id="tong-g" x1="0" x2="1"><stop offset="0" stop-color="#4d94ff"/><stop offset=".45" stop-color="#1f6fff"/><stop offset="1" stop-color="#1257d6"/></linearGradient>
-      <linearGradient id="tong-a" x1="0" x2="1"><stop offset="0" stop-color="#4d94ff" stop-opacity="0"/><stop offset="1" stop-color="#4d94ff"/></linearGradient></defs>
-    <g class="t-dots"><circle class="t-dot" style="--dx:78;--dy:2" cx="22" cy="10" r="5" fill="#1f6fff"/><circle class="t-dot" style="--dx:92;--dy:-14" cx="8" cy="26" r="5" fill="#2fb37f"/><circle class="t-dot" style="--dx:70;--dy:-14" cx="30" cy="26" r="5" fill="#4d94ff"/><circle class="t-dot" style="--dx:82;--dy:-28" cx="18" cy="40" r="5" fill="#12a5f5"/><circle class="t-dot" style="--dx:70;--dy:-38" cx="30" cy="50" r="5" fill="#f6b72b"/></g>
-    <g class="t-arr t-arr1"><rect x="38" y="31" width="23" height="6" fill="url(#tong-a)"/><path d="M57 27l8 7-8 7" fill="none" stroke="#4d94ff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></g>
-    <g transform="translate(68 0)"><g class="t-barrel">
-      <path d="M11 13 Q11 8 32 8 Q53 8 53 13 V53 Q53 58 32 58 Q11 58 11 53 Z" fill="url(#tong-g)"/>
-      <ellipse cx="32" cy="12" rx="21" ry="5" fill="#2f7bff" stroke="#1257d6" stroke-width="1.6"/>
-      <ellipse cx="25" cy="11" rx="4" ry="1.6" fill="#eef2f8"/>
-      <path d="M11 24 Q32 29 53 24 M11 43 Q32 48 53 43" fill="none" stroke="#1257d6" stroke-width="2.2" stroke-linecap="round"/>
-      <rect x="15" y="17" width="4" height="34" rx="2" fill="#fff" opacity=".22"/>
-      <circle cx="26" cy="32" r="2.6" fill="#0d1b3a"/><circle cx="26.8" cy="31.2" r=".8" fill="#fff"/>
-      <g class="t-eye-open"><circle cx="38" cy="32" r="2.6" fill="#0d1b3a"/><circle cx="38.8" cy="31.2" r=".8" fill="#fff"/></g>
-      <path class="t-eye-wink" d="M36 31.5 l3.5 -1.6 M36 31.5 l3.5 1.6" stroke="#0d1b3a" stroke-width="1.6" stroke-linecap="round"/>
-      <path d="M28 36.5 Q31.5 39.5 35 36.5" fill="none" stroke="#0d1b3a" stroke-width="1.6" stroke-linecap="round"/>
-      <ellipse cx="21.5" cy="36" rx="2.6" ry="1.6" fill="#ffb3a7" opacity=".85"/><ellipse cx="41" cy="36" rx="2.6" ry="1.6" fill="#ffb3a7" opacity=".85"/>
-    </g></g>
-    <g class="t-arr t-arr2"><rect x="126" y="31" width="23" height="6" fill="url(#tong-a)"/><path d="M145 27l8 7-8 7" fill="none" stroke="#4d94ff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></g>
-    <g class="t-bars"><rect class="t-bar" x="158" y="44" width="11" height="14" rx="2" fill="#7fb0ff"/><rect class="t-bar" x="172" y="35" width="11" height="23" rx="2" fill="#3d86ff"/><rect class="t-bar" x="186" y="25" width="11" height="33" rx="2" fill="#1f6fff"/></g>
-    <g class="t-up" fill="none" stroke="#1f6fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path class="t-curve" pathLength="1" d="M157 24 Q176 22 194 8"/><path class="t-head" d="M186 7.5 L194 8 L192.5 16"/></g>
+  <svg class="hdr-logo tong" viewBox="0 0 146 64" aria-hidden="true">
+    <g class="t-dots"><circle class="t-dot" style="--dx:54;--dy:-8" cx="10" cy="20" r="4.5" fill="#9dbcfa"/><circle class="t-dot" style="--dx:42;--dy:-20" cx="22" cy="32" r="4.5" fill="#5b8def"/><circle class="t-dot" style="--dx:53;--dy:-32" cx="11" cy="44" r="4.5" fill="#f5841f"/></g>
+    <g class="t-barrel">
+      <path d="M44 15 Q44 10 64 10 Q84 10 84 15 V51 Q84 56 64 56 Q44 56 44 51 Z" fill="#2563eb"/>
+      <ellipse cx="64" cy="14" rx="20" ry="4.5" fill="#4a84f5"/>
+      <path d="M44 25 Q64 29 84 25 M44 44 Q64 48 84 44" fill="none" stroke="#fff" stroke-opacity=".28" stroke-width="1.6"/>
+      <circle cx="57" cy="34" r="2.3" fill="#fff"/>
+      <circle class="t-eye-open" cx="71" cy="34" r="2.3" fill="#fff"/>
+      <path class="t-eye-wink" d="M68.5 34.5 Q71 32 73.5 34.5" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+      <path d="M60 39 Q64 42 68 39" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
+    </g>
+    <g class="t-bars"><rect class="t-bar" x="102" y="40" width="10" height="16" rx="2.5" fill="#c5d6fb"/><rect class="t-bar" x="117" y="31" width="10" height="25" rx="2.5" fill="#8eb0f6"/><rect class="t-bar" x="132" y="20" width="10" height="36" rx="2.5" fill="#2563eb"/></g>
   </svg>
-  <span class="hdr-title"><svg class="wm" viewBox="0 0 76 24" role="img" aria-label="ㅌㅗㅇ (통)"><g fill="none" stroke="#1f6fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3H18M3 12H17M3 21H18M3 3V21"/><path d="M38 6V20M29 20H47"/><circle cx="64" cy="12" r="8.6"/></g></svg><span>설문부터 통계 해석까지</span></span>
+  <span class="hdr-title"><svg class="wm" viewBox="0 0 76 24" role="img" aria-label="ㅌㅗㅇ (통)"><g fill="none" stroke="#1f2a52" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3H18M3 12H17M3 21H18M3 3V21"/><path d="M38 6V20M29 20H47"/><circle cx="64" cy="12" r="8.6"/></g></svg><span>설문부터 통계 해석까지</span></span>
   <span class="hdr-sp"></span>
   <div class="fold-wrap"><button class="fold-chip" id="fold-chip">📁 연구 폴더</button><div class="fold-pop" id="fold-pop" hidden><div class="folder-bar" id="folder-bar"></div></div></div>
   <button class="hdr-btn" id="rp-tog" title="오른쪽 보기 창 열기·닫기">보기 창</button>
@@ -2149,7 +2137,7 @@ main#scroller .page-head p { font-size: 14px; }
 (function () {
   var lg = document.querySelector('.hdr-logo.tong'); if (!lg) return;
   var mq = matchMedia('(max-width: 640px)');
-  function fit() { lg.setAttribute('viewBox', mq.matches ? '68 0 64 64' : '0 0 200 64'); }
+  function fit() { lg.setAttribute('viewBox', mq.matches ? '40 6 48 52' : '0 0 146 64'); }
   fit(); if (mq.addEventListener) mq.addEventListener('change', fit);
 })();
 (function () {
@@ -2157,13 +2145,13 @@ main#scroller .page-head p { font-size: 14px; }
   var src = document.querySelector('.hdr-logo.tong'), wm = document.querySelector('.hdr-title .wm');
   if (!src) return;
   var d = document.createElement('div'); d.id = 'splash'; d.setAttribute('role', 'presentation');
-  d.innerHTML = src.outerHTML.replace(/tong-g/g, 'tong-sg').replace(/tong-a/g, 'tong-sa').replace('hdr-logo tong', 'tong anim').replace(/viewBox="[^"]*"/, 'viewBox="0 0 200 64"') +
+  d.innerHTML = src.outerHTML.replace('hdr-logo tong', 'tong anim').replace(/viewBox="[^"]*"/, 'viewBox="0 0 146 64"') +
     (wm ? wm.outerHTML.replace('class="wm"', 'class="wm sp-wm"') : '') + '<p class="sp-tag">설문부터 통계 해석까지</p><button type="button" class="sp-skip">건너뛰기</button>';
   document.body.appendChild(d);
   var done = false;
   function close() { if (done) return; done = true; d.classList.add('out'); setTimeout(function () { d.remove(); }, 450); }
   d.addEventListener('click', close); document.addEventListener('keydown', close, { once: true });
-  setTimeout(close, 3300);
+  setTimeout(close, 2700);
 })();
 </script>
 <div class="app" id="app">
