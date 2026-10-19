@@ -2275,6 +2275,19 @@ button,input,textarea,select{font-family:inherit}
 @media (max-width:640px){.ai-dot span{display:none}.ai-note .an-tx span{display:none}}
 
 .gd-mark{background:#ffe7c7;color:inherit;border-radius:3px;padding:0 1px}
+
+/* ㅌㅗㅇ → 통 → ㅌㅗㅇ */
+.hdr-title .wm{overflow:visible}
+.wm .j1,.wm .j2,.wm .j3{transform-box:view-box;transform-origin:0 0}
+.wm.merge .j1{animation:wm-t 2.6s cubic-bezier(.6,0,.3,1)}
+.wm.merge .j2{animation:wm-o 2.6s cubic-bezier(.6,0,.3,1)}
+.wm.merge .j3{animation:wm-ng 2.6s cubic-bezier(.6,0,.3,1)}
+.wm.merge .wm-g{animation:wm-sw 2.6s cubic-bezier(.6,0,.3,1)}
+@keyframes wm-t{0%,100%{transform:none}28%,72%{transform:translate(28.2px,-1.5px) scale(.933,.5)}}
+@keyframes wm-o{0%,100%{transform:none}28%,72%{transform:translate(0,8.57px) scale(1,.321)}}
+@keyframes wm-ng{0%,100%{transform:none}28%,72%{transform:translate(9.71px,14.7px) scale(.442)}}
+@keyframes wm-sw{0%,100%{stroke-width:2.8}28%,72%{stroke-width:2.3}}
+@media (prefers-reduced-motion: reduce){.wm.merge .j1,.wm.merge .j2,.wm.merge .j3,.wm.merge .wm-g{animation:none}}
 </style>
 </head>
 <body>
@@ -2294,7 +2307,7 @@ button,input,textarea,select{font-family:inherit}
     </g>
     <g class="t-bars"><rect class="t-bar" x="102" y="40" width="10" height="16" rx="2.5" fill="#c5d6fb"/><rect class="t-bar" x="117" y="31" width="10" height="25" rx="2.5" fill="#8eb0f6"/><rect class="t-bar" x="132" y="20" width="10" height="36" rx="2.5" fill="#2563eb"/></g>
   </svg>
-  <span class="hdr-title"><svg class="wm" viewBox="0 0 76 24" role="img" aria-label="ㅌㅗㅇ (통)"><g fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3H18M3 12H17M3 21H18M3 3V21"/><path d="M38 6V20M29 20H47"/><circle cx="64" cy="12" r="8.6"/></g></svg><span>설문부터 통계 해석까지</span></span>
+  <span class="hdr-title"><svg class="wm" viewBox="0 0 76 24" role="img" aria-label="ㅌㅗㅇ (통)"><g class="wm-g" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path class="j1" vector-effect="non-scaling-stroke" d="M3 3H18M3 12H17M3 21H18M3 3V21"/><path class="j2" vector-effect="non-scaling-stroke" d="M38 6V20M29 20H47"/><circle class="j3" vector-effect="non-scaling-stroke" cx="64" cy="12" r="8.6"/></g></svg><span>설문부터 통계 해석까지</span></span>
   <div class="proj-wrap"><button class="proj-chip" id="proj-chip" aria-haspopup="true"></button><div class="proj-pop" id="proj-pop" hidden></div></div>
   <span class="hdr-sp"></span>
   <div class="fold-wrap"><button class="fold-chip" id="fold-chip">📁 연구 폴더</button><div class="fold-pop" id="fold-pop" hidden><div class="folder-bar" id="folder-bar"></div></div></div>
@@ -2319,7 +2332,7 @@ button,input,textarea,select{font-family:inherit}
     (wm ? wm.outerHTML.replace('class="wm"', 'class="wm sp-wm"') : '') + '<p class="sp-tag">설문부터 통계 해석까지</p><button type="button" class="sp-skip">건너뛰기</button>';
   document.body.appendChild(d);
   var done = false;
-  function close() { if (done) return; done = true; d.classList.add('out'); setTimeout(function () { d.remove(); }, 450); }
+  function close() { if (done) return; done = true; d.classList.add('out'); setTimeout(function () { d.remove(); if (window.tongMerge) window.tongMerge(); }, 450); }
   d.addEventListener('click', close); document.addEventListener('keydown', close, { once: true });
   setTimeout(close, 2900);
 })();
@@ -6816,6 +6829,18 @@ ${q}`;
   $('#ai-dot').addEventListener('click', () => { if (aiState === 'on') toast('AI가 연결되어 있습니다. 대화창에 바로 물어보세요.'); else openGuide('ai'); });
   sampleP.then(() => setTimeout(renderAiNote, 0));
   renderAiNote();
+
+
+  // ---------- ㅌㅗㅇ → 통 → ㅌㅗㅇ (자모가 모여 글자가 됐다가 다시 로고로) ----------
+  (function () {
+    const wm = $('.hdr-title .wm'); if (!wm) return;
+    const play = () => { if (wm.classList.contains('merge')) return; wm.classList.add('merge'); };
+    wm.addEventListener('animationend', e => { if (e.target.classList.contains('j1')) wm.classList.remove('merge'); });
+    window.tongMerge = play;
+    $('.hdr-title').addEventListener('mouseenter', play);
+    let reduce = false; try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+    if (!reduce && !document.getElementById('splash')) setTimeout(play, 700);
+  })();
 
   // ---------- 시작 ----------
   const defErrs = checkRules(DEFAULT_RULES);
