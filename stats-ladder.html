@@ -2243,6 +2243,14 @@ label.f input,label.f select,label.f textarea{font-size:14px;padding:8px 11px}
 button,input,textarea,select{font-family:inherit}
 .side .grp,.side .it .n,.side .it small{font-size:12px}
 .side .it small{max-width:90px}
+
+/* 채팅 답 아래 선택지 */
+.mchoices{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);display:grid;gap:6px}
+.mc-q{font-size:12.5px;font-weight:700;color:var(--here-ink);margin-bottom:2px}.mc-q span{font-weight:500;color:var(--ink-3);margin-left:6px}
+.mc-opt{display:flex;align-items:center;gap:9px;text-align:left;width:100%;border:1.5px solid var(--line);background:var(--bg);border-radius:10px;padding:7px 10px;font:inherit;font-size:13.5px;color:var(--ink);cursor:pointer}
+.mc-opt b{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:6px;background:var(--navy);color:#fff;font-size:12px}
+.mc-opt small{display:block;font-size:12px;color:var(--ink-3)}
+.mc-opt:hover{border-color:var(--orange);background:var(--orange-soft)}
 </style>
 </head>
 <body>
@@ -6477,7 +6485,13 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
   const curView = () => store.get('ladder.view', 'ladder');
   function msgHtml(m, i) {
     if (m.role === 'sys') return `<div class="msg sys">${esc(m.text)}</div>`;
-    return `<div class="msg ${m.role}" data-mi="${i}">${m.role === 'ai' ? '<span class="who">도우미</span>' : ''}${esc(m.text)}${m.links?.length ? `<div class="links">${m.links.map(l => `<a href="${esc(l.href)}">${esc(l.title)}</a>`).join('')}</div>` : ''}${m.prompt ? '<div class="tools"><button class="btn sm" data-copy-prompt="' + i + '">AI에게 물을 지시문 복사</button></div>' : ''}</div>`;
+    return `<div class="msg ${m.role}" data-mi="${i}">${m.role === 'ai' ? '<span class="who">도우미</span>' : ''}${esc(m.text)}${m.links?.length ? `<div class="links">${m.links.map(l => `<a href="${esc(l.href)}">${esc(l.title)}</a>`).join('')}</div>` : ''}${m.prompt ? '<div class="tools"><button class="btn sm" data-copy-prompt="' + i + '">AI에게 물을 지시문 복사</button></div>' : ''}${choicesHtml(m, i)}</div>`;
+  }
+  function choicesHtml(m, i) {
+    const c = m.choices; if (!c || m.role !== 'ai') return '';
+    const last = thread.map((x, j) => [x, j]).filter(([x]) => x.choices).pop();
+    if (!last || last[1] !== i || c.key !== path.join(',') || curView() !== 'ladder') return '';
+    return `<div class="mchoices"><div class="mc-q">질문 ${esc(c.step)} · ${esc(c.q)}<span>골라 주세요</span></div>${c.opts.map((o, k) => `<button class="mc-opt" data-mpick="${k}"><b>${String.fromCharCode(65 + k)}</b><span>${esc(o.label)}${o.term ? `<small>${esc(o.term)}</small>` : ''}</span></button>`).join('')}</div>`;
   }
   function renderThread(scroll) {
     const v = curView(), list = thread.map((m, i) => [m, i]).filter(([m]) => threadAll || m.view === v);
@@ -6487,6 +6501,8 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
   }
   $('#thread').addEventListener('click', e => {
     if (e.target.closest('[data-th]')) { threadAll = !threadAll; renderThread(); return; }
+    const mp = e.target.closest('[data-mpick]');
+    if (mp) { const m = thread[+mp.closest('[data-mi]').dataset.mi]; if (m?.choices && m.choices.key === path.join(',')) go(path.concat(+mp.dataset.mpick)); return; }
     const c = e.target.closest('[data-copy-prompt]');
     if (c) { const m = thread[+c.dataset.copyPrompt]; try { navigator.clipboard.writeText(m.prompt).then(() => toast('지시문을 복사했습니다. AI 채팅에 붙여 넣으세요.'), () => showSheet('지시문.txt', m.prompt)); } catch (err) { showSheet('지시문.txt', m.prompt); } }
   });
@@ -6531,13 +6547,20 @@ ${q}`;
       .filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([g]) => ({ href: '#guide-' + g.id, title: `사용 설명 · ${g.title}` }));
   }
   let helperBusy = false;
+  // 지금 고를 차례인 사다리 질문 (채팅 답 아래에 선택지를 다시 보여 줌)
+  function curChoices() {
+    if (curView() !== 'ladder') return null;
+    const w = walk(path), node = w.cur.type === 'node' ? RULES.nodes[w.cur.id] : w.cur.type === 'gate' ? RULES.gate : null;
+    if (!node) return null;
+    return { key: path.join(','), step: node.step, q: node.question, opts: node.options.map(o => ({ label: o.label, term: o.term || '' })) };
+  }
   async function askHelper(q) {
     const v = curView();
     addMsg(v, 'me', q);
     const sample = await sampleP;
     if (!sample || aiState === 'denied') {
       const links = guideSearch(q);
-      addMsg(v, 'ai', `지금 화면에서는 AI가 연결되어 있지 않아 사용 설명에서 관련된 곳을 찾았습니다.${links.length ? '' : ' 맞는 쪽을 찾지 못했습니다.'} claude.ai 링크로 열면 바로 답하고, 아래 버튼으로 같은 질문을 다른 AI 채팅에 물을 수도 있습니다.`, { links, prompt: helperPrompt(q) });
+      addMsg(v, 'ai', `지금 화면에서는 AI가 연결되어 있지 않아 사용 설명에서 관련된 곳을 찾았습니다.${links.length ? '' : ' 맞는 쪽을 찾지 못했습니다.'} claude.ai 링크로 열면 바로 답하고, 아래 버튼으로 같은 질문을 다른 AI 채팅에 물을 수도 있습니다.`, { links, prompt: helperPrompt(q), choices: curChoices() });
       return;
     }
     helperBusy = true; $('#cmp-send').disabled = true;
@@ -6551,6 +6574,7 @@ ${q}`;
       if (e?.code === 'not_granted' || e?.code === 'sampling_disabled') aiState = 'denied';
       m.text = (e?.text ? e.text + '\n\n' : '') + aiErr(e?.code); m.prompt = helperPrompt(q); m.links = guideSearch(q);
     }
+    m.choices = curChoices();
     saveThread(); renderThread(true); helperBusy = false; $('#cmp-send').disabled = false;
   }
   const cmp = $('#cmp-text');
@@ -6570,7 +6594,7 @@ ${q}`;
   // 화면을 자주 바꾸는 저장 뒤에 메뉴와 보기 창 갱신
   let uiTimer = null;
   const scheduleUI = () => { clearTimeout(uiTimer); uiTimer = setTimeout(() => { renderNav(); if (rtab !== 'results') renderRight(); else { $('#rt-count').textContent = analyses.length || ''; renderRightResults(); } }, 120); };
-  const _set3 = store.set; store.set = (k, v) => { _set3(k, v); if (k !== 'ladder.thread') scheduleUI(); };
+  const _set3 = store.set; store.set = (k, v) => { _set3(k, v); if (k === 'ladder.path') renderThread(); if (k !== 'ladder.thread') scheduleUI(); };
 
   // 폴더 표시를 제목줄 칩에
   $('#fold-chip').addEventListener('click', e => { e.stopPropagation(); $('#fold-pop').hidden = !$('#fold-pop').hidden; });
