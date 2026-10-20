@@ -140,3 +140,6 @@ AI에게는 연구 의도와 집계된 결과표만 보내고 응답 원자료�
 ### 사용 설명 (위키)
 사이트의 **[사용 설명]** 메뉴에 단계별 사용법, AI 연결 방법, Claude Code 설치·실행(STEP 1~5), 자주 묻는 질문, 개인정보와 연구윤리가 위키처럼 정리되어 있습니다. `https://aninsong77-dotcom.github.io/tong/#guide-claude-code`처럼 주소로 바로 열 수 있습니다.
 
+---
+
+© 2026. An In-song. Distributed for free. (2026. 안인성. 무료 배포)
