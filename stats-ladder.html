@@ -3401,7 +3401,7 @@ button,input,textarea,select{font-family:inherit}
     }).join('');
   }
 
-  $('#rules-export').addEventListener('click', () => download(`통계사다리_규칙_${today()}.json`, JSON.stringify(RULES, null, 2), 'application/json'));
+  $('#rules-export').addEventListener('click', () => download(`ㅌㅗㅇ_규칙_${today()}.json`, JSON.stringify(RULES, null, 2), 'application/json'));
   $('#rules-import').addEventListener('change', async e => {
     const file = e.target.files[0]; e.target.value = '';
     if (!file) return;
@@ -6918,7 +6918,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
     else if (a === 're') reconnect();
     else if (a === 'off') disconnectFolder();
     else if (a === 'read') { await readClaudeFiles(); await saveFolder(); toast('폴더를 다시 읽고 저장했습니다.'); }
-    else if (a === 'zip') download(`통계사다리_${(sv.title || '연구').replace(/[^\w가-힣]+/g, '_').slice(0, 20)}_${today()}.zip`, makeZip(folderFiles()), 'application/zip');
+    else if (a === 'zip') download(`ㅌㅗㅇ_${(sv.title || '연구').replace(/[^\w가-힣]+/g, '_').slice(0, 20)}_${today()}.zip`, makeZip(folderFiles()), 'application/zip');
     else if (a === 'use-folder') { await loadFromFolder(folderInfo.pending); renderFolderBar(); await readClaudeFiles(true); toast('폴더의 연구를 불러왔습니다.'); }
     else if (a === 'use-screen') { if (!twice(b, '한 번 더 누르면 폴더 내용을 덮어씁니다')) return; folderInfo.pending = null; written.clear(); await saveFolder(); toast('지금 화면 내용으로 폴더에 저장했습니다.'); }
   });
