@@ -2431,6 +2431,7 @@ button,input,textarea,select{font-family:inherit}
 .side-items{flex:1 0 auto}
 .side-copy{padding:14px 16px 4px;font-size:10.5px;line-height:1.5;color:var(--side-mute);opacity:.85}
 .side-copy .mini{display:none}
+.side-copy .en,.side-copy .ko{display:block;white-space:nowrap}.side-copy{padding-left:12px;padding-right:8px;letter-spacing:-.01em}
 .app.nav-min .side-copy .full{display:none}.app.nav-min .side-copy .mini{display:block;text-align:center}
 .app.nav-min .side-copy{padding:10px 0}
 #splash .sp-copy{margin:-8px 0 0;padding-top:12px;border-top:1px solid var(--line);text-align:center;font-size:12.5px;line-height:1.6;color:var(--ink-2);opacity:0;animation:t-fade .45s 1.85s forwards}
@@ -6681,7 +6682,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
       if (x.grp) return `<div class="grp">${esc(x.grp)}</div>`;
       const done = x.done && x.done(), on = x.id === navCur, sm = x.sum && x.sum();
       return `<button class="it ${on ? 'on' : ''} ${done ? 'done' : ''}" data-nav="${x.id}" title="${esc(x.label)}"><span class="n">${done && !on ? '✓' : esc(x.n)}</span><span class="lbl">${esc(x.label)}</span>${sm ? `<small>${esc(sm)}</small>` : ''}</button>`;
-    }).join('') + `</div><div class="side-copy" title="© 2026. An In-song. Distributed for free. (2026. 안인성. 무료 배포)"><span class="full">© 2026. An In-song.<br>Distributed for free.<br>(2026. 안인성. 무료 배포)</span><span class="mini">©</span></div>`;
+    }).join('') + `</div><div class="side-copy" title="© 2026. An In-song. Distributed for free. (2026. 안인성. 무료 배포)"><span class="full"><span class="en">© 2026. An In-song. Distributed for free.</span><span class="ko">(2026. 안인성. 무료 배포)</span></span><span class="mini">©</span></div>`;
   }
   function gotoNav(id) {
     const x = NAV.find(n => n.id === id); if (!x) return;
