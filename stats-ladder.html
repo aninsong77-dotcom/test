@@ -5762,8 +5762,8 @@ ${REVIEW_RULES}
     { id: 'analysis', group: '단계별 사용법', title: '⑩ 분석 결정·계산', tab: 'analysis', body: `
       <p class="g-sum">고른 기법과 변인이 미리 채워집니다. 분석 결정을 확인하고 <b>[계산하기]</b>를 누르세요.</p>
       <table class="gtable"><thead><tr><th>묶음</th><th>계산하는 기법</th></tr></thead><tbody>
-        <tr><td>관계</td><td>상관(피어슨·스피어만·편상관·점이연), 카이제곱</td></tr>
-        <tr><td>집단 차이</td><td>t검정(단일·독립·대응), 일원·이원분산분석, 공분산분석</td></tr>
+        <tr><td>관계</td><td>상관(피어슨·스피어만·편상관·점이연), 카이제곱, 맥니마, 코크란 Q</td></tr>
+        <tr><td>집단 차이</td><td>t검정(단일·독립·대응), 일원·이원분산분석, 공분산분석, 반복측정 분산분석, 혼합설계 분산분석(집단 × 시점)</td></tr>
         <tr><td>예측</td><td>단순·다중·위계적 회귀, 이항 로지스틱 회귀</td></tr>
         <tr><td>매개·조절</td><td>단순·병렬 매개, 순차매개, 조절, 조절된 매개</td></tr>
       </tbody></table>
@@ -5771,7 +5771,8 @@ ${REVIEW_RULES}
         <li>결과는 오른쪽 <b>[결과]</b> 탭에 나옵니다.</li>
         <li>간접효과는 부트스트랩(기본 5,000번)으로 신뢰구간을 구합니다. 같은 자료는 늘 같은 결과가 나옵니다.</li>
         <li>결과마다 <a href="#guide-checks">보고 체크리스트</a>가 붙습니다.</li>
-        <li>반복측정·혼합설계, 다층모형, 다항·서열 로지스틱은 계산하지 않습니다. jamovi나 SPSS를 쓰세요.</li>
+        <li><b>반복측정·혼합설계</b>: 같은 사람의 시점별 점수가 한 응답 파일에 변인으로 함께 있어야 합니다(예: 사전 우울, 사후 우울). 구형성이 어긋나면 Greenhouse-Geisser로 보정하고(분석 결정), 집단 크기가 다르면 SPSS와 같은 제III유형으로 계산합니다.</li>
+        <li>다층모형, 다항·서열 로지스틱, 이원 반복측정은 계산하지 않습니다. jamovi나 SPSS를 쓰세요.</li>
       </ul>
       <div class="gnote">계산 결과는 통계 프로그램(Python statsmodels·scipy, R)과 대조해 같은 것을 확인했습니다. 그래도 논문에 쓰기 전에 지도교수님께 확인받으세요.</div>` },
 
@@ -9112,6 +9113,279 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
   });
   $('#view-measure').addEventListener('change', e => { if (e.target.matches('[data-dq-efa]')) { efaOpt.k = e.target.value; renderMeasure(); } });
   renderKind();
+
+  // =================================================================
+  // 반복측정 · 혼합설계 분산분석, 맥니마, 코크란 Q
+  // =================================================================
+  // 집단 안 대비: 직교 정규 (k × (k−1)). 결과는 어떤 직교 대비를 써도 같음
+  function orthoC(k) {
+    const C = [];
+    for (let j = 1; j < k; j++) { const v = Array.from({ length: k }, (_, i) => (i < j ? 1 : i === j ? -j : 0)); const nrm = Math.sqrt(v.reduce((s, x) => s + x * x, 0)); C.push(v.map(x => x / nrm)); }
+    return C; // (k−1)개의 행
+  }
+  const matDet = A => { const e = jacobiEig(A); return e.values.reduce((s, v) => s * v, 1); };
+  const trace = A => A.reduce((s, r, i) => s + r[i], 0);
+  // 구형성: T는 대비 점수의 제곱합·교차곱 행렬, rdf는 그 자유도, kOrig는 원래 측정 수 (R의 mauchly.test와 같은 식)
+  function sphericity(T, rdf, kOrig) {
+    const p = T.length;
+    if (p < 2) return { W: 1, chi: 0, df: 0, p: 1, gg: 1, hf: 1 };
+    const S = T.map(r => r.map(v => v / rdf));
+    const logW = Math.log(Math.max(matDet(S), 1e-300)) - p * Math.log(trace(S) / p);
+    const rho = 1 - (2 * p * p + p + 2) / (6 * p * rdf);
+    const w2 = (p + 2) * (p - 1) * (p - 2) * (2 * p ** 3 + 6 * p * p + 3 * kOrig + 2) / (288 * (rdf * p * rho) ** 2);
+    const z = -rdf * rho * logW, f = p * (p + 1) / 2 - 1;
+    const P1 = ST.pChi(z, f), P2 = ST.pChi(z, f + 4);
+    const S2 = mmul(S, S), gg = trace(S) ** 2 / (p * trace(S2));
+    const hf = ((rdf + 1) * p * gg - 2) / (p * (rdf - p * gg));
+    return { W: Math.exp(logW), chi: z, df: f, p: Math.min(1, Math.max(0, P1 + w2 * (P2 - P1))), gg, hf };
+  }
+  const sphChoice = (o, sp, k) => { const m = o.sph || 'auto'; return k < 3 || m === 'none' ? 'none' : m === 'gg' ? 'gg' : sp.p < 0.05 ? 'gg' : 'none'; };
+  const SPH_LABEL = { none: '구형성 가정', gg: 'Greenhouse-Geisser', hf: 'Huynh-Feldt' };
+  // 집단 안 효과 한 줄: F와 보정된 자유도·p
+  function withinRows(name, ss, df1, sse, df2, sp) {
+    const F = (ss / df1) / (sse / df2), pe = ss / (ss + sse);
+    return ['none', 'gg', 'hf'].map(c => { const e = c === 'none' ? 1 : c === 'gg' ? sp.gg : Math.min(1, sp.hf); return { c, name, ss, df1: df1 * e, df2: df2 * e, F, p: ST.pF(F, df1 * e, df2 * e), pe }; });
+  }
+  const fmtDf = x => (Math.abs(x - Math.round(x)) < 1e-9 ? String(Math.round(x)) : F2(x));
+  function rmPrep(keys) {
+    const P = prep(Object.fromEntries(keys.map((k, i) => ['y' + i, k])));
+    const Y = P.keep.map((_, r) => keys.map(k => P.col(k)[r]));
+    return { P, Y, n: Y.length, k: keys.length };
+  }
+  // 한 집단 안 반복측정 (짝지은 t검정 Bonferroni 사후검정 포함)
+  function rmCore(Y) {
+    const n = Y.length, k = Y[0].length, gm = mean(Y.flat());
+    const cm = Array.from({ length: k }, (_, j) => mean(Y.map(r => r[j]))), sm = Y.map(r => mean(r));
+    const ssC = n * cm.reduce((s, m) => s + (m - gm) ** 2, 0), ssS = k * sm.reduce((s, m) => s + (m - gm) ** 2, 0);
+    const ssT = Y.flat().reduce((s, v) => s + (v - gm) ** 2, 0), ssE = ssT - ssC - ssS;
+    const C = orthoC(k), Z = Y.map(r => C.map(c => c.reduce((s, w, j) => s + w * r[j], 0)));
+    const zm = C.map((_, q) => mean(Z.map(z => z[q])));
+    const T = C.map((_, a) => C.map((_, b) => Z.reduce((s, z) => s + (z[a] - zm[a]) * (z[b] - zm[b]), 0)));
+    const sp = sphericity(T, n - 1, k);
+    return { n, k, cm, ssC, ssS, ssE, df1: k - 1, df2: (k - 1) * (n - 1), sp, ges: ssC / (ssC + ssS + ssE) };
+  }
+  function pairwiseRm(Y, names) {
+    const k = names.length, m = k * (k - 1) / 2, out = [];
+    for (let i = 0; i < k; i++) for (let j = i + 1; j < k; j++) {
+      const d = Y.map(r => r[i] - r[j]), n = d.length, t = mean(d) / (sd(d) / Math.sqrt(n)), p = ST.pT(Math.abs(t), n - 1);
+      out.push([`${names[i]} − ${names[j]}`, F2(mean(d)), F2(t), String(n - 1), PV(Math.min(1, p * m))]);
+    }
+    return out;
+  }
+  // 이항 분포 양측 정확 p (p = .5)
+  function binomTwo(x, n) {
+    if (!n) return 1;
+    const lg = v => { let s = 0; for (let i = 2; i <= v; i++) s += Math.log(i); return s; };
+    const lc = (n, k) => lg(n) - lg(k) - lg(n - k);
+    const lo = Math.min(x, n - x); let s = 0;
+    for (let i = 0; i <= lo; i++) s += Math.exp(lc(n, i) - n * Math.LN2);
+    return Math.min(1, 2 * s - (lo * 2 === n ? Math.exp(lc(n, lo) - n * Math.LN2) : 0));
+  }
+  const binTarget = (P, keys) => { const v = P.V[keys[0]]; return v.levels.filter(l => keys.some(k => P.col(k).includes(l)))[0]; };
+
+  Object.assign(METHODS, {
+    rm_anova: { name: '반복측정 분산분석', group: '집단 차이', slots: [{ k: 'ys', label: '같은 사람이 여러 번 답한 점수 (시점·조건 순서대로 2개 이상)', type: 'num', multi: true, min: 2 }] },
+    mixed_anova: { name: '혼합설계 분산분석 (집단 × 시점)', group: '집단 차이', slots: [{ k: 'g', label: '집단 (예: 실험·통제)', type: 'cat' }, { k: 'ys', label: '같은 사람이 여러 번 답한 점수 (시점 순서대로 2개 이상)', type: 'num', multi: true, min: 2 }] },
+    mcnemar: { name: '맥니마 검정', group: '관계', slots: [{ k: 'a', label: '첫 번째 분류 (예: 사전, 두 가지)', type: 'cat2' }, { k: 'b', label: '두 번째 분류 (예: 사후, 같은 두 가지)', type: 'cat2' }] },
+    cochran: { name: '코크란 Q 검정', group: '관계', slots: [{ k: 'vars', label: '같은 사람을 여러 번 분류한 변인 (두 가지, 3개 이상)', type: 'cat2', multi: true, min: 3 }] }
+  });
+  Object.assign(LADDER_TO_METHOD, { r_rm_anova: 'rm_anova', r_mixed_anova: 'mixed_anova', r_mcnemar: 'mcnemar', r_cochran: 'cochran' });
+  DECISIONS.push({ id: 'sph', scope: ['rm_anova', 'mixed_anova'], q: '구형성 가정이 어긋나면(Mauchly p < .05) 어떻게 할까요?',
+    opts: [['auto', 'Mauchly 검정에 따라 보정', 'Mauchly p < .05이면 Greenhouse-Geisser로 자유도를 보정합니다. SPSS를 쓴 국내 논문에서 가장 흔합니다.'], ['gg', '언제나 Greenhouse-Geisser', '구형성 검정은 표본 크기에 민감해서, 늘 보정하는 쪽을 권하는 방법론 연구도 많습니다.'], ['none', '보정하지 않음', '측정이 두 번뿐이면 구형성 문제가 없어 이 값과 같습니다.']],
+    get: () => AO().sph || 'auto', set: v => { AO().sph = v; } });
+
+  Object.assign(RUN, {
+    async rm_anova(r, o) {
+      const { P, Y, n, k } = rmPrep(r.ys); need(n >= 3, '모든 시점에 답한 사람이 3명 이상 있어야 합니다.');
+      const names = r.ys.map(x => P.V[x].name), c = rmCore(Y), use = sphChoice(o, c.sp, k);
+      const rows = withinRows('시점', c.ssC, c.df1, c.ssE, c.df2, c.sp), main = rows.find(x => x.c === use);
+      const R = newResult('rm_anova', `반복측정 분산분석: ${names.join(' → ')}`); R.n = n;
+      R.tables.push({ title: '시점별 기술통계', head: ['시점', 'n', 'M', 'SD'], num: [1, 2, 3], rows: r.ys.map((x, j) => [names[j], String(n), F2(c.cm[j]), F2(sd(Y.map(row => row[j])))]) });
+      if (k >= 3) R.tables.push({ title: '구형성 검정 (Mauchly)', head: ['W', 'χ²', 'df', 'p', 'ε (Greenhouse-Geisser)', 'ε (Huynh-Feldt)'], num: [0, 1, 2, 3, 4, 5], rows: [[F2(c.sp.W, 3), F2(c.sp.chi), String(c.sp.df), PV(c.sp.p), F2(c.sp.gg, 3), F2(Math.min(1, c.sp.hf), 3)]] });
+      R.tables.push({ title: '집단 안 효과', head: ['', '보정', 'SS', 'df', 'MS', 'F', 'p', '부분 η²'], num: [2, 3, 4, 5, 6, 7],
+        rows: (k >= 3 ? rows : rows.slice(0, 1)).map(x => [x.c === 'none' ? '시점' : '', SPH_LABEL[x.c] + (x.c === use ? ' ← 보고' : ''), F2(x.ss), fmtDf(x.df1), F2(x.ss / x.df1), F2(x.F), PV(x.p), NZ(x.pe, 3)])
+          .concat([['오차 (시점)', '', F2(c.ssE), fmtDf(main.df2), F2(c.ssE / main.df2), '', '', '']]) });
+      R.tables.push({ title: '사후검정 (짝지은 t검정, Bonferroni)', head: ['비교', '평균 차이', 't', 'df', 'p'], num: [1, 2, 3, 4], rows: pairwiseRm(Y, names) });
+      R.notes.push(k < 3 ? '측정이 두 번이라 구형성 가정이 필요 없습니다. 이 결과는 대응표본 t검정과 같습니다(F = t²).'
+        : `구형성: Mauchly W = ${F2(c.sp.W, 3)}, ${PS(c.sp.p)}. ${use === 'gg' ? 'Greenhouse-Geisser로 자유도를 보정한 값을 보고했습니다' : '구형성 가정 값을 보고했습니다'} (분석 결정).`);
+      R.notes.push(`일반화 η²(ges) = ${NZ(c.ges, 3)}. 부분 η²는 SPSS, 일반화 η²는 R(afex) 기본값입니다.`);
+      eff(R, { kind: 'omnibus', label: `${names.join(', ')}: 시점에 따른 차이`, est: main.pe, p: main.p, stat: `F(${fmtDf(main.df1)}, ${fmtDf(main.df2)}) = ${F2(main.F)}, ${PS(main.p)}, 부분 η² = ${NZ(main.pe, 3)}${use === 'gg' ? ' (Greenhouse-Geisser)' : ''}` });
+      dropNote(R, P); return R;
+    },
+
+    async mixed_anova(r, o) {
+      const keys = r.ys, P = prep(Object.fromEntries([['g', r.g]].concat(keys.map((k, i) => ['y' + i, k]))));
+      const g = P.col(r.g), lv = P.V[r.g].levels.filter(l => g.includes(l)); need(lv.length >= 2, '집단이 두 가지 이상 있어야 합니다.');
+      const Y = P.keep.map((_, i) => keys.map(k => P.col(k)[i])), N = Y.length, k = keys.length, a = lv.length, p = k - 1;
+      const gi = g.map(x => lv.indexOf(x)), ng = lv.map((_, j) => gi.filter(x => x === j).length); need(ng.every(x => x >= 2), '각 집단에 2명 이상 있어야 합니다.');
+      const names = keys.map(x => P.V[x].name);
+      // 집단 사이: 사람 평균으로 일원분산분석 × k
+      const s = Y.map(rw => mean(rw)), sg = lv.map((_, j) => mean(s.filter((_, i) => gi[i] === j))), sAll = mean(s);
+      const ssG = k * lv.reduce((t, _, j) => t + ng[j] * (sg[j] - sAll) ** 2, 0), ssEb = k * s.reduce((t, v, i) => t + (v - sg[gi[i]]) ** 2, 0);
+      // 집단 안: 직교 대비 점수 (제III유형: 집단 평균의 비가중 평균)
+      const C = orthoC(k), Z = Y.map(rw => C.map(c => c.reduce((t, w, j) => t + w * rw[j], 0)));
+      let ssT = 0, ssI = 0, ssEw = 0; const vfac = lv.reduce((t, _, j) => t + 1 / ng[j], 0) / (a * a);
+      const resid = Z.map(() => new Array(p).fill(0));
+      for (let q = 0; q < p; q++) {
+        const zg = lv.map((_, j) => mean(Z.filter((_, i) => gi[i] === j).map(z => z[q]))), zw = mean(Z.map(z => z[q])), mu = mean(zg);
+        ssT += mu * mu / vfac;
+        ssI += lv.reduce((t, _, j) => t + ng[j] * (zg[j] - zw) ** 2, 0);
+        Z.forEach((z, i) => { resid[i][q] = z[q] - zg[gi[i]]; ssEw += resid[i][q] ** 2; });
+      }
+      const T = C.map((_, x) => C.map((_, y) => resid.reduce((t, e) => t + e[x] * e[y], 0)));
+      const sp = sphericity(T, N - a, k), use = sphChoice(o, sp, k);
+      const dfEb = N - a, dfEw = p * (N - a);
+      const FG = (ssG / (a - 1)) / (ssEb / dfEb), pG = ST.pF(FG, a - 1, dfEb), peG = ssG / (ssG + ssEb);
+      const rT = withinRows('시점', ssT, p, ssEw, dfEw, sp), rI = withinRows(`${P.V[r.g].name} × 시점`, ssI, p * (a - 1), ssEw, dfEw, sp);
+      const mT = rT.find(x => x.c === use), mI = rI.find(x => x.c === use);
+      const R = newResult('mixed_anova', `혼합설계 분산분석: ${P.V[r.g].name} × 시점 (${names.join(' → ')})`); R.n = N;
+      R.tables.push({ title: '집단 × 시점 평균 (SD)', head: ['집단', 'n'].concat(names), num: names.map((_, j) => j + 2).concat([1]),
+        rows: lv.map((l, j) => { const rows = Y.filter((_, i) => gi[i] === j); return [l, String(ng[j])].concat(names.map((_, q) => `${F2(mean(rows.map(x => x[q])))} (${F2(sd(rows.map(x => x[q])))})`)); }) });
+      if (k >= 3) R.tables.push({ title: '구형성 검정 (Mauchly)', head: ['W', 'χ²', 'df', 'p', 'ε (Greenhouse-Geisser)', 'ε (Huynh-Feldt)'], num: [0, 1, 2, 3, 4, 5], rows: [[F2(sp.W, 3), F2(sp.chi), String(sp.df), PV(sp.p), F2(sp.gg, 3), F2(Math.min(1, sp.hf), 3)]] });
+      const wrow = x => [x.name, SPH_LABEL[x.c] + (x.c === use ? ' ← 보고' : ''), F2(x.ss), fmtDf(x.df1), F2(x.ss / x.df1), F2(x.F), PV(x.p), NZ(x.pe, 3)];
+      R.tables.push({ title: '집단 사이 효과', head: ['', 'SS', 'df', 'MS', 'F', 'p', '부분 η²'], num: [1, 2, 3, 4, 5, 6], rows: [[P.V[r.g].name, F2(ssG), String(a - 1), F2(ssG / (a - 1)), F2(FG), PV(pG), NZ(peG, 3)], ['오차', F2(ssEb), String(dfEb), F2(ssEb / dfEb), '', '', '']] });
+      R.tables.push({ title: '집단 안 효과', head: ['', '보정', 'SS', 'df', 'MS', 'F', 'p', '부분 η²'], num: [2, 3, 4, 5, 6, 7],
+        rows: (k >= 3 ? rT : rT.slice(0, 1)).map(wrow).concat((k >= 3 ? rI : rI.slice(0, 1)).map(wrow), [['오차 (시점)', '', F2(ssEw), fmtDf(mT.df2), F2(ssEw / mT.df2), '', '', '']]) });
+      const levs = names.map((nm, q) => { const L = levene(lv.map((_, j) => Y.filter((_, i) => gi[i] === j).map(x => x[q]))); return `${nm} F = ${F2(L.F)}, ${PS(L.p)}`; });
+      R.notes.push(`집단 크기가 다르면 집단 안 효과는 SPSS와 같은 제III유형(집단 평균을 같은 무게로)으로 계산했습니다.${k >= 3 ? ` 구형성: Mauchly W = ${F2(sp.W, 3)}, ${PS(sp.p)} → ${use === 'gg' ? 'Greenhouse-Geisser 보정 값을 보고' : '구형성 가정 값을 보고'}(분석 결정).` : ''}`);
+      R.notes.push(`등분산성(Levene, 시점별): ${levs.join(' / ')}`);
+      R.notes.push('프로그램 효과는 보통 집단 × 시점 상호작용으로 판단합니다. 상호작용이 유의하면 집단별·시점별 단순효과를 추가로 살펴보세요.');
+      eff(R, { kind: 'omnibus', label: `${P.V[r.g].name} × 시점 상호작용`, est: mI.pe, p: mI.p, stat: `F(${fmtDf(mI.df1)}, ${fmtDf(mI.df2)}) = ${F2(mI.F)}, ${PS(mI.p)}, 부분 η² = ${NZ(mI.pe, 3)}` });
+      eff(R, { kind: 'omnibus', label: `시점 주효과 (${names.join(', ')})`, est: mT.pe, p: mT.p, stat: `F(${fmtDf(mT.df1)}, ${fmtDf(mT.df2)}) = ${F2(mT.F)}, ${PS(mT.p)}, 부분 η² = ${NZ(mT.pe, 3)}` });
+      eff(R, { kind: 'omnibus', label: `${P.V[r.g].name} 주효과`, est: peG, p: pG, stat: `F(${a - 1}, ${dfEb}) = ${F2(FG)}, ${PS(pG)}, 부분 η² = ${NZ(peG, 3)}` });
+      dropNote(R, P); return R;
+    },
+
+    async mcnemar(r) {
+      const P = prep({ a: r.a, b: r.b }), A = P.col(r.a), B = P.col(r.b);
+      const lv = P.V[r.a].levels.filter(l => A.includes(l) || B.includes(l)); need(lv.length === 2, '두 분류 모두 같은 두 가지 값이어야 합니다 (예: 예·아니오).');
+      need(B.every(x => lv.includes(x)), '두 분류의 선택지가 같아야 합니다.');
+      const t = lv[0], n11 = A.filter((x, i) => x === t && B[i] === t).length, n10 = A.filter((x, i) => x === t && B[i] !== t).length, n01 = A.filter((x, i) => x !== t && B[i] === t).length, n00 = P.n - n11 - n10 - n01;
+      const disc = n10 + n01; need(disc > 0, '두 번의 분류가 모두 같아 변화가 없습니다.');
+      const chi = (Math.abs(n10 - n01) - 1) ** 2 / disc, p = ST.pChi(chi, 1), pEx = binomTwo(n01, disc);
+      const p1 = (n11 + n10) / P.n, p2 = (n11 + n01) / P.n;
+      const R = newResult('mcnemar', `맥니마 검정: ${P.V[r.a].name} → ${P.V[r.b].name}`); R.n = P.n;
+      R.tables.push({ title: '짝지은 교차표', head: [`${P.V[r.a].name} \\ ${P.V[r.b].name}`, lv[0], lv[1], '전체'], num: [1, 2, 3], rows: [[lv[0], String(n11), String(n10), String(n11 + n10)], [lv[1], String(n01), String(n00), String(n01 + n00)], ['전체', String(n11 + n01), String(n10 + n00), String(P.n)]] });
+      R.tables.push({ title: '검정 결과', head: [`'${t}' 비율 (첫째)`, `'${t}' 비율 (둘째)`, 'χ² (연속성 교정)', 'df', 'p', '정확 p (이항)', '바뀐 사람'], num: [0, 1, 2, 3, 4, 5, 6], rows: [[`${F2(p1 * 100, 1)}%`, `${F2(p2 * 100, 1)}%`, F2(chi), '1', PV(p), PV(pEx), `${disc}명 (${lv[0]}→${lv[1]} ${n10}, ${lv[1]}→${lv[0]} ${n01})`]] });
+      if (disc < 25) R.notes.push(`바뀐 사람이 ${disc}명으로 적어 정확 p(이항검정)를 함께 보고하는 것이 좋습니다.`);
+      eff(R, { label: `'${t}' 비율 변화 (${P.V[r.b].name} − ${P.V[r.a].name})`, est: p2 - p1, p, stat: `χ²(1, N = ${P.n}) = ${F2(chi)}, ${PS(p)}, '${t}' ${F2(p1 * 100, 1)}% → ${F2(p2 * 100, 1)}%` });
+      dropNote(R, P); return R;
+    },
+
+    async cochran(r) {
+      const keys = r.vars, P = prep(Object.fromEntries(keys.map((k, i) => ['v' + i, k])));
+      const t = binTarget(P, keys); const lvAll = [...new Set(keys.flatMap(k => P.col(k)))];
+      need(lvAll.length === 2, '모든 변인이 같은 두 가지 값이어야 합니다 (예: 예·아니오).');
+      const X = P.keep.map((_, i) => keys.map(k => (P.col(k)[i] === t ? 1 : 0))), n = X.length, k = keys.length;
+      const Cj = keys.map((_, j) => X.reduce((s, x) => s + x[j], 0)), Ri = X.map(x => x.reduce((s, v) => s + v, 0)), Nt = Ri.reduce((s, v) => s + v, 0);
+      const den = k * Nt - Ri.reduce((s, v) => s + v * v, 0); need(den > 0, '모든 사람의 분류가 시점마다 같아 검정할 수 없습니다.');
+      const Q = (k - 1) * (k * Cj.reduce((s, c) => s + c * c, 0) - Nt * Nt) / den, df = k - 1, p = ST.pChi(Q, df), W = Q / (n * (k - 1));
+      const names = keys.map(x => P.V[x].name);
+      const R = newResult('cochran', `코크란 Q 검정: ${names.join(', ')}`); R.n = n;
+      R.tables.push({ title: `'${t}' 응답 비율`, head: ['변인', `'${t}' (명)`, '비율'], num: [1, 2], rows: names.map((nm, j) => [nm, String(Cj[j]), `${F2(Cj[j] / n * 100, 1)}%`]) });
+      R.tables.push({ title: '검정 결과', head: ['Q', 'df', 'p', 'Kendall의 W'], num: [0, 1, 2, 3], rows: [[F2(Q), String(df), PV(p), NZ(W, 3)]] });
+      const m = k * (k - 1) / 2, post = [];
+      for (let i = 0; i < k; i++) for (let j = i + 1; j < k; j++) {
+        const b = X.filter(x => x[i] === 1 && x[j] === 0).length, c = X.filter(x => x[i] === 0 && x[j] === 1).length;
+        const chi = b + c ? (b - c) ** 2 / (b + c) : 0; post.push([`${names[i]} − ${names[j]}`, `${b} / ${c}`, F2(chi), PV(Math.min(1, ST.pChi(chi, 1) * m))]);
+      }
+      R.tables.push({ title: '사후검정 (짝지은 비교, Bonferroni)', head: ['비교', '바뀐 사람 (앞만 / 뒤만)', 'χ²', 'p'], num: [2, 3], rows: post });
+      eff(R, { kind: 'omnibus', label: `'${t}' 비율의 차이 (${names.join(', ')})`, est: W, p, stat: `Q(${df}, N = ${n}) = ${F2(Q)}, ${PS(p)}, W = ${NZ(W, 3)}` });
+      dropNote(R, P); return R;
+    }
+  });
+
+  Object.assign(CHECKS, {
+    rm_anova(r, R) {
+      const P = prep(Object.fromEntries(r.ys.map((k, i) => ['y' + i, k])));
+      const sp = R.tables.find(t => /Mauchly/.test(t.title));
+      return { desc: { st: 'ok', note: '시점별 n, M, SD를 보고했습니다.' }, es: { text: `부분 η² = ${NZ(R.effects[0].est, 3)} (${sizeLabel('eta', R.effects[0].est)})`, cut: 'eta' }, ci: { st: 'warn', note: '부분 η²의 신뢰구간은 계산하지 않습니다.' },
+        norm: normality(r.ys.map(k => [P.V[k].name, P.col(k)])),
+        assum: [{ item: '구형성 (Mauchly)', st: !sp ? 'na' : 'ok', note: sp ? `W = ${sp.rows[0][0]}, p ${sp.rows[0][3]} · 보정은 분석 결정대로 했습니다` : '측정이 두 번이라 필요 없음' }],
+        post: { st: 'ok', note: '짝지은 t검정에 Bonferroni 보정을 한 사후검정을 보고했습니다.' } };
+    },
+    mixed_anova(r, R) {
+      const P = prep(Object.fromEntries([['g', r.g]].concat(r.ys.map((k, i) => ['y' + i, k]))));
+      return { desc: { st: 'ok', note: '집단 × 시점 평균(SD)을 보고했습니다.' }, es: { text: R.effects.map(e => `${e.label}: 부분 η² = ${NZ(e.est, 3)} (${sizeLabel('eta', e.est)})`).join(' / '), cut: 'eta' },
+        ci: { st: 'warn', note: '부분 η²의 신뢰구간은 계산하지 않습니다.' }, norm: normality(r.ys.map(k => [P.V[k].name, P.col(k)])),
+        assum: [{ item: '등분산성 (Levene, 시점별)', st: 'ok', note: (R.notes.find(n => n.startsWith('등분산성')) || '').replace(/^등분산성\(Levene, 시점별\): /, '') }, { item: '공분산 행렬 동질성 (Box의 M)', st: 'warn', note: 'Box의 M 검정은 이 사이트에서 하지 않습니다. 집단 크기가 비슷하면 크게 문제되지 않습니다.' }],
+        post: { st: sigOf(R.effects[0]) ? 'warn' : 'ok', note: sigOf(R.effects[0]) ? '상호작용이 유의합니다. 집단별 시점 변화(단순효과)를 추가로 살펴보세요.' : '상호작용이 유의하지 않아 주효과 중심으로 해석할 수 있습니다.' } };
+    },
+    mcnemar(r, R) {
+      return { desc: { st: 'ok', note: '짝지은 교차표에 빈도를 보고했습니다.' }, es: { text: `비율 변화 = ${F2(R.effects[0].est * 100, 1)}%p`, cutText: '비율 변화는 합의된 크기 기준이 없어 크기만 적습니다.' }, ci: { st: 'na', note: '비율 차이의 신뢰구간은 계산하지 않습니다.' },
+        norm: { na: '빈도 자료라 정규성 가정이 없음' }, assum: [{ item: '바뀐 사람 수', st: 'ok', note: R.notes.find(n => n.startsWith('바뀐 사람')) || '바뀐 사람이 25명 이상이라 χ² 근사를 써도 됩니다.' }], post: null };
+    },
+    cochran(r, R) {
+      return { desc: { st: 'ok', note: '변인별 비율을 보고했습니다.' }, es: { text: `Kendall의 W = ${NZ(R.effects[0].est, 3)}`, cutText: 'Kendall의 W: .10 작음, .30 중간, .50 큼 (Cohen 기준을 빌려 씀)' }, ci: { st: 'na', note: 'W의 신뢰구간은 계산하지 않습니다.' },
+        norm: { na: '빈도 자료라 정규성 가정이 없음' }, assum: [], post: { st: 'ok', note: '짝지은 비교에 Bonferroni 보정을 한 사후검정을 보고했습니다.' } };
+    }
+  });
+
+  // R 코드: 기본 R만 (stats)
+  const rYmat = (S, keys) => `Y <- cbind(${keys.map(k => rNum(S, k)).join(', ')}); colnames(Y) <- ${rvec(keys.map(k => nm(S, k)))}`;
+  const rSph = (S) => { const m = S.opts.sph || 'auto'; return m === 'gg' ? 'use <- "GG"' : m === 'none' ? 'use <- "none"' : 'use <- if (ncol(Y) >= 3 && mt$p.value < .05) "GG" else "none"'; };
+  Object.assign(RGEN, {
+    rm_anova: S => { const r = S.roles; return `${rComplete(S, r.ys)}
+${rYmat(S, r.ys)}
+k <- ncol(Y); n <- nrow(Y)
+long <- data.frame(y = c(Y), time = factor(rep(colnames(Y), each = n), levels = colnames(Y)), id = factor(rep(seq_len(n), k)))
+a <- summary(aov(y ~ time + Error(id/time), data = long)); print(a)
+w <- a[["Error: id:time"]][[1]]; ss <- w[["Sum Sq"]]; pe <- ss[1] / (ss[1] + ss[2])
+fit <- lm(Y ~ 1)
+mt <- if (k >= 3) mauchly.test(fit, X = ~1) else list(p.value = 1); if (k >= 3) print(mt)
+sph <- anova(fit, X = ~1, test = "Spherical"); print(sph)   # G-G, H-F 보정
+${rSph(S)}   # 분석 결정: 구형성
+p <- if (use == "GG") sph[["G-G Pr"]][1] else w[["Pr(>F)"]][1]
+print(pairwise.t.test(long$y, long$time, paired = TRUE, p.adjust.method = "bonferroni"))
+eff(${rq(`${r.ys.map(k => nm(S, k)).join(', ')}: 시점에 따른 차이`)}, pe, NA, NA, p)`; },
+    mixed_anova: S => { const r = S.roles, G = nm(S, r.g); return `${rComplete(S, [r.g, ...r.ys])}
+g <- ${rCat(S, r.g)}; ${rYmat(S, r.ys)}
+k <- ncol(Y); N <- nrow(Y); a <- nlevels(g); contrasts(g) <- contr.sum(a)
+# 집단 사이: 사람 평균으로 일원분산분석 (× k)
+s <- rowMeans(Y); ab <- anova(lm(s ~ g)); ssG <- k * ab[1, 2]; ssEb <- k * ab[2, 2]
+FG <- (ssG / (a - 1)) / (ssEb / (N - a)); pG <- pf(FG, a - 1, N - a, lower.tail = FALSE)
+# 집단 안: 직교 대비 점수, 제III유형 (집단 평균을 같은 무게로)
+C <- contr.poly(k); Z <- Y %*% C; ssT <- 0; ssI <- 0; E <- matrix(0, N, k - 1)
+for (q in 1:(k - 1)) { m1 <- lm(Z[, q] ~ g); m0 <- lm(Z[, q] ~ 1); v <- summary(m1)$cov.unscaled[1, 1]
+  ssT <- ssT + coef(m1)[1]^2 / v; ssI <- ssI + sum(resid(m0)^2) - sum(resid(m1)^2); E[, q] <- resid(m1) }
+ssE <- sum(E^2); p <- k - 1; dfE <- p * (N - a)
+fit <- lm(Y ~ g); mt <- if (k >= 3) mauchly.test(fit, X = ~1) else list(p.value = 1); if (k >= 3) print(mt)
+Tm <- crossprod(E) / (N - a); gg <- if (k >= 3) sum(diag(Tm))^2 / (p * sum(diag(Tm %*% Tm))) else 1
+${rSph(S)}   # 분석 결정: 구형성
+e <- if (use == "GG") gg else 1
+FT <- (ssT / p) / (ssE / dfE); FI <- (ssI / (p * (a - 1))) / (ssE / dfE)
+pT <- pf(FT, p * e, dfE * e, lower.tail = FALSE); pI <- pf(FI, p * (a - 1) * e, dfE * e, lower.tail = FALSE)
+cat(sprintf("집단: F = %.2f, p = %.4f\\n시점: F = %.2f, p = %.4f\\n상호작용: F = %.2f, p = %.4f (ε = %.3f)\\n", FG, pG, FT, pT, FI, pI, e))
+long <- data.frame(y = c(Y), time = factor(rep(colnames(Y), each = N), levels = colnames(Y)), g = rep(g, k), id = factor(rep(seq_len(N), k)))
+print(summary(aov(y ~ g * time + Error(id/time), data = long)))   # 참고: 집단 크기가 같으면 위 값과 같음
+eff(${rq(`${G} × 시점 상호작용`)}, ssI / (ssI + ssE), NA, NA, pI)
+eff(${rq(`시점 주효과 (${r.ys.map(k => nm(S, k)).join(', ')})`)}, ssT / (ssT + ssE), NA, NA, pT)
+eff(${rq(`${G} 주효과`)}, ssG / (ssG + ssEb), NA, NA, pG)`; },
+    mcnemar: S => { const r = S.roles, t = S.vars[r.a].levels[0]; return `${rComplete(S, [r.a, r.b])}
+lv <- ${rvec(S.vars[r.a].levels)}; a <- factor(catf(${rq(S.vars[r.a].code)}, lv)[u], levels = lv[1:2]); b <- factor(catf(${rq(S.vars[r.b].code)}, lv)[u], levels = lv[1:2])
+tab <- table(a, b); print(tab); mc <- mcnemar.test(tab); print(mc)
+print(binom.test(tab[2, 1], tab[1, 2] + tab[2, 1]))   # 정확 p
+eff(${rq(`'${t}' 비율 변화 (${nm(S, r.b)} − ${nm(S, r.a)})`)}, mean(b == lv[1]) - mean(a == lv[1]), NA, NA, mc$p.value)`; },
+    cochran: S => { const r = S.roles, t = S.vars[r.vars[0]].levels[0]; return `${rComplete(S, r.vars)}
+X <- cbind(${r.vars.map(k => `as.numeric(catf(${rq(S.vars[k].code)}, ${rvec(S.vars[k].levels)})[u] == ${rq(t)})`).join(', ')})
+k <- ncol(X); n <- nrow(X); Cj <- colSums(X); Ri <- rowSums(X); Nt <- sum(X)
+Q <- (k - 1) * (k * sum(Cj^2) - Nt^2) / (k * Nt - sum(Ri^2)); p <- pchisq(Q, k - 1, lower.tail = FALSE)
+cat(sprintf("Cochran Q(%d) = %.3f, p = %.4f\\n", k - 1, Q, p))
+eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, Q / (n * (k - 1)), NA, NA, p)`; }
+  });
+
+  // 분석 칸 처음 값: 반복측정은 점수 여러 개, 맥니마·코크란은 두 가지 분류
+  const _autoRoles = autoRoles;
+  autoRoles = function (method) {
+    const roles = _autoRoles(method), vs = dataVars();
+    const nums = vs.filter(v => v.type === 'num' && v.key[0] === 'S').map(v => v.key), cat2 = vs.filter(v => v.type === 'cat' && v.levels.length === 2).map(v => v.key);
+    const dvs = vs.filter(v => v.type === 'num' && v.role === '종속').map(v => v.key);
+    if (method === 'rm_anova' || method === 'mixed_anova') roles.ys = dvs.length >= 2 ? dvs : nums.slice(0, 3);
+    if (method === 'mixed_anova') { const cats = vs.filter(v => v.type === 'cat'); roles.g = (cats.find(c => c.levels.length === 2) || cats[0])?.key || ''; }
+    if (method === 'mcnemar') { roles.a = cat2[0] || ''; roles.b = cat2[1] || ''; }
+    if (method === 'cochran') roles.vars = cat2;
+    return roles;
+  };
 
   // ---------- 시작 ----------
   const defErrs = checkRules(DEFAULT_RULES);
