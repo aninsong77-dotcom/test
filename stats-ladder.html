@@ -2438,6 +2438,64 @@ button,input,textarea,select{font-family:inherit}
 #splash .sp-copy span{color:var(--ink-3)}
 .hi-unk{margin:6px 0 4px;padding:8px 12px;border-radius:8px;background:var(--orange-soft);border:1px solid var(--orange-line);color:var(--ink);font-size:13.5px;line-height:1.6}
 .hs-step i.as,.hs-tag.as{color:var(--ink-2, #555);background:var(--bg-2);border:1px dashed var(--line)}
+/* ---------- 가설 만들기: 변인 → 모형 카드 → 빈칸 → 분석 ---------- */
+.mb .mb-h{display:flex;align-items:center;gap:8px;margin:20px 0 8px;font-size:16px}
+.mb-n{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--navy-ink);color:#fff;font-size:13px;font-weight:800}
+.mb-vars{display:flex;flex-direction:column;gap:6px}
+.mb-var{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr) auto;gap:6px;align-items:center}
+.mb-var .mb-sel{width:100%}.mb-newvar{grid-template-columns:minmax(0,1fr) auto}
+.mb-in{border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit;font-size:14px;background:var(--bg);color:var(--ink);min-width:0}
+.mb-sel{border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;font-size:13.5px;background:var(--bg);color:var(--ink);max-width:100%}
+.mb-x{border:0;background:none;color:var(--ink-3);font-size:18px;line-height:1;cursor:pointer;padding:2px 6px}
+.mb-x:hover{color:var(--warn)}
+.mb-tg{margin:10px 0 0;padding:10px 12px;border-radius:10px;background:var(--orange-soft);border:1px solid var(--orange-line);font-size:14px;line-height:1.6;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.mb-picker{border:1.5px dashed var(--orange-line);border-radius:12px;padding:12px;margin:8px 0}
+.mb-ph{margin:0 0 8px;font-weight:700}
+.mb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:6px}
+.mb-pick{display:flex;flex-direction:column;align-items:flex-start;gap:3px;text-align:left;border:1.5px solid var(--line);border-radius:10px;padding:10px;background:var(--bg);color:var(--ink);font:inherit;cursor:pointer}
+.mb-pick:hover,.mb-pick:focus-visible{border-color:var(--orange);background:var(--orange-soft)}
+.mb-pick b{font-size:14.5px}.mb-pick small{font-size:12px;color:var(--ink-2);line-height:1.4}
+.mb-ic{width:64px;height:36px;flex:none}
+.mb-ic rect{fill:var(--orange-soft);stroke:var(--orange);stroke-width:1.4}
+.mb-ic line{stroke:var(--navy-ink);stroke-width:1.5}.mb-ic marker path{fill:var(--navy-ink)}
+.mb-card{border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;margin:8px 0;background:var(--bg)}
+.mb-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.mb-head .mb-ic{width:44px;height:25px}
+.mb-head-r{margin-left:auto;display:flex;gap:10px}
+.mb-src{margin:0 0 6px}
+.mb-row{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px;margin:6px 0}
+.mb-slot{display:flex;flex-direction:column;gap:3px;flex:1 1 120px;min-width:0}
+.mb-slot .mb-in{width:100%}
+.mb-lab{font-size:12px;font-weight:700;color:var(--ink-3)}
+.mb-multi{display:flex;align-items:center;gap:2px}
+.mb-plus{align-self:flex-start;font-size:12.5px}
+.mb-arrow{font-size:18px;color:var(--navy-ink);padding:0 0 7px;flex:none}
+.mb-chk{display:flex;align-items:center;gap:6px;font-size:14px}
+.mb-opt-slot{flex:2 1 220px}
+.mb-miss{margin:8px 0 0;font-size:13.5px;color:var(--orange-deep)}
+.mb-sent{margin:10px 0 6px;padding:10px 12px;border-radius:10px;background:var(--bg-2);border:1px solid var(--line)}
+.mb-sent span{font-size:11.5px;font-weight:700;color:var(--ink-3)}.mb-sent p{margin:2px 0 0;font-size:15px;line-height:1.6}
+.mb-svg .mv-svg{display:block;width:100%;max-width:520px;height:auto;margin:4px auto}
+.mb-paths{margin:8px 0;padding:8px 10px;border-radius:10px;border:1px dashed var(--line)}
+.mb-path{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:5px 0;font-size:13.5px}
+.mb-plab{font-weight:700;min-width:150px}.mb-ps{flex:1 1 100%;color:var(--ink-2);font-size:13px;padding-left:2px}
+.mb-an{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
+.mb-an-h{font-weight:800;margin-bottom:6px}.mb-an-h small{font-weight:400;color:var(--ink-3);font-size:12px;margin-left:4px}
+.mb-opt{display:flex;gap:8px;align-items:flex-start;padding:7px 8px;border-radius:9px;border:1px solid transparent}
+.mb-opt.on{background:var(--orange-soft);border-color:var(--orange-line)}
+.mb-opt>div{display:flex;flex-wrap:wrap;gap:2px 6px;align-items:baseline;min-width:0;flex:1}
+.mb-roles{display:flex;gap:4px;flex:none;align-self:center}
+.mb-r{border:1px solid var(--line);background:var(--bg);color:var(--ink-2);border-radius:999px;padding:3px 10px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap}
+.mb-r.on{background:var(--orange);border-color:var(--orange);color:#fff}.mb-r.alt.on{background:var(--navy-ink);border-color:var(--navy-ink)}.mb-r:disabled{opacity:.35;cursor:default}
+.mb-opt b{font-size:14px}.mb-opt small{flex:1 1 100%;font-size:12.5px;color:var(--ink-2);line-height:1.45}.mb-opt small.mb-when{color:var(--ink-3)}
+.mb-rec{font-size:11px;font-weight:800;color:#fff;background:var(--orange);border-radius:999px;padding:0 7px}
+.mb-tag{font-size:11px;font-weight:700;color:var(--ink-3);border:1px solid var(--line);border-radius:999px;padding:0 6px}.mb-tag.ok{color:var(--ok);border-color:var(--ok-line)}
+.mb-dim{margin:8px 0;padding:8px 10px;border-radius:9px;background:var(--bg-2);font-size:13.5px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}.mb-dim small{flex:1 1 100%;color:var(--ink-3)}
+.mb-why{margin-top:8px}.mb-why small{font-weight:400;color:var(--ink-3)}.mb-why textarea{width:100%}
+.mb-add{margin:6px 0 4px}
+.mb-paste{margin:16px 0 4px;border:1px solid var(--line);border-radius:10px;padding:8px 12px}.mb-paste summary{cursor:pointer;font-weight:700;font-size:14px}
+.mb-paste textarea{width:100%;margin-top:8px}
+@media (max-width:560px){.mb-var{grid-template-columns:minmax(0,1fr) auto}.mb-var .mb-sel,.mb-var .mb-lv{grid-column:1}.mb-opt{flex-wrap:wrap}.mb-roles{width:100%;justify-content:flex-end}.mb-arrow{display:none}.mb-slot{flex-basis:100%}.mb-head-r{margin-left:0;width:100%}}
 /* ---------- SPSS로 확인하기 ---------- */
 .sp-box{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:8px 0 6px;background:var(--bg-2)}
 .sp-steps{margin:6px 0;padding-left:20px;font-size:14px;line-height:1.8}
@@ -5610,14 +5668,16 @@ ${REVIEW_RULES}
       <div class="gstep"><b>STEP 4. 다음에 이어 하기</b><p>같은 브라우저로 다시 열고 <b>[다시 연결]</b>을 누릅니다.</p></div>
       <div class="gnote"><b>응답 원자료 저장</b>은 기본으로 꺼져 있습니다. 켜면 다시 열 때 응답을 다시 넣지 않아도 됩니다. 폴더가 구글 드라이브처럼 동기화되는 곳이면 개인정보 규정을 먼저 확인하세요.</div>` },
 
-    { id: 'ladder', group: '단계별 사용법', title: '① 통계 기법 고르기', tab: 'ladder', kw: '가설 남은 후보 사다리 질문', body: `
+    { id: 'ladder', group: '단계별 사용법', title: '① 통계 기법 고르기', tab: 'ladder', kw: '가설 모형 카드 빈칸 매개 조절 경로 남은 후보 사다리 질문', body: `
       <p class="g-sum">두 가지 방법이 있습니다. <b>가설이 있으면</b> 가설을 적고, <b>아직 막연하면</b> 질문에 답하며 후보를 좁힙니다.</p>
       <h3>가설이 있어요</h3>
       <ol>
-        <li>논문 제목과 가설을 한 줄에 하나씩 적고 <b>[가설 읽기]</b>를 누릅니다.</li>
-        <li>가설마다 종류(차이·관계·영향·매개·조절)와 변인을 읽어 보여 줍니다. 틀린 곳은 고치세요.</li>
-        <li>가설로 알 수 없는 것만 묻습니다. 예: 결과를 점수로 쟀는지, 같은 사람을 여러 번 쟀는지</li>
-        <li>가설마다 기법이 정해지면 <b>[가설별 기법 확정하고 설문 만들기로 →]</b>. 변인은 설문에, 가설은 결과 해석에 채워집니다.</li>
+        <li><b>변인</b>: 연구에 쓰는 변인을 적습니다. 점수(척도)인지, 집단으로 나뉘는지(성별 등) 고르고, 하위 차원이 있으면 개수를 고릅니다. 논문 제목을 적으면 제목에서 모형을 짐작해 줍니다.</li>
+        <li><b>모형 카드</b>: 가설마다 집단 차이 · 관계 · 영향 · 매개 · 순차매개 · 조절 · 조절된 매개 중 그림을 고릅니다.</li>
+        <li><b>빈칸 채우기</b>: 원인·매개·결과 칸에 변인을 넣고 예상 방향을 고르면 논문 문체의 가설 문장과 연구모형 그림이 만들어집니다. 매개모형은 a·b·c 경로마다 가설을 따로 세울 수 있고, 경로를 관계(상관)로 볼지 영향(PROCESS 경로계수)으로 볼지 고릅니다.</li>
+        <li><b>할 수 있는 분석</b>: 그 모형에 쓰이는 분석이 모두 나옵니다. 추천 표시가 있는 것이 기본이고, 주 분석 하나와 보조 분석을 고릅니다. ㅌㅗㅇ이 계산하지 않는 분석은 '안내만'으로 표시합니다. <b>고른 이유</b>를 한두 줄 적어 두면 심사 준비가 됩니다.</li>
+        <li>이미 써 둔 가설이 있으면 [붙여 넣기]로 카드를 만들 수 있습니다. 못 읽은 문장은 모형만 고르면 됩니다.</li>
+        <li>빈칸이 다 차면 <b>[가설 확정하고 설문 만들기로 →]</b>. 변인은 설문에, 가설은 결과 해석에 채워집니다.</li>
       </ol>
       <h3>아직 막연해요</h3>
       <ol>
@@ -6380,6 +6440,7 @@ ${reviewText()}
       if (md.pwResult) { lines.push('', '## 표본 수 근거', `- 최소 ${md.pwResult.N}명, 모집 목표 ${md.pwResult.recruit}명 (탈락 ${md.pwResult.attr}% 감안)`); md.pwResult.rows.forEach(r => lines.push(`- 가설 ${r.no} ${r.method}: ${r.N}명 · ${r.es ? r.es + ' · ' : ''}${r.how} (${r.cite})`)); lines.push(`- 계획서 문장: ${md.pwResult.sentence}`); }
       if (norm(md.altWhy)) lines.push('', '## 모형의 순서를 이렇게 정한 이유', md.altWhy);
     }
+    if (hp && hp.mode === 'hyp' && hp.cards && hp.cards.length) { const L = mbPlanLines(); if (L.length) lines.push('', '## 연구모형과 분석 방법', ...L); }
     lines.push('', '## 계산한 분석');
     analyses.slice().reverse().forEach(a => lines.push(`- ${a.at} · ${a.conf ? `[${confLabel(a, true)}] ` : ''}${a.title} (N = ${a.n})`));
     return lines.join('\n');
@@ -7044,14 +7105,12 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
     } else if (w.cur.type === 'out') top = `<div class="card"><h4>고른 통계 방법</h4><p class="rempty">이번 버전의 범위 밖으로 안내되었습니다.</p></div>`;
     else top = `<div class="card"><h4>고른 통계 방법</h4><p class="rempty">아직 고르는 중입니다 · 질문 ${Math.min(w.steps.length + 1, 5)}단계${w.steps.length ? ` (${w.steps.length}개 답함)` : ''}</p></div>`;
     if (hp && hp.mode === 'hyp' && !hp.applied) {
-      const done = hp.items.filter(it => walk(it.path).cur.type === 'result').length;
-      top = `<div class="card"><h4>가설로 고르는 중</h4><p class="rempty">${hp.items.length ? `가설 ${hp.items.length}개 중 <b>${done}개</b>의 기법이 정해졌습니다.` : '논문 제목과 가설을 적고 [가설 읽기]를 누르세요.'}</p></div>`;
+      mbInit();
+      top = `<div class="card"><h4>가설 만드는 중</h4><p class="rempty">${hp.cards.length ? `모형 ${hp.cards.length}개에서 가설 <b>${hp.items.length}개</b>가 만들어졌습니다.${hp.cards.some(c => mbMissing(c).length) ? ' 빈칸이 남은 모형이 있어요.' : ''}` : '변인을 적고 가설의 모형을 고르세요.'}</p></div>`;
     }
     $('#rp-method-top').innerHTML = top;
-    if (hp && hp.mode === 'hyp' && hp.items.length) {
-      const it = hp.items[Math.min(hp.active, hp.items.length - 1)];
-      $('#rp-cand').innerHTML = `<p class="cand-for">가설 ${Math.min(hp.active, hp.items.length - 1) + 1}의 후보 <small>(가설 칸을 누르면 바뀝니다)</small></p>` + candHtml(it.path) + hypPlanHtml();
-    } else $('#rp-cand').innerHTML = candHtml(path) + hypPlanHtml();
+    if (hp && hp.mode === 'hyp' && !hp.applied) $('#rp-cand').innerHTML = mbPlanHtml();
+    else $('#rp-cand').innerHTML = candHtml(path) + hypPlanHtml();
     const ivs = vars.ivs.filter(v => norm(v.name)), oth = vars.others.filter(o => norm(o.name));
     const varRows = ivs.map(v => `<span>독립</span><span>${esc(v.name)}${v.levels ? ` <small class="hint">(${esc(v.levels)})</small>` : ''}</span>`).join('')
       + oth.map(o => `<span>${esc(o.role)}</span><span>${esc(o.name)}</span>`).join('') + (norm(vars.dv) ? `<span>종속</span><span>${esc(vars.dv)}</span>` : '');
@@ -7934,7 +7993,7 @@ ${q}`;
   // =================================================================
   // 가설로 시작하기: 논문 제목과 가설을 읽고, 빠진 것만 물어 가설마다 통계 기법을 정함
   // =================================================================
-  const blankHyp = () => ({ mode: null, title: '', text: '', items: [], active: 0, applied: false });
+  const blankHyp = () => ({ mode: null, title: '', text: '', items: [], active: 0, applied: false, cards: [], vlist: [] });
   var hp = store.get('ladder.hyp', null) || blankHyp();
   const saveHp = () => store.set('ladder.hyp', hp);
   const HTYPE = { diff: '집단 차이', rel: '관계(상관)', pred: '영향·예측', med: '매개 (거쳐 가는 변인)', mod: '조절 (효과를 바꾸는 변인)', modmed: '조절된 매개', unknown: '알 수 없음' };
@@ -8095,138 +8154,484 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
       <div class="kicker">시작하기</div>
       <h2 class="q">어떻게 시작할까요?</h2>
       <div class="start-opts">
-        <button class="start-opt" data-hp="mode-hyp"><span class="so-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/><path d="M15.5 16.5l1.5 1.5 3-3"/></svg></span><b>가설이 있어요</b><span>논문 제목과 가설을 적으면, 가설마다 맞는 통계 기법을 찾아 드려요. 모자란 것만 짧게 묻습니다.</span></button>
+        <button class="start-opt" data-hp="mode-hyp"><span class="so-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/><path d="M15.5 16.5l1.5 1.5 3-3"/></svg></span><b>가설이 있어요</b><span>변인을 적고 모형 그림을 골라 빈칸을 채우면, 가설 문장과 그 모형으로 할 수 있는 분석을 모두 보여 드려요.</span></button>
         <button class="start-opt" data-hp="mode-ladder"><span class="so-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h18l-7 8.5V19l-4 2v-8.5z"/></svg></span><b>아직 막연해요</b><span>쉬운 질문 5개에 답하며 후보를 좁혀 기법을 고릅니다. 왜 그 기법인지 배우면서 갈 수 있어요.</span></button>
       </div>
     </div>`;
   }
-  function hypStepsHtml(it, ii) {
-    const w = walk(it.path);
-    const steps = w.steps.map((s, k) => `<button class="hs-step ${it.auto[k] ? 'auto' : ''}" data-hp-back="${ii}.${k}" title="눌러서 이 질문부터 다시 답하기"><span class="hs-q">${esc(s.node === RULES.gate ? '다른 변인' : (s.node.title || stepName(s.node.step)))}</span><span class="hs-a">${esc(s.opt.short || s.opt.label)}</span>${it.auto[k] === 'assume' ? '<i class="as" title="보통의 설문 연구라면 이렇게 됩니다. 다르면 눌러서 고르세요">가정함</i>' : it.auto[k] ? '<i>가설에서 읽음</i>' : ''}</button>`).join('');
-    let next = '';
-    if (w.cur.type === 'node' || w.cur.type === 'gate') {
-      const node = w.cur.type === 'gate' ? RULES.gate : RULES.nodes[w.cur.id];
-      next = `<div class="hs-next"><div class="hs-nq">${esc(node.question)}</div>
-        ${node.help?.text ? `<p class="hint" style="margin:2px 0 8px">${esc(node.help.text)}</p>` : ''}
-        <div class="hs-opts">${node.options.map((o, k) => `<button class="hs-opt" data-hp-pick="${ii}.${k}">${esc(o.label)}${o.term ? `<small>${esc(o.term)}</small>` : ''}</button>`).join('')}</div></div>`;
-    }
-    const res = w.cur.type === 'result' ? RULES.results[w.cur.id] : null;
-    return `<div class="hs-steps">${steps}</div>${next}${res ? `<div class="hs-res"><span>이 가설의 통계 기법</span><b>${esc(res.name)}</b><small>${esc(shortWhat(w.cur.id))}</small></div>` : w.cur.type === 'out' ? '<div class="hs-res out">이 가설은 이번 버전 범위 밖입니다.</div>' : ''}`;
+  // ---------- 가설 만들기: 변인 → 모형 카드 → 빈칸 → 분석 고르기 ----------
+  // 문장을 읽는 대신 모형을 고르고 빈칸을 채우면 가설 문장과 분석이 정해짐 (말투와 상관없음)
+  const MB_MODELS = [
+    { k: 'diff', name: '집단 차이', d: '집단(또는 시점)마다 점수가 다른가' },
+    { k: 'rel', name: '관계', d: 'A와 B가 함께 움직이는가' },
+    { k: 'pred', name: '영향', d: 'A가 B를 설명·예측하는가' },
+    { k: 'med', name: '매개', d: 'A가 M을 거쳐 B에 이어지는가' },
+    { k: 'serial', name: '순차매개', d: 'A → M1 → M2 → B' },
+    { k: 'mod', name: '조절', d: 'W에 따라 A → B 효과가 달라지는가' },
+    { k: 'modmed', name: '조절된 매개', d: '간접효과가 W에 따라 달라지는가' },
+  ];
+  const MB_NAME = Object.fromEntries(MB_MODELS.map(m => [m.k, m.name]));
+  const MB_TYPE = { diff: 'diff', rel: 'rel', pred: 'pred', med: 'med', serial: 'med', mod: 'mod', modmed: 'modmed' };
+  const VKIND = { score: '점수 (척도 평균 등)', g2: '두 가지로 나뉨 (성별 등)', g3: '세 가지 이상으로 나뉨 (학년 등)' };
+  const MB_LEVELS = [[/성별|남녀/, '남성, 여성'], [/학년/, '1학년, 2학년, 3학년, 4학년'], [/연령대/, '20대, 30대, 40대, 50대 이상'], [/학력/, '고졸 이하, 대졸, 대학원 이상'], [/지역/, '수도권, 비수도권'], [/(유무|여부)$/, '있음, 없음'], [/실험|처치/, '실험집단, 통제집단']];
+  function mbIcon(k) {
+    const b = (x, y, w = 16, h = 11) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3"/>`;
+    const a = (x1, y1, x2, y2, d = '') => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" ${d}marker-end="url(#mb-ah)"/>`;
+    const g = {
+      diff: `<rect x="10" y="20" width="12" height="16" rx="2"/><rect x="30" y="10" width="12" height="26" rx="2"/><rect x="50" y="16" width="12" height="20" rx="2"/>`,
+      rel: b(4, 14) + b(52, 14) + `<line x1="22" y1="19.5" x2="50" y2="19.5" marker-start="url(#mb-ah)" marker-end="url(#mb-ah)"/>`,
+      pred: b(4, 14) + b(52, 14) + a(21, 19.5, 50, 19.5),
+      med: b(2, 26) + b(28, 2) + b(54, 26) + a(14, 25, 30, 14) + a(42, 14, 58, 25) + a(19, 31.5, 52, 31.5),
+      serial: b(1, 26, 14) + b(18, 2, 14) + b(40, 2, 14) + b(57, 26, 14) + a(9, 25, 20, 14) + a(33, 7.5, 39, 7.5) + a(50, 14, 62, 25),
+      mod: b(4, 26) + b(52, 26) + b(28, 1) + a(21, 31.5, 50, 31.5) + a(36, 13, 36, 29, 'stroke-dasharray="3 2" '),
+      modmed: b(2, 27) + b(30, 2) + b(56, 27) + b(2, 1, 13, 10) + a(13, 26, 31, 14) + a(44, 14, 60, 26) + a(9, 12, 20, 20, 'stroke-dasharray="3 2" '),
+    }[k];
+    return `<svg class="mb-ic" viewBox="0 0 72 40" aria-hidden="true"><defs><marker id="mb-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z"/></marker></defs>${g}</svg>`;
   }
-  function varEditHtml(it, ii) {
-    const f = (k, label, val, ph) => `<label class="hv"><span>${label}</span><input data-hp-var="${ii}.${k}" value="${esc(val)}" placeholder="${ph}"></label>`;
-    const v = it.vars, t = it.type;
-    return `<div class="hv-row">
-      ${f('iv', t === 'diff' ? '집단 나누는 기준' : t === 'rel' ? '변인 1' : '원인 쪽(독립)', v.iv.join(', '), '예: 능력주의 신념')}
-      ${['med', 'modmed'].includes(t) ? f('med', '거쳐 가는(매개)', v.med.join(', '), '여럿이면 쉼표로') : ''}
-      ${['mod', 'modmed'].includes(t) ? f('mod', '효과를 바꾸는(조절)', v.mod, '예: 사회적 지지') : ''}
-      ${f('dv', t === 'rel' ? '변인 2' : '결과(종속)', v.dv, '예: 외집단 혐오')}
-      <label class="hv sm"><span>예상 방향</span><select data-hp-var="${ii}.expect">${[['+', '정적(+)'], ['-', '부적(−)'], ['≠', '방향 없음']].map(([k, l]) => `<option value="${k}" ${it.expect === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+  // 조사: 받침 있으면 앞, 없으면 뒤 ("은/는")
+  const jong = w => { const s = String(w || '').trim(), c = s.slice(-1).charCodeAt(0); if (c >= 0xAC00 && c <= 0xD7A3) return (c - 0xAC00) % 28; if (/[0-9]$/.test(s)) return '0136789'.includes(s.slice(-1)) ? 1 : 0; return -1; };
+  const J = (w, pair) => { const [a, b] = pair.split('/'); const j = jong(w); return w + (j < 0 ? `${a}(${b})` : j ? a : b); };
+
+  function mbInit() {
+    if (!hp.cards) {
+      hp.cards = []; hp.vlist = hp.vlist || [];
+      (hp.items || []).filter(it => it.type && it.type !== 'unknown').forEach(it => mbFromParsed(it));
+      mbMerge(); hp.cards.forEach(mbFix); hp.items = cardItems();
+    }
+    hp.vlist = hp.vlist || []; hp.cards.forEach(mbFix);
+  }
+  const mbBlank = model => ({ model, x: [''], m: model === 'serial' ? ['', ''] : [''], w: '', y: '', dir: '+', within: false, times: 2, wpath: 'a', ctl: [], main: null, alts: [], why: '', paths: false, pm: {}, pd: {}, dimsMode: 'each', src: '' });
+  function mbFix(c) { const b = mbBlank(c.model); for (const k in b) if (c[k] == null) c[k] = b[k]; if (!c.x.length) c.x = ['']; if (!c.m.length) c.m = ['']; if (c.model === 'serial' && c.m.length < 2) c.m.push(''); return c; }
+  const vKey = n => norm(n).replace(/\s/g, '');
+  const vFind = n => vKey(n) ? hp.vlist.find(v => vKey(v.name) === vKey(n)) : null;
+  const kindOf = n => (vFind(n) || {}).kind || 'score';
+  const guessKind = n => KNOWN2.test(n) ? 'g2' : KNOWN3.test(n) ? 'g3' : 'score';
+  function mbAddVar(n, kind) {
+    n = norm(n).replace(/^[\s"'“‘(]+|[\s"'”’).,]+$/g, ''); if (!n || vFind(n)) return;
+    const k = kind || guessKind(n);
+    hp.vlist.push({ name: n, kind: k, levels: k === 'score' ? '' : ((MB_LEVELS.find(([re]) => re.test(n)) || [0, ''])[1]), dims: 0 });
+  }
+  function mbFromParsed(it) {
+    const model = it.type === 'med' && it.vars.serial && it.vars.med.length > 1 ? 'serial' : it.type;
+    if (!MB_TYPE[model]) return;
+    const c = mbBlank(model), v = it.vars;
+    c.x = v.iv.length ? v.iv.slice() : ['']; c.y = v.dv || ''; c.m = v.med.length ? v.med.slice() : c.m; c.w = v.mod || '';
+    c.dir = it.expect || '+'; c.within = !!(it.flags && it.flags.repeated && model === 'diff'); if (c.within && /사전·사후/.test(c.x[0])) c.x = [''];
+    if (it.dims) c.dimsMode = 'each';
+    c.src = it.text || '';
+    [...c.x, ...c.m, c.w, c.y].filter(Boolean).forEach(n => mbAddVar(n));
+    if (it.dims) c.x.forEach(n => { const vv = vFind(n); if (vv && !vv.dims) vv.dims = /두|2/.test(it.dims) ? 2 : /세|3/.test(it.dims) ? 3 : 2; });
+    hp.cards.push(mbFix(c));
+  }
+  // 붙여 넣은 관계·영향 가설이 매개모형의 경로이면 그 매개 카드의 경로 가설로 합침
+  function mbMerge() {
+    hp.cards.filter(c => ['med', 'serial'].includes(c.model)).forEach(mc => {
+      mbFix(mc);
+      const P = mbPaths(mc); if (!P.length) return;
+      hp.cards = hp.cards.filter(c => {
+        if (c === mc || !['rel', 'pred'].includes(c.model) || c.ctl.some(n => norm(n))) return true;
+        const a = vKey(c.x[0]), b = vKey(c.y);
+        const hit = P.find(p => (vKey(p.a) === a && vKey(p.b) === b) || (c.model === 'rel' && vKey(p.a) === b && vKey(p.b) === a));
+        if (!hit || (mc.pm[hit.k] && mc.paths)) return true;
+        mc.paths = true; mc.pm[hit.k] = c.model === 'rel' ? 'rel' : 'proc'; mc.pd[hit.k] = c.dir;
+        return false;
+      });
+    });
+  }
+  // 논문 제목에서 변인·모형 짐작: "A이 B에 미치는 영향: C의 매개효과"
+  function titleGuess(t) {
+    t = norm(t).replace(/[‘’'"“”]/g, ''); if (!t) return null;
+    const [head, tail = ''] = t.split(/\s*[:：\-–—]\s*/);
+    let m, x = [], y = '', ms = [], w = '';
+    if ((m = head.match(/^(.+?)(?:이|가|은|는)\s+(.+?)에\s*미치는\s*영향/))) { x = splitVars(m[1]); y = cleanVar(m[2]); }
+    else if ((m = head.match(/^(.+?)(?:와|과)\s+(.+?)(?:의|간의|사이의)\s*관계/))) { x = [cleanVar(m[1])]; y = cleanVar(m[2]); }
+    if ((m = tail.match(/(.+?)의\s*(?:순차적\s*|이중\s*)?(?:매개|조절된\s*매개)/))) ms = splitVars(m[1]);
+    if ((m = tail.match(/(.+?)의\s*조절(?!된)/))) w = cleanVar(m[1].replace(/.*(?:과|와)\s+/, m[1].includes('매개') ? '' : '$&'));
+    if (/조절된\s*매개/.test(tail) && (m = tail.match(/(.+?)의\s*조절된\s*매개/))) { ms = []; w = cleanVar(m[1]); }
+    if (!x.length && !y) return null;
+    const model = ms.length && w ? 'modmed' : ms.length > 1 && /순차|이중/.test(tail) ? 'serial' : ms.length ? 'med' : w ? 'mod' : 'pred';
+    return { model, x, y, m: ms, w };
+  }
+  // 빈칸이 다 찼나: 모자란 칸 이름 목록
+  function mbMissing(c) {
+    if (!c.model) return ['모형'];
+    const X = c.x.filter(n => norm(n)), M = c.m.filter(n => norm(n)), miss = [];
+    if (!norm(c.y)) miss.push(c.model === 'rel' ? '변인 2' : '결과 변인');
+    if (c.model === 'diff' ? !c.within && !X.length : !X.length) miss.push(c.model === 'diff' ? '집단을 나누는 기준' : c.model === 'rel' ? '변인 1' : '원인 변인');
+    if (['med', 'modmed'].includes(c.model) && !M.length) miss.push('매개 변인');
+    if (c.model === 'serial' && M.length < 2) miss.push('매개 변인 2개');
+    if (['mod', 'modmed'].includes(c.model) && !norm(c.w)) miss.push('조절 변인');
+    return miss;
+  }
+  // 이 모형으로 할 수 있는 분석 (첫 번째가 추천)
+  function mbOptions(c) {
+    const X = c.x.filter(n => norm(n)), M = c.m.filter(n => norm(n)), K = kindOf, ctl = c.ctl.filter(n => norm(n)).length > 0;
+    const R = (id, q, when) => ({ id, q, when });
+    const I = (key, name, q, when, how) => ({ id: 'info:' + key, name, q, when, how });
+    const SEM = I('sem', '구조방정식 (SEM)', '측정오차까지 고려해 경로 전체를 한 번에 추정', '표본이 크고(보통 200명 이상) 변인을 잠재변인으로 볼 때', '예정 (R 코드)');
+    let L = [];
+    if (c.model === 'diff') {
+      const yCat = K(c.y) !== 'score';
+      if (c.within) {
+        if (yCat) L = [R(c.times > 2 ? 'r_cochran' : 'r_mcnemar', '같은 사람의 예·아니오 비율이 시점마다 다른가', '분류로 잰 결과를 같은 사람에게 반복해 쟀을 때')];
+        else if (X.length) L = [R('r_mixed_anova', '시점에 따른 변화가 집단마다 다른가 (상호작용)', '같은 사람을 여러 번 재고 집단도 나눴을 때')];
+        else if (c.times > 2) L = [R('r_rm_anova', '세 번 이상 잰 점수가 시점마다 다른가', '같은 사람을 세 번 이상 쟀을 때'),
+          I('friedman', '프리드만 검정', '순위로 본 시점 차이', '점수가 정규분포와 크게 다르고 표본이 작을 때', '안내만 (jamovi·SPSS)'),
+          R('r_multilevel', '사람마다 다른 변화 곡선', '측정 횟수가 많거나 빠진 시점이 많을 때')];
+        else L = [R('r_paired_t', '사전과 사후 점수가 다른가', '같은 사람을 두 번 쟀을 때'),
+          I('wilcoxon', '윌콕슨 부호순위 검정', '순위로 본 사전·사후 차이', '차이 점수가 정규분포와 크게 다르고 표본이 작을 때', '안내만 (jamovi·SPSS)')];
+      } else if (yCat) L = [R('r_chisq', '집단마다 비율이 다른가', '결과가 분류(예·아니오 등)일 때'), R('r_logistic', '여러 원인을 함께 넣고 분류를 예측', '원인 쪽 변인이 여럿이거나 통제할 변인이 있을 때')];
+      else if (X.length > 1) L = [R('r_factorial_anova', '두 기준의 주효과와 상호작용', '집단을 나누는 기준이 둘일 때'), R('r_ancova', '다른 점수를 통제하고 집단 비교', '사전 점수 등 통제할 변인이 있을 때')];
+      else {
+        const g3 = K(X[0]) === 'g3';
+        L = g3 ? [R('r_oneway', '세 집단 이상의 평균이 다른가 (사후검정 포함)', '집단이 셋 이상일 때'),
+          I('kruskal', '크루스칼-왈리스 검정', '순위로 본 집단 차이', '점수가 정규분포와 크게 다르고 집단 인원이 작을 때', '안내만 (jamovi·SPSS)'),
+          R('r_ancova', '다른 점수를 통제하고 집단 비교', '통제할 변인이 있을 때')]
+          : [R('r_ind_t', '두 집단의 평균이 다른가', '집단이 둘일 때'),
+          I('mannwhitney', '맨-휘트니 U 검정', '순위로 본 두 집단 차이', '점수가 정규분포와 크게 다르고 집단 인원이 작을 때', '안내만 (jamovi·SPSS)'),
+          R('r_ancova', '다른 점수를 통제하고 집단 비교', '통제할 변인이 있을 때'),
+          R('r_pointbiserial', '집단과 점수의 관계 크기 (r)', '차이보다 관계의 크기로 말하고 싶을 때')];
+        if (ctl) L.sort((a, b) => (b.id === 'r_ancova') - (a.id === 'r_ancova'));
+      }
+    } else if (c.model === 'rel') {
+      const kx = K(X[0]), ky = K(c.y), cx = kx !== 'score', cy = ky !== 'score';
+      if (cx && cy) L = [R('r_chisq', '두 분류가 서로 관련되는가', '두 변인 모두 분류일 때')];
+      else if (cx || cy) { const g3 = (cx ? kx : ky) === 'g3';
+        L = g3 ? [R('r_rel_anova', '분류와 점수의 관계 (에타제곱)', '분류가 세 가지 이상일 때'), R('r_oneway', '분류별 평균 차이', '차이로 말하고 싶을 때')]
+          : [R('r_pointbiserial', '두 분류와 점수의 관계 크기 (r)', '분류가 두 가지일 때'), R('r_ind_t', '두 집단의 평균 차이', '차이로 말하고 싶을 때')]; }
+      else L = [R(ctl ? 'r_partial' : 'r_pearson', ctl ? '다른 변인을 통제한 두 점수의 관계' : '두 점수가 함께 커지거나 작아지는가 (r)', ctl ? '통제할 변인이 있을 때' : '두 점수 모두 고르게 퍼져 있을 때'),
+        R('r_spearman', '순위로 본 관계 (ρ)', '점수가 한쪽으로 심하게 몰렸거나 순위 자료일 때'),
+        R(ctl ? 'r_pearson' : 'r_partial', ctl ? '통제 없이 본 두 점수의 관계' : '세 번째 변인을 통제한 관계', ctl ? '통제 전과 비교할 때' : '함께 영향을 줄 만한 변인이 있을 때'),
+        R('r_simple_reg', '한쪽이 다른 쪽을 얼마나 설명하는가 (B, R²)', '한쪽을 원인으로 볼 이론이 있을 때')];
+    } else if (c.model === 'pred') {
+      const ky = K(c.y);
+      if (ky === 'g2') L = [R('r_logistic', '예·아니오가 될 가능성을 예측 (승산비)', '결과가 두 가지 분류일 때')];
+      else if (ky === 'g3') L = [R('r_multinom', '세 가지 이상 유형 중 어디에 속할지 예측', '결과가 순서 없는 분류일 때')];
+      else L = [R(ctl ? 'r_hier_reg' : X.length > 1 ? 'r_multiple_reg' : 'r_simple_reg', ctl ? '통제변인을 먼저 넣은 뒤 원인 변인이 더 설명하는 양 (ΔR²)' : '원인 변인이 결과를 얼마나 설명하는가 (B, β, R²)', ctl ? '통제변인이 있을 때' : X.length > 1 ? '원인 변인이 여럿일 때' : '원인 변인이 하나일 때'),
+        R(ctl ? (X.length > 1 ? 'r_multiple_reg' : 'r_simple_reg') : 'r_hier_reg', ctl ? '통제 없이 한꺼번에 넣은 회귀' : '변인을 묶음별로 차례로 넣어 ΔR² 보기', ctl ? '통제 효과를 비교할 때' : '인구학 변인 → 주요 변인처럼 순서가 있을 때'),
+        R('r_pearson', '관계만 보기 (r)', '연구문제가 영향이 아니라 관계일 때'), SEM];
+    } else if (c.model === 'med') {
+      L = [R(M.length > 1 ? 'r_med_parallel' : 'r_med_simple', '간접효과가 있는가 (PROCESS Model 4, 부트스트랩 신뢰구간)', '지금 매개분석의 표준 방법'),
+        R('r_pearson', '경로마다 두 변인의 관계 (상관표)', '보조 분석. 연구문제가 "관계"로 되어 있거나 표 2 상관표로 보일 때'),
+        I('bk', 'Baron & Kenny 3단계 회귀', '단계별 회귀계수로 매개 여부 판단', '예전 논문 방식. 심사에서 물을 수 있지만, 지금은 간접효과를 부트스트랩으로 직접 검정하는 방법을 더 권합니다', 'ㅌㅗㅇ 회귀분석으로 3번 계산 가능'),
+        I('sobel', 'Sobel 검정', '간접효과의 유의성 (정규분포 가정)', '예전 방식. 간접효과는 정규분포를 따르지 않는 경우가 많아 부트스트랩을 더 권합니다', '안내만'), SEM];
+      if (X.length > 1 || X.some(n => (vFind(n) || {}).dims > 1)) L.splice(1, 0, I('together', '다른 원인(차원)을 통제변인으로 넣은 PROCESS 4', '한 원인(차원)만의 고유한 간접효과', '원인 변인이나 하위 차원끼리 상관이 높을 때', 'ㅌㅗㅇ 계산 (통제 칸에 넣기)'));
+    } else if (c.model === 'serial') {
+      L = [R('r_med_serial', '순차 간접효과가 있는가 (PROCESS Model 6)', '매개 변인이 정해진 순서로 이어질 때'),
+        R('r_med_parallel', '매개 변인을 순서 없이 나란히 (PROCESS Model 4)', '순서를 가정할 이론이 약할 때'), R('r_pearson', '경로마다 두 변인의 관계 (상관표)', '보조 분석'), SEM];
+    } else if (c.model === 'mod') {
+      L = [R('r_moderation', '상호작용 효과와 단순기울기 (PROCESS Model 1)', '조절 분석의 표준 방법'),
+        R('r_hier_reg', '상호작용항을 마지막 단계에 넣는 위계적 회귀', '예전 논문 방식. PROCESS 1과 같은 상호작용 결과가 나옵니다'),
+        I('multigroup', '집단별 회귀계수 비교', '조절 변인 집단마다 따로 본 효과', K(c.w) !== 'score' ? '조절 변인이 집단일 때 보조로' : '조절 변인을 집단으로 나누면 정보가 줄어 권하지 않습니다', '안내만')];
+    } else if (c.model === 'modmed') {
+      L = [R(c.wpath === 'b' ? 'r_modmed_b' : 'r_modmed_a', c.wpath === 'b' ? '뒤쪽 경로(M → Y)가 조절되는 간접효과 (PROCESS Model 14)' : '앞쪽 경로(X → M)가 조절되는 간접효과 (PROCESS Model 7)', '조절된 매개 지수(index)로 판단'),
+        R(c.wpath === 'b' ? 'r_modmed_a' : 'r_modmed_b', c.wpath === 'b' ? '앞쪽 경로가 조절된다고 볼 때 (Model 7)' : '뒤쪽 경로가 조절된다고 볼 때 (Model 14)', '조절이 어느 경로에 걸리는지 이론이 다를 때'),
+        R(M.length > 1 ? 'r_med_parallel' : 'r_med_simple', '조절 없이 매개만 (PROCESS Model 4)', '먼저 매개가 있는지 볼 때'), SEM];
+    }
+    return L.map(o => {
+      if (o.name) return { ...o, info: true, tag: o.how };
+      const r = RULES.results[o.id] || { name: o.id };
+      return { ...o, name: r.name, tag: LADDER_TO_METHOD[o.id] ? 'ㅌㅗㅇ 계산' : '안내만 (jamovi·SPSS)' };
+    });
+  }
+  const mbRec = c => (mbOptions(c).find(o => !o.info) || {}).id || null;
+  function mbMain(c) { const L = mbOptions(c).filter(o => !o.info); return c.main && L.some(o => o.id === c.main) ? c.main : (L[0] || {}).id || null; }
+
+  // 가설 문장 (논문 문체)
+  const DIRW = { '+': '정적', '-': '부적', '≠': '유의한' };
+  function relS(a, b, d, ctl) { return `${ctl ? `${J(ctl, '을/를')} 통제했을 때, ` : ''}${J(a, '과/와')} ${J(b, '은/는')} ${DIRW[d]} 상관이 있을 것이다.`; }
+  function predS(a, b, d, ctl) { return `${ctl ? `${J(ctl, '을/를')} 통제한 후에도 ` : ''}${J(a, '은/는')} ${b}에 ${DIRW[d]} 영향을 미칠 것이다.`; }
+  function cardSentence(c) {
+    const X = c.x.filter(n => norm(n)), M = c.m.filter(n => norm(n)), Y = norm(c.y) || '(결과)', W = norm(c.w) || '(조절)';
+    const X0 = X[0] || '(원인)', ctl = c.ctl.filter(n => norm(n)).join(', ');
+    switch (c.model) {
+      case 'diff': {
+        const pre = ctl ? `${J(ctl, '을/를')} 통제했을 때, ` : '';
+        if (c.within) {
+          if (X.length) return `${pre}시점에 따른 ${Y}의 변화는 ${X0}에 따라 다를 것이다.`;
+          if (c.times > 2 || c.dir === '≠') return `${pre}${J(Y, '은/는')} 측정 시점에 따라 유의한 차이가 있을 것이다.`;
+          return `${pre}${J(Y, '은/는')} 사전보다 사후에 ${c.dir === '+' ? '높을' : '낮을'} 것이다.`;
+        }
+        if (X.length > 1) return `${pre}${J(X[0], '과/와')} ${X[1]}에 따라 ${Y}에 차이가 있을 것이며, 두 변인의 상호작용효과가 있을 것이다.`;
+        const lv = String((vFind(X0) || {}).levels || '').split(/[,，、/]/).map(norm).filter(Boolean);
+        if (lv.length === 2 && c.dir !== '≠') return `${pre}${J(lv[0], '은/는')} ${lv[1]}보다 ${J(Y, '이/가')} ${c.dir === '+' ? '높을' : '낮을'} 것이다.`;
+        return `${pre}${X0}에 따라 ${Y}에 유의한 차이가 있을 것이다.`;
+      }
+      case 'rel': return [X0, Y].some(n => kindOf(n) === 'g3') ? `${J(X0, '과/와')} ${J(Y, '은/는')} 관련이 있을 것이다.` : relS(X0, Y, c.dir, ctl);
+      case 'pred': return predS(X.join(', ') || X0, Y, c.dir, ctl);
+      case 'med': return `${ctl ? `${J(ctl, '을/를')} 통제했을 때, ` : ''}${J(X0, '과/와')} ${Y}의 관계에서 ${J(M.join(', ') || '(매개)', '은/는')} ${M.length > 1 ? '각각 ' : ''}매개효과를 보일 것이다.`;
+      case 'serial': return `${ctl ? `${J(ctl, '을/를')} 통제했을 때, ` : ''}${J(X0, '과/와')} ${Y}의 관계에서 ${M.length > 1 ? `${J(M.slice(0, -1).join(', '), '과/와')} ${J(M[M.length - 1], '은/는')}` : J(M[0] || '(매개)', '은/는')} 순차적으로 매개할 것이다.`;
+      case 'mod': return `${ctl ? `${J(ctl, '을/를')} 통제했을 때, ` : ''}${J(X0, '이/가')} ${Y}에 미치는 영향을 ${J(W, '이/가')} 조절할 것이다.`;
+      case 'modmed': return `${J(X0, '과/와')} ${Y}의 관계에서 ${M[0] || '(매개)'}의 매개효과는 ${W}에 의해 조절될 것이다 (${c.wpath === 'b' ? `${M[0] || 'M'} → ${Y}` : `${X0} → ${M[0] || 'M'}`} 경로).`;
+    }
+    return '';
+  }
+  // 매개모형의 경로 가설 (c, a, b, d)
+  function mbPaths(c) {
+    if (!['med', 'serial'].includes(c.model)) return [];
+    const X0 = norm(c.x[0]), M = c.m.filter(n => norm(n)), Y = norm(c.y); if (!X0 || !Y || !M.length) return [];
+    const P = [{ k: 'c', a: X0, b: Y, lab: 'c 경로 (원인 → 결과)' }];
+    M.forEach((m, i) => P.push({ k: 'a' + i, a: X0, b: m, lab: `a 경로 (원인 → ${M.length > 1 ? `매개 ${i + 1}` : '매개'})` }));
+    if (c.model === 'serial') M.slice(0, -1).forEach((m, i) => P.push({ k: 'd' + i, a: m, b: M[i + 1], lab: `d 경로 (매개 ${i + 1} → 매개 ${i + 2})` }));
+    M.forEach((m, i) => P.push({ k: 'b' + i, a: m, b: Y, lab: `b 경로 (${M.length > 1 ? `매개 ${i + 1}` : '매개'} → 결과)` }));
+    return P.map(p => ({ ...p, how: c.pm[p.k] || 'proc', dir: c.pd[p.k] || c.dir }));
+  }
+  // 카드 → 가설 목록 (앞 단계와 같은 꼴: text, type, vars, expect, flags, result)
+  function cardItems() {
+    const out = [];
+    hp.cards.forEach((c, ci) => {
+      if (mbMissing(c).length) return;
+      const X = c.x.filter(n => norm(n)).map(norm), M = c.m.filter(n => norm(n)).map(norm), ctl = c.ctl.filter(n => norm(n)).map(norm);
+      const main = mbMain(c), type = MB_TYPE[c.model];
+      const vars = { iv: c.model === 'diff' && c.within && !X.length ? [] : X, dv: norm(c.y), med: M, mod: norm(c.w), serial: c.model === 'serial' };
+      const flags = { covar: ctl.length > 0, repeated: c.model === 'diff' && c.within, oneGroup: false, binaryDv: kindOf(c.y) === 'g2' };
+      if (c.paths) mbPaths(c).forEach(p => {
+        const ctlS = ctl.join(', ');
+        out.push(p.how === 'rel' ? { text: relS(p.a, p.b, p.dir, ctlS), type: 'rel', vars: { iv: [p.a], dv: p.b, med: [], mod: '', serial: false }, expect: p.dir, flags: { ...flags, covar: !!ctlS }, result: ctlS ? 'r_partial' : 'r_pearson', ci, part: p.k }
+          : { text: predS(p.a, p.b, p.dir, ''), type, vars, expect: p.dir, flags, result: main, ci, part: p.k });
+      });
+      out.push({ text: cardSentence(c), type, vars, expect: c.dir, flags, result: main, ci, part: 'main' });
+    });
+    return out;
+  }
+  function mbSync() { hp.items = cardItems(); hp.items.forEach(it => { it.path = []; it.auto = []; }); saveHp(); }
+
+  // 사다리에서 그 도착점으로 가는 길 (분석 화면의 기본 기법용)
+  function pathTo(rid) {
+    // 매개·조절은 '회귀 → 다른 변인 있음' 길로 (기본 기법이 회귀가 되게)
+    const q = /med_|modmed|moderation/.test(rid) ? [[2, 0, 0, 0], []] : [[]];
+    while (q.length) { const p = q.shift(); if (p.length > 9) continue; const w = walk(p);
+      if (w.cur.type === 'result') { if (w.cur.id === rid) return p; continue; } if (w.cur.type !== 'node' && w.cur.type !== 'gate') continue;
+      const node = w.cur.type === 'gate' ? RULES.gate : RULES.nodes[w.cur.id]; node.options.forEach((o, k) => q.push(p.concat(k))); }
+    return null;
+  }
+
+  // ---------- 화면 ----------
+  const mbDL = () => { const names = [...new Set([...hp.vlist.map(v => v.name), ...sv.scales.map(s => norm(s.name)), ...sv.demos.map(d => norm(d.text))].filter(Boolean))];
+    return `<datalist id="mb-vars">${names.map(n => `<option value="${esc(n)}">`).join('')}</datalist>`; };
+  const mbIn = (key, val, ph, cls = '') => `<input class="mb-in ${cls}" list="mb-vars" data-mb="${key}" value="${esc(val || '')}" placeholder="${esc(ph)}" autocomplete="off">`;
+  const mbDir = (key, val, kind) => `<select class="mb-sel" data-mb="${key}">${(kind === 'diff' ? [['+', '앞 집단이 더 높음 (+)'], ['-', '앞 집단이 더 낮음 (−)'], ['≠', '차이만 (방향 없음)']] : [['+', '정적 (+)'], ['-', '부적 (−)'], ['≠', '방향 없음']]).map(([k, l]) => `<option value="${k}" ${val === k ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
+  function mbSlot(c, ci, f, label, ph, multi) {
+    if (multi === 'one') return `<div class="mb-slot mb-${f}"><span class="mb-lab">${label}</span>${mbIn(`c.${ci}.${f}.0`, c[f][0], ph)}</div>`;
+    const arr = multi ? c[f] : null;
+    const box = multi
+      ? arr.map((v, i) => `<span class="mb-multi">${mbIn(`c.${ci}.${f}.${i}`, v, ph)}${arr.length > (f === 'm' && c.model === 'serial' ? 2 : 1) ? `<button class="mb-x" data-mb-act="del-slot" data-ci="${ci}" data-f="${f}" data-i="${i}" title="빼기">×</button>` : ''}</span>`).join('') + `<button class="linkish mb-plus" data-mb-act="add-slot" data-ci="${ci}" data-f="${f}">+ ${f === 'm' ? '매개 변인' : f === 'ctl' ? '통제변인' : '원인 변인'} 추가</button>`
+      : mbIn(`c.${ci}.${f}`, c[f], ph);
+    return `<div class="mb-slot mb-${f}"><span class="mb-lab">${label}</span>${box}</div>`;
+  }
+  function mbBlanks(c, ci) {
+    const ar = '<span class="mb-arrow">→</span>';
+    switch (c.model) {
+      case 'diff': return `<div class="mb-row"><label class="mb-chk"><input type="checkbox" data-mb="c.${ci}.within" ${c.within ? 'checked' : ''}> 같은 사람을 여러 번 쟀어요 (사전·사후 등)</label>${c.within ? `<select class="mb-sel" data-mb="c.${ci}.times"><option value="2" ${c.times == 2 ? 'selected' : ''}>두 번</option><option value="3" ${c.times > 2 ? 'selected' : ''}>세 번 이상</option></select>` : ''}</div>
+        <div class="mb-row">${c.within ? mbSlot(c, ci, 'x', '집단도 나눴다면 (선택)', '예: 성별', 'one') : mbSlot(c, ci, 'x', '집단을 나누는 기준', '예: 성별', true)}${ar}${mbSlot(c, ci, 'y', '비교할 점수', '예: 외로움')}</div>`;
+      case 'rel': return `<div class="mb-row">${mbSlot(c, ci, 'x', '변인 1', '예: 능력주의 신념', 'one')}<span class="mb-arrow">↔</span>${mbSlot(c, ci, 'y', '변인 2', '예: 사회비교경향성')}</div>`;
+      case 'pred': return `<div class="mb-row">${mbSlot(c, ci, 'x', '원인 (독립)', '예: 능력주의 신념', true)}${ar}${mbSlot(c, ci, 'y', '결과 (종속)', '예: 외집단 혐오')}</div>`;
+      case 'med': case 'serial': return `<div class="mb-row">${mbSlot(c, ci, 'x', '원인 (X)', '예: 능력주의 신념', 'one')}${ar}${mbSlot(c, ci, 'm', c.model === 'serial' ? '매개 (M, 순서대로)' : '매개 (M, 여럿이면 병렬)', '예: 사회비교경향성', true)}${ar}${mbSlot(c, ci, 'y', '결과 (Y)', '예: 외집단 혐오')}</div>`;
+      case 'mod': return `<div class="mb-row">${mbSlot(c, ci, 'x', '원인 (X)', '예: 스트레스', 'one')}${ar}${mbSlot(c, ci, 'y', '결과 (Y)', '예: 우울')}</div><div class="mb-row">${mbSlot(c, ci, 'w', '효과를 바꾸는 변인 (W)', '예: 사회적 지지')}</div>`;
+      case 'modmed': return `<div class="mb-row">${mbSlot(c, ci, 'x', '원인 (X)', '예: 능력주의 신념', 'one')}${ar}${mbSlot(c, ci, 'm', '매개 (M)', '예: 외로움', 'one')}${ar}${mbSlot(c, ci, 'y', '결과 (Y)', '예: 외집단 혐오')}</div>
+        <div class="mb-row">${mbSlot(c, ci, 'w', '조절 변인 (W)', '예: 사회적 지지')}<div class="mb-slot"><span class="mb-lab">W가 바꾸는 경로</span><select class="mb-sel" data-mb="c.${ci}.wpath"><option value="a" ${c.wpath !== 'b' ? 'selected' : ''}>앞쪽: X → M</option><option value="b" ${c.wpath === 'b' ? 'selected' : ''}>뒤쪽: M → Y</option></select></div></div>`;
+    }
+    return '';
+  }
+  function mbAnalysisHtml(c, ci) {
+    const L = mbOptions(c), main = mbMain(c), rec = mbRec(c);
+    const X = c.x.filter(n => norm(n)), dimV = X.map(vFind).find(v => v && v.dims > 1);
+    return `<div class="mb-an"><div class="mb-an-h">이 모형으로 할 수 있는 분석 <small>주 분석은 하나, 보조 분석은 여러 개 고를 수 있어요</small></div>
+      ${L.map(o => `<div class="mb-opt ${o.id === main ? 'on' : ''}">
+        <div><b>${esc(o.name)}</b>${o.id === rec ? ' <span class="mb-rec">추천</span>' : ''} <span class="mb-tag ${/ㅌㅗㅇ/.test(o.tag) ? 'ok' : ''}">${esc(o.tag)}</span><small>${esc(o.q)}</small><small class="mb-when">언제: ${esc(o.when)}</small></div>
+        <span class="mb-roles">${o.info ? '' : `<button class="mb-r ${o.id === main ? 'on' : ''}" data-mb-act="role" data-ci="${ci}" data-id="${o.id}" data-role="main" aria-pressed="${o.id === main}">주 분석</button>`}<button class="mb-r alt ${c.alts.includes(o.id) && o.id !== main ? 'on' : ''}" data-mb-act="role" data-ci="${ci}" data-id="${o.id}" data-role="alt" aria-pressed="${c.alts.includes(o.id) && o.id !== main}" ${o.id === main ? 'disabled' : ''}>보조</button></span></div>`).join('')}
+      ${dimV ? `<div class="mb-dim"><b>${esc(dimV.name)}</b>의 하위 차원이 ${dimV.dims}개예요. <select class="mb-sel" data-mb="c.${ci}.dimsMode"><option value="each" ${c.dimsMode !== 'together' ? 'selected' : ''}>차원마다 따로 분석 (${dimV.dims}번)</option><option value="together" ${c.dimsMode === 'together' ? 'selected' : ''}>한 차원을 볼 때 다른 차원은 통제변인으로</option></select>
+        <small>설문 만들기에서 척도를 넣을 때 하위요인을 [각각 따로]로 고르면 차원마다 점수가 생깁니다.</small></div>` : ''}
+      <label class="f mb-why">이 분석을 고른 이유 <small>(심사에서 꼭 물어요. 내 말로 한두 줄)</small><textarea rows="2" data-mb="c.${ci}.why" placeholder="예: 간접효과는 정규분포를 따르지 않을 수 있어, 부트스트랩으로 신뢰구간을 구하는 PROCESS Model 4를 썼다.">${esc(c.why)}</textarea></label>
     </div>`;
   }
+  function mbPathsHtml(c, ci) {
+    if (!['med', 'serial'].includes(c.model)) return '';
+    const P = mbPaths(c);
+    return `<div class="mb-paths"><label class="mb-chk"><input type="checkbox" data-mb="c.${ci}.paths" ${c.paths ? 'checked' : ''}> 경로마다 가설(연구문제)도 따로 세우기</label>
+      ${c.paths && P.length ? `<p class="hint" style="margin:4px 0 6px">경로를 <b>관계</b>로 물으면 상관분석으로, <b>영향</b>으로 물으면 PROCESS 결과의 경로계수로 답합니다. PROCESS의 b 경로는 원인을 통제한 값이라 단순 상관과 숫자가 다릅니다.</p>
+        ${P.map(p => `<div class="mb-path"><span class="mb-plab">${esc(p.lab)}</span><select class="mb-sel" data-mb="c.${ci}.pm.${p.k}"><option value="proc" ${p.how !== 'rel' ? 'selected' : ''}>영향 (PROCESS 경로계수)</option><option value="rel" ${p.how === 'rel' ? 'selected' : ''}>관계 (상관분석)</option></select>${mbDir(`c.${ci}.pd.${p.k}`, p.dir)}<span class="mb-ps">${esc(p.how === 'rel' ? relS(p.a, p.b, p.dir, c.ctl.filter(n => norm(n)).join(', ')) : predS(p.a, p.b, p.dir, ''))}</span></div>`).join('')}` : ''}</div>`;
+  }
+  function mbCardHtml(c, ci, no) {
+    if (!c.model) return `<div class="mb-card mb-null" data-ci="${ci}"><p class="hint mb-src">붙여 넣은 문장: ${esc(c.src)}</p><p class="mb-miss">이 문장의 모형을 골라 주세요.</p><div class="actions tight"><button class="btn sm primary" data-mb-act="repick" data-ci="${ci}">모형 고르기</button><button class="btn sm" data-mb-act="del-card" data-ci="${ci}">지우기</button></div></div>`;
+    const miss = mbMissing(c), main = mbMain(c);
+    const items = hp.items.filter(it => it.ci === ci), nos = items.map(it => hp.items.indexOf(it) + 1);
+    const label = nos.length > 1 ? `가설 ${nos[0]}~${nos[nos.length - 1]}` : nos.length ? `가설 ${nos[0]}` : `가설 ${no}`;
+    const svg = !miss.length && main ? modelSvg([{ no: 1, result: main, type: MB_TYPE[c.model], v: { X: c.x.filter(n => norm(n)), M: c.m.filter(n => norm(n)), W: norm(c.w), Y: norm(c.y) } }]) : '';
+    return `<div class="mb-card" data-ci="${ci}">
+      <div class="mb-head"><span class="hi-no">${label}</span>${mbIcon(c.model)}<b>${esc(MB_NAME[c.model])}</b>
+        <span class="mb-head-r"><button class="linkish" data-mb-act="repick" data-ci="${ci}">모형 바꾸기</button><button class="linkish" data-mb-act="del-card" data-ci="${ci}">지우기</button></span></div>
+      ${c.src ? `<p class="hint mb-src">붙여 넣은 문장: ${esc(c.src)}</p>` : ''}
+      ${mbBlanks(c, ci)}
+      <div class="mb-row">${c.model !== 'mod' && c.model !== 'modmed' && !(c.model === 'rel' && [c.x[0], c.y].some(n => kindOf(n) === 'g3')) && !(c.model === 'diff' && c.within && c.times > 2) && !(c.model === 'diff' && !c.within && c.x.filter(n => norm(n)).length > 1) ? `<div class="mb-slot"><span class="mb-lab">예상 방향</span>${mbDir(`c.${ci}.dir`, c.dir, c.model === 'diff' && !c.within ? 'diff' : '')}</div>` : ''}${mbSlot(c, ci, 'ctl', '통제변인 (선택)', '예: 성별', true).replace('mb-slot mb-ctl', 'mb-slot mb-ctl mb-opt-slot')}</div>
+      ${miss.length ? `<p class="mb-miss">빈칸: ${esc(miss.join(', '))}</p>` : `<div class="mb-sent"><span>가설 문장</span><p>${esc(cardSentence(c))}</p></div>${svg ? `<div class="mb-svg">${svg}</div>` : ''}${mbPathsHtml(c, ci)}${mbAnalysisHtml(c, ci)}`}
+    </div>`;
+  }
+  function mbPickerHtml(forCi) {
+    return `<div class="mb-picker"><p class="mb-ph">${forCi != null ? '이 가설의 모형을 고르세요' : '가설의 모형을 고르세요'}</p><div class="mb-grid">${MB_MODELS.map(m => `<button class="mb-pick" data-mb-act="pick" data-model="${m.k}">${mbIcon(m.k)}<b>${m.name}</b><small>${m.d}</small></button>`).join('')}</div>
+      ${hp.cards.length ? '<button class="linkish" data-mb-act="pick-cancel">닫기</button>' : ''}</div>`;
+  }
   function hypHtml() {
-    const items = hp.items;
-    const doneN = items.filter(it => walk(it.path).cur.type === 'result').length;
-    return `<div class="card hyp-card">
+    mbInit();
+    const tg = titleGuess(hp.title), ready = hp.cards.length && hp.cards.every(c => !mbMissing(c).length);
+    const v = hp.vlist;
+    return `<div class="card hyp-card mb">${mbDL()}
       <div class="kicker">가설로 시작하기 <button class="linkish" data-hp="mode-ladder">질문으로 고르기로 바꾸기</button><button class="linkish" data-act="restart">처음으로</button></div>
-      <h2 class="q">논문 제목과 가설을 적어 주세요</h2>
+      <h2 class="q">연구모형을 만들어 주세요</h2>
+      <p class="hint">변인을 적고, 가설마다 모형 그림을 골라 빈칸을 채우면 가설 문장과 분석 방법이 정해집니다. 문장은 어떻게 써도 괜찮아요.</p>
       <label class="f">논문 제목<input id="hp-title" value="${esc(hp.title)}" placeholder="예: 능력주의 신념이 외집단 혐오에 미치는 영향: 사회비교경향성과 외로움의 순차적 매개효과"></label>
-      <label class="f" style="margin-top:10px">가설 (한 줄에 하나씩)<textarea id="hp-text" rows="4" placeholder="예)\n가설 1. 능력주의 신념은 외집단 혐오에 정적 영향을 미칠 것이다.\n가설 2. 능력주의 신념은 사회비교경향성과 외로움을 순차적으로 매개하여 외집단 혐오에 정적 영향을 미칠 것이다.\n가설 3. 성별에 따라 외집단 혐오에 차이가 있을 것이다.">${esc(hp.text)}</textarea></label>
-      <div class="actions tight"><button class="btn primary" data-hp="read">가설 읽기</button>${aiOn() ? '<button class="btn" data-hp="read-ai">AI로 읽기 (문장이 복잡할 때)</button>' : ''}${hpBusy ? `<span class="hint">${esc(hpBusy)}</span>` : ''}</div>
-      ${items.length ? `<div class="hyp-list">
-        <p class="hint" style="margin:14px 0 6px">가설에서 읽은 것은 <span class="hs-tag">가설에서 읽음</span>, 보통의 설문 연구(점수로 잰 변인, 한 번 응답, 통제변인 없음)라고 가정한 것은 <span class="hs-tag as">가정함</span>으로 표시했습니다. 내 연구와 다르면 그 칸을 눌러 다시 고르고, 변인 이름은 칸에서 고치세요. 가설만으로 알 수 없는 것만 아래에서 물어봅니다.</p>
-        ${items.map((it, ii) => `<div class="hyp-item ${hp.active === ii ? 'on' : ''}" data-hp-item="${ii}">
-          <div class="hi-head"><span class="hi-no">가설 ${ii + 1}</span><span class="hi-type t-${it.type}">${esc(HTYPE[it.type])}</span>${it.byAI ? '<span class="hs-tag">AI가 읽음</span>' : ''}
-            <select class="hi-tsel" data-hp-type="${ii}" title="종류가 틀리면 고르세요">${it.type === 'unknown' ? '<option value="" selected disabled>종류 고르기</option>' : ''}${Object.entries(HTYPE).filter(([k]) => k !== 'unknown').map(([k, l]) => `<option value="${k}" ${it.type === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
-          <p class="hi-text">${esc(it.text)}</p>
-          ${it.type === 'unknown' ? `<p class="hi-unk">이 문장은 규칙으로 가설의 종류를 알아보지 못했어요. 오른쪽 위 <b>[종류 고르기]</b>에서 고르거나 아래 질문에 답하세요.${aiOn() ? ' 문장이 복잡하면 <b>[AI로 읽기]</b>가 더 잘 읽습니다.' : ' "A가 높을수록 B가 높을 것이다", "A는 B에 정적 영향을 미칠 것이다", "성별에 따라 B에 차이가 있을 것이다"처럼 쓰면 잘 읽습니다.'}</p>` : ''}
-          ${it.dims ? `<p class="hi-unk">'${esc(it.dims)} 차원'은 하위 차원(하위요인)마다 같은 분석을 따로 합니다. 설문 만들기에서 척도를 넣을 때 <b>하위요인을 [각각 따로]</b>로 고르면 차원마다 점수가 생깁니다.</p>` : ''}
-          ${varEditHtml(it, ii)}
-          ${hypStepsHtml(it, ii)}
-        </div>`).join('')}
+      ${tg && !hp.cards.length ? `<div class="mb-tg">제목으로 보면 <b>${esc(MB_NAME[tg.model])}</b> 모형 같아요: ${esc([...tg.x, ...tg.m, tg.w, tg.y].filter(Boolean).join(' · '))} <button class="btn sm primary" data-mb-act="from-title">이 모형으로 시작</button></div>` : ''}
+
+      <h3 class="mb-h"><span class="mb-n">1</span>변인</h3>
+      <div class="mb-vars">${v.map((x, i) => `<div class="mb-var"><input class="mb-in" data-mb="v.${i}.name" value="${esc(x.name)}">
+          <select class="mb-sel" data-mb="v.${i}.kind">${Object.entries(VKIND).map(([k, l]) => `<option value="${k}" ${x.kind === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
+          ${x.kind === 'score' ? `<select class="mb-sel" data-mb="v.${i}.dims" title="하위 차원(하위요인)이 있으면 고르세요"><option value="0" ${!x.dims ? 'selected' : ''}>하위 차원 없음</option>${[2, 3, 4, 5].map(n => `<option value="${n}" ${x.dims == n ? 'selected' : ''}>하위 차원 ${n}개</option>`).join('')}</select>` : `<input class="mb-in mb-lv" data-mb="v.${i}.levels" value="${esc(x.levels)}" placeholder="집단 이름: 남성, 여성">`}
+          <button class="mb-x" data-mb-act="del-var" data-i="${i}" title="지우기">×</button></div>`).join('')}
+        <div class="mb-var mb-newvar"><input class="mb-in" id="mb-newvar" placeholder="변인 이름 (예: 능력주의 신념) 적고 Enter"><button class="btn sm" data-mb-act="add-var">추가</button></div>
       </div>
-      <div class="actions"><button class="btn primary" data-hp="apply" ${doneN === items.length ? '' : 'disabled'}>가설별 기법 확정하고 설문 만들기로 →</button>
-        <span class="hint">${doneN === items.length ? (hp.applied ? '확정했습니다. 다시 누르면 고친 내용으로 바꿉니다.' : '확정하면 변인, 가설, 분석이 다음 단계에 채워집니다.') : `${items.length - doneN}개 가설에 답할 것이 남았습니다.`}</span></div>` : ''}
+
+      <h3 class="mb-h"><span class="mb-n">2</span>가설과 모형</h3>
+      ${hp.cards.map((c, ci) => hp.picking === ci ? mbPickerHtml(ci) : mbCardHtml(c, ci, ci + 1)).join('')}
+      ${hp.picking === 'new' || !hp.cards.length ? mbPickerHtml(null) : `<button class="btn mb-add" data-mb-act="add-card">+ 가설 추가</button>`}
+
+      <details class="mb-paste" ${hp.pasteOpen ? 'open' : ''}><summary>이미 써 둔 가설·연구문제가 있으면 붙여 넣기 (선택)</summary>
+        <textarea id="hp-text" rows="4" placeholder="한 줄에 하나씩. 읽을 수 있는 만큼 카드로 바꿔 드리고, 못 읽은 것은 모형을 고르게 합니다.">${esc(hp.text)}</textarea>
+        <div class="actions tight"><button class="btn" data-mb-act="paste-read">카드로 바꾸기</button>${aiOn() ? '<button class="btn" data-mb-act="paste-ai">AI로 읽어서 카드로 바꾸기</button>' : ''}${hpBusy ? `<span class="hint">${esc(hpBusy)}</span>` : ''}</div></details>
+
+      <div class="actions"><button class="btn primary" data-hp="apply" ${ready ? '' : 'disabled'}>가설 ${hp.items.length || ''}개 확정하고 설문 만들기로 →</button>
+        <span class="hint">${ready ? (hp.applied ? '확정했습니다. 다시 누르면 고친 내용으로 바꿉니다.' : '확정하면 변인, 가설, 분석이 다음 단계에 채워집니다.') : hp.cards.length ? '빈칸을 모두 채우면 확정할 수 있어요.' : '가설을 하나 이상 만들어 주세요.'}</span></div>
     </div>`;
   }
 
   // ---------- 확정: 변인·가설·분석으로 이어 주기 ----------
   function applyHyps() {
-    const items = hp.items.filter(it => walk(it.path).cur.type === 'result');
+    mbSync();
+    const items = hp.items.filter(it => it.result);
     if (!items.length) return;
-    // 대표 길: 가장 복잡한 가설(매개·조절 > 회귀 > 나머지)
     const rank = t => ({ modmed: 5, med: 4, mod: 3, pred: 2, diff: 1, rel: 1 }[t] || 0);
     const main = items.slice().sort((a, b) => rank(b.type) - rank(a.type))[0];
-    path = main.path.slice(); _set('ladder.path', path);
-    // 변인
+    const pth = pathTo(main.result); if (pth) { path = pth; _set('ladder.path', path); }
     const uniq = a => [...new Set(a.map(norm).filter(Boolean))];
-    const ivs = uniq(items.flatMap(it => it.vars.iv));
-    const dvs = uniq(items.map(it => it.vars.dv));
-    const meds = uniq(items.flatMap(it => it.vars.med)), mods = uniq(items.map(it => it.vars.mod));
-    const mainDv = norm(main.vars.dv) || dvs[0] || '';
-    // 집단을 나누는 기준(차이 가설의 원인 쪽)은 점수가 아니라 고르는 문항: 수준을 붙여 기본 정보 문항이 되게 함
-    const groupIvs = new Set(items.filter(it => it.type === 'diff').flatMap(it => it.vars.iv.map(norm)));
-    const LEVELS = [[/성별|남녀/, '남성, 여성'], [/학년/, '1학년, 2학년, 3학년, 4학년'], [/연령대/, '20대, 30대, 40대, 50대 이상'], [/학력/, '고졸 이하, 대졸, 대학원 이상'], [/지역/, '수도권, 비수도권'], [/(유무|여부)$/, '있음, 없음']];
-    const lv = n => (LEVELS.find(([re]) => re.test(n)) || [0, '집단1, 집단2'])[1];
-    vars = { ...vars, ivs: ivs.length ? ivs.map(n => ({ name: n, levels: (vars.ivs.find(x => norm(x.name) === n) || {}).levels || (groupIvs.has(n) ? lv(n) : '') })) : vars.ivs, dv: mainDv || vars.dv,
-      others: [...meds.filter(n => !ivs.includes(n) && n !== mainDv).map(n => ({ name: n, role: '매개' })), ...mods.filter(n => !ivs.includes(n)).map(n => ({ name: n, role: '조절' })),
-        ...dvs.filter(n => n !== mainDv && !ivs.includes(n) && !meds.includes(n)).map(n => ({ name: n, role: '종속' }))].slice(0, 12) };
+    const all = uniq(hp.cards.flatMap(c => [...c.x, ...c.m, c.w, c.y, ...c.ctl]));
+    const cat = n => kindOf(n) !== 'score';
+    const ivs = uniq(hp.cards.flatMap(c => c.x)).filter(n => !cat(n)), mainDv = norm(main.vars.dv);
+    const meds = uniq(hp.cards.flatMap(c => c.m)), mods = uniq(hp.cards.map(c => c.w)), dvs = uniq(hp.cards.map(c => c.y));
+    const lvOf = n => (vFind(n) || {}).levels || ((MB_LEVELS.find(([re]) => re.test(n)) || [0, '집단1, 집단2'])[1]);
+    const catVars = all.filter(cat).map(n => ({ name: n, levels: lvOf(n) }));
+    vars = { ...vars, ivs: [...catVars, ...ivs.map(n => ({ name: n, levels: '' }))], dv: cat(mainDv) ? '' : mainDv,
+      others: [...meds.filter(n => !ivs.includes(n) && n !== mainDv && !cat(n)).map(n => ({ name: n, role: '매개' })), ...mods.filter(n => !ivs.includes(n) && !cat(n)).map(n => ({ name: n, role: '조절' })),
+        ...dvs.filter(n => n !== mainDv && !ivs.includes(n) && !meds.includes(n) && !cat(n)).map(n => ({ name: n, role: '종속' })),
+        ...all.filter(n => !cat(n) && ![...ivs, ...meds, ...mods, ...dvs].includes(n)).map(n => ({ name: n, role: '통제' }))].slice(0, 16) };
     saveVars();
-    // 결과 해석의 가설
     if (norm(hp.title) && !norm(intent.title)) intent.title = hp.title;
     const existing = intent.hyps.filter(h => norm(h.text));
     hp.items.forEach(it => { if (!existing.some(h => norm(h.text) === norm(it.text))) intent.hyps.push({ text: it.text, effect: '', expect: it.expect }); });
     intent.hyps = intent.hyps.filter(h => norm(h.text) || intent.hyps.length === 1);
     saveIntent();
-    hp.applied = true; hp.plan = items.map((it, k) => ({ no: hp.items.indexOf(it) + 1, text: it.text, result: walk(it.path).cur.id })); saveHp();
+    hp.applied = true; hp.plan = items.map(it => ({ no: hp.items.indexOf(it) + 1, text: it.text, result: it.result })); saveHp();
     addSys('ladder', `가설 ${items.length}개로 통계 기법을 정했습니다: ${hp.plan.map(p => `가설 ${p.no} ${RULES.results[p.result].name}`).join(', ')}`);
     const n = Survey.importFromLadder(vars);
-    toast(`가설별 기법을 정했습니다. 변인 ${n}개를 설문에 넣었습니다.`);
+    const dimN = hp.vlist.filter(x => x.dims > 1);
+    toast(`가설별 기법을 정했습니다. 변인 ${n}개를 설문에 넣었습니다.${dimN.length ? ` ${dimN.map(x => x.name).join(', ')}는 척도를 넣을 때 하위요인을 [각각 따로]로 고르세요.` : ''}`);
     switchView('survey');
   }
   function hypPlanHtml() {
     if (!hp.plan || !hp.plan.length) return '';
     return `<div class="card"><h4>가설별 통계 기법</h4><div class="hp-plan">${hp.plan.map(p => {
       const lm = LADDER_TO_METHOD[p.result];
-      return `<div class="hp-row"><span class="hi-no">가설 ${p.no}</span><div><b>${esc(RULES.results[p.result].name)}</b><small>${esc(p.text)}</small></div>${lm ? `<button class="btn sm" data-hp-calc="${p.result}" data-hp-no="${p.no}" title="분석 결정·계산에서 이 기법을 고릅니다">계산</button>` : '<span class="hint">jamovi·SPSS</span>'}</div>`;
+      return `<div class="hp-row"><span class="hi-no">가설 ${p.no}</span><div><b>${esc(RULES.results[p.result].name)}</b><small>${esc(p.text)}</small></div>${lm ? `<button class="btn sm" data-hp-calc="${p.result}" data-hp-no="${p.no}" title="분석 결정·계산 화면으로">계산</button>` : '<span class="hint">안내만</span>'}</div>`;
+    }).join('')}</div></div>`;
+  }
+  // 오른쪽: 만드는 중인 가설 목록
+  function mbPlanHtml() {
+    if (!hp.items.length) return '';
+    return `<div class="card"><h4>만들어진 가설 ${hp.items.length}개</h4><div class="hp-plan">${hp.items.filter(it => it.result && RULES.results[it.result]).map((it, k) => {
+      const c = hp.cards[it.ci] || {}, alts = (c.alts || []).filter(a => a !== it.result).map(a => a.startsWith('info:') ? (mbOptions(c).find(o => o.id === a) || {}).name : (RULES.results[a] || {}).name).filter(Boolean);
+      return `<div class="hp-row"><span class="hi-no">가설 ${k + 1}</span><div><b>${esc(RULES.results[it.result].name)}</b>${it.part === 'main' && alts.length ? `<small>보조: ${esc(alts.join(', '))}</small>` : ''}<small>${esc(it.text)}</small></div></div>`;
     }).join('')}</div></div>`;
   }
 
   // ---------- 사건 ----------
+  const mbRender = () => { const a = document.activeElement, key = a && a.dataset && a.dataset.mb, id = a && a.id; mbSync(); render(); renderRight();
+    const el = key ? document.querySelector(`[data-mb="${key}"]`) : id ? document.getElementById(id) : null; if (el && el.focus) { el.focus(); if (el.setSelectionRange && /^(text|search)$/.test(el.type || 'text') && el.tagName === 'INPUT') try { el.setSelectionRange(el.value.length, el.value.length); } catch (e) { } } };
+  function mbPasteToCards(fromAI) {
+    const before = hp.cards.length;
+    hp.items.forEach(it => {
+      if (it.type && it.type !== 'unknown') mbFromParsed(it);
+      else { const c = mbBlank('pred'); c.model = null; c.src = it.text; hp.cards.push(c); }
+    });
+    mbMerge(); hp.cards.forEach(mbFix);
+    hp.picking = null; hp.cards.forEach((c, i) => { if (!c.model && hp.picking == null) hp.picking = i; });
+    const n = hp.cards.length - before, unk = hp.cards.slice(before).filter(c => !c.model).length;
+    toast(`${hp.items.length}개를 읽어 모형 ${n}개로 만들었습니다.${unk ? ` ${unk}개는 모형을 골라 주세요.` : ''} 빈칸을 확인하세요.`);
+    hp.pasteOpen = false;
+  }
   $('#stage').addEventListener('click', e => {
-    const b = e.target.closest('[data-hp],[data-hp-pick],[data-hp-back]'); if (!b) return;
+    const b = e.target.closest('[data-hp],[data-mb-act]'); if (!b) return;
     e.stopPropagation();
     if (b.dataset.hp === 'mode-hyp') { hp.mode = 'hyp'; saveHp(); render(); return; }
     if (b.dataset.hp === 'mode-ladder') { hp.mode = 'ladder'; saveHp(); render(); return; }
-    if (b.dataset.hp === 'read') { hp.title = $('#hp-title').value; hp.text = $('#hp-text').value; if (!splitHyps(hp.text).length) { toast('가설을 한 줄에 하나씩 적어 주세요.'); return; } readHyps(); render(); renderRight(); return; }
-    if (b.dataset.hp === 'read-ai') { hp.title = $('#hp-title').value; hp.text = $('#hp-text').value; if (!splitHyps(hp.text).length) { toast('가설을 한 줄에 하나씩 적어 주세요.'); return; } readHypsAI().then(() => { render(); renderRight(); }); return; }
     if (b.dataset.hp === 'apply') { applyHyps(); return; }
-    if (b.dataset.hpPick) {
-      const [ii, k] = b.dataset.hpPick.split('.').map(Number), it = hp.items[ii];
-      it.path.push(k); it.auto.push(false); hp.active = ii; autoWalk(it); saveHp(); render(); renderRight(); return;
+    const act = b.dataset.mbAct; if (!act) return;
+    mbInit();
+    const ci = b.dataset.ci != null ? +b.dataset.ci : null;
+    if (act === 'add-var') { const el = $('#mb-newvar'); el.value.split(/[,，]/).forEach(n => mbAddVar(n)); el.value = ''; }
+    else if (act === 'del-var') hp.vlist.splice(+b.dataset.i, 1);
+    else if (act === 'add-card') hp.picking = 'new';
+    else if (act === 'pick-cancel') hp.picking = null;
+    else if (act === 'repick') hp.picking = ci;
+    else if (act === 'pick') {
+      const model = b.dataset.model;
+      if (typeof hp.picking === 'number' && hp.cards[hp.picking]) { const c = hp.cards[hp.picking], old = { ...c }; Object.assign(c, mbBlank(model), { x: old.x || [''], m: old.m && old.m.length ? old.m : mbBlank(model).m, w: old.w || '', y: old.y || '', dir: old.dir || '+', ctl: old.ctl || [], src: old.src || '', why: old.why || '' }); mbFix(c); }
+      else hp.cards.push(mbBlank(model));
+      hp.picking = null; hp.cards.forEach((c, i) => { if (!c.model && hp.picking == null) hp.picking = i; });
     }
-    if (b.dataset.hpBack) {
-      const [ii, k] = b.dataset.hpBack.split('.').map(Number), it = hp.items[ii];
-      const w = walk(it.path), st = w.steps[k];
-      it.asked = (it.asked || []).concat(((st.node === RULES.gate) ? '@gate' : (Object.keys(RULES.nodes).find(id => RULES.nodes[id] === st.node))) + ':' + k);
-      it.path = it.path.slice(0, k); it.auto = it.auto.slice(0, k); hp.active = ii; saveHp(); render(); renderRight(); return;
-    }
+    else if (act === 'del-card') { hp.cards.splice(ci, 1); hp.picking = null; }
+    else if (act === 'role') { const c = hp.cards[ci], id = b.dataset.id;
+      if (b.dataset.role === 'main') { c.main = id; c.alts = c.alts.filter(a => a !== id); if (c.model === 'modmed' && /modmed/.test(id)) c.wpath = id === 'r_modmed_b' ? 'b' : 'a'; }
+      else c.alts = c.alts.includes(id) ? c.alts.filter(a => a !== id) : [...c.alts, id]; }
+    else if (act === 'add-slot') hp.cards[ci][b.dataset.f].push('');
+    else if (act === 'del-slot') hp.cards[ci][b.dataset.f].splice(+b.dataset.i, 1);
+    else if (act === 'from-title') { const g = titleGuess(hp.title); if (g) { [...g.x, ...g.m, g.w, g.y].filter(Boolean).forEach(n => mbAddVar(n)); const c = mbBlank(g.model); c.x = g.x.length ? g.x : ['']; c.y = g.y; if (g.m.length) c.m = g.m.length < 2 && g.model === 'serial' ? [...g.m, ''] : g.m; c.w = g.w; hp.cards.push(mbFix(c)); } }
+    else if (act === 'paste-read') { hp.text = $('#hp-text').value; if (!splitHyps(hp.text).length) { toast('한 줄에 하나씩 적어 주세요.'); return; } readHyps(); mbPasteToCards(false); }
+    else if (act === 'paste-ai') { hp.text = $('#hp-text').value; if (!splitHyps(hp.text).length) { toast('한 줄에 하나씩 적어 주세요.'); return; } readHypsAI().then(() => { if (hp.items.some(it => it.byAI)) mbPasteToCards(true); mbRender(); }); return; }
+    if (!['add-card', 'pick-cancel', 'repick'].includes(act)) hp.applied = false;
+    mbRender();
   }, true);
+  $('#stage').addEventListener('keydown', e => { if (e.target.id === 'mb-newvar' && e.key === 'Enter') { e.preventDefault(); mbInit(); e.target.value.split(/[,，]/).forEach(n => mbAddVar(n)); e.target.value = ''; mbRender(); $('#mb-newvar') && $('#mb-newvar').focus(); } });
   $('#stage').addEventListener('change', e => {
-    const t = e.target;
-    if (t.dataset.hpVar) {
-      const [ii, k] = t.dataset.hpVar.split('.'), it = hp.items[+ii];
-      if (k === 'expect') it.expect = t.value;
-      else if (k === 'iv' || k === 'med') it.vars[k] = t.value.split(/[,，]/).map(norm).filter(Boolean);
-      else it.vars[k] = norm(t.value);
-      // 변인 수가 바뀌면 자동 답을 다시 계산
-      const keep = it.auto.findIndex(a => a); it.path = keep >= 0 ? it.path.slice(0, keep) : it.path; it.auto = it.auto.slice(0, it.path.length); autoWalk(it);
-      saveHp(); render(); renderRight();
-    }
-    if (t.dataset.hpType && t.value) { const it = hp.items[+t.dataset.hpType]; it.type = t.value; it.path = []; it.auto = []; it.asked = []; autoWalk(it); saveHp(); render(); renderRight(); }
+    const t = e.target, key = t.dataset && t.dataset.mb; if (!key) return;
+    mbInit();
+    const [kind, idx, f, sub] = key.split('.'), i = +idx;
+    if (kind === 'v') {
+      const x = hp.vlist[i]; if (!x) return;
+      if (f === 'name') { const old = x.name, nn = norm(t.value); if (!nn) return; x.name = nn; hp.cards.forEach(c => { ['x', 'm', 'ctl'].forEach(k => { c[k] = c[k].map(n => norm(n) === old ? nn : n); }); ['w', 'y'].forEach(k => { if (norm(c[k]) === old) c[k] = nn; }); }); }
+      else if (f === 'dims') x.dims = +t.value;
+      else if (f === 'kind') { x.kind = t.value; if (x.kind !== 'score' && !x.levels) x.levels = (MB_LEVELS.find(([re]) => re.test(x.name)) || [0, ''])[1]; }
+      else x[f] = t.value;
+    } else if (kind === 'c') {
+      const c = hp.cards[i]; if (!c) return;
+      if (f === 'why') { c.why = t.value; saveHp(); return; }
+      if (['x', 'm', 'ctl'].includes(f) && sub != null) { const n = norm(t.value); c[f][+sub] = n; if (n) mbAddVar(n); }
+      else if (['y', 'w'].includes(f)) { const n = norm(t.value); c[f] = n; if (n) mbAddVar(n); }
+      else if (f === 'within' || f === 'paths') c[f] = t.checked;
+      else if (f === 'times') c.times = +t.value;
+      else if (f === 'main') { c.main = t.value; c.alts = c.alts.filter(a => a !== t.value); if (c.model === 'modmed') c.wpath = t.value === 'r_modmed_b' ? 'b' : 'a'; }
+      else if (f === 'alt') { c.alts = t.checked ? [...new Set([...c.alts, t.value])] : c.alts.filter(a => a !== t.value); }
+      else if (f === 'pm' || f === 'pd') c[f][sub] = t.value;
+      else c[f] = t.value;
+      if (f === 'wpath') c.main = null;
+    } else return;
+    hp.applied = false;
+    setTimeout(mbRender, 0);
   });
-  $('#stage').addEventListener('input', e => { if (e.target.id === 'hp-title') hp.title = e.target.value; if (e.target.id === 'hp-text') hp.text = e.target.value; if (e.target.id === 'hp-title' || e.target.id === 'hp-text') _set('ladder.hyp', hp); });
-  $('#stage').addEventListener('focusin', e => { const c = e.target.closest('[data-hp-item]'); if (c && hp.active !== +c.dataset.hpItem) { hp.active = +c.dataset.hpItem; renderRight(); } });
+  $('#stage').addEventListener('input', e => {
+    if (e.target.id === 'hp-title') { hp.title = e.target.value; _set('ladder.hyp', hp); }
+    if (e.target.id === 'hp-text') { hp.text = e.target.value; _set('ladder.hyp', hp); }
+    if (e.target.dataset && /^c\.\d+\.why$/.test(e.target.dataset.mb || '')) { const c = hp.cards[+e.target.dataset.mb.split('.')[1]]; if (c) { c.why = e.target.value; _set('ladder.hyp', hp); } }
+  });
+  $('#stage').addEventListener('focusout', e => { if (e.target.id === 'hp-title' && hp.mode === 'hyp' && !hp.cards.length && titleGuess(hp.title)) setTimeout(() => { if (!document.activeElement || document.activeElement.id !== 'hp-title') { render(); } }, 0); });
+  $('#stage').addEventListener('toggle', e => { if (e.target.classList && e.target.classList.contains('mb-paste')) hp.pasteOpen = e.target.open; }, true);
   document.addEventListener('click', e => {
     const b = e.target.closest('[data-hp-calc]'); if (!b) return;
     const lm = LADDER_TO_METHOD[b.dataset.hpCalc]; if (!lm) return;
@@ -8234,6 +8639,24 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
     const pi = b.dataset.hpNo && planItems().find(x => String(x.no) === b.dataset.hpNo);
     anSel.roles = pi ? rolesFor(pi, lm) : autoRoles(lm); saveAnSel(); switchView('analysis'); toast(`${METHODS[lm].name}으로 계산할 준비를 했습니다. 변인을 확인하고 [계산하기]를 누르세요.`);
   });
+
+  // 분석 계획서에 들어갈 연구모형·분석 방법·고른 이유
+  function mbPlanLines() {
+    const L = [];
+    (hp.cards || []).forEach((c, ci) => {
+      if (!c.model || mbMissing(c).length) return;
+      const its = hp.items.filter(it => it.ci === ci), nos = its.map(it => hp.items.indexOf(it) + 1), main = mbMain(c);
+      const opt = id => (mbOptions(c).find(o => o.id === id) || {}).name || (RULES.results[id] || {}).name || id;
+      L.push(`- 모형 ${ci + 1} (${MB_NAME[c.model]}) · 가설 ${nos.join(', ')}`);
+      its.forEach((it, k) => L.push(`  - 가설 ${nos[k]}: ${it.text} → ${RULES.results[it.result].name}`));
+      const alts = c.alts.filter(a => a !== main).map(opt);
+      L.push(`  - 주 분석: ${opt(main)}${alts.length ? ` · 보조 분석: ${alts.join(', ')}` : ''}`);
+      const dimV = c.x.map(vFind).find(v => v && v.dims > 1);
+      if (dimV) L.push(`  - ${dimV.name}의 하위 차원 ${dimV.dims}개: ${c.dimsMode === 'together' ? '한 차원을 볼 때 다른 차원은 통제변인으로' : '차원마다 따로 분석'}`);
+      L.push(`  - 고른 이유: ${norm(c.why) || '(적지 않음)'}`);
+    });
+    return L;
+  }
 
 
   // ---------- 확인 창 (브라우저 confirm 대신) ----------
