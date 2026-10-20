@@ -7954,11 +7954,13 @@ ${q}`;
   function parseHyp(text) {
     const t0 = String(text).replace(/\s+/g, ' ').trim().replace(/[?？]$/, '');
     // 앞의 통제 구절(성별, 연령을 통제한 후에도)은 떼고 읽음
-    const t = t0.replace(/^.*?(?:통제한\s*(?:후에?도?|상태에서도?|뒤에?도?)|통제하(?:고|여도|더라도|고서도)|통제하였을\s*때(?:에도)?)\s*,?\s*/, '');
+    const DIM = /\s*의\s*(?:두|세|네|다섯|각|[2-9]개)?\s*(?:하위\s*)?(?:차원|하위요인|요인|하위\s*척도|영역)(?:별)?(?=[은는이가과와을를의에\s]|$)/g;
+    const dims = DIM.test(t0) ? (t0.match(/(두|세|네|다섯|[2-9]개)\s*(?:하위\s*)?(?:차원|하위요인|요인|하위\s*척도|영역)/) || [])[1] || '여러' : '';
+    const t = t0.replace(DIM, '').replace(/^.*?(?:통제한\s*(?:후에?도?|상태에서도?|뒤에?도?)|통제하(?:고|여도|더라도|고서도)|통제하였을\s*때(?:에도)?)\s*,?\s*/, '');
     const v = { iv: [], dv: '', med: [], mod: '', serial: false };
     let type = 'unknown', m, dir = 0, repeated = false;
     const R = s => new RegExp(s);
-    const hasMed = /(매개|거쳐|통하여|통해서?\s)/.test(t), hasMod = /조절|완충/.test(t);
+    const hasMed = /(매개|간접\s*효과|거쳐|통하여|통해서?\s)/.test(t), hasMod = /조절|완충/.test(t);
     if (/조절된\s*매개/.test(t) || (hasMed && hasMod)) {
       type = 'modmed';
       m = t.match(/(.+?)(?:은|는|이|가)\s+(.+?)(?:을|를)?\s*(?:매개로|매개하여|통하여|통해|거쳐)\s*(.+?)(?:에|에게)\s/);
@@ -7971,7 +7973,7 @@ ${q}`;
       if ((m = t.match(/(.+?)(?:은|는|이|가)\s+(.+?)(?:을|를)?\s*(?:순차적으로\s*|차례로\s*|이중\s*)?(?:매개로|매개하여|통하여|통해|거쳐)\s*(.+?)(?:에|에게)\s/))) { v.iv = splitVars(m[1]); v.med = splitVars(m[2]); v.dv = cleanVar(m[3]); }
       else if ((m = t.match(/(.+?)(?:이|가|은|는)\s+(.+?)에\s*미치는\s*영향(?:에서|을|에\s*있어서?)\s*(.+?)(?:은|는|이|가|의)?\s*(?:순차적\s*|이중\s*)?매개/))) { v.iv = splitVars(m[1]); v.dv = cleanVar(m[2]); v.med = splitVars(m[3]); }
       else if ((m = t.match(R(`(.+?)(?:은|는|이|가)\\s+(.+?)에\\s*(?:${SIGN}\\s*(?:인\\s*)?)?영향을\\s*(?:미치며|미치고|주며|주고)\\s*,?\\s*(.+?)(?:은|는|이|가)\\s*(?:이|그)\\s*(?:관계|영향)를?\\s*(?:순차적으로\\s*)?매개`)))) { v.iv = splitVars(m[1]); v.dv = cleanVar(m[2]); v.med = splitVars(m[3]); }
-      else if ((m = t.match(/(.+?)(?:와|과)\s*(.+?)(?:의|간의|사이의)?\s*관계에서\s*(.+?)(?:은|는|이|가)?\s*(?:의\s*)?(?:순차적\s*|이중\s*)?매개/))) { v.iv = splitVars(m[1]); v.dv = cleanVar(m[2]); v.med = splitVars(m[3]); }
+      else if ((m = t.match(/(.+?)(?:와|과)\s*(.+?)(?:의|간의|사이의)?\s*관계에서\s*(.+?)(?:은|는|이|가)?\s*(?:의\s*)?(?:순차적\s*|이중\s*)?(?:매개|간접\s*효과)/))) { v.iv = splitVars(m[1]); v.dv = cleanVar(m[2]); v.med = splitVars(m[3]); }
       v.serial = /(순차|차례|이중|연속|직렬)/.test(t);
     } else if (hasMod) {
       type = 'mod';
@@ -7992,10 +7994,10 @@ ${q}`;
       type = 'diff'; v.iv = [cleanVar(m[1]) + ' 집단']; v.dv = cleanVar(m[3]); dir = sgn(m[2]) * sgn(m[4]);
     } else if ((m = t.match(R(`^(.+?)(?:은|는|이|가)\\s+(.+?)(?:보다|에\\s*비해서?|에\\s*비하여)\\s*(.+?)(?:이|가|을|를|은|는|도)?\\s*(?:더\\s*|유의하게\\s*)*${UPDN}`)))) {
       type = 'diff'; v.iv = [groupName(cleanVar(m[1]), cleanVar(m[2]))]; v.dv = cleanVar(m[3]); dir = sgn(m[4]);
-    } else if (/(상관|관련|관계가\s*있|관계를\s*보일|관계가\s*나타|관계일|함께\s*변)/.test(t) && !/영향/.test(t)) {
+    } else if (/(상관|관련|관계가\s*있|관계를\s*보이|관계를\s*보일|관계가\s*나타|관계일|관계인가|함께\s*변)/.test(t) && !/영향/.test(t)) {
       type = 'rel';
-      if ((m = t.match(R(`^(.+?)(?:은|는|이|가)\\s+(.+?)(?:와|과)\\s*(?:유의한\\s*|유의미한\\s*|통계적으로\\s*)*(?:${SIGN}\\s*(?:인\\s*)?)?(?:상관|관련|관계)`)))) { v.iv = [cleanVar(m[1])]; v.dv = cleanVar(m[2]); }
-      else if ((m = t.match(R(`(.+?)(?:와|과)\\s+(.+?)(?:은|는|간에는|간에|간의|의|사이에는|사이에|사이의)?\\s*(?:어떤\\s*|어떠한\\s*)?(?:유의한\\s*|유의미한\\s*)?(?:${SIGN}\\s*(?:인\\s*)?)?(?:상관|관련|관계)`)))) { v.iv = [cleanVar(m[1])]; v.dv = cleanVar(m[2]); }
+      if ((m = t.match(R(`^(.+?)(?:은|는|이|가)\\s+(.+?)(?:와|과)\\s*(?:각각\\s*|서로\\s*)?(?:어떤\\s*|어떠한\\s*)?(?:유의한\\s*|유의미한\\s*|통계적으로\\s*)*(?:${SIGN}\\s*(?:인\\s*)?)?(?:상관|관련|관계)`)))) { v.iv = [cleanVar(m[1])]; v.dv = cleanVar(m[2]); }
+      else if ((m = t.match(R(`(.+?)(?:와|과)\\s+(.+?)(?:은|는|간에는|간에|간의|의|사이에는|사이에|사이의)?\\s*(?:각각\\s*|서로\\s*)?(?:어떤\\s*|어떠한\\s*)?(?:유의한\\s*|유의미한\\s*)?(?:${SIGN}\\s*(?:인\\s*)?)?(?:상관|관련|관계)`)))) { v.iv = [cleanVar(m[1])]; v.dv = cleanVar(m[2]); }
     } else if (/(영향|예측|높일|낮출|증가시킬|감소시킬|높아질|낮아질|향상시킬|증진시킬|높여|낮춰|줄일)/.test(t)) {
       type = 'pred';
       m = t.match(R(`(.+?)(?:은|는|이|가)\\s+(.+?)(?:에|에게|을|를)\\s*(?:통계적으로\\s*)?(?:유의한\\s*|유의미한\\s*)?(?:${SIGN}\\s*(?:인\\s*)?)?(?:영향|예측|높일|낮출|증가|감소|향상|증진|높여|낮춰|줄일)`));
@@ -8005,7 +8007,7 @@ ${q}`;
     const expect = dir > 0 ? '+' : dir < 0 ? '-' : (type === 'diff' && !repeated && !/보다|비해/.test(t)) ? '≠'
       : /(부적|부정적|부\s*\(\s*[-−]\s*\)|낮출|낮아|감소|줄일|줄어|낮춰)/.test(t) ? '-' : /(정적|긍정적|정\s*\(\s*\+\s*\)|높일|높아|높여|증가|향상|증진|클수록|높을수록)/.test(t) ? '+' : '≠';
     const flags = { covar: /(통제(?!\s*집단|군)|공변|빼고)/.test(t0), repeated: repeated || /(사전|사후|전후|반복\s*측정|시점|추적)/.test(t0), oneGroup: /(기준값|평균보다|척도\s*중간값)/.test(t), binaryDv: /(여부|유무|있다\/없다|예\/아니오)/.test(v.dv + ' ' + t) };
-    return { type, vars: v, expect, flags };
+    return { type, vars: v, expect, flags, dims };
   }
 
   // ---------- 질문마다 가설에서 알 수 있는 답 (모르면 null = 물어봄) ----------
@@ -8138,6 +8140,7 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
             <select class="hi-tsel" data-hp-type="${ii}" title="종류가 틀리면 고르세요">${it.type === 'unknown' ? '<option value="" selected disabled>종류 고르기</option>' : ''}${Object.entries(HTYPE).filter(([k]) => k !== 'unknown').map(([k, l]) => `<option value="${k}" ${it.type === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
           <p class="hi-text">${esc(it.text)}</p>
           ${it.type === 'unknown' ? `<p class="hi-unk">이 문장은 규칙으로 가설의 종류를 알아보지 못했어요. 오른쪽 위 <b>[종류 고르기]</b>에서 고르거나 아래 질문에 답하세요.${aiOn() ? ' 문장이 복잡하면 <b>[AI로 읽기]</b>가 더 잘 읽습니다.' : ' "A가 높을수록 B가 높을 것이다", "A는 B에 정적 영향을 미칠 것이다", "성별에 따라 B에 차이가 있을 것이다"처럼 쓰면 잘 읽습니다.'}</p>` : ''}
+          ${it.dims ? `<p class="hi-unk">'${esc(it.dims)} 차원'은 하위 차원(하위요인)마다 같은 분석을 따로 합니다. 설문 만들기에서 척도를 넣을 때 <b>하위요인을 [각각 따로]</b>로 고르면 차원마다 점수가 생깁니다.</p>` : ''}
           ${varEditHtml(it, ii)}
           ${hypStepsHtml(it, ii)}
         </div>`).join('')}
