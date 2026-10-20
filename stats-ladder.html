@@ -2436,6 +2436,12 @@ button,input,textarea,select{font-family:inherit}
 .app.nav-min .side-copy{padding:10px 0}
 #splash .sp-copy{margin:-8px 0 0;padding-top:12px;border-top:1px solid var(--line);text-align:center;font-size:12.5px;line-height:1.6;color:var(--ink-2);opacity:0;animation:t-fade .45s 1.85s forwards}
 #splash .sp-copy span{color:var(--ink-3)}
+/* ---------- SPSS로 확인하기 ---------- */
+.sp-box{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:8px 0 6px;background:var(--bg-2)}
+.sp-steps{margin:6px 0;padding-left:20px;font-size:14px;line-height:1.8}
+table.compact.sp-table{min-width:0;table-layout:auto;width:100%}.sp-table td{vertical-align:middle}.sp-table td:first-child{white-space:normal;min-width:0;font-size:13px;line-height:1.45}.sp-grp td{background:var(--bg);font-weight:800;color:var(--ink);padding-top:8px}.sp-k{display:inline-block;min-width:44px;font-weight:800;color:var(--ink)}
+.sp-in{width:84px;border:1px solid var(--line);border-radius:6px;padding:4px 6px;font-size:13px;background:var(--bg)}
+.sp-st{font-weight:800;font-size:16px;text-align:center;width:28px}.sp-st.ok,.sp-st.near{color:var(--ok)}.sp-st.no,.sp-st.bad{color:var(--warn)}.sp-st.sign{color:var(--orange)}
 /* ---------- 자료 점검: 응답 정리 · 표본 확인 · 측정 점검 · 사전 분석 ---------- */
 .dk-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin-top:14px;padding-top:12px;border-top:1px dashed var(--line)}
 .dk-l{font-weight:700;font-size:14px}
@@ -4568,6 +4574,7 @@ function createSurvey() {
     else if (act === 'plan-dl') download('analysis_plan.md', planText());
     else if (act === 'r-data') download('analysis_data.csv', toCsv(analysisRows()), 'text/csv');
     else if (act === 'r-code') download('analysis.R', rScript(analyses.slice().reverse()));
+    else if (act === 'spss-code') download('analysis.sps', '\ufeff' + spssSyntax(analyses.slice().reverse()));
     else if (act === 'rcompare') {
       const a = analyses.find(x => x.id === b.dataset.id), txt = $(`[data-rpaste="${a.id}"]`).value;
       const parsed = parseROut(txt), rows = parsed[a.id] || parsed._ || (Object.keys(parsed).length === 1 ? Object.values(parsed)[0] : null);
@@ -5071,6 +5078,7 @@ function createSurvey() {
       ${a.decisions ? `<p class="hint" style="margin-top:12px">분석 결정: ${a.decisions.map(esc).join(' · ')}</p>` : ''}
       ${checksHtml(a)}
       ${rcheckHtml(a)}
+      ${spssHtml(a)}
       <details class="item-detail"><summary>가설에 연결할 수 있는 효과 ${a.effects.length}개</summary>
         <div class="table-wrap"><table class="compact"><thead><tr><th>효과</th><th>통계값</th><th>유의</th></tr></thead>
         <tbody>${a.effects.map(e => `<tr><td>${esc(e.label)}</td><td>${esc(e.stat)}</td><td>${sigOf(e) ? '<span class="a-ok">유의</span>' : '<span class="hint">유의하지 않음</span>'}</td></tr>`).join('')}</tbody></table></div>
@@ -5791,14 +5799,21 @@ ${REVIEW_RULES}
       <h3>왜 미리 정하나요?</h3>
       <p>결과를 보고 유의하게 나오는 쪽으로 방법을 바꾸면 우연한 결과를 진짜처럼 보고하게 됩니다(p-해킹). 확정한 뒤 바꾸면 <b>사후 변경</b>으로 기록되고 이유를 적게 됩니다. <b>[분석 계획서 받기]</b>로 받아 논문 부록에 쓸 수 있습니다.</p>` },
 
-    { id: 'r', group: '단계별 사용법', title: '⑩-2 R로 확인하기', kw: 'R RStudio 재계산', tab: 'analysis', body: `
+    { id: 'r', group: '단계별 사용법', title: '⑩-2 R·SPSS로 확인하기', kw: 'R RStudio SPSS 명령문 syntax PROCESS 재계산 대조', tab: 'analysis', body: `
       <p class="g-sum">ㅌㅗㅇ의 숫자를 무료 통계 프로그램 <b>R</b>로 다시 계산해 맞는지 봅니다. R 문법은 몰라도 됩니다.</p>
       <ul><li>R 코드는 ㅌㅗㅇ이 분석 결정 그대로 만듭니다.</li><li>기본 R만 씁니다. 추가 설치가 없습니다.</li></ul>
       <div class="gstep"><b>STEP 1. 파일 받기</b><p>오른쪽 [결과] 탭의 <b>R로 확인하기</b>에서 <code>analysis_data.csv</code>와 <code>analysis.R</code>을 받아 한 폴더에 둡니다. 연구 폴더를 연결했다면 이미 들어 있습니다. 파일 이름이 <code>analysis.R.txt</code>로 저장되면 <code>.txt</code>를 지우세요.</p></div>
       <div class="gstep"><b>STEP 2-가. AI에게 맡기기</b><p>Claude Code로 그 폴더를 열고 <b>"R로 분석해줘"</b>. 결과가 <code>R_output.txt</code>로 남습니다. <a href="#guide-claude-code">따라 하기</a></p></div>
       <div class="gstep"><b>STEP 2-나. 직접 실행</b><p><a href="https://posit.co/download/rstudio-desktop/" target="_blank" rel="noopener">R과 RStudio</a>를 설치하고 <code>analysis.R</code>을 연 뒤 [Source]를 누릅니다.</p></div>
       <div class="gstep"><b>STEP 3. 대조</b><p>R 출력을 <b>[R 결과와 맞춰 보기]</b>에 붙여 넣으면 효과마다 일치 여부가 나옵니다. 연구 폴더를 연결했다면 저절로 대조합니다. 부트스트랩 신뢰구간은 소수 셋째 자리가 조금 다를 수 있습니다.</p></div>
-      <div class="gnote">논문에는 "ㅌㅗㅇ으로 분석하고 R로 재계산해 확인하였다"처럼 적을 수 있습니다.</div>` },
+      <h3>SPSS로 확인하기</h3>
+      <p class="g-sum">내 PC에 SPSS가 있으면 같은 분석을 SPSS로 다시 돌려 숫자를 맞춰 봅니다. AI는 쓰지 않습니다.</p>
+      <div class="gstep"><b>STEP 1. 파일 받기</b><p>같은 자리에서 <code>analysis_data.csv</code>와 <code>analysis.sps</code>(SPSS 명령문)를 받아 한 폴더에 둡니다. 연구 폴더를 연결했다면 <code>3_analysis</code>에 이미 들어 있습니다.</p></div>
+      <div class="gstep"><b>STEP 2. SPSS에서 실행</b><p>SPSS에서 <code>analysis.sps</code>를 엽니다. 맨 위 <code>FILE HANDLE tongdir /NAME='C:\\tong'.</code> 줄의 경로를 파일을 둔 폴더로 바꾸고 <b>[실행] → [모두]</b>를 누릅니다. 변인 이름, 값 설명(1 = 남성 등), 더미 변수까지 명령문이 만듭니다.</p></div>
+      <div class="gstep"><b>STEP 3. 대조</b><p>각 결과 아래 <b>[SPSS와 맞춰 보기]</b>를 열면 SPSS 출력의 어느 표, 어느 칸을 보면 되는지 적혀 있습니다. 보이는 숫자를 그대로 적으면 적은 자릿수만큼 반올림해 비교합니다.</p>
+        <ul><li>✓ 같음</li><li>≈ 부트스트랩 신뢰구간이라 조금 다름 (정상)</li><li>± 부호만 다름: 집단·범주 순서가 반대인 경우</li><li>✗ 다름: 변인, 제외된 응답, 분석 결정이 같은지 먼저 확인</li></ul></div>
+      <div class="gnote">매개·조절 분석은 Hayes의 <b>PROCESS 매크로</b>(무료)가 SPSS에 설치되어 있어야 합니다. 반복측정·혼합설계는 SPSS의 GLM 반복측정을, 나머지는 SPSS 기본 메뉴와 같은 명령을 씁니다.</div>
+      <div class="gnote">논문에는 "ㅌㅗㅇ으로 분석하고 R(또는 SPSS)로 재계산해 확인하였다"처럼 적을 수 있습니다.</div>` },
 
     { id: 'interp', group: '단계별 사용법', title: '⑪ 결과 해석', tab: 'interp', body: `
       <p class="g-sum">가설마다 지지·기각을 <b>코드가 판정</b>하고, AI는 그 판정과 숫자 그대로 초안을 씁니다.</p>
@@ -6665,7 +6680,13 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
   function rPanelHtml() {
     const n = analyses.filter(a => a.spec).length;
     return `<div class="card">
-      <div class="res-head"><h3 class="card-title">R로 확인하기</h3><a class="guide-link" href="#guide-r">설명</a></div>
+      <div class="res-head"><h3 class="card-title">R·SPSS로 확인하기</h3><a class="guide-link" href="#guide-r">설명</a></div>
+      <div class="sp-box"><b>SPSS로 확인하기</b><p class="hint">SPSS가 있으면 같은 분석을 SPSS로 다시 돌려 숫자를 대조할 수 있습니다. AI는 쓰지 않습니다.</p>
+        <ol class="sp-steps"><li><b>analysis_data.csv</b>와 <b>analysis.sps</b>를 받아 한 폴더에 넣기 <span class="actions tight" style="display:inline-flex"><button class="btn sm primary" data-an-act="r-data" ${lastScored ? '' : 'disabled'}>analysis_data.csv</button><button class="btn sm primary" data-an-act="spss-code" ${n ? '' : 'disabled'}>analysis.sps (분석 ${n}개)</button></span></li>
+          <li>SPSS에서 analysis.sps 열기 → 맨 위 <code>FILE HANDLE</code> 줄의 경로를 그 폴더로 바꾸기 → <b>[실행] → [모두]</b></li>
+          <li>결과의 숫자를 각 결과 아래 <b>[SPSS와 맞춰 보기]</b>에 적기 → ✓가 나오면 같은 값</li></ol>
+        <p class="hint">매개·조절은 Hayes의 PROCESS 매크로(무료)가 SPSS에 설치되어 있어야 합니다. 부트스트랩 신뢰구간은 재표집 때문에 소수 둘째 자리쯤에서 조금 다를 수 있습니다(정상).</p></div>
+      <h4 style="margin:14px 0 4px">R로 확인하기</h4>
       <p class="hint">ㅌㅗㅇ의 숫자를 표준 통계 프로그램인 R로 다시 계산해 대조합니다. R 코드는 위의 분석 결정을 그대로 따르고, 추가 패키지 없이 기본 R만 씁니다. AI가 숫자를 만들지 않습니다.</p>
       <div class="chat-steps">
         <div class="chat-step"><span class="n">1</span><div><b>두 파일을 받아 한 폴더에 넣기</b>
@@ -6720,7 +6741,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
 
   // ---------- 프로젝트 상태 ----------
   function projectState() {
-    return { app: 'ㅌㅗㅇ', version: '0.11', savedAt: new Date().toISOString(), path, vars, sv, plan, anSel, analyses, intent, log, hyp: (typeof hp !== 'undefined' && hp) || null, model: (typeof md !== 'undefined' && md) || null, rules: customRules ? RULES : null };
+    return { app: 'ㅌㅗㅇ', version: '0.12', savedAt: new Date().toISOString(), path, vars, sv, plan, anSel, analyses, intent, log, hyp: (typeof hp !== 'undefined' && hp) || null, model: (typeof md !== 'undefined' && md) || null, rules: customRules ? RULES : null };
   }
   function applyProject(o) {
     if (!o || (o.app !== 'ㅌㅗㅇ' && o.app !== '\uD1B5\uACC4 \uC0AC\uB2E4\uB9AC')) throw new Error('ㅌㅗㅇ 프로젝트 파일이 아닙니다.');
@@ -6759,7 +6780,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
     if (lastScored) F.push(['2_data/analysis_data.csv', toCsv(analysisRows())], ['2_data/item_analysis.csv', toCsv(itemStatsRows())], ['2_data/data_check.md', prelimMd()]);
     if (folderOpts.saveRaw && rawText) F.push(['2_data/raw_responses.csv', rawText]);
     F.push(['3_analysis/analysis_plan.md', planText()]);
-    if (analyses.some(a => a.spec)) F.push(['3_analysis/analysis.R', rScript(analyses.slice().reverse())]);
+    if (analyses.some(a => a.spec)) F.push(['3_analysis/analysis.R', rScript(analyses.slice().reverse())], ['3_analysis/analysis.sps', '\ufeff' + spssSyntax(analyses.slice().reverse())]);
     if (analyses.length) F.push(['3_analysis/results.csv', toCsv(analyses.slice().reverse().flatMap(a => analysisCsvRows(a).concat([[]])))]);
     if (intent.hyps.some(h => norm(h.text))) F.push(['4_interpretation/interpretation.json', exportJson()]);
     if (intent.out && !intent.out.src) F.push(['4_interpretation/site_draft.md', `[결과]\n${intent.out.results}\n\n[논의]\n${intent.out.discussion}\n\n[연구의 한계]\n${(intent.out.limitations || []).map(x => '- ' + x).join('\n')}\n\n[확인할 것]\n${(intent.out.check || []).map(x => '- ' + x).join('\n')}\n`]);
@@ -6958,7 +6979,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
     { id: 'interp', n: '11', label: '결과 해석 (AI)', view: 'interp', done: () => !!intent.out },
     { id: 'review', n: '12', label: '허점 점검 (AI)', view: 'interp', after: () => $('#rv-card')?.scrollIntoView({ block: 'start' }), done: () => !!intent.review?.result },
     { grp: '도구' },
-    { id: 'rcheck', n: 'R', label: 'R로 확인하기', view: 'analysis', right: 'results', after: () => { openRight(); $('#an-results')?.scrollIntoView({ block: 'start' }); }, done: () => analyses.some(a => a.rcheck) },
+    { id: 'rcheck', n: 'R', label: 'R·SPSS로 확인하기', view: 'analysis', right: 'results', after: () => { openRight(); $('#an-results')?.scrollIntoView({ block: 'start' }); }, done: () => analyses.some(a => a.rcheck) },
     { id: 'log', n: '✓', label: '검증 기록', view: 'log', sum: () => (log.length ? `${log.length}건` : '') },
     { id: 'rules', n: '≡', label: '갈림길 규칙', view: 'rules' },
     { id: 'guide', n: '?', label: '사용 설명', view: 'guide' }
@@ -9209,7 +9230,7 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
       R.notes.push(k < 3 ? '측정이 두 번이라 구형성 가정이 필요 없습니다. 이 결과는 대응표본 t검정과 같습니다(F = t²).'
         : `구형성: Mauchly W = ${F2(c.sp.W, 3)}, ${PS(c.sp.p)}. ${use === 'gg' ? 'Greenhouse-Geisser로 자유도를 보정한 값을 보고했습니다' : '구형성 가정 값을 보고했습니다'} (분석 결정).`);
       R.notes.push(`일반화 η²(ges) = ${NZ(c.ges, 3)}. 부분 η²는 SPSS, 일반화 η²는 R(afex) 기본값입니다.`);
-      eff(R, { kind: 'omnibus', label: `${names.join(', ')}: 시점에 따른 차이`, est: main.pe, p: main.p, stat: `F(${fmtDf(main.df1)}, ${fmtDf(main.df2)}) = ${F2(main.F)}, ${PS(main.p)}, 부분 η² = ${NZ(main.pe, 3)}${use === 'gg' ? ' (Greenhouse-Geisser)' : ''}` });
+      eff(R, { kind: 'omnibus', label: `${names.join(', ')}: 시점에 따른 차이`, est: main.pe, p: main.p, sph: use, stat: `F(${fmtDf(main.df1)}, ${fmtDf(main.df2)}) = ${F2(main.F)}, ${PS(main.p)}, 부분 η² = ${NZ(main.pe, 3)}${use === 'gg' ? ' (Greenhouse-Geisser)' : ''}` });
       dropNote(R, P); return R;
     },
 
@@ -9250,8 +9271,8 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
       R.notes.push(`집단 크기가 다르면 집단 안 효과는 SPSS와 같은 제III유형(집단 평균을 같은 무게로)으로 계산했습니다.${k >= 3 ? ` 구형성: Mauchly W = ${F2(sp.W, 3)}, ${PS(sp.p)} → ${use === 'gg' ? 'Greenhouse-Geisser 보정 값을 보고' : '구형성 가정 값을 보고'}(분석 결정).` : ''}`);
       R.notes.push(`등분산성(Levene, 시점별): ${levs.join(' / ')}`);
       R.notes.push('프로그램 효과는 보통 집단 × 시점 상호작용으로 판단합니다. 상호작용이 유의하면 집단별·시점별 단순효과를 추가로 살펴보세요.');
-      eff(R, { kind: 'omnibus', label: `${P.V[r.g].name} × 시점 상호작용`, est: mI.pe, p: mI.p, stat: `F(${fmtDf(mI.df1)}, ${fmtDf(mI.df2)}) = ${F2(mI.F)}, ${PS(mI.p)}, 부분 η² = ${NZ(mI.pe, 3)}` });
-      eff(R, { kind: 'omnibus', label: `시점 주효과 (${names.join(', ')})`, est: mT.pe, p: mT.p, stat: `F(${fmtDf(mT.df1)}, ${fmtDf(mT.df2)}) = ${F2(mT.F)}, ${PS(mT.p)}, 부분 η² = ${NZ(mT.pe, 3)}` });
+      eff(R, { kind: 'omnibus', label: `${P.V[r.g].name} × 시점 상호작용`, est: mI.pe, p: mI.p, sph: use, stat: `F(${fmtDf(mI.df1)}, ${fmtDf(mI.df2)}) = ${F2(mI.F)}, ${PS(mI.p)}, 부분 η² = ${NZ(mI.pe, 3)}` });
+      eff(R, { kind: 'omnibus', label: `시점 주효과 (${names.join(', ')})`, est: mT.pe, p: mT.p, sph: use, stat: `F(${fmtDf(mT.df1)}, ${fmtDf(mT.df2)}) = ${F2(mT.F)}, ${PS(mT.p)}, 부분 η² = ${NZ(mT.pe, 3)}` });
       eff(R, { kind: 'omnibus', label: `${P.V[r.g].name} 주효과`, est: peG, p: pG, stat: `F(${a - 1}, ${dfEb}) = ${F2(FG)}, ${PS(pG)}, 부분 η² = ${NZ(peG, 3)}` });
       dropNote(R, P); return R;
     },
@@ -9268,7 +9289,7 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
       R.tables.push({ title: '짝지은 교차표', head: [`${P.V[r.a].name} \\ ${P.V[r.b].name}`, lv[0], lv[1], '전체'], num: [1, 2, 3], rows: [[lv[0], String(n11), String(n10), String(n11 + n10)], [lv[1], String(n01), String(n00), String(n01 + n00)], ['전체', String(n11 + n01), String(n10 + n00), String(P.n)]] });
       R.tables.push({ title: '검정 결과', head: [`'${t}' 비율 (첫째)`, `'${t}' 비율 (둘째)`, 'χ² (연속성 교정)', 'df', 'p', '정확 p (이항)', '바뀐 사람'], num: [0, 1, 2, 3, 4, 5, 6], rows: [[`${F2(p1 * 100, 1)}%`, `${F2(p2 * 100, 1)}%`, F2(chi), '1', PV(p), PV(pEx), `${disc}명 (${lv[0]}→${lv[1]} ${n10}, ${lv[1]}→${lv[0]} ${n01})`]] });
       if (disc < 25) R.notes.push(`바뀐 사람이 ${disc}명으로 적어 정확 p(이항검정)를 함께 보고하는 것이 좋습니다.`);
-      eff(R, { label: `'${t}' 비율 변화 (${P.V[r.b].name} − ${P.V[r.a].name})`, est: p2 - p1, p, stat: `χ²(1, N = ${P.n}) = ${F2(chi)}, ${PS(p)}, '${t}' ${F2(p1 * 100, 1)}% → ${F2(p2 * 100, 1)}%` });
+      eff(R, { label: `'${t}' 비율 변화 (${P.V[r.b].name} − ${P.V[r.a].name})`, est: p2 - p1, p, pEx, stat: `χ²(1, N = ${P.n}) = ${F2(chi)}, ${PS(p)}, '${t}' ${F2(p1 * 100, 1)}% → ${F2(p2 * 100, 1)}%` });
       dropNote(R, P); return R;
     },
 
@@ -9290,7 +9311,7 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
         const chi = b + c ? (b - c) ** 2 / (b + c) : 0; post.push([`${names[i]} − ${names[j]}`, `${b} / ${c}`, F2(chi), PV(Math.min(1, ST.pChi(chi, 1) * m))]);
       }
       R.tables.push({ title: '사후검정 (짝지은 비교, Bonferroni)', head: ['비교', '바뀐 사람 (앞만 / 뒤만)', 'χ²', 'p'], num: [2, 3], rows: post });
-      eff(R, { kind: 'omnibus', label: `'${t}' 비율의 차이 (${names.join(', ')})`, est: W, p, stat: `Q(${df}, N = ${n}) = ${F2(Q)}, ${PS(p)}, W = ${NZ(W, 3)}` });
+      eff(R, { kind: 'omnibus', label: `'${t}' 비율의 차이 (${names.join(', ')})`, est: W, p, q: Q, stat: `Q(${df}, N = ${n}) = ${F2(Q)}, ${PS(p)}, W = ${NZ(W, 3)}` });
       dropNote(R, P); return R;
     }
   });
@@ -9386,6 +9407,179 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
     if (method === 'cochran') roles.vars = cat2;
     return roles;
   };
+
+  // =================================================================
+  // SPSS로 확인하기: 명령문(.sps) 만들기 + SPSS 출력의 숫자와 맞춰 보기 (AI 없이 규칙으로)
+  // =================================================================
+  // 분석용 자료 열 이름 (자료 없이도 설문 설계로 만들 수 있게)
+  function dataHeader() {
+    const head = [{ code: 'ID', kind: 'id' }];
+    sv.demos.forEach((d, di) => { head.push({ code: demoCode(d, di), kind: d.type === 'number' ? 'num' : 'text', label: d.text }); if (d.type === 'choice') head.push({ code: demoCode(d, di) + '_n', kind: 'code', label: d.text, demo: d }); });
+    designItems().filter(d => d.kind === 'item').forEach(d => head.push({ code: d.code, kind: 'item' }));
+    sv.scales.forEach((s, si) => head.push({ code: scaleCode(s, si), kind: 'score', label: s.name }));
+    head.push({ code: '불성실의심', kind: 'flag' });
+    return head;
+  }
+  // SPSS 변수 이름: 글자로 시작, 공백·기호는 _로, 겹치면 번호
+  function spssNames(head) {
+    const used = new Set(), map = {};
+    head.forEach(h => {
+      let n = h.kind === 'flag' ? 'STRAIGHT' : String(h.code).replace(/[^\p{L}\p{N}_]/gu, '_');
+      if (!/^\p{L}/u.test(n)) n = 'V' + n;
+      let m = n, i = 2; while (used.has(m.toUpperCase())) m = n + '_' + i++;
+      used.add(m.toUpperCase()); map[h.code] = m;
+    });
+    return map;
+  }
+  const sq = s => "'" + String(s).replace(/'/g, "''") + "'";
+  const wrapList = (arr, ind = '    ') => { const out = []; let line = ''; arr.forEach(a => { if ((line + ' ' + a).length > 70) { out.push(line); line = a; } else line = line ? line + ' ' + a : a; }); if (line) out.push(line); return out.join('\n' + ind); };
+
+  function spssSyntax(list) {
+    const head = dataHeader(), N = spssNames(head);
+    const fmt = h => h.kind === 'id' ? 'A12' : h.kind === 'text' ? 'A200' : h.kind === 'num' ? 'F10.2' : h.kind === 'code' ? 'F3.0' : h.kind === 'item' ? 'F4.0' : h.kind === 'score' ? 'F12.6' : 'F1.0';
+    const L = [];
+    L.push(`* =====================================================================.`,
+      `* ㅌㅗㅇ 분석을 SPSS로 다시 계산하는 명령문. 만든 날: ${today()}.`,
+      `* 1) 이 파일과 analysis_data.csv를 한 폴더에 둡니다.`,
+      `* 2) 아래 FILE HANDLE 줄의 따옴표 안을 그 폴더 경로로 바꿉니다 (예: C:\\내논문\\2_data).`,
+      `* 3) 메뉴 [실행] → [모두]. 결과의 숫자를 ㅌㅗㅇ 각 결과의 [SPSS와 맞춰 보기]에 넣습니다.`,
+      `* 매개·조절은 Hayes의 PROCESS 매크로가 설치되어 있어야 합니다 (processmacro.org).`,
+      `* =====================================================================.`, '',
+      `FILE HANDLE tongdir /NAME='C:\\tong'.`, '',
+      `GET DATA /TYPE=TXT /FILE='tongdir/analysis_data.csv' /ENCODING='UTF8'`,
+      `  /DELCASE=LINE /DELIMITERS="," /QUALIFIER='"' /ARRANGEMENT=DELIMITED /FIRSTCASE=2`,
+      `  /VARIABLES=`);
+    head.forEach(h => L.push(`    ${N[h.code]} ${fmt(h)}`));
+    L.push('.', 'EXECUTE.', 'DATASET NAME tong WINDOW=FRONT.', '');
+    const labs = head.filter(h => h.label && (h.kind === 'score' || h.kind === 'code' || h.kind === 'num'));
+    if (labs.length) L.push('VARIABLE LABELS', '  ' + labs.map(h => `${N[h.code]} ${sq(h.label)}`).join('\n  /') + '.');
+    const codes = head.filter(h => h.kind === 'code');
+    if (codes.length) L.push('VALUE LABELS', '  ' + codes.map(h => `${N[h.code]} ${h.demo.options.map((o, i) => `${i + 1} ${sq(o)}`).join(' ')}`).join('\n  /') + '.', '');
+    // 변인 키 → SPSS 이름 (분류는 _n 번호)
+    list.forEach((a, i) => {
+      const S = a.spec; if (!S || !SPSSGEN[S.method]) return;
+      const v = k => { const x = S.vars[k]; return x.type === 'cat' ? N[x.code + '_n'] || N[x.code] : N[x.code]; };
+      const lvCode = (k, lv) => { const x = S.vars[k], d = sv.demos.find((dm, di) => demoCode(dm, di) === x.code); const j = d ? d.options.indexOf(lv) : -1; return j >= 0 ? j + 1 : null; };
+      const dummies = [], dum = keys => keys.flatMap(k => {
+        const x = S.vars[k]; if (x.type !== 'cat') return [v(k)];
+        return (x.levels || []).slice(1).map(l => { const c = lvCode(k, l), nmv = `${v(k)}_${c}`; dummies.push(`COMPUTE ${nmv} = (${v(k)} = ${c}).\nVARIABLE LABELS ${nmv} ${sq(`${x.name}: ${l} (기준 ${x.levels[0]})`)}.`); return nmv; });
+      });
+      const body = SPSSGEN[S.method](S, { v, lvCode, dum, opts: S.opts || {} });
+      L.push(`* ---------------------------------------------------------------------.`, `* [${i + 1}] ${a.title} (ㅌㅗㅇ N = ${a.n}).`, `* ---------------------------------------------------------------------.`);
+      if (dummies.length) L.push(...dummies, 'EXECUTE.');
+      L.push(body, '');
+    });
+    return L.join('\n');
+  }
+  const proc = (S, h, model, extra = '') => { const r = S.roles, o = h.opts; const cov = (r.covs || []).length ? ` /cov=${h.dum(r.covs).join(' ')}` : '';
+    return `process y=${h.v(r.y)} /x=${h.v(r.x)}${extra}${cov} /model=${model} /boot=${+o.boot || 5000} /seed=20261020 /total=1${o.center ? ' /center=1' : ''}.`; };
+  const SPSSGEN = {
+    pearson: (S, h) => `CORRELATIONS /VARIABLES=${S.roles.vars.map(h.v).join(' ')} /PRINT=TWOTAIL NOSIG /MISSING=PAIRWISE.`,
+    spearman: (S, h) => `NONPAR CORR /VARIABLES=${S.roles.vars.map(h.v).join(' ')} /PRINT=SPEARMAN TWOTAIL NOSIG /MISSING=PAIRWISE.`,
+    partial: (S, h) => `PARTIAL CORR /VARIABLES=${h.v(S.roles.x)} ${h.v(S.roles.y)} BY ${h.dum(S.roles.covs).join(' ')} /SIGNIFICANCE=TWOTAIL /MISSING=LISTWISE.`,
+    pointbiserial: (S, h) => `CORRELATIONS /VARIABLES=${h.v(S.roles.g)} ${h.v(S.roles.y)} /PRINT=TWOTAIL NOSIG /MISSING=LISTWISE.`,
+    chisq: (S, h) => `CROSSTABS /TABLES=${h.v(S.roles.a)} BY ${h.v(S.roles.b)} /STATISTICS=CHISQ PHI /CELLS=COUNT ROW.`,
+    onesample: (S, h) => `T-TEST /TESTVAL=${Number(h.opts.testValue)} /VARIABLES=${h.v(S.roles.y)}.`,
+    ind_t: (S, h) => { const lv = S.vars[S.roles.g].levels; return `T-TEST GROUPS=${h.v(S.roles.g)}(${h.lvCode(S.roles.g, lv[0])} ${h.lvCode(S.roles.g, lv[1])}) /VARIABLES=${S.roles.ys.map(h.v).join(' ')}.`; },
+    paired_t: (S, h) => `T-TEST PAIRS=${h.v(S.roles.a)} WITH ${h.v(S.roles.b)} (PAIRED).`,
+    oneway: (S, h) => `* 효과크기(/ES)는 SPSS 27 이상에서 나옵니다. 그 아래 버전이면 /ES=OVERALL을 지우세요.\nONEWAY ${S.roles.ys.map(h.v).join(' ')} BY ${h.v(S.roles.g)} /ES=OVERALL /STATISTICS=DESCRIPTIVES HOMOGENEITY WELCH /POSTHOC=${(h.opts.posthoc || 'scheffe') === 'bonferroni' ? 'BONFERRONI' : 'SCHEFFE'} ALPHA(0.05).`,
+    factorial: (S, h) => { const a = h.v(S.roles.a), b = h.v(S.roles.b); return `UNIANOVA ${h.v(S.roles.y)} BY ${a} ${b} /METHOD=SSTYPE(3) /PRINT=ETASQ HOMOGENEITY DESCRIPTIVE /DESIGN=${a} ${b} ${a}*${b}.`; },
+    ancova: (S, h) => { const g = h.v(S.roles.g), c = S.roles.covs.map(h.v).join(' '); return `UNIANOVA ${h.v(S.roles.y)} BY ${g} WITH ${c} /METHOD=SSTYPE(3) /PRINT=ETASQ DESCRIPTIVE /EMMEANS=TABLES(${g}) WITH(MEAN) /DESIGN=${c} ${g}.\n* 회귀 기울기 동질성 확인.\nUNIANOVA ${h.v(S.roles.y)} BY ${g} WITH ${c} /METHOD=SSTYPE(3) /DESIGN=${g} ${c} ${S.roles.covs.map(k => `${g}*${h.v(k)}`).join(' ')}.`; },
+    regression: (S, h) => `REGRESSION /STATISTICS=COEFF OUTS CI(95) R ANOVA COLLIN TOL /DEPENDENT=${h.v(S.roles.y)} /METHOD=ENTER ${h.dum(S.roles.xs).join(' ')}.`,
+    hier: (S, h) => { const r = S.roles; return `REGRESSION /STATISTICS=COEFF OUTS CI(95) R ANOVA CHANGE COLLIN TOL /DEPENDENT=${h.v(r.y)}\n  /METHOD=ENTER ${h.dum(r.b1).join(' ')}\n  /METHOD=ENTER ${h.dum(r.b2).join(' ')}${(r.b3 || []).length ? `\n  /METHOD=ENTER ${h.dum(r.b3).join(' ')}` : ''}.`; },
+    logistic: (S, h) => { const r = S.roles, cats = r.xs.filter(k => S.vars[k].type === 'cat').map(h.v); return `LOGISTIC REGRESSION VARIABLES ${h.v(r.y)} /METHOD=ENTER ${r.xs.map(h.v).join(' ')}${cats.length ? ` /CATEGORICAL=${cats.join(' ')} ${cats.map(c => `/CONTRAST(${c})=Indicator(1)`).join(' ')}` : ''} /PRINT=CI(95).`; },
+    med_parallel: (S, h) => proc(S, h, 4, ` /m=${S.roles.ms.map(h.v).join(' ')}`),
+    med_serial: (S, h) => proc(S, h, 6, ` /m=${h.v(S.roles.m1)} ${h.v(S.roles.m2)}`),
+    moderation: (S, h) => proc(S, h, 1, ` /w=${h.v(S.roles.w)} /moments=1`),
+    modmed7: (S, h) => proc(S, h, 7, ` /m=${h.v(S.roles.m)} /w=${h.v(S.roles.w)} /moments=1`),
+    modmed14: (S, h) => proc(S, h, 14, ` /m=${h.v(S.roles.m)} /w=${h.v(S.roles.w)} /moments=1`),
+    rm_anova: (S, h) => { const ys = S.roles.ys.map(h.v); return `GLM ${ys.join(' ')} /WSFACTOR=time ${ys.length} Polynomial /METHOD=SSTYPE(3) /PRINT=DESCRIPTIVE ETASQ /EMMEANS=TABLES(time) COMPARE ADJ(BONFERRONI) /WSDESIGN=time.`; },
+    mixed_anova: (S, h) => { const ys = S.roles.ys.map(h.v), g = h.v(S.roles.g); return `GLM ${ys.join(' ')} BY ${g} /WSFACTOR=time ${ys.length} Polynomial /METHOD=SSTYPE(3) /PRINT=DESCRIPTIVE ETASQ HOMOGENEITY /WSDESIGN=time /DESIGN=${g}.`; },
+    mcnemar: (S, h) => `CROSSTABS /TABLES=${h.v(S.roles.a)} BY ${h.v(S.roles.b)} /STATISTICS=MCNEMAR /CELLS=COUNT.`,
+    cochran: (S, h) => `NPAR TESTS /COCHRAN=${S.roles.vars.map(h.v).join(' ')}.`
+  };
+
+  // ---------- SPSS 출력에서 찾을 숫자 ----------
+  const KW = (ko, en) => `${ko} (${en})`;
+  function spssTargets(a) {
+    const m = a.method, out = [];
+    const add = (e, k, v, name, where, o = {}) => { if (v == null || !isFinite(v)) return; out.push({ id: `${e.id}.${k}`, eff: e, k, v, name, where, ...o }); };
+    a.effects.forEach(e => {
+      const P = (where) => add(e, 'p', e.p, 'p', where, { isP: true });
+      if (['pearson', 'spearman', 'pointbiserial'].includes(m)) { add(e, 'est', e.est, 'r', KW(m === 'spearman' ? '상관계수' : 'Pearson 상관', 'Correlation Coefficient')); P(KW('유의확률 (양측)', 'Sig. (2-tailed)')); }
+      else if (m === 'partial') { add(e, 'est', e.est, 'r', KW('상관', 'Correlation')); P(KW('유의확률 (양측)', 'Significance (2-tailed)')); }
+      else if (m === 'chisq') { add(e, 'est', e.est, "Cramer's V", KW('대칭적 측도 표의 Cramer의 V', "Cramer's V")); P(KW('카이제곱 검정 표의 Pearson 카이제곱 근사 유의확률', 'Asymptotic Significance')); }
+      else if (m === 'onesample' || m === 'paired_t') { add(e, 'est', e.est, m === 'paired_t' ? '대응차 평균' : '평균 차이', KW(m === 'paired_t' ? '대응표본 검정 표의 평균' : '일표본 검정 표의 평균차이', 'Mean (Difference)')); P(KW('유의확률 (양측)', 'Sig. (2-tailed)')); }
+      else if (m === 'ind_t') {
+        const row = (a.tables[0]?.rows || []).find(r => e.label.startsWith(r[0] + ':')), welch = row && row[row.length - 1] === 'Welch';
+        add(e, 'est', e.est, '평균 차이', KW('독립표본 검정 표의 평균차이', 'Mean Difference')); P(KW(`독립표본 검정 표 "${welch ? '등분산을 가정하지 않음' : '등분산을 가정함'}" 줄의 유의확률 (양측)`, welch ? 'Equal variances not assumed' : 'Equal variances assumed'));
+      }
+      else if (m === 'oneway') { add(e, 'est', e.est, 'η²', KW('ANOVA 효과크기 표의 에타 제곱 점추정 (SPSS 27 이상)', 'Eta-squared Point Estimate')); P(KW('ANOVA 표의 유의확률', 'Sig.')); }
+      else if (m === 'factorial' || m === 'ancova') { add(e, 'est', e.est, '부분 η²', KW('개체-간 효과 검정 표의 부분 에타 제곱', 'Partial Eta Squared')); P(KW('개체-간 효과 검정 표의 유의확률', 'Sig.')); }
+      else if (m === 'rm_anova' || m === 'mixed_anova') {
+        const between = /주효과$/.test(e.label) && !/시점/.test(e.label), row = e.sph === 'gg' ? 'Greenhouse-Geisser' : '구형성 가정 (Sphericity Assumed)';
+        add(e, 'est', e.est, '부분 η²', between ? KW('개체-간 효과 검정 표의 부분 에타 제곱', 'Partial Eta Squared') : KW(`개체-내 효과 검정 표 "${row}" 줄의 부분 에타 제곱`, 'Partial Eta Squared'));
+        P(between ? KW('개체-간 효과 검정 표의 유의확률', 'Sig.') : KW(`개체-내 효과 검정 표 "${row}" 줄의 유의확률`, 'Sig.'));
+      }
+      else if (m === 'mcnemar') add(e, 'pEx', e.pEx, 'p (정확)', KW('카이제곱 검정 표의 McNemar 검정 정확한 유의확률 (양측)', 'Exact Sig. (2-sided)'), { isP: true });
+      else if (m === 'cochran') { add(e, 'q', e.q, 'Q', KW('검정 통계량 표의 Cochran의 Q', "Cochran's Q")); P(KW('검정 통계량 표의 근사 유의확률', 'Asymp. Sig.')); }
+      else if (m === 'regression' || m === 'hier') {
+        if (/설명력 \(→|전체 설명력/.test(e.label)) { add(e, 'est', e.est, 'R²', KW('모형 요약 표의 R 제곱', 'R Square')); P(KW('ANOVA 표의 유의확률', 'Sig.')); }
+        else if (/ΔR²/.test(e.label)) { add(e, 'est', e.est, 'ΔR²', KW('모형 요약 표의 R 제곱 변화량', 'R Square Change')); P(KW('모형 요약 표의 유의확률 F 변화량', 'Sig. F Change')); }
+        else { add(e, 'est', e.est, 'B', KW('계수 표의 비표준화 계수 B', 'Unstandardized B')); P(KW('계수 표의 유의확률', 'Sig.')); }
+      }
+      else if (m === 'logistic') { add(e, 'est', e.est, 'B', KW('방정식에 포함된 변수 표의 B', 'B')); P(KW('방정식에 포함된 변수 표의 유의확률', 'Sig.')); }
+      else if (/^med_|^moderation|^modmed/.test(m)) {
+        if (e.ciBased) {
+          const idx = /조절된 매개 지수/.test(e.label), cond = /조건부/.test(e.label), tot = /총 간접/.test(e.label);
+          const where = idx ? 'Index of moderated mediation 표' : cond ? 'Conditional indirect effects 표' : 'Indirect effect(s) of X on Y 표' + (tot ? '의 TOTAL 줄' : '');
+          add(e, 'est', e.est, idx ? 'Index' : 'Effect', `PROCESS ${where}의 ${idx ? 'Index' : 'Effect'}`);
+          add(e, 'lo', e.lo, 'BootLLCI', `PROCESS ${where}의 BootLLCI`, { boot: true }); add(e, 'hi', e.hi, 'BootULCI', `PROCESS ${where}의 BootULCI`, { boot: true });
+        } else {
+          const where = /^직접효과/.test(e.label) ? 'Direct effect of X on Y 표의 Effect' : /^총효과/.test(e.label) ? 'Total effect of X on Y 표의 Effect' : /단순기울기/.test(e.label) ? 'Conditional effects of the focal predictor 표의 Effect' : '해당 결과변인(OUTCOME VARIABLE) 모형 표의 coeff';
+          add(e, 'est', e.est, 'B', `PROCESS ${where}`); P('PROCESS 같은 줄의 p');
+        }
+      }
+    });
+    return out;
+  }
+  // 입력한 값과 비교: 적힌 자릿수만큼 반올림 차이는 같다고 봄. 부트스트랩 구간은 재표집 차이를 허용
+  function spssMatch(t, raw) {
+    const s = String(raw || '').trim().replace(/[\s,]/g, ''); if (!s) return null;
+    if (/^<0?\.0*1$/.test(s.replace(/^p/, ''))) { if (!t.isP) return 'no'; const lim = Number(s.slice(1).replace(/^\./, '0.')); return t.v < lim ? 'ok' : 'no'; }
+    const x = Number(s.replace(/^(-?)\./, '$10.').replace(/^−/, '-')); if (!isFinite(x)) return 'bad';
+    const dec = (s.split('.')[1] || '').length, tol = 0.6 * 10 ** -Math.max(dec, 0) + 1e-9;
+    if (t.isP && x === 0 && t.v < 0.5 * 10 ** -dec) return 'ok';
+    if (Math.abs(x - t.v) <= tol) return 'ok';
+    if (t.boot) { const w = Math.abs((t.eff.hi ?? 0) - (t.eff.lo ?? 0)); if (Math.abs(x - t.v) <= Math.max(tol, 0.1 * w)) return 'near'; }
+    if (Math.abs(Math.abs(x) - Math.abs(t.v)) <= tol) return 'sign';
+    return 'no';
+  }
+  const showV = (t) => t.isP ? (t.v < 0.0001 ? '< .0001' : t.v.toFixed(4).replace(/^0\./, '.')) : (Math.abs(t.v) < 1 ? t.v.toFixed(4).replace(/^(-?)0\./, '$1.') : t.v.toFixed(4));
+  const SPSS_ST = { ok: ['✓', '같음'], near: ['≈', '가까움 (부트스트랩 재표집 차이)'], sign: ['±', '부호만 다름 (집단·범주 순서 확인)'], no: ['✗', '다름'], bad: ['?', '숫자를 읽지 못함'] };
+  function spssHtml(a) {
+    if (!a.spec || !SPSSGEN[a.method]) return '';
+    const T = spssTargets(a); if (!T.length) return '';
+    const vals = a.spss || {}, sts = T.map(t => spssMatch(t, vals[t.id])), done = sts.filter(Boolean), ok = sts.filter(s => s === 'ok' || s === 'near').length;
+    const sum = done.length ? (ok === done.length ? `<span class="a-ok">${ok}/${T.length} 일치</span>` : `<span class="a-low">${done.length - ok}개 다름</span> · ${ok}/${T.length} 일치`) : `숫자 ${T.length}개`;
+    let lastEff = '';
+    return `<details class="item-detail sp-chk" data-spss-a="${a.id}"><summary>SPSS와 맞춰 보기 · ${sum}</summary>
+      <p class="hint" style="padding:0 14px"><b>R·SPSS로 확인하기</b>에서 <b>analysis.sps</b>를 받아 SPSS에서 같은 분석을 돌린 뒤, 출력에 보이는 숫자를 그대로 적으세요. 적은 자릿수만큼 반올림해 비교합니다.</p>
+      <div class="table-wrap"><table class="compact sp-table"><thead><tr><th>SPSS에서 찾을 곳</th><th class="num">ㅌㅗㅇ</th><th>SPSS 값</th><th></th></tr></thead><tbody>
+      ${T.map((t, i) => { const st = sts[i], first = t.eff.label !== lastEff; lastEff = t.eff.label;
+        return `${first ? `<tr class="sp-grp"><td colspan="4">${esc(t.eff.label)}</td></tr>` : ''}<tr><td><span class="sp-k">${esc(t.name)}</span> ${esc(t.where)}</td><td class="num">${showV(t)}</td><td><input class="sp-in" data-spss="${a.id}|${t.id}" value="${esc(vals[t.id] || '')}" inputmode="decimal" placeholder="예: .461"></td><td class="sp-st ${st || ''}" title="${st ? SPSS_ST[st][1] : ''}">${st ? SPSS_ST[st][0] : ''}</td></tr>`; }).join('')}
+      </tbody></table></div>
+      <p class="hint" style="padding:0 14px 12px">✓ 같음 · ≈ 부트스트랩이라 조금 다름(정상) · ± 부호만 다름(집단 순서가 반대) · ✗ 다름. 다르면 변인, 제외된 응답, 분석 결정이 같은지 먼저 확인하세요.</p></details>`;
+  }
+  document.addEventListener('input', e => {
+    const t = e.target; if (!t.matches || !t.matches('.sp-in')) return;
+    const [aid, tid] = t.dataset.spss.split('|'), a = analyses.find(x => x.id === aid); if (!a) return;
+    a.spss = a.spss || {}; a.spss[tid] = t.value; saveAnalyses();
+    const tgt = spssTargets(a).find(x => x.id === tid), st = spssMatch(tgt, t.value), cell = t.closest('tr').querySelector('.sp-st');
+    cell.className = 'sp-st ' + (st || ''); cell.textContent = st ? SPSS_ST[st][0] : ''; cell.title = st ? SPSS_ST[st][1] : '';
+    const box = t.closest('.sp-chk'), T = spssTargets(a), sts = T.map(x => spssMatch(x, a.spss[x.id])), done = sts.filter(Boolean), ok = sts.filter(s => s === 'ok' || s === 'near').length;
+    box.querySelector('summary').innerHTML = `SPSS와 맞춰 보기 · ${done.length ? (ok === done.length ? `<span class="a-ok">${ok}/${T.length} 일치</span>` : `<span class="a-low">${done.length - ok}개 다름</span> · ${ok}/${T.length} 일치`) : `숫자 ${T.length}개`}`;
+  });
 
   // ---------- 시작 ----------
   const defErrs = checkRules(DEFAULT_RULES);
