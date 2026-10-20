@@ -2435,7 +2435,7 @@ button,input,textarea,select{font-family:inherit}
 .app.nav-min .side-copy .full{display:none}.app.nav-min .side-copy .mini{display:block;text-align:center}
 .app.nav-min .side-copy{padding:10px 0}
 #splash .sp-copy{margin:-8px 0 0;padding-top:12px;border-top:1px solid var(--line);text-align:center;font-size:12.5px;line-height:1.6;color:var(--ink-2);opacity:0;animation:t-fade .45s 1.85s forwards}
-#splash .sp-copy span{display:block;color:var(--ink-3);font-size:12px}
+#splash .sp-copy span{color:var(--ink-3)}
 .g-copy{margin-top:24px;padding-top:12px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-3)}
 /* 시작 아이콘 */
 .so-ic{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:var(--orange-soft);color:var(--orange)}
@@ -2488,7 +2488,7 @@ button,input,textarea,select{font-family:inherit}
   if (!src) return;
   var d = document.createElement('div'); d.id = 'splash'; d.setAttribute('role', 'presentation');
   d.innerHTML = src.outerHTML.replace('hdr-logo tong', 'tong anim').replace(/viewBox="[^"]*"/, 'viewBox="0 0 146 64"') +
-    (wm ? wm.outerHTML.replace('class="wm"', 'class="wm sp-wm"') : '') + '<p class="sp-tag">설문부터 통계 해석까지</p><p class="sp-copy">© 2026. An In-song. Distributed for free.<span>(2026. 안인성. 무료 배포)</span></p><button type="button" class="sp-skip">건너뛰기</button>';
+    (wm ? wm.outerHTML.replace('class="wm"', 'class="wm sp-wm"') : '') + '<p class="sp-tag">설문부터 통계 해석까지</p><p class="sp-copy">© 2026. An In-song. Distributed for free. <span>(2026. 안인성. 무료 배포)</span></p><button type="button" class="sp-skip">건너뛰기</button>';
   document.body.appendChild(d);
   var done = false;
   function close() { if (done) return; done = true; d.classList.add('out'); setTimeout(function () { d.remove(); }, 450); }
