@@ -2436,6 +2436,8 @@ button,input,textarea,select{font-family:inherit}
 .app.nav-min .side-copy{padding:10px 0}
 #splash .sp-copy{margin:-8px 0 0;padding-top:12px;border-top:1px solid var(--line);text-align:center;font-size:12.5px;line-height:1.6;color:var(--ink-2);opacity:0;animation:t-fade .45s 1.85s forwards}
 #splash .sp-copy span{color:var(--ink-3)}
+.hi-unk{margin:6px 0 4px;padding:8px 12px;border-radius:8px;background:var(--orange-soft);border:1px solid var(--orange-line);color:var(--ink);font-size:13.5px;line-height:1.6}
+.hs-step i.as,.hs-tag.as{color:var(--ink-2, #555);background:var(--bg-2);border:1px dashed var(--line)}
 /* ---------- SPSS로 확인하기 ---------- */
 .sp-box{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:8px 0 6px;background:var(--bg-2)}
 .sp-steps{margin:6px 0;padding-left:20px;font-size:14px;line-height:1.8}
@@ -7056,7 +7058,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
     $('#rp-method-bottom').innerHTML = `
       <div class="card"><h4>변인 ${vars.locked ? '🔒 잠김' : ''}</h4>${varRows ? `<div class="rkv">${varRows}</div>` : '<p class="rempty">사다리 도착 화면의 변인 고정칸에 적으면 여기에 보입니다.</p>'}</div>
       <div class="card"><h4>분석 결정 ${plan.locked ? `<span class="st auto">확정</span>` : '<span class="st missing">미확정</span>'} ${plan.log.some(l => l.after) ? `<span class="st manual">사후 변경 ${plan.log.filter(l => l.after).length}</span>` : ''}</h4>
-        <div class="rkv">${DECISIONS.map(d => `<span>${esc({ scoring: '점수', minPct: '최소 응답', straight: '불성실 응답', welch: '분산 다를 때', posthoc: '사후검정', boot: '부트스트랩', center: '평균중심화' }[d.id] || d.id)}</span><span>${esc(decLabel(d, d.get()))}</span>`).join('')}</div></div>`;
+        <div class="rkv">${DECISIONS.map(d => `<span>${esc({ scoring: '점수', minPct: '최소 응답', straight: '불성실 응답', welch: '분산 다를 때', posthoc: '사후검정', boot: '부트스트랩', center: '평균중심화', dup: '중복 응답', outlier: '이상치', sph: '구형성 보정' }[d.id] || d.id)}</span><span>${esc(decLabel(d, d.get()))}</span>`).join('')}</div></div>`;
   }
 
   let rpv = { page: 0 };
@@ -7942,62 +7944,94 @@ ${q}`;
   const splitVars = t => String(t || '').split(/\s*(?:,|，|및|그리고|와|과)\s+|\s*,\s*/).map(cleanVar).filter(Boolean);
   function splitHyps(text) {
     return String(text || '').split(/\n+/).map(l => l.trim()).filter(Boolean)
-      .map(l => l.replace(/^(?:\[?(?:연구\s*)?가설\s*\d+(?:-\d+)?\]?|H\s*\d+(?:-\d+)?|\d+(?:-\d+)?)\s*[.:)\]]?\s*/i, '').trim()).filter(l => l.length >= 6);
+      .map(l => l.replace(/^(?:[\[(]?(?:연구\s*)?(?:가설|문제|질문)\s*\d+(?:[-–.]\d+)*[a-z]?\s*[\])]?|H\s*\d+(?:[-–.]\d+)*[a-z]?|\(\d+(?:[-–]\d+)*\)|\d+(?:[-–]\d+)*(?=[.:)\]\s])|[①-⑳])\s*[.:)\]]?\s*/i, '').trim()).filter(l => l.length >= 6);
   }
+  // 높다/낮다 같은 말의 방향: +1 / -1 / 0
+  const sgn = w => /^(높|크|클|많|강|증가|향상|늘|길|커|좋)/.test(w || '') ? 1 : /^(낮|작|적|약|감소|저하|줄|짧|나쁘)/.test(w || '') ? -1 : 0;
+  const UPDN = '(높|낮|많|적|크|클|작|강|약|길|짧|증가|감소|향상|저하)';
+  const SIGN = '(?:정적|부적|긍정적|부정적|정\\s*\\(\\s*\\+\\s*\\)\\s*의|부\\s*\\(\\s*[-−]\\s*\\)\\s*의)';
+  const groupName = (a, b) => /남/.test(a + b) && /여/.test(a + b) ? '성별' : /실험/.test(a + b) ? '집단(실험·통제)' : `${a}·${b} 구분`;
   function parseHyp(text) {
-    const t = String(text).replace(/\s+/g, ' ').trim();
+    const t0 = String(text).replace(/\s+/g, ' ').trim().replace(/[?？]$/, '');
+    // 앞의 통제 구절(성별, 연령을 통제한 후에도)은 떼고 읽음
+    const t = t0.replace(/^.*?(?:통제한\s*(?:후에?도?|상태에서도?|뒤에?도?)|통제하(?:고|여도|더라도|고서도)|통제하였을\s*때(?:에도)?)\s*,?\s*/, '');
     const v = { iv: [], dv: '', med: [], mod: '', serial: false };
-    let type = 'unknown', m;
-    const hasMed = /(매개|거쳐|통하여|통해서?\s)/.test(t), hasMod = /조절/.test(t);
+    let type = 'unknown', m, dir = 0, repeated = false;
+    const R = s => new RegExp(s);
+    const hasMed = /(매개|거쳐|통하여|통해서?\s)/.test(t), hasMod = /조절|완충/.test(t);
     if (/조절된\s*매개/.test(t) || (hasMed && hasMod)) {
       type = 'modmed';
       m = t.match(/(.+?)(?:은|는|이|가)\s+(.+?)(?:을|를)?\s*(?:매개로|매개하여|통하여|통해|거쳐)\s*(.+?)(?:에|에게)\s/);
       if (m) { v.iv = splitVars(m[1]); v.med = splitVars(m[2]); v.dv = cleanVar(m[3]); }
+      else if ((m = t.match(/(.+?)(?:와|과)\s*(.+?)(?:의|간의|사이의)?\s*관계에서\s*(.+?)(?:의|이|가|은|는)?\s*(?:순차적\s*|이중\s*)?매개/))) { v.iv = splitVars(m[1]); v.dv = cleanVar(m[2]); v.med = splitVars(m[3]); }
+      else if ((m = t.match(/(.+?)(?:이|가|은|는)\s+(.+?)에\s*미치는\s*영향(?:에서|을|에\s*있어서?)\s*(.+?)(?:의|이|가|은|는)?\s*매개/))) { v.iv = splitVars(m[1]); v.dv = cleanVar(m[2]); v.med = splitVars(m[3]); }
       const mm = t.match(/(?:에서|때|경로에서)?\s*([^\s,]+(?:\s[^\s,]+)?)(?:의|이|가|은|는)?\s*조절/); if (mm) v.mod = cleanVar(mm[1]);
     } else if (hasMed) {
       type = 'med';
-      m = t.match(/(.+?)(?:은|는|이|가)\s+(.+?)(?:을|를)?\s*(?:순차적으로\s*|차례로\s*|이중\s*)?(?:매개로|매개하여|통하여|통해|거쳐)\s*(.+?)(?:에|에게)\s/);
-      if (m) { v.iv = splitVars(m[1]); v.med = splitVars(m[2]); v.dv = cleanVar(m[3]); }
-      else { m = t.match(/(.+?)(?:와|과)\s*(.+?)(?:의|간의)?\s*관계에서\s*(.+?)(?:은|는|이|가)?\s*(?:의\s*)?매개/); if (m) { v.iv = splitVars(m[1]); v.dv = cleanVar(m[2]); v.med = splitVars(m[3]); } }
+      if ((m = t.match(/(.+?)(?:은|는|이|가)\s+(.+?)(?:을|를)?\s*(?:순차적으로\s*|차례로\s*|이중\s*)?(?:매개로|매개하여|통하여|통해|거쳐)\s*(.+?)(?:에|에게)\s/))) { v.iv = splitVars(m[1]); v.med = splitVars(m[2]); v.dv = cleanVar(m[3]); }
+      else if ((m = t.match(/(.+?)(?:이|가|은|는)\s+(.+?)에\s*미치는\s*영향(?:에서|을|에\s*있어서?)\s*(.+?)(?:은|는|이|가|의)?\s*(?:순차적\s*|이중\s*)?매개/))) { v.iv = splitVars(m[1]); v.dv = cleanVar(m[2]); v.med = splitVars(m[3]); }
+      else if ((m = t.match(R(`(.+?)(?:은|는|이|가)\\s+(.+?)에\\s*(?:${SIGN}\\s*(?:인\\s*)?)?영향을\\s*(?:미치며|미치고|주며|주고)\\s*,?\\s*(.+?)(?:은|는|이|가)\\s*(?:이|그)\\s*(?:관계|영향)를?\\s*(?:순차적으로\\s*)?매개`)))) { v.iv = splitVars(m[1]); v.dv = cleanVar(m[2]); v.med = splitVars(m[3]); }
+      else if ((m = t.match(/(.+?)(?:와|과)\s*(.+?)(?:의|간의|사이의)?\s*관계에서\s*(.+?)(?:은|는|이|가)?\s*(?:의\s*)?(?:순차적\s*|이중\s*)?매개/))) { v.iv = splitVars(m[1]); v.dv = cleanVar(m[2]); v.med = splitVars(m[3]); }
       v.serial = /(순차|차례|이중|연속|직렬)/.test(t);
     } else if (hasMod) {
       type = 'mod';
-      m = t.match(/(.+?)(?:와|과)\s*(.+?)(?:의|간의)?\s*관계(?:에서|를)\s*(.+?)(?:은|는|이|가)?\s*(?:의\s*)?조절/)
-        || t.match(/(.+?)(?:이|가|은|는)\s+(.+?)에\s*(?:미치는|대한)\s*영향(?:을|에서|은|는)?\s*(.+?)(?:이|가|은|는)?\s*(?:의\s*)?조절/);
-      if (m) { v.iv = splitVars(m[1]); v.dv = cleanVar(m[2]); v.mod = cleanVar(m[3]); }
-    } else if (/차이/.test(t)) {
+      if ((m = t.match(/^(.+?)(?:은|는|이|가)\s+(.+?)(?:와|과)\s*(.+?)\s*(?:간의|사이의|의)?\s*관계를\s*(?:유의하게\s*)?(?:조절|완충)/))) { v.mod = cleanVar(m[1]); v.iv = splitVars(m[2]); v.dv = cleanVar(m[3]); }
+      else if ((m = t.match(R(`(.+?)(?:은|는|이|가)\\s+(.+?)에\\s*(?:${SIGN}\\s*(?:인\\s*)?)?영향을\\s*(?:미치며|미치고|주며|주고|미칠\\s*것이며)\\s*,?\\s*(?:이|그)\\s*(?:관계|영향|과정)에서\\s*(.+?)(?:은|는|이|가|의)\\s*(?:\\S+\\s*)?조절`)))) { v.iv = splitVars(m[1]); v.dv = cleanVar(m[2]); v.mod = cleanVar(m[3]); }
+      else if ((m = t.match(/(.+?)(?:와|과)\s*(.+?)(?:의|간의|사이의)?\s*관계(?:에서|를)\s*(.+?)(?:은|는|이|가)?\s*(?:의\s*)?조절/)
+        || t.match(/(.+?)(?:이|가|은|는)\s+(.+?)에\s*(?:미치는|대한)\s*영향(?:을|에서|은|는)?\s*(.+?)(?:이|가|은|는)?\s*(?:의\s*)?조절/))) { v.iv = splitVars(m[1]); v.dv = cleanVar(m[2]); v.mod = cleanVar(m[3]); }
+    } else if ((m = t.match(/^(.+?)(?:이|가|은|는)\s+(?:더\s*)?(\S+?)수록\s*,?\s*(.+?)(?:이|가|은|는|도|을|를)\s+(?:더\s*|유의하게\s*)*(\S+)/))) {
+      // ~할수록 ~할 것이다: 함께 움직임 (상관)
+      type = /영향|예측/.test(t) ? 'pred' : 'rel'; v.iv = [cleanVar(m[1])]; v.dv = cleanVar(m[3]); dir = sgn(m[2]) * sgn(m[4]);
+    } else if ((m = t.match(R(`(?:^|\\s)(?:[^\\s]+\\s+)?(?:참여|실시|처치|적용|개입|교육|훈련)?\\s*(?:전후로?|전과\\s*후에?|사전[과·와\\s]*사후에?|전보다\\s*후에?|(?:참여|실시|처치|적용|개입|교육|훈련)\\s*(?:후|이후)에?)\\s*,?\\s*(.+?)(?:이|가|은|는|을|를|도)?\\s*(?:유의하게\\s*|더\\s*)*(감소|증가|높아|낮아|향상|개선|줄어|늘어|변화|달라|차이|${UPDN.slice(1, -1)})`)))) {
+      type = 'diff'; repeated = true; v.iv = ['사전·사후 시점']; v.dv = cleanVar(m[1]); dir = /(개선)/.test(m[2]) ? 0 : sgn(m[2].replace(/^높아/, '높').replace(/^낮아/, '낮').replace(/^줄어/, '줄').replace(/^늘어/, '늘'));
+    } else if (/차이|다를|다르/.test(t)) {
       type = 'diff';
-      m = t.match(/(.+?)에\s*따(?:라|른)\s*(.+?)(?:에|의|은|는|이|가)?\s*(?:는\s*)?(?:통계적으로\s*)?(?:유의한\s*|유의미한\s*)?차이/) || t.match(/(.+?)\s*간(?:에|의)?\s*(.+?)(?:에|의|은|는|이|가)?\s*(?:유의한\s*|유의미한\s*)?차이/);
-      if (m) { v.iv = splitVars(m[1]); v.dv = cleanVar(m[2]); }
-    } else if (/(상관|관련|관계가\s*있|관계를\s*보일|함께\s*변)/.test(t) && !/영향/.test(t)) {
+      if ((m = t.match(/^(.+?)(?:은|는|이|가)\s+(.+?)에\s*따라\s*(?:통계적으로\s*)?(?:유의한\s*|유의미한\s*)?(?:차이|다를|다르)/))) { v.dv = cleanVar(m[1]); v.iv = splitVars(m[2]); }
+      else if ((m = t.match(/(.+?)에\s*따(?:라|른)\s*(.+?)(?:에|의|은|는|이|가|도)?\s*(?:는\s*)?(?:통계적으로\s*)?(?:유의한\s*|유의미한\s*)?(?:차이|다를|다르)/) || t.match(/(.+?)\s*간(?:에|의)?\s*(.+?)(?:에|의|은|는|이|가)?\s*(?:유의한\s*|유의미한\s*)?차이/))) { v.iv = splitVars(m[1]); v.dv = cleanVar(m[2]); }
+    } else if ((m = t.match(R(`^(.+?)(?:이|가)\\s+(높은|낮은|많은|적은|큰|작은)\\s*집단(?:은|이)\\s*(?:\\S+\\s*)?집단(?:보다|에\\s*비해|에\\s*비하여)\\s*(.+?)(?:이|가|을|를|은|는|도)?\\s*(?:더\\s*|유의하게\\s*)*${UPDN}`)))) {
+      type = 'diff'; v.iv = [cleanVar(m[1]) + ' 집단']; v.dv = cleanVar(m[3]); dir = sgn(m[2]) * sgn(m[4]);
+    } else if ((m = t.match(R(`^(.+?)(?:은|는|이|가)\\s+(.+?)(?:보다|에\\s*비해서?|에\\s*비하여)\\s*(.+?)(?:이|가|을|를|은|는|도)?\\s*(?:더\\s*|유의하게\\s*)*${UPDN}`)))) {
+      type = 'diff'; v.iv = [groupName(cleanVar(m[1]), cleanVar(m[2]))]; v.dv = cleanVar(m[3]); dir = sgn(m[4]);
+    } else if (/(상관|관련|관계가\s*있|관계를\s*보일|관계가\s*나타|관계일|함께\s*변)/.test(t) && !/영향/.test(t)) {
       type = 'rel';
-      m = t.match(/(.+?)(?:와|과)\s+(.+?)(?:은|는|간에는|간에|의|사이에는|사이에)?\s*(?:유의한\s*|유의미한\s*)?(?:정적|부적|긍정적|부정적)?\s*(?:인\s*)?(?:상관|관련|관계)/);
-      if (m) { v.iv = [cleanVar(m[1])]; v.dv = cleanVar(m[2]); }
-    } else if (/(영향|예측|높일|낮출|증가시킬|감소시킬|높아질|낮아질)/.test(t)) {
+      if ((m = t.match(R(`^(.+?)(?:은|는|이|가)\\s+(.+?)(?:와|과)\\s*(?:유의한\\s*|유의미한\\s*|통계적으로\\s*)*(?:${SIGN}\\s*(?:인\\s*)?)?(?:상관|관련|관계)`)))) { v.iv = [cleanVar(m[1])]; v.dv = cleanVar(m[2]); }
+      else if ((m = t.match(R(`(.+?)(?:와|과)\\s+(.+?)(?:은|는|간에는|간에|간의|의|사이에는|사이에|사이의)?\\s*(?:어떤\\s*|어떠한\\s*)?(?:유의한\\s*|유의미한\\s*)?(?:${SIGN}\\s*(?:인\\s*)?)?(?:상관|관련|관계)`)))) { v.iv = [cleanVar(m[1])]; v.dv = cleanVar(m[2]); }
+    } else if (/(영향|예측|높일|낮출|증가시킬|감소시킬|높아질|낮아질|향상시킬|증진시킬|높여|낮춰|줄일)/.test(t)) {
       type = 'pred';
-      m = t.match(/(.+?)(?:은|는|이|가)\s+(.+?)(?:에|에게|을|를)\s*(?:통계적으로\s*)?(?:유의한\s*|유의미한\s*)?(?:정적|부적|긍정적|부정적)?\s*(?:인\s*)?(?:영향|예측|높일|낮출|증가|감소)/);
+      m = t.match(R(`(.+?)(?:은|는|이|가)\\s+(.+?)(?:에|에게|을|를)\\s*(?:통계적으로\\s*)?(?:유의한\\s*|유의미한\\s*)?(?:${SIGN}\\s*(?:인\\s*)?)?(?:영향|예측|높일|낮출|증가|감소|향상|증진|높여|낮춰|줄일)`));
       if (m) { v.iv = splitVars(m[1]); v.dv = cleanVar(m[2]); }
     }
-    const expect = /(부적|부정적|낮출|낮아|감소|줄일|줄어)/.test(t) ? '-' : /(정적|긍정적|높일|높아|증가|클수록|높을수록)/.test(t) ? '+' : '≠';
-    const flags = { covar: /(통제|공변|빼고)/.test(t), repeated: /(사전|사후|전후|반복|시점|추적)/.test(t), oneGroup: /(기준값|평균보다|척도\s*중간값)/.test(t), binaryDv: /(여부|유무|있다\/없다|예\/아니오)/.test(v.dv + ' ' + t) };
+    if (type === 'unknown' && (m = t.match(/^(.+?)(?:은|는|이|가)\s+(.+?)(?:에|에게|을|를|와|과)\s/)) && !/(하였|했|하|될|되었|되|있|없)$/.test(m[2])) { v.iv = splitVars(m[1]); v.dv = cleanVar(m[2]); }
+    const expect = dir > 0 ? '+' : dir < 0 ? '-' : (type === 'diff' && !repeated && !/보다|비해/.test(t)) ? '≠'
+      : /(부적|부정적|부\s*\(\s*[-−]\s*\)|낮출|낮아|감소|줄일|줄어|낮춰)/.test(t) ? '-' : /(정적|긍정적|정\s*\(\s*\+\s*\)|높일|높아|높여|증가|향상|증진|클수록|높을수록)/.test(t) ? '+' : '≠';
+    const flags = { covar: /(통제(?!\s*집단|군)|공변|빼고)/.test(t0), repeated: repeated || /(사전|사후|전후|반복\s*측정|시점|추적)/.test(t0), oneGroup: /(기준값|평균보다|척도\s*중간값)/.test(t), binaryDv: /(여부|유무|있다\/없다|예\/아니오)/.test(v.dv + ' ' + t) };
     return { type, vars: v, expect, flags };
   }
 
   // ---------- 질문마다 가설에서 알 수 있는 답 (모르면 null = 물어봄) ----------
-  const KNOWN2 = /(성별|남녀|남성과 여성|실험집단|통제집단|처치\s*유무|유무|여부|국적|내외국인|맞벌이)/;
+  const KNOWN2 = /(성별|남녀|남성과 여성|실험집단|통제집단|실험·통제|사전·사후|처치\s*유무|유무|여부|국적|내외국인|맞벌이)/;
   const KNOWN3 = /(학년|연령대|지역|직급|학력|세\s*집단|소득\s*수준|전공\s*계열)/;
+  // 숫자 = 가설에서 읽은 답, { a } = 보통의 설문 연구라면 그렇다고 가정한 답 (눌러서 고칠 수 있음)
+  const AS = a => ({ a });
   function guessAnswer(nodeId, it) {
     const { type, vars: v, flags: f } = it;
-    const ivN = v.iv.length;
+    const ivN = v.iv.length, ivs = v.iv.join(' ');
+    const catIv = KNOWN2.test(ivs) || KNOWN3.test(ivs) || / 집단$/.test(ivs);
     switch (nodeId) {
       case 'q1': return type === 'diff' ? 0 : type === 'rel' ? 1 : ['pred', 'med', 'mod', 'modmed'].includes(type) ? 2 : null;
+      case 'q2_diff': return f.binaryDv ? 1 : AS(0);
+      case 'q2_rel': return catIv ? 2 : AS(0);
+      case 'q2_pred': return f.binaryDv ? 1 : AS(0);
       case 'q3_diff_n': case 'q3_diff_c': return f.oneGroup && nodeId === 'q3_diff_n' ? 2 : ivN === 1 ? 0 : ivN > 1 ? 1 : null;
-      case 'q3_diff_n_lv': return KNOWN2.test(v.iv.join(' ')) ? 0 : KNOWN3.test(v.iv.join(' ')) ? 1 : null;
-      case 'q4_diff_n2': case 'q4_diff_n3': return f.repeated ? 1 : null;
-      case 'q3c_diff_n2': case 'q3c_diff_n3': case 'q3c_diff_fac': return f.covar ? 1 : null;
-      case 'q3_rel_nn': return f.covar ? 2 : null;
-      case 'q2_pred': return f.binaryDv ? 1 : null;
+      case 'q3_diff_n_lv': return KNOWN2.test(ivs) || / 집단$/.test(ivs) ? 0 : KNOWN3.test(ivs) ? 1 : null;
+      case 'q4_diff_n2': case 'q4_diff_n3': return f.repeated ? 1 : AS(0);
+      case 'q4_diff_fac': return f.repeated ? null : AS(0);
+      case 'q4_diff_c': return f.repeated ? null : AS(0);
+      case 'q3c_diff_n2': case 'q3c_diff_n3': case 'q3c_diff_fac': return f.covar ? 1 : AS(0);
+      case 'q3_rel_nn': return f.covar ? 2 : AS(0);
+      case 'q3_rel_mix': return KNOWN2.test(ivs) ? 0 : KNOWN3.test(ivs) ? 1 : null;
       case 'q3_pred_n': return f.covar && ivN >= 1 ? 2 : ivN > 1 && type === 'pred' ? 1 : ivN >= 1 ? 0 : null;
+      case 'q4_pred_n1': case 'q4_pred_nm': case 'q4_pred_nh': return f.repeated ? null : AS(0);
       case '@gate': return type === 'med' ? 1 : type === 'mod' ? 2 : type === 'modmed' ? 3 : ['diff', 'rel', 'pred'].includes(type) ? 0 : null;
       case 'q5_med': return v.med.length > 1 ? (v.serial ? 2 : 1) : v.med.length === 1 ? 0 : null;
       default: return null;
@@ -8013,7 +8047,7 @@ ${q}`;
       if (it.asked && it.asked.includes(key + ':' + p.length)) break;
       const g = guessAnswer(key, it);
       if (g == null) break;
-      p.push(g); auto.push(true);
+      if (typeof g === 'object') { p.push(g.a); auto.push('assume'); } else { p.push(g); auto.push(true); }
     }
     it.path = p; it.auto = auto;
   }
@@ -8066,7 +8100,7 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
   }
   function hypStepsHtml(it, ii) {
     const w = walk(it.path);
-    const steps = w.steps.map((s, k) => `<button class="hs-step ${it.auto[k] ? 'auto' : ''}" data-hp-back="${ii}.${k}" title="눌러서 이 질문부터 다시 답하기"><span class="hs-q">${esc(s.node === RULES.gate ? '다른 변인' : (s.node.title || stepName(s.node.step)))}</span><span class="hs-a">${esc(s.opt.short || s.opt.label)}</span>${it.auto[k] ? '<i>가설에서 읽음</i>' : ''}</button>`).join('');
+    const steps = w.steps.map((s, k) => `<button class="hs-step ${it.auto[k] ? 'auto' : ''}" data-hp-back="${ii}.${k}" title="눌러서 이 질문부터 다시 답하기"><span class="hs-q">${esc(s.node === RULES.gate ? '다른 변인' : (s.node.title || stepName(s.node.step)))}</span><span class="hs-a">${esc(s.opt.short || s.opt.label)}</span>${it.auto[k] === 'assume' ? '<i class="as" title="보통의 설문 연구라면 이렇게 됩니다. 다르면 눌러서 고르세요">가정함</i>' : it.auto[k] ? '<i>가설에서 읽음</i>' : ''}</button>`).join('');
     let next = '';
     if (w.cur.type === 'node' || w.cur.type === 'gate') {
       const node = w.cur.type === 'gate' ? RULES.gate : RULES.nodes[w.cur.id];
@@ -8098,11 +8132,12 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
       <label class="f" style="margin-top:10px">가설 (한 줄에 하나씩)<textarea id="hp-text" rows="4" placeholder="예)\n가설 1. 능력주의 신념은 외집단 혐오에 정적 영향을 미칠 것이다.\n가설 2. 능력주의 신념은 사회비교경향성과 외로움을 순차적으로 매개하여 외집단 혐오에 정적 영향을 미칠 것이다.\n가설 3. 성별에 따라 외집단 혐오에 차이가 있을 것이다.">${esc(hp.text)}</textarea></label>
       <div class="actions tight"><button class="btn primary" data-hp="read">가설 읽기</button>${aiOn() ? '<button class="btn" data-hp="read-ai">AI로 읽기 (문장이 복잡할 때)</button>' : ''}${hpBusy ? `<span class="hint">${esc(hpBusy)}</span>` : ''}</div>
       ${items.length ? `<div class="hyp-list">
-        <p class="hint" style="margin:14px 0 6px">가설에서 읽은 것은 <span class="hs-tag">가설에서 읽음</span>으로 표시했습니다. 틀린 곳은 눌러서 다시 고르고, 변인 이름은 칸에서 고치세요. 모자란 것만 아래에서 물어봅니다.</p>
+        <p class="hint" style="margin:14px 0 6px">가설에서 읽은 것은 <span class="hs-tag">가설에서 읽음</span>, 보통의 설문 연구(점수로 잰 변인, 한 번 응답, 통제변인 없음)라고 가정한 것은 <span class="hs-tag as">가정함</span>으로 표시했습니다. 내 연구와 다르면 그 칸을 눌러 다시 고르고, 변인 이름은 칸에서 고치세요. 가설만으로 알 수 없는 것만 아래에서 물어봅니다.</p>
         ${items.map((it, ii) => `<div class="hyp-item ${hp.active === ii ? 'on' : ''}" data-hp-item="${ii}">
           <div class="hi-head"><span class="hi-no">가설 ${ii + 1}</span><span class="hi-type t-${it.type}">${esc(HTYPE[it.type])}</span>${it.byAI ? '<span class="hs-tag">AI가 읽음</span>' : ''}
-            <select class="hi-tsel" data-hp-type="${ii}" title="종류가 틀리면 고르세요">${Object.entries(HTYPE).filter(([k]) => k !== 'unknown').map(([k, l]) => `<option value="${k}" ${it.type === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+            <select class="hi-tsel" data-hp-type="${ii}" title="종류가 틀리면 고르세요">${it.type === 'unknown' ? '<option value="" selected disabled>종류 고르기</option>' : ''}${Object.entries(HTYPE).filter(([k]) => k !== 'unknown').map(([k, l]) => `<option value="${k}" ${it.type === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
           <p class="hi-text">${esc(it.text)}</p>
+          ${it.type === 'unknown' ? `<p class="hi-unk">이 문장은 규칙으로 가설의 종류를 알아보지 못했어요. 오른쪽 위 <b>[종류 고르기]</b>에서 고르거나 아래 질문에 답하세요.${aiOn() ? ' 문장이 복잡하면 <b>[AI로 읽기]</b>가 더 잘 읽습니다.' : ' "A가 높을수록 B가 높을 것이다", "A는 B에 정적 영향을 미칠 것이다", "성별에 따라 B에 차이가 있을 것이다"처럼 쓰면 잘 읽습니다.'}</p>` : ''}
           ${varEditHtml(it, ii)}
           ${hypStepsHtml(it, ii)}
         </div>`).join('')}
@@ -8185,7 +8220,7 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
       const keep = it.auto.findIndex(a => a); it.path = keep >= 0 ? it.path.slice(0, keep) : it.path; it.auto = it.auto.slice(0, it.path.length); autoWalk(it);
       saveHp(); render(); renderRight();
     }
-    if (t.dataset.hpType) { const it = hp.items[+t.dataset.hpType]; it.type = t.value; it.path = []; it.auto = []; it.asked = []; autoWalk(it); saveHp(); render(); renderRight(); }
+    if (t.dataset.hpType && t.value) { const it = hp.items[+t.dataset.hpType]; it.type = t.value; it.path = []; it.auto = []; it.asked = []; autoWalk(it); saveHp(); render(); renderRight(); }
   });
   $('#stage').addEventListener('input', e => { if (e.target.id === 'hp-title') hp.title = e.target.value; if (e.target.id === 'hp-text') hp.text = e.target.value; if (e.target.id === 'hp-title' || e.target.id === 'hp-text') _set('ladder.hyp', hp); });
   $('#stage').addEventListener('focusin', e => { const c = e.target.closest('[data-hp-item]'); if (c && hp.active !== +c.dataset.hpItem) { hp.active = +c.dataset.hpItem; renderRight(); } });
