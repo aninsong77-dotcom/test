@@ -2359,6 +2359,72 @@ button,input,textarea,select{font-family:inherit}
 .rg-inner .gstep{padding:10px 12px}
 
 .g-sum{font-size:1.02em;background:var(--orange-soft);border-radius:10px;padding:10px 14px;margin:0 0 14px}
+
+/* 시작 고르기 · 가설로 시작하기 */
+.start-opts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.start-opt{display:flex;flex-direction:column;gap:6px;text-align:left;padding:18px;border:1.5px solid var(--line);border-radius:14px;background:var(--bg);color:var(--ink);font:inherit;cursor:pointer}
+.start-opt:hover{border-color:var(--orange);background:var(--orange-soft)}
+.start-opt b{font-size:16px}.start-opt span:last-child{font-size:13px;color:var(--ink-2);line-height:1.55}
+.so-ic{font-size:24px}
+@media (max-width:640px){.start-opts{grid-template-columns:1fr}}
+.linkish{border:0;background:none;color:var(--orange-deep);font:inherit;font-size:12.5px;text-decoration:underline;cursor:pointer;padding:0 0 0 8px}
+.hp-switch{font-size:12.5px;color:var(--ink-3);margin:0 0 10px;text-align:right}
+.hyp-list{display:grid;gap:12px}
+.hyp-item{border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--bg)}
+.hyp-item.on{border-color:var(--orange-line);box-shadow:0 0 0 3px var(--orange-soft)}
+.hi-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.hi-no{flex:none;font-size:12px;font-weight:800;color:#fff;background:var(--navy);border-radius:6px;padding:2px 8px}
+.hi-type{font-size:12.5px;font-weight:800;color:var(--orange-deep)}
+.hi-tsel{margin-left:auto;font:inherit;font-size:12px;border:1px solid var(--line);border-radius:6px;padding:2px 4px;background:var(--bg);color:var(--ink-2)}
+.hi-text{margin:6px 0 8px;font-size:13.5px;line-height:1.6}
+.hv-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.hv{display:flex;flex-direction:column;gap:2px;flex:1 1 150px;font-size:11.5px;color:var(--ink-3);font-weight:700}
+.hv.sm{flex:0 0 110px}
+.hv input,.hv select{font:inherit;font-size:13px;font-weight:400;color:var(--ink);border:1.5px solid var(--line);border-radius:8px;padding:5px 8px;background:var(--bg)}
+.hs-steps{display:flex;flex-wrap:wrap;gap:6px}
+.hs-step{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--bg-2);border-radius:999px;padding:3px 10px;font:inherit;font-size:12px;cursor:pointer;color:var(--ink)}
+.hs-step:hover{border-color:var(--orange)}
+.hs-q{color:var(--ink-3)}.hs-a{font-weight:700}
+.hs-step i,.hs-tag{font-style:normal;font-size:10.5px;font-weight:700;color:var(--orange-deep);background:var(--orange-soft);border-radius:999px;padding:0 6px}
+.hs-next{margin-top:10px;padding:10px 12px;border-left:3px solid var(--point);background:var(--here-soft);border-radius:0 10px 10px 0}
+.hs-nq{font-weight:800;font-size:14px;margin-bottom:4px}
+.hs-opts{display:grid;gap:6px}
+.hs-opt{text-align:left;border:1.5px solid var(--line);background:var(--bg);border-radius:10px;padding:8px 10px;font:inherit;font-size:13.5px;color:var(--ink);cursor:pointer}
+.hs-opt:hover{border-color:var(--orange);background:var(--orange-soft)}
+.hs-opt small{display:block;font-size:12px;color:var(--ink-3)}
+.hs-res{margin-top:10px;display:flex;flex-direction:column;gap:2px;padding:10px 12px;border-radius:10px;background:var(--orange-soft);border:1px solid var(--orange-line)}
+.hs-res span{font-size:11.5px;color:var(--ink-3);font-weight:700}.hs-res b{font-size:15px;color:var(--orange-deep)}.hs-res small{font-size:12px;color:var(--ink-2)}
+/* 남은 후보 */
+.cand-for{margin:0 2px 6px;font-size:12.5px;font-weight:800;color:var(--ink-2)}.cand-for small{font-weight:500;color:var(--ink-3)}
+.cand-head{display:flex;align-items:baseline;gap:6px}
+.cand-head h4{margin:0 auto 0 0}
+.cand-n{font-size:30px;font-weight:800;color:var(--orange);line-height:1}.cand-n small{font-size:14px;margin-left:1px}
+.cand-of{font-size:12px;color:var(--ink-3)}
+.cand-lead{margin:8px 0 0;font-size:13px;color:var(--ink-2)}
+.cand-flow{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin:10px 0 4px}
+.cf-chip{font-size:11.5px;padding:2px 8px;border-radius:999px;background:var(--bg-2);border:1px solid var(--line);color:var(--ink-2);white-space:nowrap}
+.cf-chip b{color:var(--ink);margin-left:2px}.cf-chip.last{background:var(--orange-soft);border-color:var(--orange-line)}.cf-chip.last b{color:var(--orange-deep)}
+.cf-arrow{color:var(--ink-3);font-size:12px}
+.cand-list{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:6px}
+.cand-list li{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.cand-list li div{flex:1;min-width:0}.cand-list b{display:block;font-size:13.5px}.cand-list small{display:block;font-size:12px;color:var(--ink-3);line-height:1.45}
+.cand-list li.chosen{border-color:var(--point);background:var(--here-soft)}.cand-list li.chosen b{color:var(--here-ink);font-size:15px}
+.cand-list li.mm{border-style:dashed}
+.cand-alt{margin-top:10px}.cand-alt p{margin:0 0 4px;font-size:12px;font-weight:700;color:var(--ink-2)}
+.cand-alt .cand-list{margin-top:0}.cand-alt li{opacity:.85}
+.cand-if{flex:none;max-width:44%;font-size:11px;color:var(--orange-deep);background:var(--orange-soft);border-radius:8px;padding:2px 7px;line-height:1.35}
+.cand-note{margin:8px 0 0;font-size:12px;color:var(--ink-3);line-height:1.5}
+.cand-out{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
+.cand-out summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(--ink-2)}
+.co-row{margin-top:8px;font-size:12px;line-height:1.5}.co-why{color:var(--ink-2)}.co-list{color:var(--ink-3)}
+.cand.done .cand-head h4{color:var(--here-ink)}
+.hp-plan{display:grid;gap:8px}
+.hp-row{display:flex;align-items:center;gap:8px}.hp-row div{flex:1;min-width:0}.hp-row b{display:block;font-size:13.5px}.hp-row small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;font-size:11.5px;color:var(--ink-3);overflow:hidden;line-height:1.4}
+.hp-row .btn{flex:none}
+.map-toggle{display:inline-block!important}
+.map.collapsed .map-body{display:none}
+.tnode.leaf .no{font-size:10px;background:var(--bg-2);color:var(--ink-3)}
+.tnode.leaf.on .no,.tnode.leaf.here .no{background:var(--orange-soft);color:var(--orange-deep)}
 </style>
 </head>
 <body>
@@ -2592,21 +2658,21 @@ button,input,textarea,select{font-family:inherit}
     <button class="rtab" data-rt="guide" role="tab">사용 설명</button>
   </div>
   <div class="rpane" id="rp-method" data-rp="method">
-    <div id="rp-method-top"></div>
-    <aside class="map" id="map">
+    <div id="rp-method-top"></div><div id="rp-cand"></div>
+    <aside class="map collapsed" id="map">
         <div class="map-head">
           <div>
-            <h2>사다리 지도</h2>
-            <p>지나온 길과 지금 위치 · 눌러서 이동</p>
+            <h2>전체 갈림길 보기</h2>
+            <p>모든 질문과 기법이 어떻게 갈리는지 · 눌러서 이동</p>
           </div>
           <a class="map-help" href="#guide-ladder">사용 설명</a>
-          <button class="map-toggle" id="map-toggle" aria-expanded="true">접기</button>
+          <button class="map-toggle" id="map-toggle" aria-expanded="false">펼치기</button>
         </div>
         <div class="map-body" id="map-body">
           <div class="legend">
             <span><i style="background:var(--point)"></i>지금 위치</span>
             <span><i style="background:var(--orange-soft);border:1px solid var(--orange-line)"></i>지나온 길</span>
-            <span><i style="background:var(--ok-soft)"></i>도착점(기법)</span>
+            <span><i style="background:var(--bg-2);border:1px solid var(--line)"></i>통계 기법 (후보)</span>
           </div>
           <ul class="tree" id="tree"></ul>
           <div class="gate-box" id="gate-box"></div>
@@ -2789,7 +2855,7 @@ button,input,textarea,select{font-family:inherit}
           const name = RULES.results[o.next] ? RULES.results[o.next].name
             : o.next === '@result' ? (w.pending ? `${RULES.results[w.pending].name} 그대로` : '앞에서 고른 기법 그대로') : '범위 밖 안내';
           const cls = !cOn ? '' : (final && cks === curKey) ? 'here' : 'on';
-          child = `<button class="tnode leaf ${cls}" ${attr}><span class="no">✓</span><span>${esc(name)}</span></button>`;
+          child = `<button class="tnode leaf ${cls}" ${attr}><span class="no">기법</span><span>${esc(name)}</span></button>`;
         } else child = nodeLi(RULES.nodes[o.next], ck, false);
         return `<li class="${cOn ? 'on' : ''}"><span class="edge">${esc(o.short || o.label)}</span>${child}</li>`;
       }).join('') + '</ul>';
@@ -2804,7 +2870,7 @@ button,input,textarea,select{font-family:inherit}
     const g = $('#gate-box');
     const gateKey = w.gateAt >= 0 ? path.slice(0, w.gateAt) : null;
     g.className = 'gate-box' + (w.cur.type === 'gate' ? ' here' : final ? ' done' : '');
-    g.innerHTML = `<p class="gate-note">모든 도착점(✓) 바로 앞에서 한 번 더 묻습니다.${gateKey ? '' : ' 도착점에 가면 열립니다.'}</p>
+    g.innerHTML = `<p class="gate-note">기법이 정해지기 바로 앞에서 한 번 더 묻습니다.${gateKey ? '' : ' 앞의 질문에 다 답하면 열립니다.'}</p>
       <ul class="tree ${path.length ? 'dim' : ''}"><li class="${gateKey ? 'on' : ''}">${nodeLi(RULES.gate, gateKey, true)}</li></ul>`;
 
     // 지금 위치가 보이게 지도 안에서만 스크롤
@@ -2919,7 +2985,7 @@ button,input,textarea,select{font-family:inherit}
   // ---------- 변인 고정칸 ----------
   let vars = store.get('ladder.vars', { ivs: [{ name: '', levels: '' }], dv: '', locked: false, lockedAt: '' });
   if (!Array.isArray(vars.others)) vars.others = [];
-  const OTHER_ROLES = ['매개', '조절', '통제'];
+  const OTHER_ROLES = ['매개', '조절', '통제', '종속'];
   const saveVars = () => store.set('ladder.vars', vars);
 
   function renderVars() {
@@ -2984,11 +3050,13 @@ button,input,textarea,select{font-family:inherit}
   function render() {
     const w = walk(path);
     let html;
-    if (w.cur.type === 'node') html = renderQuestion(RULES.nodes[w.cur.id], false);
+    if (hp && hp.mode === 'hyp') html = hypHtml();
+    else if (hp && !hp.mode && !path.length) html = startChooserHtml();
+    else if (w.cur.type === 'node') html = renderQuestion(RULES.nodes[w.cur.id], false);
     else if (w.cur.type === 'gate') html = renderQuestion(RULES.gate, true);
     else if (w.cur.type === 'result') html = renderResult(w);
     else html = renderOut(w);
-    $('#stage').innerHTML = html;
+    $('#stage').innerHTML = (hp && hp.mode === 'ladder' && !path.length ? '<div class="hp-switch">가설이 이미 있으면 <button class="linkish" data-hp="mode-hyp">가설로 시작하기</button>가 더 빠릅니다.</div>' : '') + html;
     renderTree();
     if (curView() === 'ladder' && path.length) { const c = $('#stage > .card'); if (c) $('#scroller').scrollTop = Math.max(0, c.offsetTop - 70); }
   }
@@ -5319,8 +5387,16 @@ ${REVIEW_RULES}
       <div class="gstep"><b>STEP 4. 다음에 이어 하기</b><p>같은 브라우저로 다시 열고 <b>[다시 연결]</b>을 누릅니다.</p></div>
       <div class="gnote"><b>응답 원자료 저장</b>은 기본으로 꺼져 있습니다. 켜면 다시 열 때 응답을 다시 넣지 않아도 됩니다. 폴더가 구글 드라이브처럼 동기화되는 곳이면 개인정보 규정을 먼저 확인하세요.</div>` },
 
-    { id: 'ladder', group: '단계별 사용법', title: '① 통계 기법 고르기', tab: 'ladder', body: `
-      <p class="g-sum">질문 5개에 답하면 통계 기법이 정해집니다.</p>
+    { id: 'ladder', group: '단계별 사용법', title: '① 통계 기법 고르기', tab: 'ladder', kw: '가설 남은 후보 사다리 질문', body: `
+      <p class="g-sum">두 가지 방법이 있습니다. <b>가설이 있으면</b> 가설을 적고, <b>아직 막연하면</b> 질문에 답하며 후보를 좁힙니다.</p>
+      <h3>가설이 있어요</h3>
+      <ol>
+        <li>논문 제목과 가설을 한 줄에 하나씩 적고 <b>[가설 읽기]</b>를 누릅니다.</li>
+        <li>가설마다 종류(차이·관계·영향·매개·조절)와 변인을 읽어 보여 줍니다. 틀린 곳은 고치세요.</li>
+        <li>가설로 알 수 없는 것만 묻습니다. 예: 결과를 점수로 쟀는지, 같은 사람을 여러 번 쟀는지</li>
+        <li>가설마다 기법이 정해지면 <b>[가설별 기법 확정하고 설문 만들기로 →]</b>. 변인은 설문에, 가설은 결과 해석에 채워집니다.</li>
+      </ol>
+      <h3>아직 막연해요</h3>
       <ol>
         <li><b>알고 싶은 것</b>: 집단 차이 / 같이 움직이는지 / 무엇으로 무엇을 예측하는지</li>
         <li><b>결과로 잰 것</b>: 점수 같은 숫자 / 예·아니오나 유형 같은 분류</li>
@@ -5331,7 +5407,7 @@ ${REVIEW_RULES}
       <ul>
         <li>모르는 질문은 <b>[설명 보기]</b>를 누르세요. 쉬운 설명과 예시가 있습니다.</li>
         <li>답한 질문은 위에 쌓입니다. 누르면 그 질문으로 돌아갑니다.</li>
-        <li>오른쪽 <b>[통계 방법]</b> 탭의 사다리 지도에서 지금 위치(주황색)를 볼 수 있습니다.</li>
+        <li>오른쪽 <b>[통계 방법]</b> 탭의 <b>남은 후보</b>에서 답할 때마다 후보가 줄어드는 것을 봅니다. 빠진 후보는 왜 빠졌는지도 나옵니다.</li>
       </ul>
       <h3>도착하면</h3>
       <ul>
@@ -6338,7 +6414,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
 
   // ---------- 프로젝트 상태 ----------
   function projectState() {
-    return { app: 'ㅌㅗㅇ', version: '0.9', savedAt: new Date().toISOString(), path, vars, sv, plan, anSel, analyses, intent, log, rules: customRules ? RULES : null };
+    return { app: 'ㅌㅗㅇ', version: '0.9', savedAt: new Date().toISOString(), path, vars, sv, plan, anSel, analyses, intent, log, hyp: (typeof hp !== 'undefined' && hp) || null, rules: customRules ? RULES : null };
   }
   function applyProject(o) {
     if (!o || (o.app !== 'ㅌㅗㅇ' && o.app !== '\uD1B5\uACC4 \uC0AC\uB2E4\uB9AC')) throw new Error('ㅌㅗㅇ 프로젝트 파일이 아닙니다.');
@@ -6350,6 +6426,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
     analyses = o.analyses || []; saveAnalyses();
     intent = o.intent || blankIntent(); if (!intent.chat) intent.chat = { aiText: '', myAnswers: '', draft: '' }; if (!intent.review) intent.review = { text: '', paste: '', result: null, done: [] }; saveIntent();
     log = o.log || []; store.set('ladder.log', log);
+    hp = o.hyp || blankHyp(); store.set('ladder.hyp', hp);
     go(o.path || []); renderSurvey(); renderLog(); renderRules(); renderAnalyses(); renderInterp();
     if (!$('#view-analysis').hidden) renderAnalysis();
   }
@@ -6625,7 +6702,15 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
       top = `<div class="card"><h4>고른 통계 방법</h4><div class="rmethod">${esc(r.name)}<small>${esc(r.en)}</small></div>${base ? `<p class="hint" style="margin:8px 0 0">기본이 되는 기법: ${esc(base.name)}</p>` : ''}</div>`;
     } else if (w.cur.type === 'out') top = `<div class="card"><h4>고른 통계 방법</h4><p class="rempty">이번 버전의 범위 밖으로 안내되었습니다.</p></div>`;
     else top = `<div class="card"><h4>고른 통계 방법</h4><p class="rempty">아직 고르는 중입니다 · 질문 ${Math.min(w.steps.length + 1, 5)}단계${w.steps.length ? ` (${w.steps.length}개 답함)` : ''}</p></div>`;
+    if (hp && hp.mode === 'hyp' && !hp.applied) {
+      const done = hp.items.filter(it => walk(it.path).cur.type === 'result').length;
+      top = `<div class="card"><h4>가설로 고르는 중</h4><p class="rempty">${hp.items.length ? `가설 ${hp.items.length}개 중 <b>${done}개</b>의 기법이 정해졌습니다.` : '논문 제목과 가설을 적고 [가설 읽기]를 누르세요.'}</p></div>`;
+    }
     $('#rp-method-top').innerHTML = top;
+    if (hp && hp.mode === 'hyp' && hp.items.length) {
+      const it = hp.items[Math.min(hp.active, hp.items.length - 1)];
+      $('#rp-cand').innerHTML = `<p class="cand-for">가설 ${Math.min(hp.active, hp.items.length - 1) + 1}의 후보 <small>(가설 칸을 누르면 바뀝니다)</small></p>` + candHtml(it.path) + hypPlanHtml();
+    } else $('#rp-cand').innerHTML = candHtml(path) + hypPlanHtml();
     const ivs = vars.ivs.filter(v => norm(v.name)), oth = vars.others.filter(o => norm(o.name));
     const varRows = ivs.map(v => `<span>독립</span><span>${esc(v.name)}${v.levels ? ` <small class="hint">(${esc(v.levels)})</small>` : ''}</span>`).join('')
       + oth.map(o => `<span>${esc(o.role)}</span><span>${esc(o.name)}</span>`).join('') + (norm(vars.dv) ? `<span>종속</span><span>${esc(vars.dv)}</span>` : '');
@@ -7446,6 +7531,331 @@ ${q}`;
     const t = e.target.closest('[data-gd-tab]'); if (t) { switchView(t.dataset.gdTab); return; }
     if (e.target.closest('[data-rg="full"]')) { const id = rg.id; openGuide(id); }
   }, true);
+
+  // =================================================================
+  // 남은 후보: 질문에 답할 때마다 맞는 통계 기법 후보가 줄어드는 모습
+  // =================================================================
+  const GATE_ONLY = new Set(['r_med_simple', 'r_med_parallel', 'r_med_serial', 'r_moderation', 'r_modmed_a', 'r_modmed_b']);
+  function reachFrom(next) {
+    if (RULES.results[next]) return new Set([next]);
+    const n = RULES.nodes[next]; if (!n) return new Set();
+    const out = new Set(); n.options.forEach(o => reachFrom(o.next).forEach(x => out.add(x))); return out;
+  }
+  const shortWhat = id => { const r = RULES.results[id]; const t = String(r?.reason || '').split(/(?<=[.다])\s/)[0].replace(/(을|를)?\s*보는\s*기법입니다\.?$|기법입니다\.?$|입니다\.?$/, '').trim(); return t.length > 46 ? t.slice(0, 45) + '…' : t; };
+  function candidates(p) {
+    const w = walk(p);
+    let cur = reachFrom(RULES.start); const total = cur.size;
+    const history = [];
+    w.steps.forEach(st => {
+      let after;
+      if (st.node === RULES.gate) {
+        const nx = st.opt.next;
+        after = nx === '@result' ? new Set([w.pending]) : RULES.results[nx] ? new Set([nx]) : reachFrom(nx);
+      } else {
+        const nx = st.opt.next;
+        after = RULES.results[nx] ? new Set([nx]) : nx === '@result' || nx === '@outOfScope' ? new Set(cur) : reachFrom(nx);
+      }
+      const removed = [...cur].filter(x => !after.has(x));
+      history.push({ q: st.node.title || stepName(st.node.step), label: st.opt.short || st.opt.label, gate: st.node === RULES.gate, count: after.size, removed, added: [...after].filter(x => !cur.has(x)) });
+      cur = after;
+    });
+    // 지금 질문의 답마다 남는 후보
+    const via = new Map();
+    const node = w.cur.type === 'node' ? RULES.nodes[w.cur.id] : w.cur.type === 'gate' ? RULES.gate : null;
+    if (node) node.options.forEach(o => {
+      const s = node === RULES.gate ? (o.next === '@result' ? new Set([w.pending]) : RULES.results[o.next] ? new Set([o.next]) : reachFrom(o.next)) : (RULES.results[o.next] ? new Set([o.next]) : reachFrom(o.next));
+      s.forEach(id => { if (!via.has(id)) via.set(id, []); via.get(id).push(o.short || o.label); });
+    });
+    return { w, total, history, cands: [...cur], via, final: w.cur.type === 'result', gate: w.cur.type === 'gate', gated: w.steps.some(s => s.node === RULES.gate) };
+  }
+  function candHtml(p, opts = {}) {
+    const c = candidates(p);
+    const n = c.cands.length;
+    const flow = [`<span class="cf-chip start">전체 ${c.total}</span>`].concat(c.history.map((h, i) => `<span class="cf-arrow">›</span><span class="cf-chip ${i === c.history.length - 1 ? 'last' : ''}" title="${esc(h.q)}: ${esc(h.label)}">${esc(h.label)} <b>${h.count}</b></span>`)).join('');
+    const item = id => {
+      const r = RULES.results[id], ifs = c.via.get(id);
+      return `<li class="${c.final ? 'chosen' : ''} ${GATE_ONLY.has(id) ? 'mm' : ''}"><div><b>${esc(r.name)}</b><small>${esc(shortWhat(id))}</small></div>${!c.final && ifs ? `<span class="cand-if" title="지금 질문에서 이렇게 답하면 남습니다">${esc(ifs.join(' / '))}</span>` : ''}</li>`;
+    };
+    const removedAll = c.history.filter(h => h.removed.length);
+    return `<div class="card cand ${c.final ? 'done' : ''}">
+      <div class="cand-head"><h4>${c.final ? '선택된 통계 기법' : '남은 후보'}</h4>${c.final ? '' : `<span class="cand-n">${n}<small>개</small></span><span class="cand-of">/ 전체 ${c.total}개</span>`}</div>
+      ${c.history.length ? `<div class="cand-flow">${flow}</div>` : '<p class="cand-lead">질문에 답할 때마다 내 연구에 맞지 않는 기법이 빠지고, 맞는 후보만 남습니다.</p>'}
+      ${n > 14 && !c.history.length ? `<p class="hint" style="margin:6px 0 0">아직 모든 기법이 후보입니다. 첫 질문에 답하면 크게 줄어듭니다.</p>` : `<ul class="cand-list">${c.cands.map(item).join('')}</ul>`}
+      ${c.gate ? `<div class="cand-alt"><p>마지막 질문 — 다른 변인이 있으면 이렇게 바뀝니다</p><ul class="cand-list">${[...c.via.keys()].filter(id => !c.cands.includes(id)).map(item).join('')}</ul></div>` : ''}
+      ${!c.final && !c.gated && !c.gate ? '<p class="cand-note">※ 원인과 결과 사이를 <b>거쳐 가는 변인(매개)</b>이나 <b>효과를 바꾸는 변인(조절)</b>이 있으면, 마지막 질문에서 매개·조절 분석으로 바뀝니다.</p>' : ''}
+      ${!c.final && c.via.size ? '<p class="cand-note">오른쪽 작은 글씨는 <b>지금 질문</b>에서 그렇게 답하면 남는다는 뜻입니다.</p>' : ''}
+      ${removedAll.length ? `<details class="cand-out"><summary>빠진 후보 ${c.total - n + (c.history.reduce((a, h) => a + h.added.length, 0))}개 · 왜 빠졌나</summary>
+        ${removedAll.map(h => `<div class="co-row"><div class="co-why">${h.gate ? '마지막 질문' : esc(h.q)}에서 <b>'${esc(h.label)}'</b>${h.gate && h.added.length ? `이라 ${esc(h.added.map(id => RULES.results[id].name).join(', '))}으로 바뀜` : '을(를) 골라서 빠짐'}</div><div class="co-list">${h.removed.map(id => esc(RULES.results[id].name)).join(' · ')}</div></div>`).join('')}
+      </details>` : ''}
+    </div>`;
+  }
+
+  // =================================================================
+  // 가설로 시작하기: 논문 제목과 가설을 읽고, 빠진 것만 물어 가설마다 통계 기법을 정함
+  // =================================================================
+  const blankHyp = () => ({ mode: null, title: '', text: '', items: [], active: 0, applied: false });
+  var hp = store.get('ladder.hyp', null) || blankHyp();
+  const saveHp = () => store.set('ladder.hyp', hp);
+  const HTYPE = { diff: '집단 차이', rel: '관계(상관)', pred: '영향·예측', med: '매개 (거쳐 가는 변인)', mod: '조절 (효과를 바꾸는 변인)', modmed: '조절된 매개', unknown: '알 수 없음' };
+
+  // ---------- 가설 문장 읽기 (규칙) ----------
+  const cleanVar = t => String(t || '').replace(/^[\s"'“‘(]+|[\s"'”’).,]+$/g, '').replace(/^(대학생|청소년|성인|직장인|중학생|고등학생|초등학생|노인|교사|간호사)(의|들의)\s+/, '').replace(/(은|는|이|가|을|를|와|과|의|에|에게|에서|으로|로)$/, '').trim();
+  const splitVars = t => String(t || '').split(/\s*(?:,|，|및|그리고|와|과)\s+|\s*,\s*/).map(cleanVar).filter(Boolean);
+  function splitHyps(text) {
+    return String(text || '').split(/\n+/).map(l => l.trim()).filter(Boolean)
+      .map(l => l.replace(/^(?:\[?(?:연구\s*)?가설\s*\d+(?:-\d+)?\]?|H\s*\d+(?:-\d+)?|\d+(?:-\d+)?)\s*[.:)\]]?\s*/i, '').trim()).filter(l => l.length >= 6);
+  }
+  function parseHyp(text) {
+    const t = String(text).replace(/\s+/g, ' ').trim();
+    const v = { iv: [], dv: '', med: [], mod: '', serial: false };
+    let type = 'unknown', m;
+    const hasMed = /(매개|거쳐|통하여|통해서?\s)/.test(t), hasMod = /조절/.test(t);
+    if (/조절된\s*매개/.test(t) || (hasMed && hasMod)) {
+      type = 'modmed';
+      m = t.match(/(.+?)(?:은|는|이|가)\s+(.+?)(?:을|를)?\s*(?:매개로|매개하여|통하여|통해|거쳐)\s*(.+?)(?:에|에게)\s/);
+      if (m) { v.iv = splitVars(m[1]); v.med = splitVars(m[2]); v.dv = cleanVar(m[3]); }
+      const mm = t.match(/(?:에서|때|경로에서)?\s*([^\s,]+(?:\s[^\s,]+)?)(?:의|이|가|은|는)?\s*조절/); if (mm) v.mod = cleanVar(mm[1]);
+    } else if (hasMed) {
+      type = 'med';
+      m = t.match(/(.+?)(?:은|는|이|가)\s+(.+?)(?:을|를)?\s*(?:순차적으로\s*|차례로\s*|이중\s*)?(?:매개로|매개하여|통하여|통해|거쳐)\s*(.+?)(?:에|에게)\s/);
+      if (m) { v.iv = splitVars(m[1]); v.med = splitVars(m[2]); v.dv = cleanVar(m[3]); }
+      else { m = t.match(/(.+?)(?:와|과)\s*(.+?)(?:의|간의)?\s*관계에서\s*(.+?)(?:은|는|이|가)?\s*(?:의\s*)?매개/); if (m) { v.iv = splitVars(m[1]); v.dv = cleanVar(m[2]); v.med = splitVars(m[3]); } }
+      v.serial = /(순차|차례|이중|연속|직렬)/.test(t);
+    } else if (hasMod) {
+      type = 'mod';
+      m = t.match(/(.+?)(?:와|과)\s*(.+?)(?:의|간의)?\s*관계(?:에서|를)\s*(.+?)(?:은|는|이|가)?\s*(?:의\s*)?조절/)
+        || t.match(/(.+?)(?:이|가|은|는)\s+(.+?)에\s*(?:미치는|대한)\s*영향(?:을|에서|은|는)?\s*(.+?)(?:이|가|은|는)?\s*(?:의\s*)?조절/);
+      if (m) { v.iv = splitVars(m[1]); v.dv = cleanVar(m[2]); v.mod = cleanVar(m[3]); }
+    } else if (/차이/.test(t)) {
+      type = 'diff';
+      m = t.match(/(.+?)에\s*따(?:라|른)\s*(.+?)(?:에|의|은|는|이|가)?\s*(?:는\s*)?(?:통계적으로\s*)?(?:유의한\s*|유의미한\s*)?차이/) || t.match(/(.+?)\s*간(?:에|의)?\s*(.+?)(?:에|의|은|는|이|가)?\s*(?:유의한\s*|유의미한\s*)?차이/);
+      if (m) { v.iv = splitVars(m[1]); v.dv = cleanVar(m[2]); }
+    } else if (/(상관|관련|관계가\s*있|관계를\s*보일|함께\s*변)/.test(t) && !/영향/.test(t)) {
+      type = 'rel';
+      m = t.match(/(.+?)(?:와|과)\s+(.+?)(?:은|는|간에는|간에|의|사이에는|사이에)?\s*(?:유의한\s*|유의미한\s*)?(?:정적|부적|긍정적|부정적)?\s*(?:인\s*)?(?:상관|관련|관계)/);
+      if (m) { v.iv = [cleanVar(m[1])]; v.dv = cleanVar(m[2]); }
+    } else if (/(영향|예측|높일|낮출|증가시킬|감소시킬|높아질|낮아질)/.test(t)) {
+      type = 'pred';
+      m = t.match(/(.+?)(?:은|는|이|가)\s+(.+?)(?:에|에게|을|를)\s*(?:통계적으로\s*)?(?:유의한\s*|유의미한\s*)?(?:정적|부적|긍정적|부정적)?\s*(?:인\s*)?(?:영향|예측|높일|낮출|증가|감소)/);
+      if (m) { v.iv = splitVars(m[1]); v.dv = cleanVar(m[2]); }
+    }
+    const expect = /(부적|부정적|낮출|낮아|감소|줄일|줄어)/.test(t) ? '-' : /(정적|긍정적|높일|높아|증가|클수록|높을수록)/.test(t) ? '+' : '≠';
+    const flags = { covar: /(통제|공변|빼고)/.test(t), repeated: /(사전|사후|전후|반복|시점|추적)/.test(t), oneGroup: /(기준값|평균보다|척도\s*중간값)/.test(t), binaryDv: /(여부|유무|있다\/없다|예\/아니오)/.test(v.dv + ' ' + t) };
+    return { type, vars: v, expect, flags };
+  }
+
+  // ---------- 질문마다 가설에서 알 수 있는 답 (모르면 null = 물어봄) ----------
+  const KNOWN2 = /(성별|남녀|남성과 여성|실험집단|통제집단|처치\s*유무|유무|여부|국적|내외국인|맞벌이)/;
+  const KNOWN3 = /(학년|연령대|지역|직급|학력|세\s*집단|소득\s*수준|전공\s*계열)/;
+  function guessAnswer(nodeId, it) {
+    const { type, vars: v, flags: f } = it;
+    const ivN = v.iv.length;
+    switch (nodeId) {
+      case 'q1': return type === 'diff' ? 0 : type === 'rel' ? 1 : ['pred', 'med', 'mod', 'modmed'].includes(type) ? 2 : null;
+      case 'q3_diff_n': case 'q3_diff_c': return f.oneGroup && nodeId === 'q3_diff_n' ? 2 : ivN === 1 ? 0 : ivN > 1 ? 1 : null;
+      case 'q3_diff_n_lv': return KNOWN2.test(v.iv.join(' ')) ? 0 : KNOWN3.test(v.iv.join(' ')) ? 1 : null;
+      case 'q4_diff_n2': case 'q4_diff_n3': return f.repeated ? 1 : null;
+      case 'q3c_diff_n2': case 'q3c_diff_n3': case 'q3c_diff_fac': return f.covar ? 1 : null;
+      case 'q3_rel_nn': return f.covar ? 2 : null;
+      case 'q2_pred': return f.binaryDv ? 1 : null;
+      case 'q3_pred_n': return f.covar && ivN >= 1 ? 2 : ivN > 1 && type === 'pred' ? 1 : ivN >= 1 ? 0 : null;
+      case '@gate': return type === 'med' ? 1 : type === 'mod' ? 2 : type === 'modmed' ? 3 : ['diff', 'rel', 'pred'].includes(type) ? 0 : null;
+      case 'q5_med': return v.med.length > 1 ? (v.serial ? 2 : 1) : v.med.length === 1 ? 0 : null;
+      default: return null;
+    }
+  }
+  // 가설마다 사다리 길을 자동으로 채움 (아는 데까지)
+  function autoWalk(it) {
+    const p = it.path.slice(); const auto = it.auto.slice(0, p.length);
+    for (let guard = 0; guard < 12; guard++) {
+      const w = walk(p);
+      if (w.cur.type === 'result' || w.cur.type === 'out') break;
+      const key = w.cur.type === 'gate' ? '@gate' : w.cur.id;
+      if (it.asked && it.asked.includes(key + ':' + p.length)) break;
+      const g = guessAnswer(key, it);
+      if (g == null) break;
+      p.push(g); auto.push(true);
+    }
+    it.path = p; it.auto = auto;
+  }
+  function readHyps() {
+    const lines = splitHyps(hp.text);
+    hp.items = lines.map(text => { const r = parseHyp(text); const it = { text, ...r, path: [], auto: [] }; autoWalk(it); return it; });
+    hp.active = 0; hp.applied = false; saveHp();
+  }
+  async function readHypsAI() {
+    const s = await sampleP; if (!s) { toast('AI가 연결되어 있지 않습니다. 규칙으로 읽은 결과를 확인해 주세요.'); return; }
+    const lines = splitHyps(hp.text); if (!lines.length) return;
+    const prompt = `아래는 사회과학 논문의 제목과 가설이다. 가설마다 종류와 변인을 뽑아 JSON 배열로만 답하라.
+종류(type): diff(집단 차이) | rel(상관·관련) | pred(영향·예측, 회귀) | med(매개) | mod(조절) | modmed(조절된 매개)
+변인: iv(원인 쪽 변인 배열), dv(결과 변인), med(매개 변인 배열, 순서대로), mod(조절 변인), serial(매개가 차례로 이어지면 true)
+방향(expect): "+"(정적·높일수록 높음) | "-"(부적) | "≠"(방향 없음)
+flags: covar(통제 변인 언급), repeated(같은 사람 반복 측정), binaryDv(결과가 예/아니오)
+변인 이름은 가설에 쓰인 말 그대로, 조사 없이 적는다. 짐작하지 말고 가설에 없는 것은 비워 둔다.
+형식: [{"type":"med","iv":["능력주의 신념"],"dv":"외집단 혐오","med":["외로움"],"mod":"","serial":false,"expect":"+","flags":{"covar":false,"repeated":false,"binaryDv":false}}]
+
+제목: ${hp.title || '(없음)'}
+가설:
+${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
+    try {
+      setHpBusy('AI가 가설을 읽는 중…');
+      const arr = await s.json(prompt, { modelTier: 'default' });
+      if (!Array.isArray(arr)) throw { code: 'invalid_json' };
+      hp.items = lines.map((text, i) => {
+        const o = arr[i] || {}; const r = parseHyp(text);
+        const type = HTYPE[o.type] ? o.type : r.type;
+        const vars = { iv: (Array.isArray(o.iv) ? o.iv : r.vars.iv).map(norm).filter(Boolean), dv: norm(o.dv) || r.vars.dv, med: (Array.isArray(o.med) ? o.med : r.vars.med).map(norm).filter(Boolean), mod: norm(o.mod) || r.vars.mod, serial: o.serial != null ? !!o.serial : r.vars.serial };
+        const it = { text, type, vars, expect: ['+', '-', '≠'].includes(o.expect) ? o.expect : r.expect, flags: { ...r.flags, ...(o.flags || {}) }, path: [], auto: [], byAI: true };
+        autoWalk(it); return it;
+      });
+      hp.active = 0; hp.applied = false; saveHp(); setHpBusy('');
+    } catch (e) { setHpBusy(''); toast('AI가 읽지 못했습니다. 규칙으로 읽은 결과를 확인해 주세요.'); }
+  }
+  var hpBusy = '';
+  const setHpBusy = t => { hpBusy = t; render(); };
+
+  // ---------- 화면 ----------
+  function startChooserHtml() {
+    return `<div class="card start-card">
+      <div class="kicker">시작하기</div>
+      <h2 class="q">어떻게 시작할까요?</h2>
+      <div class="start-opts">
+        <button class="start-opt" data-hp="mode-hyp"><span class="so-ic">📝</span><b>가설이 있어요</b><span>논문 제목과 가설을 적으면, 가설마다 맞는 통계 기법을 찾아 드려요. 모자란 것만 짧게 묻습니다.</span></button>
+        <button class="start-opt" data-hp="mode-ladder"><span class="so-ic">🪜</span><b>아직 막연해요</b><span>쉬운 질문 5개에 답하며 후보를 좁혀 기법을 고릅니다. 왜 그 기법인지 배우면서 갈 수 있어요.</span></button>
+      </div>
+    </div>`;
+  }
+  function hypStepsHtml(it, ii) {
+    const w = walk(it.path);
+    const steps = w.steps.map((s, k) => `<button class="hs-step ${it.auto[k] ? 'auto' : ''}" data-hp-back="${ii}.${k}" title="눌러서 이 질문부터 다시 답하기"><span class="hs-q">${esc(s.node === RULES.gate ? '다른 변인' : (s.node.title || stepName(s.node.step)))}</span><span class="hs-a">${esc(s.opt.short || s.opt.label)}</span>${it.auto[k] ? '<i>가설에서 읽음</i>' : ''}</button>`).join('');
+    let next = '';
+    if (w.cur.type === 'node' || w.cur.type === 'gate') {
+      const node = w.cur.type === 'gate' ? RULES.gate : RULES.nodes[w.cur.id];
+      next = `<div class="hs-next"><div class="hs-nq">${esc(node.question)}</div>
+        ${node.help?.text ? `<p class="hint" style="margin:2px 0 8px">${esc(node.help.text)}</p>` : ''}
+        <div class="hs-opts">${node.options.map((o, k) => `<button class="hs-opt" data-hp-pick="${ii}.${k}">${esc(o.label)}${o.term ? `<small>${esc(o.term)}</small>` : ''}</button>`).join('')}</div></div>`;
+    }
+    const res = w.cur.type === 'result' ? RULES.results[w.cur.id] : null;
+    return `<div class="hs-steps">${steps}</div>${next}${res ? `<div class="hs-res"><span>이 가설의 통계 기법</span><b>${esc(res.name)}</b><small>${esc(shortWhat(w.cur.id))}</small></div>` : w.cur.type === 'out' ? '<div class="hs-res out">이 가설은 이번 버전 범위 밖입니다.</div>' : ''}`;
+  }
+  function varEditHtml(it, ii) {
+    const f = (k, label, val, ph) => `<label class="hv"><span>${label}</span><input data-hp-var="${ii}.${k}" value="${esc(val)}" placeholder="${ph}"></label>`;
+    const v = it.vars, t = it.type;
+    return `<div class="hv-row">
+      ${f('iv', t === 'diff' ? '집단 나누는 기준' : t === 'rel' ? '변인 1' : '원인 쪽(독립)', v.iv.join(', '), '예: 능력주의 신념')}
+      ${['med', 'modmed'].includes(t) ? f('med', '거쳐 가는(매개)', v.med.join(', '), '여럿이면 쉼표로') : ''}
+      ${['mod', 'modmed'].includes(t) ? f('mod', '효과를 바꾸는(조절)', v.mod, '예: 사회적 지지') : ''}
+      ${f('dv', t === 'rel' ? '변인 2' : '결과(종속)', v.dv, '예: 외집단 혐오')}
+      <label class="hv sm"><span>예상 방향</span><select data-hp-var="${ii}.expect">${[['+', '정적(+)'], ['-', '부적(−)'], ['≠', '방향 없음']].map(([k, l]) => `<option value="${k}" ${it.expect === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+    </div>`;
+  }
+  function hypHtml() {
+    const items = hp.items;
+    const doneN = items.filter(it => walk(it.path).cur.type === 'result').length;
+    return `<div class="card hyp-card">
+      <div class="kicker">가설로 시작하기 <button class="linkish" data-hp="mode-ladder">질문으로 고르기로 바꾸기</button></div>
+      <h2 class="q">논문 제목과 가설을 적어 주세요</h2>
+      <label class="f">논문 제목<input id="hp-title" value="${esc(hp.title)}" placeholder="예: 능력주의 신념이 외집단 혐오에 미치는 영향: 사회비교경향성과 외로움의 순차적 매개효과"></label>
+      <label class="f" style="margin-top:10px">가설 (한 줄에 하나씩)<textarea id="hp-text" rows="4" placeholder="예)\n가설 1. 능력주의 신념은 외집단 혐오에 정적 영향을 미칠 것이다.\n가설 2. 능력주의 신념은 사회비교경향성과 외로움을 순차적으로 매개하여 외집단 혐오에 정적 영향을 미칠 것이다.\n가설 3. 성별에 따라 외집단 혐오에 차이가 있을 것이다.">${esc(hp.text)}</textarea></label>
+      <div class="actions tight"><button class="btn primary" data-hp="read">가설 읽기</button>${aiOn() ? '<button class="btn" data-hp="read-ai">AI로 읽기 (문장이 복잡할 때)</button>' : ''}${hpBusy ? `<span class="hint">${esc(hpBusy)}</span>` : ''}</div>
+      ${items.length ? `<div class="hyp-list">
+        <p class="hint" style="margin:14px 0 6px">가설에서 읽은 것은 <span class="hs-tag">가설에서 읽음</span>으로 표시했습니다. 틀린 곳은 눌러서 다시 고르고, 변인 이름은 칸에서 고치세요. 모자란 것만 아래에서 물어봅니다.</p>
+        ${items.map((it, ii) => `<div class="hyp-item ${hp.active === ii ? 'on' : ''}" data-hp-item="${ii}">
+          <div class="hi-head"><span class="hi-no">가설 ${ii + 1}</span><span class="hi-type t-${it.type}">${esc(HTYPE[it.type])}</span>${it.byAI ? '<span class="hs-tag">AI가 읽음</span>' : ''}
+            <select class="hi-tsel" data-hp-type="${ii}" title="종류가 틀리면 고르세요">${Object.entries(HTYPE).filter(([k]) => k !== 'unknown').map(([k, l]) => `<option value="${k}" ${it.type === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
+          <p class="hi-text">${esc(it.text)}</p>
+          ${varEditHtml(it, ii)}
+          ${hypStepsHtml(it, ii)}
+        </div>`).join('')}
+      </div>
+      <div class="actions"><button class="btn primary" data-hp="apply" ${doneN === items.length ? '' : 'disabled'}>가설별 기법 확정하고 설문 만들기로 →</button>
+        <span class="hint">${doneN === items.length ? (hp.applied ? '확정했습니다. 다시 누르면 고친 내용으로 바꿉니다.' : '확정하면 변인, 가설, 분석이 다음 단계에 채워집니다.') : `${items.length - doneN}개 가설에 답할 것이 남았습니다.`}</span></div>` : ''}
+    </div>`;
+  }
+
+  // ---------- 확정: 변인·가설·분석으로 이어 주기 ----------
+  function applyHyps() {
+    const items = hp.items.filter(it => walk(it.path).cur.type === 'result');
+    if (!items.length) return;
+    // 대표 길: 가장 복잡한 가설(매개·조절 > 회귀 > 나머지)
+    const rank = t => ({ modmed: 5, med: 4, mod: 3, pred: 2, diff: 1, rel: 1 }[t] || 0);
+    const main = items.slice().sort((a, b) => rank(b.type) - rank(a.type))[0];
+    path = main.path.slice(); _set('ladder.path', path);
+    // 변인
+    const uniq = a => [...new Set(a.map(norm).filter(Boolean))];
+    const ivs = uniq(items.flatMap(it => it.vars.iv));
+    const dvs = uniq(items.map(it => it.vars.dv));
+    const meds = uniq(items.flatMap(it => it.vars.med)), mods = uniq(items.map(it => it.vars.mod));
+    const mainDv = norm(main.vars.dv) || dvs[0] || '';
+    // 집단을 나누는 기준(차이 가설의 원인 쪽)은 점수가 아니라 고르는 문항: 수준을 붙여 기본 정보 문항이 되게 함
+    const groupIvs = new Set(items.filter(it => it.type === 'diff').flatMap(it => it.vars.iv.map(norm)));
+    const LEVELS = [[/성별|남녀/, '남성, 여성'], [/학년/, '1학년, 2학년, 3학년, 4학년'], [/연령대/, '20대, 30대, 40대, 50대 이상'], [/학력/, '고졸 이하, 대졸, 대학원 이상'], [/지역/, '수도권, 비수도권'], [/(유무|여부)$/, '있음, 없음']];
+    const lv = n => (LEVELS.find(([re]) => re.test(n)) || [0, '집단1, 집단2'])[1];
+    vars = { ...vars, ivs: ivs.length ? ivs.map(n => ({ name: n, levels: (vars.ivs.find(x => norm(x.name) === n) || {}).levels || (groupIvs.has(n) ? lv(n) : '') })) : vars.ivs, dv: mainDv || vars.dv,
+      others: [...meds.filter(n => !ivs.includes(n) && n !== mainDv).map(n => ({ name: n, role: '매개' })), ...mods.filter(n => !ivs.includes(n)).map(n => ({ name: n, role: '조절' })),
+        ...dvs.filter(n => n !== mainDv && !ivs.includes(n) && !meds.includes(n)).map(n => ({ name: n, role: '종속' }))].slice(0, 12) };
+    saveVars();
+    // 결과 해석의 가설
+    if (norm(hp.title) && !norm(intent.title)) intent.title = hp.title;
+    const existing = intent.hyps.filter(h => norm(h.text));
+    hp.items.forEach(it => { if (!existing.some(h => norm(h.text) === norm(it.text))) intent.hyps.push({ text: it.text, effect: '', expect: it.expect }); });
+    intent.hyps = intent.hyps.filter(h => norm(h.text) || intent.hyps.length === 1);
+    saveIntent();
+    hp.applied = true; hp.plan = items.map((it, k) => ({ no: hp.items.indexOf(it) + 1, text: it.text, result: walk(it.path).cur.id })); saveHp();
+    addSys('ladder', `가설 ${items.length}개로 통계 기법을 정했습니다: ${hp.plan.map(p => `가설 ${p.no} ${RULES.results[p.result].name}`).join(', ')}`);
+    const n = Survey.importFromLadder(vars);
+    toast(`가설별 기법을 정했습니다. 변인 ${n}개를 설문에 넣었습니다.`);
+    switchView('survey');
+  }
+  function hypPlanHtml() {
+    if (!hp.plan || !hp.plan.length) return '';
+    return `<div class="card"><h4>가설별 통계 기법</h4><div class="hp-plan">${hp.plan.map(p => {
+      const lm = LADDER_TO_METHOD[p.result];
+      return `<div class="hp-row"><span class="hi-no">가설 ${p.no}</span><div><b>${esc(RULES.results[p.result].name)}</b><small>${esc(p.text)}</small></div>${lm ? `<button class="btn sm" data-hp-calc="${p.result}" title="분석 결정·계산에서 이 기법을 고릅니다">계산</button>` : '<span class="hint">jamovi·SPSS</span>'}</div>`;
+    }).join('')}</div></div>`;
+  }
+
+  // ---------- 사건 ----------
+  $('#stage').addEventListener('click', e => {
+    const b = e.target.closest('[data-hp],[data-hp-pick],[data-hp-back]'); if (!b) return;
+    e.stopPropagation();
+    if (b.dataset.hp === 'mode-hyp') { hp.mode = 'hyp'; saveHp(); render(); return; }
+    if (b.dataset.hp === 'mode-ladder') { hp.mode = 'ladder'; saveHp(); render(); return; }
+    if (b.dataset.hp === 'read') { hp.title = $('#hp-title').value; hp.text = $('#hp-text').value; if (!splitHyps(hp.text).length) { toast('가설을 한 줄에 하나씩 적어 주세요.'); return; } readHyps(); render(); renderRight(); return; }
+    if (b.dataset.hp === 'read-ai') { hp.title = $('#hp-title').value; hp.text = $('#hp-text').value; if (!splitHyps(hp.text).length) { toast('가설을 한 줄에 하나씩 적어 주세요.'); return; } readHypsAI().then(() => { render(); renderRight(); }); return; }
+    if (b.dataset.hp === 'apply') { applyHyps(); return; }
+    if (b.dataset.hpPick) {
+      const [ii, k] = b.dataset.hpPick.split('.').map(Number), it = hp.items[ii];
+      it.path.push(k); it.auto.push(false); hp.active = ii; autoWalk(it); saveHp(); render(); renderRight(); return;
+    }
+    if (b.dataset.hpBack) {
+      const [ii, k] = b.dataset.hpBack.split('.').map(Number), it = hp.items[ii];
+      const w = walk(it.path), st = w.steps[k];
+      it.asked = (it.asked || []).concat(((st.node === RULES.gate) ? '@gate' : (Object.keys(RULES.nodes).find(id => RULES.nodes[id] === st.node))) + ':' + k);
+      it.path = it.path.slice(0, k); it.auto = it.auto.slice(0, k); hp.active = ii; saveHp(); render(); renderRight(); return;
+    }
+  }, true);
+  $('#stage').addEventListener('change', e => {
+    const t = e.target;
+    if (t.dataset.hpVar) {
+      const [ii, k] = t.dataset.hpVar.split('.'), it = hp.items[+ii];
+      if (k === 'expect') it.expect = t.value;
+      else if (k === 'iv' || k === 'med') it.vars[k] = t.value.split(/[,，]/).map(norm).filter(Boolean);
+      else it.vars[k] = norm(t.value);
+      // 변인 수가 바뀌면 자동 답을 다시 계산
+      const keep = it.auto.findIndex(a => a); it.path = keep >= 0 ? it.path.slice(0, keep) : it.path; it.auto = it.auto.slice(0, it.path.length); autoWalk(it);
+      saveHp(); render(); renderRight();
+    }
+    if (t.dataset.hpType) { const it = hp.items[+t.dataset.hpType]; it.type = t.value; it.path = []; it.auto = []; it.asked = []; autoWalk(it); saveHp(); render(); renderRight(); }
+  });
+  $('#stage').addEventListener('input', e => { if (e.target.id === 'hp-title') hp.title = e.target.value; if (e.target.id === 'hp-text') hp.text = e.target.value; if (e.target.id === 'hp-title' || e.target.id === 'hp-text') _set('ladder.hyp', hp); });
+  $('#stage').addEventListener('focusin', e => { const c = e.target.closest('[data-hp-item]'); if (c && hp.active !== +c.dataset.hpItem) { hp.active = +c.dataset.hpItem; renderRight(); } });
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-hp-calc]'); if (!b) return;
+    const lm = LADDER_TO_METHOD[b.dataset.hpCalc]; if (!lm) return;
+    anSel = { method: lm, roles: {}, opts: { boot: 5000, center: true, testValue: 3, ...(anSel?.opts || {}) } };
+    anSel.roles = autoRoles(lm); saveAnSel(); switchView('analysis'); toast(`${METHODS[lm].name}으로 계산할 준비를 했습니다. 변인을 확인하고 [계산하기]를 누르세요.`);
+  });
 
   // ---------- 시작 ----------
   const defErrs = checkRules(DEFAULT_RULES);
