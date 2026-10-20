@@ -2478,7 +2478,7 @@ button,input,textarea,select{font-family:inherit}
 .mb-svg .mv-svg{display:block;width:100%;max-width:520px;height:auto;margin:4px auto}
 .mb-paths{margin:8px 0;padding:8px 10px;border-radius:10px;border:1px dashed var(--line)}
 .mb-path{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:5px 0;font-size:13.5px}
-.mb-plab{font-weight:700;min-width:150px}.mb-ps{flex:1 1 100%;color:var(--ink-2);font-size:13px;padding-left:2px}
+.mb-plab{font-weight:700;min-width:170px;display:flex;align-items:center;gap:5px}.mb-path.off .mb-sel,.mb-path.off .mb-ps{opacity:.4}.mb-ps{flex:1 1 100%;color:var(--ink-2);font-size:13px;padding-left:2px}
 .mb-an{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
 .mb-an-h{font-weight:800;margin-bottom:6px}.mb-an-h small{font-weight:400;color:var(--ink-3);font-size:12px;margin-left:4px}
 .mb-opt{display:flex;gap:8px;align-items:flex-start;padding:7px 8px;border-radius:9px;border:1px solid transparent}
@@ -2496,6 +2496,12 @@ button,input,textarea,select{font-family:inherit}
 .mb-paste{margin:16px 0 4px;border:1px solid var(--line);border-radius:10px;padding:8px 12px}.mb-paste summary{cursor:pointer;font-weight:700;font-size:14px}
 .mb-paste textarea{width:100%;margin-top:8px}
 @media (max-width:560px){.mb-var{grid-template-columns:minmax(0,1fr) auto}.mb-var .mb-sel,.mb-var .mb-lv{grid-column:1}.mb-opt{flex-wrap:wrap}.mb-roles{width:100%;justify-content:flex-end}.mb-arrow{display:none}.mb-slot{flex-basis:100%}.mb-head-r{margin-left:0;width:100%}}
+.gist{margin-top:10px}.gist .f small{font-weight:400;color:var(--ink-3)}
+.gist-how{margin:4px 0 0;font-size:12.5px}
+.gist-ck{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:4px}
+.gist-ck li{font-size:13px;line-height:1.5;padding:5px 9px;border-radius:8px;background:var(--bg-2)}
+.gist-ck li.ok{color:var(--ok);background:var(--ok-soft)}.gist-ck li.warn{color:var(--orange-deep);background:var(--orange-soft)}.gist-ck li.info{color:var(--ink-2)}
+.tmpl-box{margin:8px 0 10px;padding:9px 12px;border:1px dashed var(--line);border-radius:10px;font-size:13.5px;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
 /* ---------- SPSS로 확인하기 ---------- */
 .sp-box{border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:8px 0 6px;background:var(--bg-2)}
 .sp-steps{margin:6px 0;padding-left:20px;font-size:14px;line-height:1.8}
@@ -5179,6 +5185,74 @@ function createSurvey() {
     return dirOk ? { v: '지지', why: `${basis}, 예상한 방향(${h.expect === '+' ? '+' : '−'})과 같음`, sig } : { v: '기각', why: `${basis}이지만 예상과 반대 방향(${e.est > 0 ? '+' : '−'})`, sig, opposite: true };
   }
 
+  // ---------- 결과의 줄기: 학생이 먼저 읽고, 코드가 판정과 맞는지 봄 ----------
+  function readHint(e) {
+    if (e.ciBased) return `신뢰구간 [${e.lo?.toFixed(3)}, ${e.hi?.toFixed(3)}]이 0을 포함하는지 보세요. 포함하지 않으면 간접효과가 있다고 읽습니다. 직접효과도 함께 보면 매개의 모양을 알 수 있어요.`;
+    if (e.kind === 'omnibus') return 'F·χ² 검정은 "어딘가 차이(관계)가 있는지"만 알려 줍니다. 어느 집단끼리 다른지는 사후검정 표를 보세요. 효과크기(η², V)도 함께 읽습니다.';
+    if (/상관/.test(e.label)) return 'r의 부호는 방향(+ 함께 커짐, − 반대로), 크기는 .10 작음 · .30 중간 · .50 큼(Cohen, 1988)으로 읽습니다.';
+    if (/ − /.test(e.label)) return '두 집단의 평균(M)이 어느 쪽이 높은지, 그 차이가 유의한지(p), 얼마나 큰지(d: .2 작음 · .5 중간 · .8 큼)를 함께 읽습니다.';
+    if (/→/.test(e.label)) return 'B는 원인이 1점 높을 때 결과가 몇 점 달라지는지, β는 다른 변인과 견줄 수 있는 표준화된 크기입니다. p < .05면 유의로 읽습니다.';
+    return 'p < .05이면 통계적으로 유의하다고 읽고, 부호로 방향을, 효과크기로 크기를 읽습니다.';
+  }
+  function gistCheck(h) {
+    const g = norm(h.gist), e = effById(h.effect), v = verdict(h); if (!g || !e || !v) return [];
+    const out = [], neg = /(유의하지\s*않|유의미하지\s*않|없었|없다|없음|없는|나타나지\s*않|보이지\s*않|기각|지지되지\s*않|확인되지\s*않)/.test(g);
+    const pos = /(유의(?!하지|미하지)|있었|있다|나타났|확인되었|지지되었|보였|수록|높았|낮았|컸|커졌|증가|감소|관련되|영향을\s*(미쳤|주었|줬))/.test(g.replace(/(유의하지\s*않|없었|나타나지\s*않|보이지\s*않)[^.]*/g, ''));
+    if (v.sig && neg && !pos) out.push({ st: 'warn', t: `결과는 ${e.ciBased ? '신뢰구간이 0을 포함하지 않아' : 'p < .05로'} 유의한데, 효과가 없다고 읽었어요. ${e.stat}를 다시 보세요.` });
+    if (!v.sig && pos && !neg) out.push({ st: 'warn', t: `결과는 ${e.ciBased ? '신뢰구간이 0을 포함해' : 'p ≥ .05로'} 통계적으로 유의하지 않은데, 효과가 있는 것처럼 읽었어요. 유의하지 않으면 "유의하지 않았다"로 읽습니다.` });
+    if (v.sig && e.kind !== 'omnibus' && !/ − /.test(e.label)) {
+      const sP = /(정적|양의|플러스|함께\s*(높|커|증가)|높을수록[^.,]*?(높|크|많|강)|클수록[^.,]*?(높|크|많)|많을수록[^.,]*?(높|크|많)|낮을수록[^.,]*?(낮|작|적))/.test(g);
+      const sN = /(부적|음의|마이너스|반대로|높을수록[^.,]*?(낮|작|적|약)|클수록[^.,]*?(낮|작|적)|많을수록[^.,]*?(낮|적)|낮을수록[^.,]*?(높|크|많))/.test(g);
+      if (sP && !sN && e.est < 0) out.push({ st: 'warn', t: '방향을 반대로 읽었어요. 계수(부호)가 −라서 한쪽이 높을수록 다른 쪽은 낮은 관계입니다.' });
+      if (sN && !sP && e.est > 0) out.push({ st: 'warn', t: '방향을 반대로 읽었어요. 계수(부호)가 +라서 함께 높아지는 관계입니다.' });
+    }
+    if (/간접효과/.test(e.label) && /(완전\s*매개|부분\s*매개)/.test(g)) {
+      const dir = e.analysis.effects.find(x => /^직접효과/.test(x.label));
+      if (dir) {
+        const dSig = sigOf(dir);
+        if (/완전\s*매개/.test(g) && dSig) out.push({ st: 'warn', t: `완전매개로 읽었는데, 직접효과가 유의합니다(${dir.stat}). 직접효과가 남아 있으면 보통 부분매개로 읽습니다.` });
+        if (/부분\s*매개/.test(g) && !dSig) out.push({ st: 'warn', t: `부분매개로 읽었는데, 직접효과가 유의하지 않습니다(${dir.stat}). 이런 경우 완전매개로 읽기도 합니다.` });
+      }
+      out.push({ st: 'info', t: '요즘은 완전·부분매개로 나누기보다 간접효과의 크기와 신뢰구간을 보고하는 쪽을 권하기도 합니다 (Hayes, 2018). 지도교수님 방식에 맞추세요.' });
+    }
+    if (/횡단/.test(intent.design) && /(때문|원인|야기|유발|인과|증명)/.test(g)) out.push({ st: 'warn', t: '한 시점 설문이라 인과로 읽을 수 없어요. "때문에", "원인" 대신 "관련된다", "설명한다"로 읽어 보세요.' });
+    // 숫자는 이 효과의 값(통계값)과 견줌
+    const P = new Set(numsIn(e.stat + ' ' + JSON.stringify(e.analysis.tables || [])).flatMap(x => { const k = numKey(x); return [k, k.replace(/^-/, '')]; }));
+    const own = new Set(numsIn(e.stat).map(x => numKey(x).replace(/^-/, '')));
+    const badN = numsIn(g).filter(x => { const k = numKey(x).replace(/^-/, ''); return !own.has(k) && !(/^\d+$/.test(k) && +k <= 20) && !/^(95|99|90)$/.test(k); });
+    if (badN.length) out.push({ st: 'warn', t: `숫자 ${badN.slice(0, 4).join(', ')}${badN.some(x => P.has(numKey(x).replace(/^-/, ''))) ? '는 다른 효과의 값이에요.' : '는 결과표에 없어요.'} 이 효과의 값은 ${e.stat}입니다. 숫자는 다시 쓰지 않아도 됩니다.` });
+    if (!out.some(x => x.st === 'warn')) out.unshift({ st: 'ok', t: `판정(${v.v})${v.sig && e.kind !== 'omnibus' ? '과 방향' : ''}에 맞게 읽었어요.` });
+    return out;
+  }
+  const gistHtml = (h, i) => { const L = gistCheck(h); return L.length ? `<ul class="gist-ck">${L.map(x => `<li class="${x.st}">${x.st === 'ok' ? '✓' : x.st === 'warn' ? '!' : 'i'} ${esc(x.t)}</li>`).join('')}</ul>` : ''; };
+
+  // 효과 이름을 문장 속 말로: "간접효과: A → M → Y" → "A → M → Y의 간접효과"
+  function labelKo(l) {
+    let m;
+    if ((m = l.match(/^(총\s*간접효과|간접효과|직접효과|총효과):\s*(.+)$/))) return `${m[2]}의 ${m[1]}`;
+    if ((m = l.match(/^경로:\s*(.+)$/))) return `${m[1]} 경로`;
+    if ((m = l.match(/^(.+?) – (.+?) 상관$/))) return `${J(m[1], '과/와')} ${m[2]}의 상관`;
+    if ((m = l.match(/^(.+?):\s*(.+?) − (.+)$/))) return `${m[1]}의 ${J(m[2], '과/와')} ${m[3]} 간 차이`;
+    if ((m = l.match(/^([^→]+?) → ([^→]+)$/))) return `${J(m[1], '이/가')} ${m[2]}에 미치는 영향`;
+    return l;
+  }
+  // AI 없이: 판정과 숫자로 결과 문단 틀을 만들고, 줄기는 논의 자리에 모음
+  function templateDraft() {
+    const R = [], D = [], cross = /횡단/.test(intent.design);
+    intent.hyps.forEach((h, i) => {
+      if (!norm(h.text)) return;
+      const no = `가설 ${i + 1}`, e = effById(h.effect), v = verdict(h);
+      if (!e) { R.push(`${no}: [검증할 효과를 2번에서 연결해 주세요]`); return; }
+      const mname = (METHODS[e.analysis.method]?.name || e.analysis.title).replace(/\s*\(.*\)\s*$/, '');
+      const sigW = e.ciBased ? (v.sig ? '부트스트랩 95% 신뢰구간이 0을 포함하지 않아 통계적으로 유의하였다' : '부트스트랩 95% 신뢰구간이 0을 포함하여 통계적으로 유의하지 않았다') : (v.sig ? '통계적으로 유의하였다' : '통계적으로 유의하지 않았다');
+      const dirW = v.sig && e.kind !== 'omnibus' && !/ − /.test(e.label) ? `${e.est > 0 ? '정적' : '부적'} 방향으로 ` : '';
+      R.push(`${J(no, '을/를')} 검증하기 위해 ${J(mname, '을/를')} 실시하였다. 그 결과, ${J(labelKo(e.label), '은/는')} ${dirW}${sigW}(${e.stat}). 따라서 ${J(no, '은/는')} ${v.v === '지지' ? '지지되었다' : '기각되었다'}.`);
+      if (norm(h.gist)) D.push(`[${no} · 내가 읽은 결과] ${norm(h.gist)}\n[선행연구 비교: 이 결과를 어떤 선행연구와 견줄지]`);
+    });
+    return { results: R.join('\n\n'), discussion: D.length ? D.join('\n\n') : '[논의: 2번에서 가설마다 "내가 읽은 결과"를 적으면 여기에 모입니다]',
+      limitations: cross ? ['한 시점에 모두 측정한 자료라 변인 사이의 인과관계를 단정할 수 없다.'] : [], check: ['ㅌㅗㅇ이 판정과 숫자로 만든 틀 문장입니다. 문장을 다듬고, 논의는 내가 읽은 결과를 바탕으로 이어 쓰세요.'] };
+  }
+
   function renderInterp() {
     const box = $('#in-main'); if (!box) return;
     const effs = allEffects();
@@ -5195,7 +5269,11 @@ function createSurvey() {
             <label class="f">검증할 통계 효과<select data-in-h="${i}" data-k="effect">${effOpts(h.effect)}</select></label>
             <label class="f">예상 방향<select data-in-h="${i}" data-k="expect">${Object.entries(EXPECT).map(([k, l]) => `<option value="${k}" ${k === h.expect ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></label>
           </div>
-          ${e ? `<div class="verdict ${v.v === '지지' ? 'ok' : 'no'}"><b>${v.v}</b><span>${esc(e.stat)}</span><small>${esc(v.why)}</small></div>` : ''}
+          ${e ? `<div class="verdict ${v.v === '지지' ? 'ok' : 'no'}"><b>${v.v}</b><span>${esc(e.stat)}</span><small>${esc(v.why)}</small></div>
+          <div class="gist"><label class="f">내가 읽은 결과 (줄기) <small>숫자는 다시 쓰지 않아도 돼요. 이 결과가 무엇을 뜻하는지 내 말로 한두 줄</small>
+            <textarea rows="2" data-in-h="${i}" data-k="gist" placeholder="${esc(v.sig ? (e.ciBased ? '예: 능력주의 신념이 높으면 인내력 부족을 거쳐 사회비교경향성이 높아지는 길이 있었다. 직접효과도 남아 있었다.' : '예: 능력주의 신념이 높을수록 사회비교경향성도 높았고, 그 관계는 중간 정도였다.') : '예: 두 집단의 차이는 통계적으로 유의하지 않았다. 표본에서 성별 차이가 크지 않았던 것 같다.')}">${esc(h.gist || '')}</textarea></label>
+            <p class="hint gist-how"><b>읽는 법</b> ${esc(readHint(e))}</p>
+            <div id="gist-ck-${i}">${gistHtml(h, i)}</div></div>` : ''}
         </div>
         <button class="icon-btn" data-in-act="h-del" data-i="${i}" title="가설 지우기" ${intent.hyps.length < 2 ? 'disabled' : ''}>×</button>
       </div>`;
@@ -5216,7 +5294,7 @@ function createSurvey() {
 
     const out = intent.out;
     const outHtml = out ? `<div class="card" id="in-out">
-      <h3 class="card-title">AI가 쓴 결과 · 논의 초안${out.src ? ` <span class="st manual">${esc(out.src)}</span>` : ''}</h3>
+      <h3 class="card-title">${out.src && /틀/.test(out.src) ? '결과 · 논의 틀' : 'AI가 쓴 결과 · 논의 초안'}${out.src ? ` <span class="st manual">${esc(out.src)}</span>` : ''}</h3>
       ${out.sample ? '<div class="errbox">예시(가짜) 자료로 계산한 결과입니다. 논문에 쓰지 마세요.</div>' : ''}
       ${out.issues.length ? `<div class="section-title">자동 점검: 확인할 곳 ${out.issues.length}개</div><ul class="warn-list">${out.issues.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '<ul class="warn-list"><li class="ok">자동 점검 통과: 숫자가 모두 분석 결과에 있고, 판정과 다른 서술이나 인과 단정 표현을 찾지 못했습니다.</li></ul>'}
       <div class="section-title">결과</div><div class="ai-text" id="in-res">${hl(out.results, out.badNums)}</div>
@@ -5251,7 +5329,8 @@ function createSurvey() {
       </div>
       <div class="card">
         <div class="res-head"><h3 class="card-title">3. AI와 함께 해석하기</h3><a class="guide-link" href="#guide-ai">AI 연결 방법 설명</a></div>
-        <p class="hint">어느 방법을 쓰든 판정은 위의 코드 판정을 따르고, 초안의 숫자와 판정은 이 화면이 다시 점검합니다.</p>
+        <p class="hint">어느 방법을 쓰든 판정은 위의 코드 판정을 따르고, 초안의 숫자와 판정은 이 화면이 다시 점검합니다. 먼저 2번에서 가설마다 <b>내가 읽은 결과</b>를 적어 두면 AI가 그 해석을 뼈대로 씁니다.${intent.hyps.some(h => h.effect && !norm(h.gist)) ? ` <span class="st missing">아직 안 적은 가설 ${intent.hyps.filter(h => h.effect && !norm(h.gist)).length}개</span>` : ''}</p>
+        <div class="tmpl-box"><b>AI 없이</b> 판정과 숫자로 결과 문단의 틀을 만들고, 내가 읽은 결과를 논의 자리에 모아 둡니다. <button class="btn sm" data-in-act="tmpl">결과 문단 틀 만들기</button></div>
         ${mode === 'off' ? `<div class="notice">AI를 쓰지 않도록 설정했습니다. 아무것도 밖으로 보내지 않습니다. 가설 판정과 결과표는 그대로 쓸 수 있으니, 해석 글은 직접 쓰고 아래 [초안 점검] 칸에 붙여 넣으면 숫자·판정을 점검합니다. <button class="btn sm" data-ai-mode-open>AI 방식 바꾸기</button></div>` : ''}
         <div class="mode-tabs" role="tablist" ${mode === 'off' ? 'hidden' : ''}>
           ${[['auto', 'Claude 바로 쓰기', 'claude.ai 링크'], ['chat', '다른 AI (복사)', 'ChatGPT·Gemini 등'], ['code', 'Claude Code', '연구 폴더 · 유료']].filter(([k]) => k !== 'auto' || aiMode === 'auto').map(([k, l, sub]) => `<button class="mode-tab" role="tab" data-in-mode="${k}" aria-selected="${mode === k}"><b>${l}</b><span>${sub}</span></button>`).join('')}
@@ -5260,12 +5339,12 @@ function createSurvey() {
           ${aiOn() ? '' : `<div class="notice">이 화면에서는 Claude 바로 쓰기를 할 수 없습니다. ${aiState === 'denied' ? 'AI 사용이 허용되지 않았거나 이 계정에서 쓸 수 없습니다.' : 'claude.ai 링크에서 열면 됩니다.'} 다른 방법은 위의 [다른 AI (복사)]나 [Claude Code]를 고르세요.</div>`}
           <ol class="steps">
             <li><b>의도 확인</b>: AI가 연구 목적과 가설을 다시 말해 보고, 효과 연결이 맞는지 보고, 빠진 정보를 묻습니다.</li>
-            <li><b>초안 쓰기</b>: 판정과 숫자를 그대로 써서 결과·논의 문단을 씁니다. 쓴 뒤 코드가 다시 점검합니다.</li>
+            <li><b>풀어 쓰기</b>: 2번에 적은 <b>내가 읽은 결과</b>를 뼈대로, 판정과 숫자를 그대로 써서 결과·논의를 논문 문체로 풀어 씁니다. 내 해석에 없는 주장은 덧붙이지 않고 [연구자 보완] 자리로 남깁니다. 쓴 뒤 코드가 다시 점검합니다.</li>
           </ol>
           ${checkHtml}
           <div class="actions">
             <button class="btn ${ck ? '' : 'primary'}" data-in-act="check" ${aiOn() ? '' : 'disabled'}>${ck ? '의도 다시 확인' : '① AI가 내 의도 확인하기'}</button>
-            <button class="btn ${ck ? 'primary' : ''}" data-in-act="write" ${aiOn() ? '' : 'disabled'}>② 결과·논의 초안 쓰기</button>
+            <button class="btn ${ck ? 'primary' : ''}" data-in-act="write" ${aiOn() ? '' : 'disabled'}>② 내 해석으로 결과·논의 풀어 쓰기</button>
             <button class="btn" data-in-act="stop" id="in-stop" hidden>멈추기</button>
             <span class="hint" id="in-prog"></span>
           </div>` : ''}
@@ -5310,7 +5389,7 @@ function createSurvey() {
     return {
       연구: { 제목: intent.title, 목적: intent.purpose, 설계: intent.design, 이론적_배경: intent.theory, 해석_시_유의점: intent.concern, 표본: lastScored ? `분석에 포함된 응답 ${lastScored.inc.length}명` : `N = ${list[0]?.n ?? '-'}` },
       분석_결정: planPayload(),
-      가설: intent.hyps.filter(h => norm(h.text)).map((h, i) => { const e = effById(h.effect), v = verdict(h); return { 번호: i + 1, 가설: h.text, 예상_방향: EXPECT[h.expect], 검증한_효과: e ? e.label : '(연결 안 됨)', 통계값: e ? e.stat : '', 판정: v ? v.v : '판정 불가', 판정_근거: v ? v.why : '' }; }),
+      가설: intent.hyps.filter(h => norm(h.text)).map((h, i) => { const e = effById(h.effect), v = verdict(h); return { 번호: i + 1, 가설: h.text, ...(norm(h.gist) ? { 연구자가_읽은_결과: norm(h.gist) } : {}), 예상_방향: EXPECT[h.expect], 검증한_효과: e ? e.label : '(연결 안 됨)', 통계값: e ? e.stat : '', 판정: v ? v.v : '판정 불가', 판정_근거: v ? v.why : '' }; }),
       분석_결과: list.map(a => ({ 분석: a.title, ...(a.conf ? { 구분: confLabel(a) } : {}), N: a.n, 표: a.tables.map(t => ({ 제목: t.title, 열: t.head, 행: t.rows, ...(t.foot ? { 비고: t.foot } : {}) })), 참고: a.notes,
         보고_체크: (a.checks || []).map(c => `[${c.st === 'ok' ? '갖춤' : c.st === 'warn' ? '확인 필요' : '해당 없음'}] ${c.item}: ${c.note}`) }))
     };
@@ -5332,7 +5411,8 @@ function createSurvey() {
 8. 참고문헌과 선행연구를 지어내지 않는다. 선행연구와 비교할 자리는 "[선행연구 비교: 무엇과 비교할지]"처럼 연구자가 채울 자리로 남긴다.
 9. 한국어 학위논문 문체(-였다, -로 나타났다)로 쓴다. 결과는 가설 순서대로, 가설마다 "가설 n은 지지되었다/기각되었다"를 분명히 쓴다.
 10. 연구자의 연구 목적, 이론적 배경, 질문에 대한 답을 논의에 반영한다.
-11. '구분'이 '탐색적 분석'인 결과는 가설을 지지하거나 기각하는 근거로 쓰지 않는다. 결과의 끝에 '추가 분석'으로 따로 쓰고, 가설을 정한 뒤 추가로 살펴본 분석이라고 밝힌다. '구분'이 '예비조사'인 결과는 본조사 결과로 쓰지 않는다.`;
+11. '구분'이 '탐색적 분석'인 결과는 가설을 지지하거나 기각하는 근거로 쓰지 않는다. 결과의 끝에 '추가 분석'으로 따로 쓰고, 가설을 정한 뒤 추가로 살펴본 분석이라고 밝힌다. '구분'이 '예비조사'인 결과는 본조사 결과로 쓰지 않는다.
+12. 가설에 '연구자가_읽은_결과'가 있으면 그것이 결과 해석과 논의의 뼈대다. 연구자의 해석을 논문 문체로 풀어 쓰되, 그 안에 없는 새 해석이나 주장(이론적 의미, 실천적 함의 등)을 지어내 덧붙이지 않는다. 더 쓸 내용이 필요하면 "[연구자 보완: 무엇을 더 쓸지]" 자리로 남긴다. 연구자가 읽은 결과가 판정이나 숫자와 다르면 판정과 숫자를 따르고, 그 사실을 [확인할 것]에 쓴다. '연구자가_읽은_결과'가 없는 가설은 결과만 쓰고 논의는 "[연구자 보완: 이 결과의 의미]"로 남긴다.`;
   }
   const TEXT_FORMAT = `아래 네 제목을 그대로 쓰고, 제목 아래에 내용을 쓴다. 다른 제목이나 머리말은 붙이지 않는다.
 [결과]
@@ -5406,8 +5486,8 @@ ${CHECK_TASK.replace(/^할 일:\n/, '').split('\n').map(l => '   ' + l).join('\n
 ## 반드시 지킬 것
 아래에서 [연구 자료]는 \`interpretation.json\`을 말한다.
 ${writingRules()}
-11. \`interpretation.json\`은 고치지 않는다. 판정이나 숫자가 이상해 보이면 고치지 말고 연구자에게 알린다.
-12. 응답 원자료는 이 폴더에 없다. 원자료가 필요한 분석을 새로 하지 않는다.
+13. \`interpretation.json\`은 고치지 않는다. 판정이나 숫자가 이상해 보이면 고치지 말고 연구자에게 알린다.
+14. 응답 원자료는 이 폴더에 없다. 원자료가 필요한 분석을 새로 하지 않는다.
 
 ## 초안 형식 (\`draft.md\`)
 ${TEXT_FORMAT}
@@ -5551,6 +5631,7 @@ ${REVIEW_RULES}
     if (t.dataset.inH != null) {
       const h = intent.hyps[+t.dataset.inH]; h[t.dataset.k] = t.value; saveIntent();
       if (t.tagName === 'SELECT') renderInterp();
+      else if (t.dataset.k === 'gist') { clearTimeout(t._gt); t._gt = setTimeout(() => { const el = $('#gist-ck-' + t.dataset.inH); if (el) el.innerHTML = gistHtml(h, +t.dataset.inH); }, 400); }
       return;
     }
     if (t.dataset.inAns != null) { intent.answers[+t.dataset.inAns] = t.value; saveIntent(); return; }
@@ -5568,6 +5649,11 @@ ${REVIEW_RULES}
     else if (act === 'h-del') { intent.hyps.splice(+b.dataset.i, 1); saveIntent(); renderInterp(); }
     else if (act === 'to-analysis') switchView('analysis');
     else if (act === 'check' || act === 'write') askAI(act, !!b.dataset.fresh);
+    else if (act === 'tmpl') {
+      if (!intent.hyps.some(h => norm(h.text) && h.effect)) { toast('가설 문장을 적고 검증할 효과를 먼저 골라 주세요.'); return; }
+      const o = templateDraft(); Object.assign(o, postCheck(o)); o.sample = analyses.some(a => a.sample); o.src = 'ㅌㅗㅇ 틀 (AI 없음)';
+      intent.out = o; saveIntent(); renderInterp(); $('#in-out')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
     else if (act === 'stop') aiCtl?.abort();
     else if (b.dataset.inMode) { intent.mode = b.dataset.inMode; saveIntent(); renderInterp(); }
     else if (act === 'dl-claude-md') download('CLAUDE.md', claudeMd());
@@ -5883,7 +5969,8 @@ ${REVIEW_RULES}
         <li><b>연구 의도</b>: 제목, 목적, 설계, 이론적 배경을 적습니다.</li>
         <li><b>가설과 판정</b>: 가설 문장, 검증할 효과, 예상 방향(+/−)을 고르면 바로 판정됩니다.
           <ul><li>간접효과: 95% 신뢰구간이 0을 포함하지 않으면 유의</li><li>나머지: p &lt; .05이면 유의</li><li>유의하고 방향까지 맞아야 <b>지지</b></li></ul></li>
-        <li><b>AI와 해석</b>: AI가 먼저 내 의도를 확인하고 질문합니다. 답하면 결과·논의 초안을 씁니다. <a href="#guide-ai">AI 방식</a></li>
+        <li><b>내가 읽은 결과</b>: 판정 아래에 결과가 무엇을 뜻하는지 내 말로 한두 줄 적습니다. 숫자는 다시 쓰지 않아도 됩니다. 적는 즉시 판정·방향·완전/부분매개·인과 표현이 맞는지 점검해 줍니다. 효과마다 <b>읽는 법</b>도 보여 줍니다.</li>
+        <li><b>풀어 쓰기</b>: AI가 내가 읽은 결과를 뼈대로 결과·논의를 논문 문체로 풀어 씁니다. 내 해석에 없는 주장은 지어내지 않고 [연구자 보완] 자리로 남깁니다. <a href="#guide-ai">AI 방식</a> AI 없이도 [결과 문단 틀 만들기]로 판정과 숫자가 들어간 결과 문단 틀을 만들 수 있습니다.</li>
         <li><b>자동 점검</b>: 초안에서 아래를 찾아 알려 줍니다.
           <ul><li>결과표에 없는 숫자 (노란 표시)</li><li>판정과 다른 지지·기각 서술</li><li>한 시점 자료에서 인과를 단정하는 말</li><li>유의하지 않은 결과를 "효과가 없다"로 쓴 것</li></ul></li>
       </ol>
@@ -8189,7 +8276,7 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
     return `<svg class="mb-ic" viewBox="0 0 72 40" aria-hidden="true"><defs><marker id="mb-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z"/></marker></defs>${g}</svg>`;
   }
   // 조사: 받침 있으면 앞, 없으면 뒤 ("은/는")
-  const jong = w => { const s = String(w || '').trim(), c = s.slice(-1).charCodeAt(0); if (c >= 0xAC00 && c <= 0xD7A3) return (c - 0xAC00) % 28; if (/[0-9]$/.test(s)) return '0136789'.includes(s.slice(-1)) ? 1 : 0; return -1; };
+  const jong = w => { const s = String(w || '').trim().replace(/[\s)\]}'"’”.,]+$/, ''), c = s.slice(-1).charCodeAt(0); if (c >= 0xAC00 && c <= 0xD7A3) return (c - 0xAC00) % 28; if (/[0-9]$/.test(s)) return '0136789'.includes(s.slice(-1)) ? 1 : 0; return -1; };
   const J = (w, pair) => { const [a, b] = pair.split('/'); const j = jong(w); return w + (j < 0 ? `${a}(${b})` : j ? a : b); };
 
   function mbInit() {
@@ -8232,8 +8319,8 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
         if (c === mc || !['rel', 'pred'].includes(c.model) || c.ctl.some(n => norm(n))) return true;
         const a = vKey(c.x[0]), b = vKey(c.y);
         const hit = P.find(p => (vKey(p.a) === a && vKey(p.b) === b) || (c.model === 'rel' && vKey(p.a) === b && vKey(p.b) === a));
-        if (!hit || (mc.pm[hit.k] && mc.paths)) return true;
-        mc.paths = true; mc.pm[hit.k] = c.model === 'rel' ? 'rel' : 'proc'; mc.pd[hit.k] = c.dir;
+        if (!hit) return true;
+        if (!mc.paths) mc.pon = {}; mc.paths = true; if (mc.pon) mc.pon[hit.k] = true; mc.pm[hit.k] = c.model === 'rel' ? 'rel' : 'proc'; mc.pd[hit.k] = c.dir;
         return false;
       });
     });
@@ -8374,7 +8461,7 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
     M.forEach((m, i) => P.push({ k: 'a' + i, a: X0, b: m, lab: `a 경로 (원인 → ${M.length > 1 ? `매개 ${i + 1}` : '매개'})` }));
     if (c.model === 'serial') M.slice(0, -1).forEach((m, i) => P.push({ k: 'd' + i, a: m, b: M[i + 1], lab: `d 경로 (매개 ${i + 1} → 매개 ${i + 2})` }));
     M.forEach((m, i) => P.push({ k: 'b' + i, a: m, b: Y, lab: `b 경로 (${M.length > 1 ? `매개 ${i + 1}` : '매개'} → 결과)` }));
-    return P.map(p => ({ ...p, how: c.pm[p.k] || 'proc', dir: c.pd[p.k] || c.dir }));
+    return P.map(p => ({ ...p, how: c.pm[p.k] || 'proc', dir: c.pd[p.k] || c.dir, on: !c.pon || !!c.pon[p.k] }));
   }
   // 카드 → 가설 목록 (앞 단계와 같은 꼴: text, type, vars, expect, flags, result)
   function cardItems() {
@@ -8385,7 +8472,7 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
       const main = mbMain(c), type = MB_TYPE[c.model];
       const vars = { iv: c.model === 'diff' && c.within && !X.length ? [] : X, dv: norm(c.y), med: M, mod: norm(c.w), serial: c.model === 'serial' };
       const flags = { covar: ctl.length > 0, repeated: c.model === 'diff' && c.within, oneGroup: false, binaryDv: kindOf(c.y) === 'g2' };
-      if (c.paths) mbPaths(c).forEach(p => {
+      if (c.paths) mbPaths(c).filter(p => p.on).forEach(p => {
         const ctlS = ctl.join(', ');
         out.push(p.how === 'rel' ? { text: relS(p.a, p.b, p.dir, ctlS), type: 'rel', vars: { iv: [p.a], dv: p.b, med: [], mod: '', serial: false }, expect: p.dir, flags: { ...flags, covar: !!ctlS }, result: ctlS ? 'r_partial' : 'r_pearson', ci, part: p.k }
           : { text: predS(p.a, p.b, p.dir, ''), type, vars, expect: p.dir, flags, result: main, ci, part: p.k });
@@ -8450,7 +8537,7 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
     const P = mbPaths(c);
     return `<div class="mb-paths"><label class="mb-chk"><input type="checkbox" data-mb="c.${ci}.paths" ${c.paths ? 'checked' : ''}> 경로마다 가설(연구문제)도 따로 세우기</label>
       ${c.paths && P.length ? `<p class="hint" style="margin:4px 0 6px">경로를 <b>관계</b>로 물으면 상관분석으로, <b>영향</b>으로 물으면 PROCESS 결과의 경로계수로 답합니다. PROCESS의 b 경로는 원인을 통제한 값이라 단순 상관과 숫자가 다릅니다.</p>
-        ${P.map(p => `<div class="mb-path"><span class="mb-plab">${esc(p.lab)}</span><select class="mb-sel" data-mb="c.${ci}.pm.${p.k}"><option value="proc" ${p.how !== 'rel' ? 'selected' : ''}>영향 (PROCESS 경로계수)</option><option value="rel" ${p.how === 'rel' ? 'selected' : ''}>관계 (상관분석)</option></select>${mbDir(`c.${ci}.pd.${p.k}`, p.dir)}<span class="mb-ps">${esc(p.how === 'rel' ? relS(p.a, p.b, p.dir, c.ctl.filter(n => norm(n)).join(', ')) : predS(p.a, p.b, p.dir, ''))}</span></div>`).join('')}` : ''}</div>`;
+        ${P.map(p => `<div class="mb-path ${p.on ? '' : 'off'}"><label class="mb-plab"><input type="checkbox" data-mb="c.${ci}.pon.${p.k}" ${p.on ? 'checked' : ''}> ${esc(p.lab)}</label><select class="mb-sel" data-mb="c.${ci}.pm.${p.k}"><option value="proc" ${p.how !== 'rel' ? 'selected' : ''}>영향 (PROCESS 경로계수)</option><option value="rel" ${p.how === 'rel' ? 'selected' : ''}>관계 (상관분석)</option></select>${mbDir(`c.${ci}.pd.${p.k}`, p.dir)}<span class="mb-ps">${esc(p.how === 'rel' ? relS(p.a, p.b, p.dir, c.ctl.filter(n => norm(n)).join(', ')) : predS(p.a, p.b, p.dir, ''))}</span></div>`).join('')}` : ''}</div>`;
   }
   function mbCardHtml(c, ci, no) {
     if (!c.model) return `<div class="mb-card mb-null" data-ci="${ci}"><p class="hint mb-src">붙여 넣은 문장: ${esc(c.src)}</p><p class="mb-miss">이 문장의 모형을 골라 주세요.</p><div class="actions tight"><button class="btn sm primary" data-mb-act="repick" data-ci="${ci}">모형 고르기</button><button class="btn sm" data-mb-act="del-card" data-ci="${ci}">지우기</button></div></div>`;
@@ -8471,16 +8558,20 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
     return `<div class="mb-picker"><p class="mb-ph">${forCi != null ? '이 가설의 모형을 고르세요' : '가설의 모형을 고르세요'}</p><div class="mb-grid">${MB_MODELS.map(m => `<button class="mb-pick" data-mb-act="pick" data-model="${m.k}">${mbIcon(m.k)}<b>${m.name}</b><small>${m.d}</small></button>`).join('')}</div>
       ${hp.cards.length ? '<button class="linkish" data-mb-act="pick-cancel">닫기</button>' : ''}</div>`;
   }
+  function mbTgHtml() {
+    const tg = titleGuess(hp.title);
+    return tg && !hp.cards.length ? `<div class="mb-tg">제목으로 보면 <b>${esc(MB_NAME[tg.model])}</b> 모형 같아요: ${esc([...tg.x, ...tg.m, tg.w, tg.y].filter(Boolean).join(' · '))} <button class="btn sm primary" data-mb-act="from-title">이 모형으로 시작</button></div>` : '';
+  }
   function hypHtml() {
     mbInit();
-    const tg = titleGuess(hp.title), ready = hp.cards.length && hp.cards.every(c => !mbMissing(c).length);
+    const ready = hp.cards.length && hp.cards.every(c => !mbMissing(c).length);
     const v = hp.vlist;
     return `<div class="card hyp-card mb">${mbDL()}
       <div class="kicker">가설로 시작하기 <button class="linkish" data-hp="mode-ladder">질문으로 고르기로 바꾸기</button><button class="linkish" data-act="restart">처음으로</button></div>
       <h2 class="q">연구모형을 만들어 주세요</h2>
       <p class="hint">변인을 적고, 가설마다 모형 그림을 골라 빈칸을 채우면 가설 문장과 분석 방법이 정해집니다. 문장은 어떻게 써도 괜찮아요.</p>
       <label class="f">논문 제목<input id="hp-title" value="${esc(hp.title)}" placeholder="예: 능력주의 신념이 외집단 혐오에 미치는 영향: 사회비교경향성과 외로움의 순차적 매개효과"></label>
-      ${tg && !hp.cards.length ? `<div class="mb-tg">제목으로 보면 <b>${esc(MB_NAME[tg.model])}</b> 모형 같아요: ${esc([...tg.x, ...tg.m, tg.w, tg.y].filter(Boolean).join(' · '))} <button class="btn sm primary" data-mb-act="from-title">이 모형으로 시작</button></div>` : ''}
+      <div id="mb-tg-slot">${mbTgHtml()}</div>
 
       <h3 class="mb-h"><span class="mb-n">1</span>변인</h3>
       <div class="mb-vars">${v.map((x, i) => `<div class="mb-var"><input class="mb-in" data-mb="v.${i}.name" value="${esc(x.name)}">
@@ -8614,7 +8705,9 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
       if (f === 'why') { c.why = t.value; saveHp(); return; }
       if (['x', 'm', 'ctl'].includes(f) && sub != null) { const n = norm(t.value); c[f][+sub] = n; if (n) mbAddVar(n); }
       else if (['y', 'w'].includes(f)) { const n = norm(t.value); c[f] = n; if (n) mbAddVar(n); }
-      else if (f === 'within' || f === 'paths') c[f] = t.checked;
+      else if (f === 'within') c[f] = t.checked;
+      else if (f === 'paths') { c.paths = t.checked; if (t.checked) c.pon = null; }
+      else if (f === 'pon') { if (!c.pon) c.pon = Object.fromEntries(mbPaths(c).map(p => [p.k, true])); c.pon[sub] = t.checked; }
       else if (f === 'times') c.times = +t.value;
       else if (f === 'main') { c.main = t.value; c.alts = c.alts.filter(a => a !== t.value); if (c.model === 'modmed') c.wpath = t.value === 'r_modmed_b' ? 'b' : 'a'; }
       else if (f === 'alt') { c.alts = t.checked ? [...new Set([...c.alts, t.value])] : c.alts.filter(a => a !== t.value); }
@@ -8626,11 +8719,11 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
     setTimeout(mbRender, 0);
   });
   $('#stage').addEventListener('input', e => {
-    if (e.target.id === 'hp-title') { hp.title = e.target.value; _set('ladder.hyp', hp); }
+    if (e.target.id === 'hp-title') { hp.title = e.target.value; _set('ladder.hyp', hp); clearTimeout(mbTgT); mbTgT = setTimeout(() => { const el = $('#mb-tg-slot'); if (el) el.innerHTML = mbTgHtml(); }, 350); }
     if (e.target.id === 'hp-text') { hp.text = e.target.value; _set('ladder.hyp', hp); }
     if (e.target.dataset && /^c\.\d+\.why$/.test(e.target.dataset.mb || '')) { const c = hp.cards[+e.target.dataset.mb.split('.')[1]]; if (c) { c.why = e.target.value; _set('ladder.hyp', hp); } }
   });
-  $('#stage').addEventListener('focusout', e => { if (e.target.id === 'hp-title' && hp.mode === 'hyp' && !hp.cards.length && titleGuess(hp.title)) setTimeout(() => { if (!document.activeElement || document.activeElement.id !== 'hp-title') { render(); } }, 0); });
+  let mbTgT = 0;
   $('#stage').addEventListener('toggle', e => { if (e.target.classList && e.target.classList.contains('mb-paste')) hp.pasteOpen = e.target.open; }, true);
   document.addEventListener('click', e => {
     const b = e.target.closest('[data-hp-calc]'); if (!b) return;
