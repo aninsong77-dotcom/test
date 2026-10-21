@@ -1,0 +1,227 @@
+[
+ {
+  "f": "/home/user/test/video/frames/ai_connect/000.png",
+  "cap": "통에 AI를 연결하는 네 가지 방법과, 방법마다 쓸 수 있는 기능을 자세히 봅니다.",
+  "dur": 6
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/001.png",
+  "cap": "AI가 없어도 통계 계산, 가설 판정, 내가 읽은 결과 점검까지 모두 됩니다. AI는 글쓰기와 읽기를 돕습니다. 판정은 코드가 정하고, 응답 원자료는 AI에 보내지 않습니다.",
+  "dur": 12
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/002.png",
+  "cap": "① claude.ai 링크로 열기 ② 평소 쓰는 AI 채팅에 복사·붙여 넣기 ③ Claude 데스크톱 앱에 연구 폴더 맡기기 ④ AI 끄기. 필요한 계정과 연결 방법이 다릅니다.",
+  "dur": 14
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/003.png",
+  "cap": "초안 쓰기와 허점 점검은 ①②③ 모두 되고, 방법만 다릅니다. R로 다시 계산은 ③만 대신 해 줍니다. 초안 점검은 AI가 아니라 통이 하므로 어느 방법이든 됩니다.",
+  "dur": 18
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/004.png",
+  "cap": "방법은 대화창 왼쪽 아래의 점에서 고릅니다. 점 옆 글자가 지금 상태입니다.",
+  "dur": 6.64
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/005.png",
+  "cap": "AI 방식 고르기 창. 고른 방식은 대화창, 결과 해석, 허점 점검, 척도 사진 읽기에 모두 적용됩니다.",
+  "dur": 7.96
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/006.png",
+  "cap": "점의 색과 글자로 지금 어떤 방식인지 알 수 있습니다.",
+  "dur": 11
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/007.png",
+  "cap": "Claude 바로 쓰기",
+  "dur": 3.4
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/008.png",
+  "cap": "1. 사용 설명의 [Claude 바로 쓰기 링크]를 눌러 claude.ai에서 엽니다. 2. Claude 계정으로 로그인합니다. 무료 계정도 됩니다.",
+  "dur": 10
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/009.png",
+  "cap": "claude.ai에서 열면 점이 초록색 \"Claude 연결됨\"으로 바뀝니다. 따로 설치하거나 설정할 것은 없습니다.",
+  "dur": 9.16
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/010.png",
+  "cap": "결과 해석: [① AI가 내 의도 확인하기] → AI가 연구 목적과 가설을 다시 말해 보고, 효과 연결이 맞는지 확인하고, 빠진 정보를 묻습니다.",
+  "dur": 10
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/011.png",
+  "cap": "[② 내 해석으로 결과·논의 풀어 쓰기] → 2번에 적은 \"내가 읽은 결과\"를 뼈대로, 코드의 판정과 숫자 그대로 논문 문체로 풀어 씁니다. 내 해석에 없는 주장은 [연구자 보완] 자리로 남기고, 다 쓰면 통이 다시 점검합니다.",
+  "dur": 13
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/012.png",
+  "cap": "허점 점검: [허점 점검 받기] 한 번이면, AI가 깐깐한 동료처럼 심사위원이 물을 만한 곳을 짚어 줍니다.",
+  "dur": 8.2
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/013.png",
+  "cap": "대화창 도우미: 궁금한 것을 적고 보내면, 지금 화면과 내 연구 내용을 보고 화면 안에서 바로 답합니다.",
+  "dur": 7.96
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/014.png",
+  "cap": "이미 써 둔 가설·연구문제는 [붙여 넣기]에 넣고 [AI로 읽어서 카드로 바꾸기]를 누르면 모형 카드로 바뀝니다. 척도 사진·스캔 PDF도 화면에서 바로 읽습니다.",
+  "dur": 11.32
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/015.png",
+  "cap": "① 방식은 가장 편하지만, claude.ai 안에서는 연구 폴더 연결이 안 되니 zip으로 백업하세요.",
+  "dur": 12
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/016.png",
+  "cap": "다른 AI 쓰기 (복사·붙여 넣기)",
+  "dur": 3.4
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/017.png",
+  "cap": "점을 눌러 [다른 AI 쓰기]를 고르면 점이 주황색 \"다른 AI (복사)\"로 바뀝니다.",
+  "dur": 7.239999999999999
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/018.png",
+  "cap": "먼저 결과 해석 2번에서 가설마다 [내가 읽은 결과]를 적어 둡니다. 지시문에 함께 들어가, AI가 내 해석을 뼈대로 씁니다.",
+  "dur": 9.16
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/019.png",
+  "cap": "결과 해석 → [다른 AI (복사)]: 네 단계로 진행합니다. 지시문 복사 → AI에 붙여 넣기 → AI의 답 붙여 넣기 → 초안 점검.",
+  "dur": 9.28
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/020.png",
+  "cap": "[① 의도 확인 지시문 복사]: 연구 의도, 가설, 코드의 판정, 결과표가 담긴 지시문이 복사됩니다. 응답 원자료는 들어 있지 않습니다.",
+  "dur": 9.76
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/021.png",
+  "cap": "복사한 지시문을 평소 쓰는 AI 채팅에 붙여 넣습니다. AI가 연구를 이해한 내용과 질문을 답합니다. (AI의 답은 예시입니다)",
+  "dur": 11
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/022.png",
+  "cap": "AI의 답을 [AI의 답] 칸에, AI가 물은 것에 대한 내 답을 그 아래 칸에 붙여 넣습니다.",
+  "dur": 7.359999999999999
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/023.png",
+  "cap": "[② 초안 쓰기 지시문 복사] → 같은 AI 채팅에 붙여 넣습니다. 앞의 답까지 담겨 있어 AI가 초안을 씁니다.",
+  "dur": 8.32
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/024.png",
+  "cap": "AI가 [결과] [논의] [연구의 한계] [확인할 것] 초안을 씁니다. 이 초안을 복사합니다. (예시: 일부러 틀린 숫자와 인과 표현을 넣었습니다)",
+  "dur": 10
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/025.png",
+  "cap": "초안을 [초안 점검] 칸에 붙여 넣고 [초안 점검하기]를 누릅니다.",
+  "dur": 6.279999999999999
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/026.png",
+  "cap": "통이 결과표에 없는 숫자, 판정과 다른 문장, \"때문에\" 같은 인과 표현을 찾아 알려 줍니다. AI가 실수해도 여기서 걸러집니다.",
+  "dur": 9.399999999999999
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/027.png",
+  "cap": "허점 점검도 같은 방식입니다: 지시문 복사 → AI에 붙여 넣기 → AI의 답을 붙여 넣으면 목록으로 정리됩니다.",
+  "dur": 8.44
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/028.png",
+  "cap": "척도 사진·스캔 PDF: 지시문을 복사해 사진과 함께 AI 채팅에 올리고, AI가 정리한 글을 [글 붙여 넣기]에 넣으면 문항이 채워집니다.",
+  "dur": 10
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/029.png",
+  "cap": "대화창: 사용 설명에서 관련된 곳을 찾아 주고, [AI에게 물을 지시문 복사]로 질문을 내 연구 정보와 함께 다른 AI에 물을 수 있습니다.",
+  "dur": 9.76
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/030.png",
+  "cap": "Claude 데스크톱 앱 + 연구 폴더",
+  "dur": 3.4
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/031.png",
+  "cap": "③ 준비물: PC 크롬·엣지·웨일, Claude Pro 이상 요금제, Claude 데스크톱 앱. R 분석까지 맡기려면 R도 설치합니다.",
+  "dur": 11
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/032.png",
+  "cap": "통 위 띠의 [📁 연구 폴더] → [연구 폴더 연결]을 누릅니다.",
+  "dur": 6.039999999999999
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/033.png",
+  "cap": "폴더 고르는 창에서 새 폴더(예: 내논문)를 만들어 고르고, 브라우저가 묻는 파일 수정을 허용합니다.",
+  "dur": 10
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/034.png",
+  "cap": "연결되면 폴더 이름과 저장 시각이 나옵니다. 이제 작업이 이 폴더에 파일로 저장됩니다.",
+  "dur": 7.239999999999999
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/035.png",
+  "cap": "폴더에 저절로 생긴 파일들입니다. CLAUDE.md는 Claude가 지킬 규칙, 나머지는 설문·자료·분석 계획서·R 코드·해석 자료입니다.",
+  "dur": 10
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/036.png",
+  "cap": "Claude 데스크톱 앱을 설치하고 로그인한 뒤, 위쪽 Code 탭 → Local → Select folder → 연구 폴더(내논문)를 고릅니다.",
+  "dur": 11
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/037.png",
+  "cap": "\"해석해 줘\", \"R로 분석해줘\", \"허점 점검해줘\"라고 말하면 됩니다. 첫 답에 \"통 해석 모드입니다.\"가 나오면 제대로 연결된 것입니다.",
+  "dur": 13
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/038.png",
+  "cap": "Claude가 만든 초안(draft.md), R 결과, 허점 점검(review.md)은 폴더에 저장되고, 통 창을 다시 누르면 저절로 읽어 와 대조·점검합니다.",
+  "dur": 11
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/039.png",
+  "cap": "통의 결과 해석 → [Claude Code] 탭에도 같은 순서가 적혀 있습니다. 폴더 없이 파일 두 개만 받아 쓰는 방법도 있습니다.",
+  "dur": 9.399999999999999
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/040.png",
+  "cap": "AI 쓰지 않기",
+  "dur": 3.4
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/041.png",
+  "cap": "[AI 쓰지 않기]를 고르면 점이 \"AI 끔\"이 되고, 아무것도 밖으로 보내지 않습니다.",
+  "dur": 7.359999999999999
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/042.png",
+  "cap": "기법 고르기부터 계산·가설 판정까지는 그대로 쓰고, 해석 글은 직접 씁니다. 직접 쓴 글도 [초안 점검]으로 숫자와 판정을 점검할 수 있습니다.",
+  "dur": 10.12
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/043.png",
+  "cap": "처음이면 평소 쓰는 AI로 ②부터 시작하세요. 방법은 언제든 바꿀 수 있습니다.",
+  "dur": 14
+ },
+ {
+  "f": "/home/user/test/video/frames/ai_connect/044.png",
+  "cap": "더 자세한 내용은 통의 [사용 설명]에 있습니다.",
+  "dur": 7
+ }
+]

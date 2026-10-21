@@ -5298,7 +5298,9 @@ function createSurvey() {
       if (h.effect || !norm(h.text)) return;
       const p = hp.plan.find(x => norm(x.text) === norm(h.text)); if (!p) return;
       const it = hp.items[p.no - 1] || {}, v = it.vars || {}, X = (v.iv || [])[0] || '', Y = v.dv || '', M = v.med || [];
-      const A = analyses.filter(a => a.conf && a.conf.k === 'confirm' && (a.conf.hyps || []).includes(p.no));
+      // 확정한 뒤면 확증 표시로, 아니면 그 가설의 변인 그대로 계산한 결과로 찾음
+      const pi = planItems().find(x => x.no === p.no), lm = LADDER_TO_METHOD[p.result];
+      const A = analyses.filter(a => (a.conf && a.conf.k === 'confirm' && (a.conf.hyps || []).includes(p.no)) || (lm && a.method === lm && a.spec && pi && pi.v && roleSig(a.spec.roles) === roleSig(rolesFor(pi, lm))));
       const pick = es => {
         const has = (e, n) => n && e.label.includes(n);
         if (it.type === 'rel') return es.find(e => /상관$/.test(e.label) && has(e, X) && has(e, Y)) || es.find(e => /상관$/.test(e.label));
@@ -5773,6 +5775,8 @@ ${REVIEW_RULES}
         <li><a href="#guide-interp">결과 해석</a> — 가설 판정을 보고 <b>내가 읽은 결과</b>를 적으면, 판정과 맞는지 점검하고 논문 문체로 풀어 씁니다.</li>
         <li><a href="#guide-checks">보고 체크리스트와 허점 점검</a> — 빠진 보고 항목과 심사에서 나올 질문을 미리 봅니다.</li>
       </ol>
+      <h3>영상으로 보기</h3>
+      <p><a href="https://aninsong77-dotcom.github.io/tong/video/tong_tutorial.mp4" target="_blank" rel="noopener">통 사용법 (약 9분)</a> · <a href="https://aninsong77-dotcom.github.io/tong/video/tong_ai_connect.mp4" target="_blank" rel="noopener">AI 연결하기 (약 7분)</a> — 화면이 바뀌면 영상도 새로 만듭니다.</p>
       <h3>먼저 해 보기</h3>
       <p>왼쪽 메뉴 <b>분석 결정·계산</b> → <b>[예시 자료로 해 보기]</b>. 가짜 응답 300명으로 전체 흐름을 볼 수 있습니다. 예시 자료는 논문에 쓰면 안 됩니다.</p>
       <h3>화면</h3>
@@ -6063,6 +6067,7 @@ ${REVIEW_RULES}
       <p>질문마다 [검토함]에 체크하며 정리하세요.</p>` },
 
     { id: 'ai', group: 'AI 연결', title: 'AI 방식', kw: 'AI 연결 ChatGPT 챗GPT Gemini 복사', tab: 'interp', body: `
+      <p class="hint">영상으로 보기: <a href="https://aninsong77-dotcom.github.io/tong/video/tong_ai_connect.mp4" target="_blank" rel="noopener">AI 연결하기 (약 7분)</a></p>
       <p class="g-sum">대화창 왼쪽 아래 <b>점</b>을 누르면 AI 방식을 고릅니다. 대화창, 결과 해석, 허점 점검, 척도 사진 읽기에 모두 적용됩니다.</p>
       <table class="gtable"><thead><tr><th>방식</th><th>쓰는 법</th><th>필요한 것</th></tr></thead><tbody>
         <tr><td><b>Claude 바로 쓰기</b></td><td>화면 안에서 바로 답합니다.</td><td>claude.ai 링크로 열기 (claude.ai 계정, 무료도 됨)</td></tr>
@@ -9064,13 +9069,13 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
     return roles;
   }
   // 가설 확정 뒤 계산한 분석: 계획에 있던 기법이면 확증, 아니면 탐색적
+  const roleSig = r => JSON.stringify(Object.keys(r || {}).sort().map(k => [k, [].concat(r[k] ?? []).filter(x => x !== '' && x != null).map(String).sort()]).filter(([, v]) => v.length));
   function confOf(method, roles) {
     if (lastScored && lastScored.pilot) return { k: 'pilot' };
     if (!md.lock) return null;
     const cand = md.lock.plan.filter(p => p.method === method);
     if (cand.length) {
-      const sig = r => JSON.stringify(Object.keys(r || {}).sort().map(k => [k, [].concat(r[k] ?? []).filter(x => x !== '' && x != null).map(String).sort()]).filter(([, v]) => v.length));
-      const items = planItems(), same = roles ? cand.filter(p => { const pi = items.find(x => x.no === p.no); return pi && pi.v && sig(rolesFor(pi, method)) === sig(roles); }) : [];
+      const items = planItems(), same = roles ? cand.filter(p => { const pi = items.find(x => x.no === p.no); return pi && pi.v && roleSig(rolesFor(pi, method)) === roleSig(roles); }) : [];
       return { k: 'confirm', hyps: (same.length ? same : cand).map(p => p.no), at: md.lock.at };
     }
     md.explore.push({ at: koNow(), method: METHODS[method]?.name || method }); saveMd();
