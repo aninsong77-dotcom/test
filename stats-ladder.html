@@ -6,6 +6,11 @@
 <title>ㅌㅗㅇ · 설문부터 통계 해석까지</title>
 <meta name="description" content="통계 용어를 몰라도 질문에 답하며 내 연구에 맞는 통계 기법을 고르고, 설문을 만들고, 응답을 모아 계산하고, AI와 결과를 해석하는 대학원생용 도구">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='40 6 48 52'%3E%3Cpath d='M44 15 Q44 10 64 10 Q84 10 84 15 V51 Q84 56 64 56 Q44 56 44 51 Z' fill='%232563eb'/%3E%3Cellipse cx='64' cy='14' rx='20' ry='4.5' fill='%234a84f5'/%3E%3Ccircle cx='57' cy='34' r='2.6' fill='white'/%3E%3Cpath d='M68.5 34.5 Q71 32 73.5 34.5 M60 39 Q64 42 68 39' fill='none' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E">
+<!-- 홈 화면 바로가기: 로고 가운데의 통을 아이콘으로, 이름은 ㅌㅗㅇ -->
+<link rel="apple-touch-icon" href="tong-apple-touch-icon.png">
+<link rel="manifest" href="tong.webmanifest">
+<meta name="apple-mobile-web-app-title" content="ㅌㅗㅇ">
+<meta name="theme-color" content="#ffffff">
 <meta property="og:title" content="ㅌㅗㅇ · 설문부터 통계 해석까지">
 <meta property="og:description" content="통계 용어를 몰라도 질문에 답하며 내 연구에 맞는 통계 기법을 고르고, 설문을 만들고, 응답을 모아 계산하고, AI와 결과를 해석하는 대학원생용 도구">
 <meta property="og:image" content="https://aninsong77-dotcom.github.io/tong/og-image.png">
@@ -2337,7 +2342,6 @@ input:focus::placeholder,textarea:focus::placeholder{opacity:.35}
 @keyframes wm-o{0%,100%{transform:none}28%,72%{transform:translate(0,8.57px) scale(1,.321)}}
 @keyframes wm-ng{0%,100%{transform:none}28%,72%{transform:translate(9.71px,14.7px) scale(.442)}}
 @keyframes wm-sw{0%,100%{stroke-width:2.8}28%,72%{stroke-width:2.3}}
-@media (prefers-reduced-motion: reduce){.wm.merge .j1,.wm.merge .j2,.wm.merge .j3,.wm.merge .wm-g{animation:none}}
 
 /* 시작 화면에서도 ㅌㅗㅇ → 통 → ㅌㅗㅇ */
 #splash .sp-wm{overflow:visible}
@@ -2725,8 +2729,8 @@ table.compact.sp-table{min-width:0;table-layout:auto;width:100%}.sp-table td{ver
   fit(); if (mq.addEventListener) mq.addEventListener('change', fit);
 })();
 (function () {
-  // 휴대폰의 '동작 줄이기'·'애니메이션 제거'·절전 모드면 움직임 없이 로고만 잠깐 보여 줌
-  var still = false; try { still = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+  // 로고 애니메이션은 휴대폰의 '동작 줄이기'·절전 모드와 상관없이 늘 같게 보여 줌 (사용자 결정)
+  var still = false;
   var src = document.querySelector('.hdr-logo.tong'), wm = document.querySelector('.hdr-title .wm');
   if (!src) return;
   var d = document.createElement('div'); d.id = 'splash'; d.setAttribute('role', 'presentation'); if (still) d.className = 'still';
@@ -8297,8 +8301,7 @@ ${q}`;
     wm.addEventListener('animationend', e => { if (e.target.classList.contains('j1')) wm.classList.remove('merge'); });
     window.tongMerge = play;
     $('.hdr-title').addEventListener('mouseenter', play);
-    let reduce = false; try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
-    if (!reduce && !document.getElementById('splash')) setTimeout(play, 700);   // 시작 애니메이션이 없을 때만 (있으면 그 안에서 합쳐짐)
+    if (!document.getElementById('splash')) setTimeout(play, 700);   // 로고 움직임은 '동작 줄이기' 설정과 상관없이 (사용자 결정)   // 시작 애니메이션이 없을 때만 (있으면 그 안에서 합쳐짐)
   })();
 
   // ---------- 글 속의 '통'(이 앱 이름)을 로고 글씨로: 헤더 로고가 모인 모양 그대로 ----------
