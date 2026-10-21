@@ -1,6 +1,6 @@
 // 통 기준값 테스트
 //   1부 (R 없이 됨): tests/reference_values.json(R로 미리 계산한 값)과 통의 계산 함수를 비교
-//   2부 (Rscript가 있을 때): 예시 자료로 화면에서 분석 19가지를 돌리고, 통이 만든 analysis.R을 R로 돌려 모든 효과를 비교
+//   2부 (Rscript가 있을 때): 예시 자료로 화면에서 분석 23가지를 돌리고, 통이 만든 analysis.R을 R로 돌려 모든 효과를 비교
 // 실행: cd tests && npm install && node reference.mjs        (2부 건너뛰기: node reference.mjs --no-r)
 import { chromium } from 'playwright';
 import http from 'http';
@@ -8,8 +8,9 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { execFileSync } from 'child_process';
+import { fileURLToPath } from 'url';
 
-const HERE = path.dirname(new URL(import.meta.url).pathname), ROOT = path.resolve(HERE, '..');
+const HERE = path.dirname(fileURLToPath(import.meta.url)), ROOT = path.resolve(HERE, '..');
 const REF = JSON.parse(fs.readFileSync(path.join(HERE, 'reference_values.json'), 'utf8'));
 const NO_R = process.argv.includes('--no-r');
 let pass = 0, fail = 0; const fails = [];
@@ -25,7 +26,8 @@ const server = http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': MIME[path.extname(f)] || 'application/octet-stream' }); fs.createReadStream(f).pipe(res);
 });
 await new Promise(r => server.listen(0, '127.0.0.1', r));
-const BASE = `http://127.0.0.1:${server.address().port}/stats-ladder.html`;
+const APP = ['stats-ladder.html', 'index.html'].find(f => fs.existsSync(path.join(ROOT, f)) && fs.statSync(path.join(ROOT, f)).size > 100000);   // tong 저장소에서는 index.html이 본체
+const BASE = `http://127.0.0.1:${server.address().port}/${APP}`;
 const exe = ['/opt/pw-browsers/chromium'].find(p => fs.existsSync(p));
 const browser = await chromium.launch(exe ? { executablePath: exe } : {});
 
@@ -77,7 +79,7 @@ console.log('\n1부: 계산 함수 ↔ R 기준값');
 let hasR = false; try { execFileSync('Rscript', ['--version'], { stdio: 'ignore' }); hasR = true; } catch (e) { /* 없음 */ }
 if (NO_R || !hasR) console.log(`\n2부: 건너뜀 (${NO_R ? '--no-r' : 'Rscript를 찾지 못함'})`);
 else {
-  console.log('\n2부: 화면에서 분석 19가지 → 통이 만든 analysis.R을 R로 실행 → 효과 비교');
+  console.log('\n2부: 화면에서 분석 23가지 → 통이 만든 analysis.R을 R로 실행 → 효과 비교');
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, acceptDownloads: true });
   const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('dialog', d => d.accept());
   await p.goto(BASE); await p.evaluate(() => { localStorage.clear(); localStorage.setItem('ladder.noWelcome', 'true'); }); await p.reload();
@@ -113,6 +115,10 @@ else {
   await run('mcnemar', async () => { await sel('a', '상담 경험 1차 (2가지)'); await sel('b', '상담 경험 2차 (2가지)'); });
   await run('cochran', async () => { await chips('vars', ['상담 경험 1차', '상담 경험 2차', '상담 경험 3차']); });
   await run('med_serial');
+  await run('med_parallel', async () => { await sel('x', '능력주의 신념'); await chips('ms', ['사회비교경향성', '외로움']); await sel('y', '외집단 혐오'); });
+  await run('moderation', async () => { await sel('x', '능력주의 신념'); await sel('w', '사회비교경향성'); await sel('y', '외집단 혐오'); });
+  await run('modmed7', async () => { await sel('x', '능력주의 신념'); await sel('m', '외로움'); await sel('w', '사회비교경향성'); await sel('y', '외집단 혐오'); });
+  await run('modmed14', async () => { await sel('x', '능력주의 신념'); await sel('m', '외로움'); await sel('w', '사회비교경향성'); await sel('y', '외집단 혐오'); });
   const an = await p.evaluate(() => JSON.parse(localStorage.getItem('ladder.analyses')));
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tong-ref-'));
   const [d1] = await Promise.all([p.waitForEvent('download'), p.click('[data-an-act=r-data]')]); fs.copyFileSync(await d1.path(), path.join(dir, 'analysis_data.csv'));
