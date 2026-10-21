@@ -4,8 +4,7 @@ d <- lavaan::HolzingerSwineford1939
 cfa_model <- ' visual  =~ x1 + x2 + x3
                textual =~ x4 + x5 + x6
                speed   =~ x7 + x8 + x9 '
-sem_model <- paste(cfa_model, ' speed ~ a * visual + b * textual
-                                 ind := a * b ')
+sem_model <- paste(cfa_model, 'speed ~ a * visual + b * textual', 'ind := a * b', sep = "\n")
 fm <- c("chisq", "df", "pvalue", "cfi", "tli", "rmsea", "rmsea.ci.lower", "rmsea.ci.upper", "srmr")
 f1 <- cfa(cfa_model, data = d)
 f2 <- sem(sem_model, data = d)
