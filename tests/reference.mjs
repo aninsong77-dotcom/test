@@ -149,6 +149,29 @@ else {
     ok(`R과 일치: ${a.title}`, good, why.slice(0, 3).join(' / '));
   }
   console.log(`    효과 ${nE}개 비교. 최대 차이: 추정값 ${worst.est.toExponential(1)}, p ${worst.p.toExponential(1)}, CI ${worst.ci.toExponential(1)}, 부트스트랩 CI ${worst.boot.toFixed(4)} (R과 난수가 달라 생기는 차이)`);
+  // 확인적 요인분석: 브라우저 속 R(웹알)의 lavaan ↔ 통이 만든 lavaan R 코드를 진짜 R로. 웹알·lavaan이 없는 곳에서는 건너뜀 (REQUIRE_WEBR=1이면 실패)
+  let hasLavaan = false; try { execFileSync('Rscript', ['-e', 'quit(status = !(requireNamespace("lavaan", quietly = TRUE) && requireNamespace("jsonlite", quietly = TRUE)))'], { stdio: 'ignore' }); hasLavaan = true; } catch (e) { /* 없음 */ }
+  await p.click('[data-nav=measure]'); await p.waitForTimeout(400);
+  await p.click('[data-cfa=run]');
+  await p.waitForFunction(() => window.tongCfaLast || document.querySelector('#cfa-card .errbox'), null, { timeout: 300000 });
+  const cfa = await p.evaluate(() => window.tongCfaLast || null);
+  if (!cfa || !hasLavaan) {
+    if (process.env.REQUIRE_WEBR) ok('확인적 요인분석 (웹알 lavaan ↔ R lavaan)', false, !cfa ? '웹알을 불러오지 못함' : 'R에 lavaan이 없음');
+    else console.log(`    확인적 요인분석: 건너뜀 (${!cfa ? '웹알에 접속할 수 없는 환경' : 'R에 lavaan이 없음'})`);
+  } else {
+    const [d3] = await Promise.all([p.waitForEvent('download'), p.click('[data-cfa=rcode]')]);
+    const rc = fs.readFileSync(await d3.path(), 'utf8') + `
+FM <- c("chisq", "df", "pvalue", "cfi", "tli", "rmsea", "rmsea.ci.lower", "rmsea.ci.upper", "srmr")
+ss <- standardizedSolution(fit)
+writeLines(as.character(jsonlite::toJSON(list(fit = as.list(unname(fitMeasures(fit, FM))), std = ss$est.std[ss$op == "=~"]), digits = NA, auto_unbox = TRUE, na = "null")), "cfa_check.json")
+`;
+    fs.writeFileSync(path.join(dir, 'cfa_lavaan.R'), rc);
+    try { execFileSync('Rscript', ['cfa_lavaan.R'], { cwd: dir, stdio: ['ignore', 'ignore', 'pipe'], env: { ...process.env, LANG: 'C.UTF-8' } }); } catch (e) { ok('확인적 요인분석 R 코드 실행', false, String(e.stderr || e.message).slice(0, 300)); }
+    const rv = JSON.parse(fs.readFileSync(path.join(dir, 'cfa_check.json'), 'utf8'));
+    const dF = Math.max(...cfa.fit.map((v, i) => Math.abs(v - rv.fit[i]))), dL = Math.max(...cfa.ld.std.map((v, i) => Math.abs(v - rv.std[i])));
+    ok('확인적 요인분석: 웹알 lavaan = R lavaan (적합도 9개, 표준화 부하량)', dF < 1e-6 && dL < 1e-6 && cfa.ld.std.length === rv.std.length, `CFI ${(+cfa.fit[3]).toFixed(4)}, RMSEA ${(+cfa.fit[5]).toFixed(4)} · 최대 차이 ${Math.max(dF, dL).toExponential(1)} · lavaan ${cfa.lavaan}`);
+    ok('확인적 요인분석 화면: 적합도·부하량·CR/AVE·HTMT·문장', await p.$eval('#cfa-card', e => ['CFI', 'RMSEA', 'AVE', 'HTMT', '확인적 요인분석을 실시하였다'].every(k => e.innerText.includes(k))));
+  }
   ok('페이지 오류 없음', !errs.length, errs.join(' | '));
   fs.rmSync(dir, { recursive: true, force: true });
 }
