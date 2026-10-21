@@ -2107,6 +2107,8 @@ main#scroller .page-head p { font-size: 14px; }
 .tong .t-eye-open{opacity:0}
 #splash{position:fixed;inset:0;z-index:100;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;transition:opacity .35s;cursor:pointer}
 #splash.out{opacity:0;pointer-events:none}
+#splash.still,#splash.still *{animation:none!important;transition:none!important}
+#splash.still .sp-wm,#splash.still .sp-tag,#splash.still .sp-copy{opacity:1}
 #splash .tong{width:min(340px,72vw);height:auto;overflow:visible}
 #splash .sp-wm{height:30px;width:auto;opacity:0;animation:t-fade .45s 1.55s forwards}
 #splash .sp-tag{margin:-10px 0 0;color:var(--ink-3,#8a90a3);font-size:13px;letter-spacing:.02em;opacity:0;animation:t-fade .45s 1.7s forwards}
@@ -2478,8 +2480,8 @@ input:focus::placeholder,textarea:focus::placeholder{opacity:.35}
 .side-copy .en,.side-copy .ko{display:block;white-space:nowrap}.side-copy{padding-left:12px;padding-right:8px;letter-spacing:-.01em}
 .app.nav-min .side-copy .full{display:none}.app.nav-min .side-copy .mini{display:block;text-align:center}
 .app.nav-min .side-copy{padding:10px 0}
-#splash .sp-copy{margin:-8px 0 0;padding-top:12px;border-top:1px solid var(--line);text-align:center;font-size:12.5px;line-height:1.6;color:var(--ink-2);opacity:0;animation:t-fade .45s 1.85s forwards}
-#splash .sp-copy span{color:var(--ink-3)}
+#splash .sp-copy{box-sizing:border-box;margin:-8px 0 0;max-width:calc(100% - 32px);padding-top:12px;border-top:1px solid var(--line);text-align:center;font-size:12.5px;line-height:1.6;color:var(--ink-2);opacity:0;animation:t-fade .45s 1.85s forwards}
+#splash .sp-copy span{color:var(--ink-3);display:inline-block}
 .hi-unk{margin:6px 0 4px;padding:8px 12px;border-radius:8px;background:var(--orange-soft);border:1px solid var(--orange-line);color:var(--ink);font-size:13.5px;line-height:1.6}
 .hs-step i.as,.hs-tag.as{color:var(--ink-2, #555);background:var(--bg-2);border:1px dashed var(--line)}
 /* ---------- 가설 만들기: 변인 → 모형 카드 → 빈칸 → 분석 ---------- */
@@ -2674,7 +2676,7 @@ table.compact.sp-table{min-width:0;table-layout:auto;width:100%}.sp-table td{ver
 .pw-big b small{font-size:15px;margin-left:3px;color:var(--ink-2)}
 .pw-big .rec b{color:var(--point)}
 .pw-sent{margin:4px 0 8px;padding:10px 12px;border-radius:8px;background:var(--bg-2);font-size:14px;line-height:1.7}
-@media (max-width:640px){.ai-note{flex-wrap:wrap}.ai-note .an-tx{flex-basis:calc(100% - 34px)}.ai-note .an-bt{flex-wrap:wrap;margin-left:30px}}
+@media (max-width:640px){.ai-note{flex-wrap:wrap}.ai-note .an-tx{flex-basis:calc(100% - 34px)}.ai-note .an-bt{flex:1 1 calc(100% - 30px);min-width:0;flex-wrap:wrap;margin-left:30px}}
 
 .g-copy{margin-top:24px;padding-top:12px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-3)}
 /* 시작 아이콘 */
@@ -2723,17 +2725,18 @@ table.compact.sp-table{min-width:0;table-layout:auto;width:100%}.sp-table td{ver
   fit(); if (mq.addEventListener) mq.addEventListener('change', fit);
 })();
 (function () {
-  try { if (matchMedia('(prefers-reduced-motion: reduce)').matches) return; } catch (e) {}
+  // 휴대폰의 '동작 줄이기'·'애니메이션 제거'·절전 모드면 움직임 없이 로고만 잠깐 보여 줌
+  var still = false; try { still = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
   var src = document.querySelector('.hdr-logo.tong'), wm = document.querySelector('.hdr-title .wm');
   if (!src) return;
-  var d = document.createElement('div'); d.id = 'splash'; d.setAttribute('role', 'presentation');
+  var d = document.createElement('div'); d.id = 'splash'; d.setAttribute('role', 'presentation'); if (still) d.className = 'still';
   d.innerHTML = src.outerHTML.replace('hdr-logo tong', 'tong anim').replace(/viewBox="[^"]*"/, 'viewBox="0 0 146 64"') +
     (wm ? wm.outerHTML.replace('class="wm"', 'class="wm sp-wm"') : '') + '<p class="sp-tag">설문부터 통계 해석까지</p><p class="sp-copy">© 2026. An In-song. Distributed for free. <span>(2026. 안인성. 무료 배포)</span></p><button type="button" class="sp-skip">건너뛰기</button>';
   document.body.appendChild(d);
   var done = false;
   function close() { if (done) return; done = true; d.classList.add('out'); setTimeout(function () { d.remove(); }, 450); }
   d.addEventListener('click', close); document.addEventListener('keydown', close, { once: true });
-  setTimeout(close, 4300);
+  setTimeout(close, still ? 1600 : 4300);
 })();
 </script>
 <div class="app" id="app">
