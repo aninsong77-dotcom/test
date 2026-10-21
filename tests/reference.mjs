@@ -126,6 +126,11 @@ else {
   // 결과 카드의 [R 코드 보기]와 p값 너머 읽기가 그려졌는지
   const ui = await p.evaluate(() => ({ rcode: document.querySelectorAll('.result-card .r-code').length, beyond: document.querySelectorAll('.result-card .beyondp').length, bf: [...document.querySelectorAll('.result-card .section-title')].filter(x => x.textContent.startsWith('베이즈 인자')).length }));
   ok('결과마다 R 코드 보기', ui.rcode === an.length, `${ui.rcode}/${an.length}`);
+  const figs = await p.$$eval('.result-card .tfig svg', e => e.length), figTypes = [...new Set(an.flatMap(x => (x.figs || []).map(f => f.type)))];
+  ok('결과 그래프 (평균·선·산점도·상관 행렬·조절·경로·비율)', figs >= 19 && ['dots', 'lines', 'scatter', 'corrmat', 'slopes', 'path', 'props'].every(t => figTypes.includes(t)), `그림 ${figs}개 · ${figTypes.join(', ')}`);
+  const [dl] = await Promise.all([p.waitForEvent('download'), p.click('.result-card [data-fig-act=png][data-mono="1"]')]);
+  const png = fs.readFileSync(await dl.path());
+  ok('그림 PNG 받기 (흑백)', png.slice(1, 4).toString() === 'PNG' && png.length > 20000, `${Math.round(png.length / 1024)}KB`);
   ok('베이즈 인자 표 (단일·독립·대응 t, 피어슨, 회귀, 위계적 회귀)', ui.bf === 6, `${ui.bf}개`);
   try { execFileSync('Rscript', ['analysis.R'], { cwd: dir, stdio: ['ignore', fs.openSync(path.join(dir, 'R_output.txt'), 'w'), 'pipe'], env: { ...process.env, LANG: 'C.UTF-8' } }); }
   catch (e) { ok('R 실행', false, String(e.stderr || e.message).slice(0, 400)); }

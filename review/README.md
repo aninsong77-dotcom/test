@@ -1,6 +1,6 @@
 # 다른 AI·사람에게 통의 코드 보여 주기
 
-통은 `stats-ladder.html` 한 파일(약 85만 자, 1만 줄 이상)입니다. 화면·설문·AI 연결까지 다 들어 있어서, 대화창에 통째로 붙이면 대부분의 AI가 다 읽지 못하고 앞뒤를 잘라 버립니다.
+통은 `index.html` 한 파일(약 1만 줄, 용량 약 0.9MB)입니다. 개발용 저장소에서는 같은 파일이 `stats-ladder.html`이라는 이름입니다. 화면·설문·AI 연결까지 다 들어 있어서, 대화창에 통째로 붙이면 대부분의 AI가 다 읽지 못하고 앞뒤를 잘라 버립니다.
 
 ## 방법 1. 계산 부분만 보여 주기 (권장)
 `review/tong_calc_core.js`(약 3,300줄)는 통계 계산과 관련된 부분만 모은 파일입니다. 분석 함수 23개가 모두 들어 있습니다.
@@ -16,15 +16,15 @@
 
 > 사회과학 석사생용 통계 웹앱의 계산 코드야. 기본 R 결과와 맞는지는 tests 폴더의 테스트로 확인하고 있어(분석 23가지의 효과 78개, t검정·회귀·요인분석·베이즈 인자 기준값, 경계 상황). 통계적으로 틀렸거나, 경계 상황(작은 표본, 결측, 공선성 등)에서 위험한 곳을 찾아 줘. 추측이 아니라 코드의 어느 줄인지, 어떤 자료에서 어떤 값이 틀리게 나오는지 구체적으로 말해 줘.
 
-stats-ladder.html이 바뀌면 `node review/make_core.mjs`로 다시 만듭니다. 분석 함수가 하나라도 빠지면 멈추고 알려 줍니다.
+본체가 바뀌면 `node review/make_core.mjs`로 다시 만듭니다(`index.html`이나 `stats-ladder.html` 중 본체를 스스로 찾음). 분석 함수가 하나라도 빠지면 멈추고 알려 줍니다.
 
 ## 방법 2. 링크 주기
 공개 저장소라서 링크로도 줄 수 있습니다. 인터넷을 읽는 AI(ChatGPT 검색, Gemini, Claude)에게:
 - 계산 부분: https://github.com/aninsong77-dotcom/tong/blob/main/review/tong_calc_core.js
-- 전체 파일: https://raw.githubusercontent.com/aninsong77-dotcom/tong/main/stats-ladder.html (너무 길어 일부만 읽을 수 있음)
+- 전체 파일: https://raw.githubusercontent.com/aninsong77-dotcom/tong/main/index.html (너무 길어 일부만 읽을 수 있음)
 
 ## 방법 3. 전체 파일
-전체를 꼭 보여 주려면 `stats-ladder.html`을 파일로 첨부합니다. 긴 파일을 잘 읽는 AI(Gemini, Claude)가 낫습니다. 그래도 화면 코드가 대부분이라 계산 검토에는 방법 1이 더 정확합니다.
+전체를 꼭 보여 주려면 `index.html`을 파일로 첨부합니다. 긴 파일을 잘 읽는 AI(Gemini, Claude)가 낫습니다. 그래도 화면 코드가 대부분이라 계산 검토에는 방법 1이 더 정확합니다.
 
 ## 받은 의견을 다룰 때
 AI는 코드를 실행해 보지 않고 읽기만 하므로, 그럴듯하지만 틀린 지적도 섞입니다. 지적을 받으면 `tests`에 그 경우를 기준값으로 추가해 R과 비교해 보고 고칩니다.

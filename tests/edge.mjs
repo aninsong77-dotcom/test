@@ -90,9 +90,9 @@ console.log('\n1. 응답 정리');
   const ctx = await browser.newContext(); const p = await ctx.newPage();
   await p.goto(BASE + '?selftest'); await p.waitForFunction(() => window.tongCore);
   const t = await p.evaluate(() => { const C = window.tongCore; return {
-    st: [C.parseStamp('2026/10/30 11:59:00 오후 GMT+9'), C.parseStamp('2026. 10. 30 오후 11:59:00'), C.parseStamp('2026-10-30 23:59')],
+    st: [C.parseStamp('2026/10/30 11:59:00 오후 GMT+9'), C.parseStamp('2026. 10. 30 오후 11:59:00'), C.parseStamp('10/30/2026 23:59:00'), C.parseStamp('2026-10-30 23:59')],
     csv: [C.csvCell('=HYPERLINK("x")'), C.csvCell('-1.5'), C.csvCell('+82 10'), C.csvCell('보통')] }; });
-  ok('타임스탬프 세 가지 꼴을 같은 시각으로 읽음', t.st.every(v => v === t.st[2]) && t.st[2] != null);
+  ok('타임스탬프 네 가지 꼴(영어 폼 월/일/연도 포함)을 같은 시각으로 읽음', t.st.every(v => v === t.st[3]) && t.st[3] != null);
   ok('CSV: =로 시작하는 글은 막고 음수는 그대로', t.csv[0].startsWith(`"'=`) && t.csv[1] === '"-1.5"' && t.csv[2].startsWith(`"'+`) && t.csv[3] === '"보통"', t.csv.join(' '));
   await ctx.close();
 }
@@ -184,6 +184,9 @@ console.log('\n3. 사다리: 매개·조절 질문은 맞는 기법에서만');
       if (w.cur.type === 'out') continue;
       const node = w.cur.type === 'gate' ? R.gate : R.nodes[w.cur.id]; node.options.forEach((_, k) => q.push(path.concat(k))); }
     const bad = seen.filter(s => s.base && !C.gateFor(s.base)).map(s => `${s.base}→${s.id}`);
+    // 공분산분석: 세 집단 이상·기준 2가지 이상 경로에서는 매개·조절로 가지 않음
+    const g3 = []; { const q2 = [[]]; while (q2.length) { const path = q2.shift(); if (path.length > 14) continue; const w = C.walk(path); if (w.cur.type === 'result') { if (w.cur.base === 'r_ancova' && w.steps.some(st => /세 집단|기준 2가지 이상/.test(st.opt.label))) g3.push(w.cur.id); continue; } if (w.cur.type === 'out') continue; const node = w.cur.type === 'gate' ? R.gate : R.nodes[w.cur.id]; node.options.forEach((_, k) => q2.push(path.concat(k))); } }
+    bad.push(...g3.map(x => `세 집단 이상 공분산분석→${x}`));
     const gatedBases = [...new Set(seen.filter(s => s.base).map(s => s.base))];
     const noGate = [...new Set(seen.filter(s => !s.base && /^r_(onesample_t|paired_t|rm_anova|chisq|mcnemar|cochran|logistic|multilevel)$/.test(s.id)).map(s => s.id))];
     return { n: seen.length, bad, gatedBases, noGate };
@@ -207,6 +210,12 @@ console.log('\n4. 가설 붙여 넣기');
     '사회적 지지는 스트레스와 우울의 관계를 조절할 것이다.',
     '능력주의 신념이 외로움을 거쳐 외집단 혐오에 미치는 간접효과는 자존감에 따라 달라질 것이다.',
     '프로그램 참여 전보다 참여 후에 자기효능감이 높아질 것이다.',
+    '성별에 따라 능력주의 신념이 외집단 혐오에 미치는 영향이 다를 것이다.',
+    '사회적 지지가 높을수록 스트레스가 우울에 미치는 영향은 약해질 것이다.',
+    '사회비교경향성은 능력주의 신념이 외집단 혐오에 미치는 영향을 매개할 것이다.',
+    '능력주의 신념과 외집단 혐오의 관계에서 외로움의 매개효과는 자존감에 의해 조절될 것이다.',
+    '자존감은 능력주의 신념이 외로움을 매개로 외집단 혐오에 미치는 간접효과를 조절할 것이다.',
+    '학년에 따라 외로움이 진로불안에 미치는 영향은 달라질 것이다.',
   ];
   await p.click('.mb-paste summary'); await p.fill('#hp-text', lines.join('\n'));
   await p.click('[data-mb-act=paste-read]'); await p.waitForTimeout(700);
@@ -217,6 +226,14 @@ console.log('\n4. 가설 붙여 넣기');
   ok('"간접효과는 W에 따라 달라질 것이다"를 조절된 매개로 읽고 W를 남김', c7 && c7.model === 'modmed' && c7.w === '자존감' && c7.m[0] === '외로움', c7 ? `[${c7.model}] W=${c7.w}` : '카드 없음');
   ok('조절된 매개의 조절 경로가 문장에서 분명하지 않으면 학생에게 물음', c7 && !c7.wpath && (await p.$$eval('.mb-miss', e => e.map(x => x.innerText).join(' '))).includes('W가 바꾸는 경로'));
   ok('조절 가설은 그대로 읽음', c4 && c4.model === 'mod' && c4.w === '사회적 지지');
+  const cs = [[/성별에 따라 능력주의/, 'mod', '능력주의 신념', '성별', '외집단 혐오'], [/높을수록 스트레스/, 'mod', '스트레스', '사회적 지지', '우울'], [/학년에 따라 외로움/, 'mod', '외로움', '학년', '진로불안'], [/자존감에 의해/, 'modmed', '능력주의 신념', '자존감', '외집단 혐오'], [/자존감은 능력주의/, 'modmed', '능력주의 신념', '자존감', '외집단 혐오']];
+  cs.forEach(([re, model, X, W, Y]) => { const c = by(re); ok(`조절 문형: ${String(re).slice(1, -1)}`, c && c.model === model && c.x[0] === X && c.w === W && c.y === Y, c ? `[${c.model}] X=${c.x} W=${c.w} Y=${c.y}` : '카드 없음'); });
+  const cm = by(/영향을 매개할/); ok('매개 문형: "M은 X가 Y에 미치는 영향을 매개할 것이다"', cm && cm.model === 'med' && cm.m[0] === '사회비교경향성' && cm.x[0] === '능력주의 신념' && cm.y === '외집단 혐오', cm ? `X=${cm.x} M=${cm.m} Y=${cm.y}` : '');
+  ok('세 집단 이상인 조절변인(학년)은 매개·조절 계산 불가를 안내하고 완성으로 두지 않음', (await p.$$eval('.mb-warn', e => e.map(x => x.innerText).join(' '))).includes('세 집단 이상이면 PROCESS'));
+  // 안전장치: 이름에 문장 조각이 남은 카드는 완성으로 두지 않음
+  const ws = await p.evaluate(() => { const st = JSON.parse(localStorage.getItem('ladder.hyp')); st.cards.push({ ...st.cards[0], model: 'pred', x: ['능력주의 신념이 외로움'], m: [''], w: '', y: '미치는 간접효과', src: '(시험)', nameOk: false }); localStorage.setItem('ladder.hyp', JSON.stringify(st)); return st.cards.length; });
+  await p.reload(); await p.waitForTimeout(700); await p.click('#splash').catch(() => {});
+  ok('안전장치: 변인 이름에 문장 조각이 남으면 "확인해 주세요"로 표시하고 완성으로 두지 않음', (await p.$$eval('.mb-warn', e => e.map(x => x.innerText).join(' '))).includes('제대로 읽었는지'));
   const plan = await p.$$eval('.hp-plan .hp-row', e => e.map(x => x.innerText.replace(/\n/g, ' ')));
   const merged = plan.find(t => /정적 영향을 미칠/.test(t)) || '';
   ok('매개 카드에 합친 회귀 가설은 "매개분석 속 c 경로"로 표시', /속 c 경로/.test(merged), merged.slice(0, 80));

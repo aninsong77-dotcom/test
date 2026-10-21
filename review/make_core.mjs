@@ -1,6 +1,6 @@
 // 통의 계산 부분만 모아 review/tong_calc_core.js로 저장 (다른 AI·사람이 검토하기 쉽게)
 //   node review/make_core.mjs
-// stats-ladder.html이 바뀌면 다시 돌리세요. 구간은 코드 안의 제목 주석으로 찾으므로 줄 번호가 바뀌어도 됩니다.
+// 통 본체(index.html, 개발 저장소에서는 stats-ladder.html)가 바뀌면 다시 돌리세요. 구간은 코드 안의 제목 주석으로 찾으므로 줄 번호가 바뀌어도 됩니다.
 // 새 계산 구간을 만들면 아래 BLOCKS에 넣고, 빠진 구간이 없는지 끝의 '빠진 분석' 점검이 알려 줍니다.
 import fs from 'fs';
 import path from 'path';
@@ -13,7 +13,7 @@ const find = (text, from = 0) => { const i = lines.findIndex((l, k) => k >= from
 const block = (title, begin, end) => {
   let a = find(begin); const b = find(end, a + 1);
   if (a > 0 && lines[a - 1].includes('// ====')) a--;
-  return { title, a, b, text: `\n// ##### ${title} (stats-ladder.html ${a + 1}~${b}줄) #####\n` + lines.slice(a, b).join('\n') };
+  return { title, a, b, text: `\n// ##### ${title} (${path.basename(APP)} ${a + 1}~${b}줄) #####\n` + lines.slice(a, b).join('\n') };
 };
 const BLOCKS = [
   block('1. 응답 읽기 · 동의 판정 · 점수 만들기(역문항, 최소 응답, 중복)', '  function autoMap() {', '    const missing = items.filter(d => colMap[d.key] < 0).length;'),
@@ -36,7 +36,7 @@ const body = BLOCKS.map(b => b.text).join('\n');
 const missing = [...all].filter(m => !body.includes(`async ${m}(`));
 if (missing.length) { console.error('검토 파일에 빠진 분석:', missing.join(', ')); process.exit(1); }
 const head = `// 통 — 계산 부분만 모은 파일 (검토용)
-// 원본: stats-ladder.html 한 파일(약 1만 줄, 화면·설문·AI 연결 포함)에서 통계 계산과 관련된 부분만 뽑았습니다.
+// 원본: ${path.basename(APP)} 한 파일(약 1만 줄, 화면·설문·AI 연결 포함)에서 통계 계산과 관련된 부분만 뽑았습니다.
 // 이 파일만으로 실행되지는 않습니다(화면 코드와 이어져 있음). 실제 동작은 tests/로 R과 비교해 확인합니다.
 // 검증: tests/README.md 참고 — R 기준값 비교, 화면에서 돌린 분석 전부를 통이 만든 R 코드와 비교, 경계 상황 테스트.
 // 들어 있는 분석 함수 ${all.size}개: ${[...all].join(', ')}

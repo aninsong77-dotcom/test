@@ -4,7 +4,7 @@
 // 검증: tests/README.md 참고 — R 기준값 비교, 화면에서 돌린 분석 전부를 통이 만든 R 코드와 비교, 경계 상황 테스트.
 // 들어 있는 분석 함수 23개: pearson, spearman, partial, pointbiserial, chisq, onesample, ind_t, paired_t, oneway, factorial, ancova, regression, hier, logistic, med_parallel, med_serial, moderation, modmed7, modmed14, rm_anova, mixed_anova, mcnemar, cochran
 
-// ##### 1. 응답 읽기 · 동의 판정 · 점수 만들기(역문항, 최소 응답, 중복) (stats-ladder.html 4038~4145줄) #####
+// ##### 1. 응답 읽기 · 동의 판정 · 점수 만들기(역문항, 최소 응답, 중복) (stats-ladder.html 4047~4157줄) #####
   function autoMap() {
     colMap = {}; mapAuto = {};
     const H = raw.headers.map(h => norm(h).toLowerCase());
@@ -28,7 +28,10 @@
   // 구글 폼 타임스탬프 등 '2026/10/30 11:59:00 오후', '2026. 10. 30 오후 11:59:00', '2026-10-30 23:59' → 밀리초 (못 읽으면 null)
   function parseStamp(v) {
     const t = norm(v); if (!t) return null;
-    const n = t.match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})\D+?(?:(오전|오후|AM|PM)\s*)?(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(오전|오후|AM|PM)?/i);
+    let n = t.match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})\D+?(?:(오전|오후|AM|PM)\s*)?(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(오전|오후|AM|PM)?/i);
+    // 영어 구글 폼: '10/21/2026 16:41:21' (월/일/연도)
+    const us = !n && t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?/i);
+    if (us) n = [us[0], us[3], us[1], us[2], '', us[4], us[5], us[6], us[7]];
     if (!n) return null;
     let h = +n[5]; const ap = (n[4] || n[8] || '').toUpperCase();
     if ((ap === '오후' || ap === 'PM') && h < 12) h += 12; if ((ap === '오전' || ap === 'AM') && h === 12) h = 0;
@@ -114,7 +117,7 @@
     }
     const hOpts = sel => `<option value="-1" ${sel < 0 ? 'selected' : ''}>(연결 안 함)</option>` + raw.headers.map((h, i) => `<option value="${i}" ${i === sel ? 'selected' : ''}>${i + 1}. ${esc(h.length > 40 ? h.slice(0, 40) + '…' : h)}</option>`).join('');
 
-// ##### 2. 계산 도우미 · 분포 · 회귀(QR) · 부트스트랩 · 베이즈 인자 · 숫자 표기 (stats-ladder.html 4176~4686줄) #####
+// ##### 2. 계산 도우미 · 분포 · 회귀(QR) · 부트스트랩 · 베이즈 인자 · 숫자 표기 (stats-ladder.html 4188~4698줄) #####
   // ---------- 계산 도우미 ----------
   const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
   const sd = a => { if (a.length < 2) return NaN; const m = mean(a); return Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / (a.length - 1)); };
@@ -627,7 +630,7 @@
 
   // =================================================================
 
-// ##### 3. 분석 방법 (RUN): 상관·t·분산분석·회귀·로지스틱·매개·조절 (stats-ladder.html 4686~5427줄) #####
+// ##### 3. 분석 방법 (RUN): 상관·t·분산분석·회귀·로지스틱·매개·조절 (stats-ladder.html 4698~5744줄) #####
   // =================================================================
   // ⑤ 분석
   // =================================================================
@@ -918,6 +921,7 @@
       const R = newResult('pointbiserial', `점이연 상관: ${P.V[r.g].name} – ${P.V[r.y].name}`); R.n = P.n;
       R.tables.push({ title: '점이연 상관', head: ['', 'r', 'df', 't', 'p'], num: [1, 2, 3, 4], rows: [[`${P.V[r.g].name} – ${P.V[r.y].name}`, NZ(rr), String(df), F2(t), PV(p)]] });
       R.notes.push(B.note + '. 양수이면 1로 코딩한 집단의 점수가 더 높다는 뜻입니다. 이 결과는 등분산을 가정한 독립표본 t검정과 같습니다.');
+      addFig(R, { type: 'dots', title: `${P.V[r.g].name}에 따른 ${P.V[r.y].name}의 평균`, yLabel: P.V[r.y].name, yRange: scoreRange(r.y), cats: lv2, series: [{ name: P.V[r.y].name, pts: lv2.map(l => ciOf(y.filter((_, i) => P.col(r.g)[i] === l))) }], note: '점은 집단 평균, 막대는 평균의 95% 신뢰구간입니다.' });
       eff(R, { label: `${P.V[r.g].name}(1 = ${P.V[r.g].levels[1]}) – ${P.V[r.y].name} 점이연 상관`, est: rr, p, stat: `r = ${NZ(rr)}, t(${df}) = ${F2(t)}, ${PS(p)}` });
       dropNote(R, P); return R;
     },
@@ -934,6 +938,9 @@
       const R = newResult('chisq', `카이제곱: ${P.V[r.a].name} × ${P.V[r.b].name}`); R.n = N;
       R.tables.push({ title: '교차표 (빈도, 행 %)', head: [P.V[r.a].name + ' \\ ' + P.V[r.b].name].concat(lb, ['전체']), num: lb.map((_, j) => j + 1).concat([lb.length + 1]),
         rows: O.map((rw, i) => [la[i]].concat(rw.map(o => `${o} (${F2(o / rs[i] * 100, 1)}%)`), [String(rs[i])])).concat([['전체'].concat(cs.map(String), [String(N)])]) });
+      { const swap = lb.length > 3 && la.length <= 3;
+        if (!swap && lb.length <= 3) addFig(R, { type: 'props', title: `${P.V[r.a].name}에 따른 ${P.V[r.b].name}의 비율`, yLabel: '비율', cats: la, series: lb.map((b, j) => ({ name: `${P.V[r.b].name}: ${b}`, vals: O.map((rw, i) => rw[j] / rs[i] * 100) })), note: `막대는 ${P.V[r.a].name}의 각 집단 안에서 ${P.V[r.b].name}의 비율(행 %)입니다.` });
+        else if (swap) addFig(R, { type: 'props', title: `${P.V[r.a].name}에 따른 ${P.V[r.b].name}의 비율`, yLabel: '비율', cats: lb, series: la.map((a, i) => ({ name: `${P.V[r.a].name}: ${a}`, vals: O[i].map(o => o / rs[i] * 100) })), note: `막대는 ${P.V[r.a].name}의 각 집단 안에서 ${P.V[r.b].name}의 비율(행 %)입니다.` }); }
       R.tables.push({ title: '검정 결과', head: ['χ²', 'df', 'p', 'Cramér의 V', '기대빈도 5 미만 칸'], num: [0, 1, 2, 3, 4], rows: [[F2(chi), String(df), PV(p), NZ(V), `${low}개 / ${la.length * lb.length}칸`]] });
       if (low / (la.length * lb.length) > 0.2) R.notes.push('기대빈도가 5보다 작은 칸이 20%를 넘습니다. 피셔 정확검정을 쓰거나 범주를 합치는 것을 검토하세요.');
       eff(R, { kind: 'omnibus', label: `${P.V[r.a].name}와(과) ${P.V[r.b].name}의 관련성`, est: V, p, stat: `χ²(${df}, N = ${N}) = ${F2(chi)}, ${PS(p)}, V = ${NZ(V)}` });
@@ -948,13 +955,14 @@
       R.tables.push({ title: '결과', head: ['변인', 'N', 'M', 'SD', '기준값', '평균 차이', '95% CI', 't', 'df', 'p', 'Cohen의 d'], num: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], rows: [[P.V[r.y].name, String(n), F2(m), F2(s), String(tv), F2(m - tv), CI(m - tv - tc * se, m - tv + tc * se), F2(t), String(df), PV(p), F2(d)]] });
       const lbf = BAYES.t(t, n, df);
       eff(R, { label: `${P.V[r.y].name} 평균 − 기준값 ${tv}`, est: m - tv, p, es: d, esKind: 'd', lbf, stat: `M = ${F2(m)}, SD = ${F2(s)}, t(${df}) = ${F2(t)}, ${PS(p)}, d = ${F2(d)}` });
+      addFig(R, { type: 'dots', title: `${P.V[r.y].name}의 평균과 기준값(${tv})`, yLabel: P.V[r.y].name, yRange: scoreRange(r.y), cats: [P.V[r.y].name], series: [{ name: P.V[r.y].name, pts: [ciOf(y)] }], ref: { y: tv, label: `기준값 ${tv}` }, note: '점은 평균, 막대는 평균의 95% 신뢰구간입니다.' });
       addBayes(R, [[`${P.V[r.y].name} 평균 ≠ ${tv}`, lbf]], `효과크기 δ ~ 코시(0, √2/2), JASP·BayesFactor의 기본값(medium)`);
       dropNote(R, P); return R;
     },
 
     async ind_t(r, o) {
       const R = newResult('ind_t', `독립표본 t검정: ${varByKey(r.g).name}`);
-      const rows = [], lev = [], bfr = [];
+      const rows = [], lev = [], bfr = [], fc = [], fa = [], fb = [], fr = [];
       let nMax = 0, lv;
       for (const yk of r.ys) {
         const P = prep({ g: r.g, y: yk }); const g = P.col(r.g), y = P.col(yk);
@@ -966,6 +974,7 @@
         const t = useW ? tW : tS, df = useW ? dfW : dfS, p = ST.pT(Math.abs(t), df), d = (ma - mb) / sp;
         rows.push([P.V[yk].name, `${F2(ma)} (${F2(Math.sqrt(va))})`, `${F2(mb)} (${F2(Math.sqrt(vb))})`, `${F2(L.F)} (${PV(L.p)})`, F2(t), useW ? F2(df, 1) : String(df), PV(p), F2(d), useW ? 'Welch' : 'Student']);
         const lbf = BAYES.t(tS, na * nb / (na + nb), dfS); bfr.push([`${P.V[yk].name}: ${lv[0]} ≠ ${lv[1]}`, lbf]);
+        fc.push(P.V[yk].name); fa.push(ciOf(a)); fb.push(ciOf(b)); fr.push(scoreRange(yk));
         eff(R, { label: `${P.V[yk].name}: ${lv[0]} − ${lv[1]}`, est: ma - mb, p, es: d, esKind: 'd', lbf, stat: `${lv[0]} M = ${F2(ma)}, ${lv[1]} M = ${F2(mb)}, t(${useW ? F2(df, 1) : df}) = ${F2(t)}, ${PS(p)}, d = ${F2(d)}` });
         nMax = Math.max(nMax, P.n); lev.push([na, nb]);
       }
@@ -973,6 +982,7 @@
       const nr = j => { const a = lev.map(x => x[j]), lo = Math.min(...a), hi = Math.max(...a); return lo === hi ? String(lo) : `${lo}~${hi}`; };
       R.tables.push({ title: `집단 비교 (${lv[0]} n = ${nr(0)}, ${lv[1]} n = ${nr(1)}${lev.some(x => x[0] !== lev[0][0] || x[1] !== lev[0][1]) ? ', 점수마다 빠진 값이 달라 n이 다름' : ''})`, head: ['변인', `${lv[0]} M (SD)`, `${lv[1]} M (SD)`, 'Levene F (p)', 't', 'df', 'p', 'Cohen의 d', '검정'], num: [1, 2, 3, 4, 5, 6, 7], rows });
       R.notes.push((o.welch === 'never' ? '분석 결정에 따라 언제나 등분산을 가정한 Student t검정 값을 보고했습니다.' : o.welch === 'auto' ? 'Levene 검정이 유의하면(p < .05) 등분산을 가정하지 않는 Welch t검정 값을 보고했습니다.' : '분산이 같다고 가정하지 않는 Welch t검정 값을 보고했습니다(분산이 같아도 거의 손해가 없어 최근 권장되는 방식). Levene 검정은 참고로 함께 보였습니다.') + ' d는 앞 집단 − 뒤 집단 기준입니다.');
+      addFig(R, { type: 'dots', title: `${varByKey(r.g).name}에 따른 ${fc.join(', ')}의 평균`, yLabel: fc.length > 1 ? '점수' : fc[0], yRange: unionRange(fr), cats: fc, series: [{ name: lv[0], pts: fa }, { name: lv[1], pts: fb }], note: '점은 집단 평균, 막대는 평균의 95% 신뢰구간입니다.' });
       addBayes(R, bfr, `효과크기 δ ~ 코시(0, √2/2), JASP·BayesFactor의 기본값(medium). JASP처럼 등분산을 가정한 모형으로 계산`);
       return R;
     },
@@ -986,6 +996,7 @@
       R.tables.push({ title: '차이 검정', head: ['평균 차이', 'SD', '95% CI', 't', 'df', 'p', 'Cohen의 dz', 'r (두 점수)'], num: [0, 1, 2, 3, 4, 5, 6, 7], rows: [[F2(md), F2(sdd), CI(md - tc * se, md + tc * se), F2(t), String(df), PV(p), F2(dz), NZ(corr(a, b))]] });
       const lbf = BAYES.t(t, n, df);
       eff(R, { label: `${P.V[r.a].name} − ${P.V[r.b].name}`, est: md, p, es: dz, esKind: 'd', lbf, stat: `M차이 = ${F2(md)}, t(${df}) = ${F2(t)}, ${PS(p)}, dz = ${F2(dz)}` });
+      addFig(R, { type: 'lines', title: `${J(P.V[r.a].name, '과/와')} ${P.V[r.b].name}의 평균`, yLabel: '점수', yRange: unionRange([scoreRange(r.a), scoreRange(r.b)]), xs: [P.V[r.a].name, P.V[r.b].name], series: [{ name: '평균', pts: [ciOf(a), ciOf(b)] }], note: '점은 평균, 막대는 각 점수의 95% 신뢰구간입니다. 같은 사람의 점수라 차이 검정의 신뢰구간(표)과는 다릅니다.' });
       addBayes(R, [[`${P.V[r.a].name} − ${P.V[r.b].name} ≠ 0`, lbf]], `효과크기 δ ~ 코시(0, √2/2), JASP·BayesFactor의 기본값(medium)`);
       dropNote(R, P); return R;
     },
@@ -1005,6 +1016,7 @@
         const A = G.reduce((s, x, i) => s + wts[i] * (mean(x) - mw) ** 2, 0) / (k - 1), tmp = G.reduce((s, x, i) => s + (1 - wts[i] / Wsum) ** 2 / (x.length - 1), 0);
         const FW = A / (1 + 2 * (k - 2) / (k * k - 1) * tmp), dfW = (k * k - 1) / (3 * tmp), pW = ST.pF(FW, k - 1, dfW);
         R.tables.push({ title: `${P.V[yk].name}: 집단별 기술통계`, head: ['집단', 'n', 'M', 'SD'], num: [1, 2, 3], rows: G.map((x, i) => [lv[i], String(x.length), F2(mean(x)), F2(sd(x))]) });
+        addFig(R, { type: 'dots', title: `${P.V[r.g].name}에 따른 ${P.V[yk].name}의 평균`, yLabel: P.V[yk].name, yRange: scoreRange(yk), cats: lv, series: [{ name: P.V[yk].name, pts: G.map(ciOf) }], note: '점은 집단 평균, 막대는 평균의 95% 신뢰구간입니다.' });
         R.tables.push({ title: `${P.V[yk].name}: 분산분석`, head: ['', 'SS', 'df', 'MS', 'F', 'p', 'η²'], num: [1, 2, 3, 4, 5, 6], rows: [['집단 간', F2(ssb), String(dfb), F2(ssb / dfb), F2(F), PV(p), NZ(eta, 3)], ['집단 내', F2(ssw), String(dfw), F2(ssw / dfw), '', '', ''], ['전체', F2(ssb + ssw), String(N - 1), '', '', '', '']] });
         const post = [], bon = o.posthoc === 'bonferroni', mPairs = k * (k - 1) / 2;
         for (let i = 0; i < k; i++) for (let j = i + 1; j < k; j++) {
@@ -1031,6 +1043,8 @@
       const terms = [[P.V[r.a].name, drop([...cb, ...cab]), ca.length], [P.V[r.b].name, drop([...ca, ...cab]), cb.length], [`${P.V[r.a].name} × ${P.V[r.b].name}`, drop([...ca, ...cb]), cab.length]];
       const mse = full.mse;
       const R = newResult('factorial', `이원분산분석: ${P.V[r.a].name} × ${P.V[r.b].name} → ${P.V[r.y].name}`); R.n = P.n;
+      { const [xa, xb, la2, lb2] = lb.length > 3 && la.length <= 3 ? [Bv, A, lb, la] : [A, Bv, la, lb], na = lb.length > 3 && la.length <= 3 ? r.b : r.a, nb = lb.length > 3 && la.length <= 3 ? r.a : r.b;
+        if (lb2.length <= 3) addFig(R, { type: 'lines', title: `${J(P.V[na].name, '과/와')} ${P.V[nb].name}에 따른 ${P.V[r.y].name}의 평균 (상호작용)`, yLabel: P.V[r.y].name, yRange: scoreRange(r.y), xLabel: P.V[na].name, xs: la2, series: lb2.map(b => ({ name: `${P.V[nb].name}: ${b}`, pts: la2.map(a => { const c = y.filter((_, i) => xa[i] === a && xb[i] === b); return c.length ? ciOf(c) : { m: NaN, lo: NaN, hi: NaN, n: 0 }; }) })), note: '선이 서로 평행하지 않으면 상호작용이 있다는 뜻입니다. 점은 칸 평균, 막대는 95% 신뢰구간입니다.' }); }
       R.tables.push({ title: '칸별 평균 (SD, n)', head: [P.V[r.a].name + ' \\ ' + P.V[r.b].name].concat(lb), num: lb.map((_, j) => j + 1),
         rows: la.map(a => [a].concat(lb.map(b => { const c = y.filter((_, i) => A[i] === a && Bv[i] === b); return c.length ? `${F2(mean(c))} (${F2(sd(c))}, ${c.length})` : '-'; }))) });
       R.tables.push({ title: '분산분석 (제III유형 제곱합)', head: ['', 'SS', 'df', 'MS', 'F', 'p', '부분 η²'], num: [1, 2, 3, 4, 5, 6],
@@ -1072,6 +1086,8 @@
       R.tables.push(regTable(fit, D.names, sd(y), D.cols.map(sd), `종속변인: ${P.V[r.y].name}`));
       R.notes.push('모형: ' + fitLine(fit));
       if (fit.vif.some(v => v >= 10)) R.notes.push('VIF가 10 이상인 변인이 있어 다중공선성을 의심할 수 있습니다.');
+      if (D.cols.length === 1 && P.V[r.xs[0]].type === 'num') addFig(R, { type: 'scatter', title: `${J(D.names[0], '과/와')} ${P.V[r.y].name}의 관계`, xLabel: D.names[0], yLabel: P.V[r.y].name, xRange: scoreRange(r.xs[0]), yRange: scoreRange(r.y), pts: thinPts(D.cols[0].map((v, i) => [v, y[i]])), line: [fit.b[0], fit.b[1]], tag: `B = ${F2(fit.b[1])}, R² = ${NZ(fit.R2)}`, note: '선은 회귀선입니다. 같은 자리에 겹친 사람이 많을수록 점이 큽니다.' });
+      addFig(R, residFig(fit, y, `${P.V[r.y].name} 회귀모형의 잔차`));
       const lbF = BAYES.reg(fit.R2, P.n, fit.k);
       // 예측변인 하나의 BF = 전체 모형 BF ÷ 그 변인을 뺀 모형 BF (BayesFactor regressionBF의 whichModels = "top"과 같음)
       const lbj = D.names.map((_, j) => { if (D.cols.length === 1) return lbF; const f = ols(y, rowsOf(D.cols.filter((_, q) => q !== j))); return f ? lbF - BAYES.reg(f.R2, P.n, f.k) : NaN; });
@@ -1093,6 +1109,7 @@
         summ.push([`모형 ${s + 1}`, NZ(fit.R2), NZ(fit.adj), NZ(dR), `${F2(dF)} (${df1}, ${fit.dfe})`, PV(dp), `${F2(fit.F)} (${PV(fit.pF)})`]);
         const lbS = BAYES.reg(fit.R2, P.n, fit.k), lbD = prev ? lbS - BAYES.reg(prev.R2, P.n, prev.k) : lbS; hbf.push([s ? `모형 ${s + 1} vs 모형 ${s} (${s + 1}단계 투입 변인)` : '모형 1 vs 절편만 있는 모형', lbD]);
         if (s > 0) eff(R, { kind: 'omnibus', label: `${s + 1}단계 투입 변인의 추가 설명력 (ΔR²)`, est: dR, p: dp, lbf: lbD, stat: `ΔR² = ${NZ(dR)}, ΔF(${df1}, ${fit.dfe}) = ${F2(dF)}, ${PS(dp)}` });
+        if (s === blocks.length - 1) addFig(R, residFig(fit, y, `${P.V[r.y].name} 최종 모형(모형 ${s + 1})의 잔차`));
         if (s === blocks.length - 1) D.names.forEach((nm, j) => eff(R, { label: `${nm} → ${P.V[r.y].name} (모형 ${s + 1})`, est: fit.b[j + 1], std: fit.b[j + 1] * sd(D.cols[j]) / sd(y), p: fit.p[j + 1], lo: fit.lo[j + 1], hi: fit.hi[j + 1], stat: `B = ${F2(fit.b[j + 1])}, β = ${NZ(fit.b[j + 1] * sd(D.cols[j]) / sd(y))}, t(${fit.dfe}) = ${F2(fit.t[j + 1])}, ${PS(fit.p[j + 1])}` }));
         prev = fit;
       });
@@ -1145,7 +1162,7 @@
       const est = stat(F0), sx = X.bin ? 1 : sd(X.x), sy = sd(y);   // X가 두 집단(0/1)이면 부분표준화(÷ SD(Y)), Hayes 권고
       const nmX = P.V[r.x].name, nmY = P.V[r.y].name, nmM = r.ms.map(k => P.V[k].name);
       const R = newResult('med_parallel', `${r.ms.length > 1 ? '병렬 다중' : '단순'}매개: ${nmX} → ${nmM.join(', ')} → ${nmY}`); R.n = n; bootNote(R, bs);
-      pathTables(R, P, F0, nmX, nmY, nmM, r.covs, X.x, y, Ms);
+      pathTables(R, P, F0, nmX, nmY, nmM, r.covs, X.x, y, Ms); addFig(R, medFig(F0, nmX, nmY, nmM, false));
       const idRows = [];
       nmM.forEach((m, j) => idRows.push([`${nmX} → ${m} → ${nmY}`, F2(est[j], 3), F2(bs[j].se, 3), CI(bs[j].lo, bs[j].hi, 3), F2(est[j] * sx / sy, 3)]));
       if (nmM.length > 1) idRows.push(['총 간접효과', F2(est[nmM.length], 3), F2(bs[nmM.length].se, 3), CI(bs[nmM.length].lo, bs[nmM.length].hi, 3), F2(est[nmM.length] * sx / sy, 3)]);
@@ -1175,7 +1192,7 @@
       const est = stat(F0), sx = X.bin ? 1 : sd(X.x), sy = sd(y);   // X가 두 집단(0/1)이면 부분표준화(÷ SD(Y)), Hayes 권고
       const nx = P.V[r.x].name, n1 = P.V[r.m1].name, n2 = P.V[r.m2].name, ny = P.V[r.y].name;
       const R = newResult('med_serial', `순차매개: ${nx} → ${n1} → ${n2} → ${ny}`); R.n = n; bootNote(R, bs);
-      pathTables(R, P, F0, nx, ny, [n1, n2], r.covs, X.x, y, [m1, m2], true);
+      pathTables(R, P, F0, nx, ny, [n1, n2], r.covs, X.x, y, [m1, m2], true); addFig(R, medFig(F0, nx, ny, [n1, n2], true));
       const lab = [`${nx} → ${n1} → ${ny}`, `${nx} → ${n1} → ${n2} → ${ny}`, `${nx} → ${n2} → ${ny}`, '총 간접효과', '대비: (1) − (2)', '대비: (1) − (3)', '대비: (2) − (3)'];
       R.tables.push({ title: `간접효과 (부트스트랩 ${(+o.boot || 5000).toLocaleString()}번, 95% 백분위 신뢰구간)`, head: ['경로', '효과', 'Boot SE', '95% CI', X.bin ? '부분표준화 효과' : '완전표준화 효과'], num: [1, 2, 3, 4], foot: X.bin ? `${nx}가 두 집단(${X.note})이라 효과 ÷ SD(${ny})로 구한 부분표준화 효과입니다(Hayes 권고).` : '',
         rows: lab.map((l, j) => [j < 3 ? `(${j + 1}) ${l}` : l, F2(est[j], 3), F2(bs[j].se, 3), CI(bs[j].lo, bs[j].hi, 3), j < 4 ? F2(est[j] * sx / sy, 3) : '']) });
@@ -1203,6 +1220,13 @@
       const tc = ST.tInv(0.05, fit.dfe), V = fit.cov;
       const ss = pts.map(([l, w]) => { const b = fit.b[1] + fit.b[3] * w, se = Math.sqrt(V[1][1] + w * w * V[3][3] + 2 * w * V[1][3]), t = b / se; return { l, w, b, se, t, p: ST.pT(Math.abs(t), fit.dfe), lo: b - tc * se, hi: b + tc * se }; });
       R.tables.push({ title: `단순기울기: ${nw} 수준별 ${nx}의 효과${o.center && !W.bin ? ' (W는 평균중심화 값)' : ''}`, head: [`${nw} 수준`, 'W 값', 'B', 'SE', 't', 'p', '95% CI'], num: [1, 2, 3, 4, 5, 6], rows: ss.map(q => [q.l, F2(q.w), F2(q.b), F2(q.se), F2(q.t), PV(q.p), CI(q.lo, q.hi)]) });
+      { // 단순기울기 그림: X를 평균 ± 1SD(두 집단이면 0·1)에서, 공변인은 평균에서 예측
+        const mx = mean(X.x), sx = sd(X.x), xL = X.bin ? 0 : -sx, xH = X.bin ? 1 : sx, cAdd = C.cols.reduce((t, c, j) => t + fit.b[4 + j] * mean(c), 0);
+        const toC = v => o.center && !X.bin ? v : v + (X.bin ? 0 : mx), pred = (xv, w) => fit.b[0] + fit.b[1] * xv + fit.b[2] * w + fit.b[3] * xv * w + cAdd;
+        const xa = toC(xL), xb = toC(xH);
+        addFig(R, { type: 'slopes', title: `${nw} 수준에 따른 ${J(nx, '과/와')} ${ny}의 관계`, xLabel: nx, yLabel: ny, yRange: scoreRange(r.y), wName: nw, xs: [0, 1],
+          xTicks: X.bin ? [[0, P.V[r.x].levels[0]], [1, P.V[r.x].levels[1]]] : [[0, `낮음 (M − 1SD${o.center ? '' : `, ${F2(mx - sx)}`})`], [1, `높음 (M + 1SD${o.center ? '' : `, ${F2(mx + sx)}`})`]],
+          lines: ss.map(q => ({ name: q.l, y0: pred(xa, q.w), y1: pred(xb, q.w), b: q.b, p: q.p })), note: `선마다 ${nw}가 그 수준일 때 ${nx}의 효과(단순기울기)입니다. 선의 기울기가 서로 다르면 조절효과가 있다는 뜻입니다.${C.cols.length ? ' 공변인은 평균에서 고정했습니다.' : ''}` }); }
       // Johnson-Neyman
       if (!W.bin) {
         const a = fit.b[3] ** 2 - tc * tc * V[3][3], bq = 2 * (fit.b[1] * fit.b[3] - tc * tc * V[1][3]), cq = fit.b[1] ** 2 - tc * tc * V[1][1], disc = bq * bq - 4 * a * cq;
@@ -1253,6 +1277,10 @@
     R.tables.push({ title: `조건부 간접효과와 조절된 매개 지수 (부트스트랩 ${(+o.boot || 5000).toLocaleString()}번)`, head: ['', '효과', 'Boot SE', '95% CI'], num: [1, 2, 3],
       rows: [['조절된 매개 지수', F2(est[0], 3), F2(bs[0].se, 3), CI(bs[0].lo, bs[0].hi, 3)]].concat(ptLab.map((l, j) => [`간접효과 (${nw} ${l})`, F2(est[j + 1], 3), F2(bs[j + 1].se, 3), CI(bs[j + 1].lo, bs[j + 1].hi, 3)])) });
     const inter = model === 7 ? F0.fm : F0.fy, ii = model === 7 ? 3 : 4;
+    { const k = (f, j) => ({ est: f.b[j], p: f.p[j] });
+      addFig(R, { type: 'path', kind: 'med', title: `조절된 매개 모형 검증 결과 (PROCESS Model ${model})`, X: nx, Y: ny, Ms: [nm], W: nw, wOn: model === 7 ? 'a' : 'b',
+        a: [k(F0.fm, 1)], b: [k(F0.fy, 2)], cp: k(F0.fy, 1), c: null, inter: k(inter, ii),
+        note: `계수는 비표준화 계수(B)입니다. ${nw}에서 나온 화살표는 ${model === 7 ? `${nx} → ${nm}` : `${nm} → ${ny}`} 경로의 크기를 바꾸는 상호작용(${model === 7 ? 'a3' : 'b3'})입니다. *p < .05, **p < .01, ***p < .001. 조절된 매개의 유의성은 표의 조절된 매개 지수와 그 부트스트랩 신뢰구간으로 판단합니다.` }); }
     R.notes.push(`상호작용항: B = ${F2(inter.b[ii])}, t(${inter.dfe}) = ${F2(inter.t[ii])}, ${PS(inter.p[ii])}.`);
     if (o.center) R.notes.push('점수 변인은 평균중심화한 뒤 곱했습니다. W 수준은 중심화 값 기준입니다.');
     [X, Wb].forEach(b => b.note && R.notes.push(b.note));
@@ -1291,6 +1319,10 @@
     if (nLo < n0 && nLo < 0.9 * n0) R.notes.push(`⚠ 짝마다 분석한 사람 수가 ${nLo}~${n0}명으로 많이 다릅니다. 상관마다 다른 사람들로 계산된 셈이라, 결측이 몰린 변인이 없는지 확인하세요.`);
     bad.forEach(w => R.notes.push('⚠ ' + w + '.'));
     addBayes(R, bfr, '상관 ρ ~ 균등분포(−1, 1), 즉 stretched beta 폭 1. JASP 기본값');
+    if (vs.length === 2) { const a = vs[0], b = vs[1], idx = []; for (let i = 0; i < n0; i++) if (a.vals[i] != null && b.vals[i] != null) idx.push(i); const xx = idx.map(i => a.vals[i]), yy = idx.map(i => b.vals[i]), c = pair(a, b), bb = sd(xx) > 0 ? corr(xx, yy) * sd(yy) / sd(xx) : 0;
+      addFig(R, { type: 'scatter', title: `${J(a.name, '과/와')} ${b.name}의 관계`, xLabel: a.name, yLabel: b.name, xRange: scoreRange(a.key), yRange: scoreRange(b.key), pts: thinPts(idx.map((_, k) => [xx[k], yy[k]])), line: spearman ? null : [mean(yy) - bb * mean(xx), bb], tag: `${sym} = ${NZ(c.r)}${STAR(c.p)}`, note: `${spearman ? '' : '선은 회귀선입니다. '}같은 자리에 겹친 사람이 많을수록 점이 큽니다.` }); }
+    else if (vs.length >= 3) { const M = vs.map(a => vs.map(b => a === b ? { r: 1, p: 0 } : pair(a, b)));
+      addFig(R, { type: 'corrmat', title: `변인 간 ${spearman ? '스피어만 순위' : '피어슨'} 상관`, names: vs.map(v => v.name), sym, r: M.map(rw => rw.map(c => c.r)), p: M.map(rw => rw.map(c => c.p)), note: '파랑은 부적(−), 빨강은 정적(+) 상관이고 색이 진할수록 큽니다. * p < .05, ** p < .01, *** p < .001.' }); }
     return R;
   }
 
@@ -1321,6 +1353,13 @@
     const f = F0.yF, names = [nx, ...nms, ...cn];
     R.tables.push({ title: `종속변인: ${ny}`, head: ['변인', 'B', 'SE', 't', 'p', '95% CI'], num: [1, 2, 3, 4, 5], rows: [['(상수)', F2(f.b[0]), F2(f.se[0]), F2(f.t[0]), PV(f.p[0]), CI(f.lo[0], f.hi[0])]].concat(names.map((nm, q) => [nm, F2(f.b[q + 1]), F2(f.se[q + 1]), F2(f.t[q + 1]), PV(f.p[q + 1]), CI(f.lo[q + 1], f.hi[q + 1])])), foot: fitLine(f) });
   }
+  // 매개 경로 그림의 계수 (비표준화 B와 p)
+  function medFig(F0, nx, ny, nms, serial) {
+    const k = (f, j) => ({ est: f.b[j], p: f.p[j] });
+    return { type: 'path', kind: serial ? 'serial' : 'med', title: `${serial ? '순차' : nms.length > 1 ? '병렬 다중' : '단순'}매개 모형 검증 결과`, X: nx, Y: ny, Ms: nms,
+      a: F0.aF.map(f => k(f, 1)), b: nms.map((_, j) => k(F0.yF, 2 + j)), d: serial ? k(F0.aF[1], 2) : null, cp: k(F0.yF, 1), c: k(F0.tF, 1),
+      note: "계수는 비표준화 계수(B)입니다. 굵은 선은 p < .05인 경로, 점선은 유의하지 않은 직접효과입니다. 괄호 안 c는 총효과입니다. *p < .05, **p < .01, ***p < .001. 간접효과의 유의성은 표의 부트스트랩 신뢰구간으로 판단합니다." };
+  }
   function effectsTable(F0, nx, ny) {
     const t = F0.tF, d = F0.yF;
     return { title: `총효과와 직접효과 (${nx} → ${ny})`, head: ['', 'B', 'SE', 't', 'p', '95% CI'], num: [1, 2, 3, 4, 5],
@@ -1342,9 +1381,277 @@
     return rows;
   }
 
+  // =================================================================
+  // 결과 그래프 (논문 그림): 계산할 때 그림 자료를 결과에 함께 저장(R.figs)해서, 원자료 없이도 다시 그림
+  // 화면은 지금 테마 색, 받기는 흰 바탕(컬러·흑백). 계열은 색과 함께 선 모양·점 모양으로도 구분(흑백 인쇄·색각이상)
+  // 색: 범주 3색(파랑·주황·청록, 색각이상 시뮬레이션 검증), 상관 행렬은 파랑↔빨강 + 가운데 회색
+  // =================================================================
+  const FIG_FONT = '"Nanum Gothic","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif';
+  const FIG_PAL = { light: ['#2a78d6', '#eb6834', '#1baf7a'], dark: ['#3987e5', '#d95926', '#199e70'], mono: ['#1f1f1f', '#6b6b6b', '#a5a5a5'] };
+  const FIG_DASH = ['', '7 4', '2 4'];
+  const ciOf = x => { const n = x.length, m = mean(x), h = n > 1 ? ST.tInv(0.05, n - 1) * sd(x) / Math.sqrt(n) : NaN; return { m, lo: m - h, hi: m + h, n }; };
+  // 비율의 95% 신뢰구간 (Wilson), 백분율로
+  const wilsonPct = (k, n) => { const z = 1.96, p = k / n, d = 1 + z * z / n, c = (p + z * z / (2 * n)) / d, h = z * Math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d; return { m: p * 100, lo: (c - h) * 100, hi: (c + h) * 100, n }; };
+  const addFig = (R, f) => { (R.figs = R.figs || []).push(f); };
+  function scoreRange(key) { if (!/^S\d+$/.test(key || '')) return null; const s = sv.scales[+key.slice(1)]; if (!s) return null; const k = s.items.filter(i => norm(i.text)).length, P = +s.points; return sv.scoring === 'sum' ? [k, k * P] : [1, P]; }
+  const unionRange = rs => { const v = rs.filter(Boolean); return v.length ? [Math.min(...v.map(r => r[0])), Math.max(...v.map(r => r[1]))] : null; };
+  function niceTicks(lo, hi, n = 5) {
+    if (!(hi > lo)) hi = lo + 1;
+    const raw = (hi - lo) / n, mag = 10 ** Math.floor(Math.log10(raw)), st = [1, 2, 2.5, 5, 10].map(v => v * mag).find(v => v >= raw * 0.999);
+    const out = []; for (let v = Math.floor(lo / st + 1e-9) * st; ; v += st) { out.push(+v.toFixed(10)); if (v >= hi - st * 1e-6 || out.length > 40) break; } return out;   // 마지막 눈금은 최댓값 이상
+  }
+  const figTw = (t, fs) => [...String(t)].reduce((w, c) => w + (/[ㄱ-힣]/.test(c) ? fs * 0.98 : /[A-Z0-9%]/.test(c) ? fs * 0.62 : c === ' ' ? fs * 0.3 : fs * 0.52), 0);
+  const fx = v => esc(String(v));
+  // 글자가 넘치면 두 줄로 (그래도 넘치면 …)
+  function figWrap(t, maxW, fs) {
+    t = String(t); if (figTw(t, fs) <= maxW) return [t];
+    const ws = t.split(' '); let a = ''; const L = [];
+    ws.forEach(w => { const nx = a ? a + ' ' + w : w; if (figTw(nx, fs) > maxW && a) { L.push(a); a = w; } else a = nx; }); L.push(a);
+    const out = L.slice(0, 2); if (L.length > 2 || figTw(out[1] || '', fs) > maxW) { let x = out[out.length - 1]; while (x.length > 1 && figTw(x + '…', fs) > maxW) x = x.slice(0, -1); out[out.length - 1] = x + '…'; }
+    return out;
+  }
+  const figText = (x, y, lines, o = {}) => `<text x="${x}" y="${y}" font-size="${o.fs || 12}" fill="${o.fill}" text-anchor="${o.anchor || 'middle'}"${o.weight ? ` font-weight="${o.weight}"` : ''}${o.rot ? ` transform="rotate(${o.rot} ${x} ${y})"` : ''}>${[].concat(lines).map((l, i) => `<tspan x="${x}" dy="${i ? (o.fs || 12) * 1.25 : 0}">${fx(l)}</tspan>`).join('')}</text>`;
+  // 테마: 화면은 앱의 색 변수, 받기는 흰 바탕
+  function figTheme(mode) {
+    if (mode === 'print' || mode === 'mono') return { bg: '#ffffff', ink: '#111111', ink2: '#444444', ink3: '#777777', grid: '#e3e3e3', axis: '#9a9a9a', s: mode === 'mono' ? FIG_PAL.mono : FIG_PAL.light, mono: mode === 'mono', div: ['#2a78d6', '#f0efec', '#e34948'] };
+    const cs = getComputedStyle(document.documentElement), v = k => cs.getPropertyValue(k).trim();
+    const bg = v('--bg') || '#ffffff', dark = (() => { const m = bg.match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i); return m ? (parseInt(m[1], 16) + parseInt(m[2], 16) + parseInt(m[3], 16)) / 3 < 100 : false; })();
+    return { bg, ink: v('--ink') || '#1d2333', ink2: v('--ink-2') || '#4a5168', ink3: v('--ink-3') || '#7a8196', grid: dark ? '#262b3b' : '#e8eaf0', axis: dark ? '#4a5168' : '#a9aebd', s: dark ? FIG_PAL.dark : FIG_PAL.light, mono: false, div: dark ? ['#3987e5', '#383835', '#e66767'] : ['#2a78d6', '#f0efec', '#e34948'] };
+  }
+  const figSvg = (T, W, H, body, label) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="max-width:${W}px" role="img" aria-label="${fx(label)}" font-family='${FIG_FONT}'><rect width="${W}" height="${H}" fill="${T.bg}"/>${body}</svg>`;
+  // 점 모양: 원 · 네모 · 세모 (흑백에서도 계열 구분)
+  function figMarker(T, i, x, y, r = 5) {
+    const c = T.s[i % 3], ring = `stroke="${T.bg}" stroke-width="2"`;
+    if (i % 3 === 1) return `<rect x="${x - r}" y="${y - r}" width="${2 * r}" height="${2 * r}" rx="1.5" fill="${c}" ${ring}/>`;
+    if (i % 3 === 2) return `<path d="M${x} ${y - r * 1.2}L${x + r * 1.15} ${y + r * 0.85}L${x - r * 1.15} ${y + r * 0.85}Z" fill="${c}" ${ring} stroke-linejoin="round"/>`;
+    return `<circle cx="${x}" cy="${y}" r="${r}" fill="${c}" ${ring}/>`;
+  }
+  // 범례 (계열이 둘 이상일 때만)
+  // 범례: 넓이를 넘으면 다음 줄로. { svg, h } (h = 범례가 차지하는 높이)
+  function figLegend(T, names, x0, y, kind, maxW = 560, head = '') {
+    if (names.length < 2) return { svg: '', h: 0 };
+    let x = x0, row = 0, out = head ? figText(x0, y + 4, head, { fill: T.ink2, anchor: 'start', fs: 12, weight: 700 }) : '';
+    if (head) x += figTw(head, 12) + 12;
+    names.forEach((n, i) => {
+      const kw = kind === 'bar' ? 18 : 28, w = kw + figTw(n, 12) + 18;
+      if (x > x0 + (head ? figTw(head, 12) + 12 : 0) && x + w - 18 > x0 + maxW) { row++; x = x0 + (head ? figTw(head, 12) + 12 : 0); }
+      const yy = y + row * 20;
+      const key = kind === 'bar' ? `<rect x="${x}" y="${yy - 6}" width="12" height="12" rx="2" fill="${T.s[i % 3]}"/>` : `<line x1="${x}" y1="${yy}" x2="${x + 22}" y2="${yy}" stroke="${T.s[i % 3]}" stroke-width="2" ${FIG_DASH[i % 3] ? `stroke-dasharray="${FIG_DASH[i % 3]}"` : ''}/>${figMarker(T, i, x + 11, yy, 4)}`;
+      out += key + figText(x + kw, yy + 4, n, { fill: T.ink2, anchor: 'start', fs: 12 });
+      x += w;
+    });
+    return { svg: out, h: (row + 1) * 20 };
+  }
+  const legTop = (T, names, L, R, kind, head) => { const lg = figLegend(T, names, L, 22, kind, R - L, head); return { lg, top: lg.h ? 22 + lg.h + 12 : 26 }; };
+  // y축(눈금·격자·축 이름)
+  function figYAxis(T, tk, yS, L, R, label, top, bot) {
+    return tk.map(v => `<line x1="${L}" x2="${R}" y1="${yS(v)}" y2="${yS(v)}" stroke="${T.grid}" stroke-width="1"/>` + figText(L - 8, yS(v) + 4, F2(v, Number.isInteger(v) ? 0 : v * 10 % 1 ? 2 : 1), { fill: T.ink3, anchor: 'end', fs: 11.5 })).join('')
+      + figText(16, (top + bot) / 2, figWrap(label, bot - top, 12.5), { fill: T.ink2, rot: -90, fs: 12.5 });
+  }
+  const tipOf = (t) => `<title>${fx(t)}</title>`;
+
+  const FIGS = {
+    // 평균과 95% 신뢰구간 (점 + 막대): 집단·변인 비교
+    dots(f, T) {
+      const W = 640, L = 72, R = W - 24, { lg, top } = legTop(T, f.series.map(s => s.name), L, R, 'line'), H = 354 + top, B = H - 70;
+      const all = f.series.flatMap(s => s.pts).flatMap(p => [p.lo, p.hi, p.m]).filter(isFinite).concat(f.ref ? [f.ref.y] : []);
+      let lo = Math.min(...all), hi = Math.max(...all); if (f.yRange) { lo = Math.min(lo, f.yRange[0]); hi = Math.max(hi, f.yRange[1]); } else { const pd = (hi - lo) * 0.15 || 1; lo -= pd; hi += pd; }
+      const tk = niceTicks(lo, hi, 5), y0 = tk[0], y1 = tk[tk.length - 1], yS = v => B - (v - y0) / (y1 - y0) * (B - top);
+      const nc = f.cats.length, bw = (R - L) / nc, ns = f.series.length, off = i => (i - (ns - 1) / 2) * Math.min(26, bw / (ns + 1));
+      let g = figYAxis(T, tk, yS, L, R, f.yLabel, top, B);
+      if (f.ref) g += `<line x1="${L}" x2="${R}" y1="${yS(f.ref.y)}" y2="${yS(f.ref.y)}" stroke="${T.ink3}" stroke-width="1.5"/>` + figText(R, yS(f.ref.y) - 6, f.ref.label, { fill: T.ink3, anchor: 'end', fs: 11.5 });
+      f.cats.forEach((c, j) => { g += figText(L + bw * (j + 0.5), B + 20, figWrap(c, bw - 8, 12.5), { fill: T.ink2, fs: 12.5 }); });
+      const few = nc * ns <= 6;
+      f.series.forEach((s, i) => s.pts.forEach((p, j) => {
+        if (!isFinite(p.m)) return; const x = L + bw * (j + 0.5) + off(i), c = T.s[i % 3];
+        const tip = tipOf(`${ns > 1 ? s.name + ' · ' : ''}${f.cats[j]}: M = ${F2(p.m)}, 95% CI [${F2(p.lo)}, ${F2(p.hi)}], n = ${p.n}`);
+        g += `<g>${tip}${isFinite(p.lo) ? `<line x1="${x}" x2="${x}" y1="${yS(p.lo)}" y2="${yS(p.hi)}" stroke="${c}" stroke-width="2" stroke-linecap="round"/><line x1="${x - 5}" x2="${x + 5}" y1="${yS(p.lo)}" y2="${yS(p.lo)}" stroke="${c}" stroke-width="2" stroke-linecap="round"/><line x1="${x - 5}" x2="${x + 5}" y1="${yS(p.hi)}" y2="${yS(p.hi)}" stroke="${c}" stroke-width="2" stroke-linecap="round"/>` : ''}${figMarker(T, i, x, yS(p.m), 5.5)}<rect x="${x - 12}" y="${yS(isFinite(p.hi) ? p.hi : p.m) - 6}" width="24" height="${Math.abs(yS(isFinite(p.lo) ? p.lo : p.m) - yS(isFinite(p.hi) ? p.hi : p.m)) + 12}" fill="transparent"/></g>`;
+        if (few) g += figText(x + 10, yS(p.m) + 4, F2(p.m), { fill: T.ink, anchor: 'start', fs: 12 });
+      }));
+      g += lg.svg;
+      return figSvg(T, W, H, g, f.title);
+    },
+    // 시점·조건별 평균을 이은 선 (반복측정, 상호작용, 비율 변화)
+    lines(f, T) {
+      const W = 640, L = 72, R = W - 24, { lg, top } = legTop(T, f.series.map(s => s.name), L, R, 'line'), H = 354 + top, B = H - 70;
+      const all = f.series.flatMap(s => s.pts).flatMap(p => [p.lo, p.hi, p.m]).filter(isFinite);
+      let lo = Math.min(...all), hi = Math.max(...all);
+      if (f.pct) { lo = 0; hi = 100; } else if (f.yRange) { lo = Math.min(lo, f.yRange[0]); hi = Math.max(hi, f.yRange[1]); } else { const pd = (hi - lo) * 0.15 || 1; lo -= pd; hi += pd; }
+      const tk = niceTicks(lo, hi, 5), y0 = tk[0], y1 = tk[tk.length - 1], yS = v => B - (v - y0) / (y1 - y0) * (B - top);
+      const nx = f.xs.length, bw = (R - L) / nx, ns = f.series.length, off = i => (i - (ns - 1) / 2) * 7;
+      let g = figYAxis(T, tk, yS, L, R, f.yLabel + (f.pct ? ' (%)' : ''), top, B);
+      f.xs.forEach((c, j) => { g += figText(L + bw * (j + 0.5), B + 20, figWrap(c, bw - 8, 12.5), { fill: T.ink2, fs: 12.5 }); });
+      if (f.xLabel) g += figText((L + R) / 2, H - 12, f.xLabel, { fill: T.ink2, fs: 12.5 });
+      f.series.forEach((s, i) => {
+        const c = T.s[i % 3], P = s.pts.map((p, j) => [L + bw * (j + 0.5) + off(i), yS(p.m)]);
+        g += `<polyline points="${P.map(q => q.join(',')).join(' ')}" fill="none" stroke="${c}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" ${FIG_DASH[i % 3] ? `stroke-dasharray="${FIG_DASH[i % 3]}"` : ''}/>`;
+        s.pts.forEach((p, j) => {
+          const [x, y] = P[j];
+          const tip = tipOf(`${ns > 1 ? s.name + ' · ' : ''}${f.xs[j]}: ${f.pct ? `${F2(p.m, 1)}%` : `M = ${F2(p.m)}`}${isFinite(p.lo) ? `, 95% CI [${F2(p.lo, f.pct ? 1 : 2)}, ${F2(p.hi, f.pct ? 1 : 2)}]` : ''}${p.n ? `, n = ${p.n}` : ''}`);
+          g += `<g>${tip}${isFinite(p.lo) ? `<line x1="${x}" x2="${x}" y1="${yS(p.lo)}" y2="${yS(p.hi)}" stroke="${c}" stroke-width="1.5" stroke-linecap="round" opacity=".8"/>` : ''}${figMarker(T, i, x, y, 5)}<circle cx="${x}" cy="${y}" r="12" fill="transparent"/></g>`;
+        });
+      });
+      g += lg.svg;
+      return figSvg(T, W, H, g, f.title);
+    },
+    // 산점도 (+ 회귀선, 또는 잔차의 0선)
+    scatter(f, T) {
+      const W = 640, H = 420, top = 26, L = 72, R = W - 24, B = H - 64;
+      const xs = f.pts.map(p => p[0]), ys = f.pts.map(p => p[1]);
+      const rx = f.xRange || [Math.min(...xs), Math.max(...xs)], ry = f.yRange || [Math.min(...ys), Math.max(...ys)];
+      const pad = (a, b) => (b - a) * 0.06 || 0.5;
+      const tx = niceTicks(Math.min(rx[0], Math.min(...xs)) - (f.xRange ? 0 : pad(...rx)), Math.max(rx[1], Math.max(...xs)) + (f.xRange ? 0 : pad(...rx)), 6), ty = niceTicks(Math.min(ry[0], Math.min(...ys)) - (f.yRange ? 0 : pad(...ry)), Math.max(ry[1], Math.max(...ys)) + (f.yRange ? 0 : pad(...ry)), 5);
+      const xS = v => L + (v - tx[0]) / (tx[tx.length - 1] - tx[0]) * (R - L), yS = v => B - (v - ty[0]) / (ty[ty.length - 1] - ty[0]) * (B - top);
+      let g = figYAxis(T, ty, yS, L, R, f.yLabel, top, B);
+      g += tx.map(v => `<line x1="${xS(v)}" x2="${xS(v)}" y1="${B}" y2="${B + 4}" stroke="${T.axis}"/>` + figText(xS(v), B + 18, F2(v, Number.isInteger(v) ? 0 : 1), { fill: T.ink3, fs: 11.5 })).join('');
+      g += `<line x1="${L}" x2="${R}" y1="${B}" y2="${B}" stroke="${T.axis}"/>` + figText((L + R) / 2, H - 12, f.xLabel, { fill: T.ink2, fs: 12.5 });
+      if (f.zero) g += `<line x1="${L}" x2="${R}" y1="${yS(0)}" y2="${yS(0)}" stroke="${T.ink3}" stroke-width="1.5"/>`;
+      // 같은 자리에 겹친 점은 하나로 그리고 크기로 사람 수 표시 (평균 점수는 같은 값이 많음)
+      const cnt = new Map(); f.pts.forEach(([a, b]) => { const k = `${a.toFixed(3)}|${b.toFixed(3)}`; cnt.set(k, (cnt.get(k) || 0) + 1); });
+      g += [...cnt.entries()].map(([k, n]) => { const [a, b] = k.split('|').map(Number); return `<circle cx="${xS(a)}" cy="${yS(b)}" r="${Math.min(9, 3.2 + Math.sqrt(n - 1) * 1.6)}" fill="${T.s[0]}" fill-opacity="${T.mono ? 0.45 : 0.5}" stroke="${T.bg}" stroke-width="1">${tipOf(`${f.xLabel} ${F2(a)}, ${f.yLabel} ${F2(b)}${n > 1 ? ` (${n}명)` : ''}`)}</circle>`; }).join('');
+      if (f.line) { const x0 = tx[0], x1 = tx[tx.length - 1], cl = v => Math.max(ty[0], Math.min(ty[ty.length - 1], v)); g += `<line x1="${xS(x0)}" x2="${xS(x1)}" y1="${yS(cl(f.line[0] + f.line[1] * x0))}" y2="${yS(cl(f.line[0] + f.line[1] * x1))}" stroke="${T.ink}" stroke-width="2" stroke-linecap="round"/>`; }
+      if (f.tag) g += figText(R - 4, top + 14, f.tag, { fill: T.ink, anchor: 'end', fs: 12.5, weight: 700 });
+      return figSvg(T, W, H, g, f.title);
+    },
+    // 상관 행렬 (아래 삼각형, 색 = 상관의 크기와 방향)
+    corrmat(f, T) {
+      const k = f.names.length, cell = Math.max(44, Math.min(70, 420 / k)), lab = Math.min(230, Math.max(...f.names.map((n, i) => figTw(`${i + 1}. ${n}`, 12.5))) + 14);
+      const W = Math.max(420, lab + cell * k + 30), H = 40 + cell * k + 54, x0 = lab, y0 = 36;
+      const mix = (a, b, t) => { const h = q => [1, 3, 5].map(i => parseInt(q.slice(i, i + 2), 16)); const A = h(a), Bc = h(b); return '#' + A.map((v, i) => Math.round(v + (Bc[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
+      const colr = r => r >= 0 ? mix(T.div[1], T.div[2], Math.min(1, r)) : mix(T.div[1], T.div[0], Math.min(1, -r));
+      const lum = h => { const v = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255); return 0.299 * v[0] + 0.587 * v[1] + 0.114 * v[2]; };
+      let g = f.names.map((n, i) => figText(x0 - 10, y0 + cell * (i + 0.5) + 4, `${i + 1}. ${n}`.length > 22 ? `${i + 1}. ${n}`.slice(0, 21) + '…' : `${i + 1}. ${n}`, { fill: T.ink2, anchor: 'end', fs: 12.5 })).join('')
+        + f.names.map((_, j) => figText(x0 + cell * (j + 0.5), y0 - 10, String(j + 1), { fill: T.ink2, fs: 12.5 })).join('');
+      for (let i = 0; i < k; i++) for (let j = 0; j <= i; j++) {
+        const x = x0 + cell * j, y = y0 + cell * i;
+        if (i === j) { g += `<rect x="${x + 1}" y="${y + 1}" width="${cell - 2}" height="${cell - 2}" rx="4" fill="${T.grid}"/>` + figText(x + cell / 2, y + cell / 2 + 4, '—', { fill: T.ink3, fs: 12 }); continue; }
+        const r = f.r[i][j], p = f.p[i][j], c = isFinite(r) ? (T.mono ? mix('#f2f2f2', '#3a3a3a', Math.abs(r)) : colr(r)) : T.grid;
+        g += `<g>${tipOf(`${f.names[i]} – ${f.names[j]}: ${f.sym} = ${NZ(r)}, ${PS(p)}`)}<rect x="${x + 1}" y="${y + 1}" width="${cell - 2}" height="${cell - 2}" rx="4" fill="${c}"/>${figText(x + cell / 2, y + cell / 2 + 4, isFinite(r) ? NZ(r) + STAR(p) : '-', { fill: lum(c) < 0.5 ? '#ffffff' : '#111111', fs: 12.5 })}</g>`;
+      }
+      // 색 막대 (−1 ~ +1)
+      const lx = x0, ly = H - 34, lw = Math.min(260, cell * k);
+      for (let t = 0; t < 40; t++) { const r = -1 + 2 * t / 39; g += `<rect x="${lx + lw * t / 40}" y="${ly}" width="${lw / 40 + 0.5}" height="10" fill="${T.mono ? mix('#f2f2f2', '#3a3a3a', Math.abs(r)) : colr(r)}"/>`; }
+      g += figText(lx, ly + 24, '−1', { fill: T.ink3, fs: 11.5 }) + figText(lx + lw / 2, ly + 24, '0', { fill: T.ink3, fs: 11.5 }) + figText(lx + lw, ly + 24, '+1', { fill: T.ink3, fs: 11.5 });
+      return figSvg(T, W, H, g, f.title);
+    },
+    // 조절효과: 조절변인 수준별 단순기울기
+    slopes(f, T) {
+      const W = 640, L = 72, R = W - 24, { lg, top } = legTop(T, f.lines.map(l => `${l.name} (B = ${F2(l.b)}${STAR(l.p)})`), L, R, 'line', `${f.wName}:`), H = 348 + top, B = H - 64;
+      const ys = f.lines.flatMap(l => [l.y0, l.y1]);
+      let lo = Math.min(...ys), hi = Math.max(...ys); if (f.yRange) { lo = Math.min(lo, f.yRange[0]); hi = Math.max(hi, f.yRange[1]); } else { const pd = (hi - lo) * 0.2 || 0.5; lo -= pd; hi += pd; }
+      const ty = niceTicks(lo, hi, 5), yS = v => B - (v - ty[0]) / (ty[ty.length - 1] - ty[0]) * (B - top);
+      const xa = f.xs[0], xb = f.xs[1], xS = v => L + 40 + (v - xa) / (xb - xa || 1) * (R - L - 80);
+      let g = figYAxis(T, ty, yS, L, R, f.yLabel, top, B);
+      g += f.xTicks.map(([v, t]) => figText(xS(v), B + 20, t, { fill: T.ink2, fs: 12.5 })).join('') + figText((L + R) / 2, H - 12, f.xLabel, { fill: T.ink2, fs: 12.5 });
+      f.lines.forEach((l, i) => {
+        const c = T.s[i % 3];
+        g += `<g>${tipOf(`${f.wName} ${l.name}: 기울기 B = ${F2(l.b)}, ${PS(l.p)}`)}<line x1="${xS(xa)}" x2="${xS(xb)}" y1="${yS(l.y0)}" y2="${yS(l.y1)}" stroke="${c}" stroke-width="2.5" stroke-linecap="round" ${FIG_DASH[i % 3] ? `stroke-dasharray="${FIG_DASH[i % 3]}"` : ''}/>${figMarker(T, i, xS(xa), yS(l.y0), 5)}${figMarker(T, i, xS(xb), yS(l.y1), 5)}<line x1="${xS(xa)}" x2="${xS(xb)}" y1="${yS(l.y0)}" y2="${yS(l.y1)}" stroke="transparent" stroke-width="14"/></g>`;
+      });
+      g += lg.svg;
+      return figSvg(T, W, H, g, f.title);
+    },
+    // 집단별 비율 (묶은 세로 막대)
+    props(f, T) {
+      const W = 640, L = 72, R = W - 24, { lg, top } = legTop(T, f.series.map(s => s.name), L, R, 'bar'), H = 354 + top, B = H - 70;
+      const ty = [0, 20, 40, 60, 80, 100], yS = v => B - v / 100 * (B - top);
+      const nc = f.cats.length, ns = f.series.length, bw = (R - L) / nc, cw = Math.min(24, (bw - 24) / ns - 2);
+      let g = figYAxis(T, ty, yS, L, R, f.yLabel + ' (%)', top, B);
+      f.cats.forEach((c, j) => { g += figText(L + bw * (j + 0.5), B + 20, figWrap(c, bw - 8, 12.5), { fill: T.ink2, fs: 12.5 }); });
+      const lab = nc * ns <= 12;
+      f.series.forEach((s, i) => s.vals.forEach((v, j) => {
+        const x = L + bw * (j + 0.5) + (i - (ns - 1) / 2) * (cw + 2) - cw / 2, y = yS(v), h = B - y, rr = Math.min(4, h);
+        g += `<g>${tipOf(`${f.cats[j]} · ${s.name}: ${F2(v, 1)}%`)}<path d="M${x} ${B}V${y + rr}Q${x} ${y} ${x + rr} ${y}H${x + cw - rr}Q${x + cw} ${y} ${x + cw} ${y + rr}V${B}Z" fill="${T.s[i % 3]}"/></g>`;
+        if (lab && figTw(F2(v, 0), 11) < cw + 14) g += figText(x + cw / 2, y - 5, F2(v, 0), { fill: T.ink2, fs: 11 });
+      }));
+      g += `<line x1="${L}" x2="${R}" y1="${B}" y2="${B}" stroke="${T.axis}"/>` + lg.svg;
+      return figSvg(T, W, H, g, f.title);
+    },
+    // 점수 분포 (히스토그램 + 같은 평균·표준편차의 정규분포 곡선)
+    hist(f, T) {
+      const W = 640, H = 340, top = 26, L = 72, R = W - 24, B = H - 60;
+      const x = f.vals, n = x.length, lo = f.range ? f.range[0] : Math.min(...x), hi = f.range ? f.range[1] : Math.max(...x);
+      const k = Math.max(6, Math.min(16, Math.ceil(Math.log2(n) + 1))), w = (hi - lo) / k || 1, cnt = new Array(k).fill(0);
+      x.forEach(v => { cnt[Math.min(k - 1, Math.max(0, Math.floor((v - lo) / w)))]++; });
+      const m = mean(x), s0 = sd(x), dens = v => n * w * Math.exp(-0.5 * ((v - m) / s0) ** 2) / (s0 * Math.sqrt(2 * Math.PI));
+      const ymax = Math.max(...cnt, dens(m)), ty = niceTicks(0, ymax, 4), yS = v => B - v / ty[ty.length - 1] * (B - top), xS = v => L + (v - lo) / (hi - lo) * (R - L);
+      let g = figYAxis(T, ty, yS, L, R, '사람 수', top, B);
+      cnt.forEach((c, i) => { const xa = xS(lo + i * w) + 1, xb = xS(lo + (i + 1) * w) - 1, y = yS(c), rr = Math.min(3, B - y); if (c) g += `<g>${tipOf(`${F2(lo + i * w)} ~ ${F2(lo + (i + 1) * w)}: ${c}명`)}<path d="M${xa} ${B}V${y + rr}Q${xa} ${y} ${xa + rr} ${y}H${xb - rr}Q${xb} ${y} ${xb} ${y + rr}V${B}Z" fill="${T.s[0]}" fill-opacity="${T.mono ? 0.55 : 0.75}"/></g>`; });
+      if (s0 > 0) { const P = Array.from({ length: 61 }, (_, i) => { const v = lo + (hi - lo) * i / 60; return `${xS(v)},${yS(dens(v))}`; }); g += `<polyline points="${P.join(' ')}" fill="none" stroke="${T.ink}" stroke-width="2"/>`; }
+      g += niceTicks(lo, hi, 6).filter(v => v >= lo - 1e-9 && v <= hi + 1e-9).map(v => figText(xS(v), B + 18, F2(v, Number.isInteger(v) ? 0 : 1), { fill: T.ink3, fs: 11.5 })).join('');
+      g += `<line x1="${L}" x2="${R}" y1="${B}" y2="${B}" stroke="${T.axis}"/>` + figText((L + R) / 2, H - 10, f.xLabel, { fill: T.ink2, fs: 12.5 }) + figText(R - 4, top + 12, `M = ${F2(m)}, SD = ${F2(s0)}, n = ${n}`, { fill: T.ink2, anchor: 'end', fs: 12 });
+      return figSvg(T, W, H, g, f.title);
+    },
+    // 매개·조절된 매개: 경로 그림에 계수와 유의 표시
+    path(f, T) {
+      // 배치: 단순(매개 위) · 병렬 2개(위·아래) · 병렬 3개 이상(가운데 세로, 직접효과는 아래로 돌아감) · 순차(위에 나란히)
+      const k = f.Ms.length, ser = f.kind === 'serial', bw = 150, bh = 46, W = 640;
+      const H = ser ? 340 : k === 1 ? (f.W ? 380 : 330) : k === 2 ? 380 : 70 + k * 66 + 40;
+      const nodes = {}, yB = ser || k === 1 ? H - 60 : (k === 2 ? H / 2 : (H - 40) / 2);
+      nodes.X = [95, yB]; nodes.Y = [W - 95, yB];
+      if (ser) { nodes.M0 = [200, 80]; nodes.M1 = [W - 200, 80]; }
+      else if (k === 1) nodes.M0 = [W / 2, f.W ? 132 : 92];
+      else if (k === 2) { nodes.M0 = [W / 2, 52]; nodes.M1 = [W / 2, H - 52]; }
+      else f.Ms.forEach((_, j) => { nodes['M' + j] = [W / 2, 44 + j * 66]; });
+      const names = { X: f.X, Y: f.Y }; f.Ms.forEach((m, j) => { names['M' + j] = m; });
+      if (f.W) { names.W = f.W; nodes.W = f.wOn === 'a' ? [95, 52] : [W - 95, 52]; }
+      const edge = (a, b) => { const [x1, y1] = nodes[a], [x2, y2] = nodes[b], dx = x2 - x1, dy = y2 - y1; const t1 = Math.min(Math.abs((bw / 2) / (dx || 1e-9)), Math.abs((bh / 2) / (dy || 1e-9))), t2 = t1 + 0.02; return [x1 + dx * t1, y1 + dy * t1, x2 - dx * t2, y2 - dy * t2]; };
+      let defs = `<defs><marker id="fa${f.uid}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="${T.ink2}"/></marker></defs>`, g = '';
+      const lab = (x, y, t, strong) => { const w = figTw(t, 12) + 10; return `<rect x="${x - w / 2}" y="${y - 10}" width="${w}" height="20" rx="4" fill="${T.bg}"/>` + figText(x, y + 4, t, { fill: strong ? T.ink : T.ink3, fs: 12, weight: strong ? 700 : 400 }); };
+      const coef = (nm, c) => `${nm} = ${F2(c.est)}${STAR(c.p)}`;
+      const arrow = (a, b, c, nm, dash, lp = 0.5) => { const [x1, y1, x2, y2] = edge(a, b), mx = x1 + (x2 - x1) * lp, my = y1 + (y2 - y1) * lp; return { svg: `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${T.ink2}" stroke-width="${c && c.p < 0.05 ? 2 : 1.4}" ${dash ? 'stroke-dasharray="5 4"' : ''} marker-end="url(#fa${f.uid})"/>`, lab: c ? lab(mx, my, typeof nm === 'string' ? coef(nm, c) : nm(c), c.p < 0.05) : '', mx, my }; };
+      const parts = [];
+      f.Ms.forEach((_, j) => parts.push(arrow('X', 'M' + j, f.a[j], k > 1 ? `a${j + 1}` : 'a', false, ser && j === 1 ? 0.36 : 0.5)));
+      if (ser) parts.push(arrow('M0', 'M1', f.d, 'd'));
+      f.Ms.forEach((_, j) => parts.push(arrow('M' + j, 'Y', f.b[j], k > 1 ? `b${j + 1}` : 'b', false, ser && j === 0 ? 0.64 : 0.5)));
+      const cpTxt = c => `c' = ${F2(c.est)}${STAR(c.p)}${f.c ? ` (c = ${F2(f.c.est)}${STAR(f.c.p)})` : ''}`;
+      if (!ser && k >= 3) { // 가운데 매개 상자를 피해 아래로 돌아가는 직접효과
+        const [x1, y1] = nodes.X, [x2] = nodes.Y, yb = H - 22, sig = f.cp.p < 0.05;
+        parts.push({ svg: `<path d="M${x1} ${y1 + bh / 2}V${yb}H${x2}V${y1 + bh / 2 + 2}" fill="none" stroke="${T.ink2}" stroke-width="${sig ? 2 : 1.4}" ${sig ? '' : 'stroke-dasharray="5 4"'} marker-end="url(#fa${f.uid})"/>`, lab: lab(W / 2, yb, cpTxt(f.cp), sig) });
+      } else parts.push(arrow('X', 'Y', f.cp, cpTxt, !(f.cp.p < 0.05)));
+      if (f.W) { const tgt = f.wOn === 'a' ? parts[0] : parts[f.Ms.length]; const [wx, wy] = nodes.W; parts.push({ svg: `<line x1="${wx}" y1="${wy + bh / 2}" x2="${tgt.mx}" y2="${tgt.my - 12}" stroke="${T.ink2}" stroke-width="${f.inter.p < 0.05 ? 2 : 1.4}" marker-end="url(#fa${f.uid})"/>`, lab: lab((wx + tgt.mx) / 2 + (f.wOn === 'a' ? 26 : -26), (wy + bh / 2 + tgt.my) / 2, coef(f.wOn === 'a' ? 'a3' : 'b3', f.inter), f.inter.p < 0.05) }); }
+      g += parts.map(q => q.svg).join('');
+      g += Object.keys(nodes).map(id => { const [x, y] = nodes[id]; return `<rect x="${x - bw / 2}" y="${y - bh / 2}" width="${bw}" height="${bh}" rx="10" fill="${T.bg}" stroke="${T.ink}" stroke-width="1.5"/>` + figText(x, y + (figWrap(names[id], bw - 14, 13).length > 1 ? -3 : 5), figWrap(names[id], bw - 14, 13), { fill: T.ink, fs: 13, weight: 700 }); }).join('');
+      g += parts.map(q => q.lab).join('');
+      return figSvg(T, W, H, defs + g, f.title);
+    },
+  };
+  let figUid = 0;
+  const figRender = (f, mode) => { try { return FIGS[f.type] ? FIGS[f.type]({ ...f, uid: ++figUid }, figTheme(mode)) : ''; } catch (e) { return ''; } };
+  // 잔차 그림: 예측값 × 잔차 (점이 0선 위아래로 고르게 흩어지면 선형성·등분산성이 괜찮음)
+  const thinPts = (pts, max = 600) => pts.length <= max ? pts : pts.filter((_, i) => i % Math.ceil(pts.length / max) === 0);
+  const residFig = (fit, y, title) => ({ type: 'scatter', title, xLabel: '예측값', yLabel: '잔차', pts: thinPts(y.map((v, i) => [v - fit.resid[i], fit.resid[i]])), zero: true, note: '점이 0선 위아래로 고르게 흩어져 있고 깔때기나 곡선 모양이 보이지 않으면, 회귀의 선형성과 등분산성 가정이 크게 어긋나지 않습니다.' });
+  // 결과 카드의 그림들 (번호는 계산한 순서대로, 논문의 그림 번호처럼)
+  function figNoMap() { const m = new Map(); let n = 0; analyses.slice().reverse().forEach(a => (a.figs || []).forEach((_, i) => m.set(`${a.id}:${i}`, ++n))); return m; }
+  function figsHtml(a, nos) {
+    if (!a.figs || !a.figs.length) return '';
+    return `<div class="tfigs">${a.figs.map((f, i) => { const svg = figRender(f); if (!svg) return ''; return `<figure class="tfig"><figcaption><b>그림 ${nos.get(`${a.id}:${i}`) || i + 1}.</b> ${esc(f.title)}</figcaption>
+      <div class="tfig-svg">${svg}</div>${f.note ? `<p class="hint">${esc(f.note)}</p>` : ''}
+      <div class="actions tight"><button class="btn sm" data-fig-act="png" data-id="${a.id}" data-i="${i}">그림 받기 (PNG)</button><button class="btn sm" data-fig-act="png" data-id="${a.id}" data-i="${i}" data-mono="1">흑백으로 받기</button><button class="btn sm" data-fig-act="cap" data-id="${a.id}" data-i="${i}">그림 제목 복사</button></div></figure>`; }).join('')}</div>`;
+  }
+  // SVG → PNG (3배 크기, 흰 바탕). claude.ai 화면에서는 이미지를 띄워 저장하게 함
+  async function figPng(f, mono, name) {
+    const svg = figRender(f, mono ? 'mono' : 'print'), m = svg.match(/viewBox="0 0 (\d+(?:\.\d+)?) (\d+(?:\.\d+)?)"/), W = +m[1], H = +m[2], sc = 3;
+    const img = new Image(), url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
+    await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
+    const c = document.createElement('canvas'); c.width = W * sc; c.height = H * sc; const ctx = c.getContext('2d'); ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, c.width, c.height); ctx.drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+    const dataUrl = c.toDataURL('image/png');
+    if (hasClaude) { const ov = document.createElement('div'); ov.className = 'fig-ov'; ov.innerHTML = `<div class="fig-ov-card"><p><b>${esc(name)}</b> · 이미지를 길게 누르거나 오른쪽 버튼으로 눌러 [이미지 저장]을 고르세요.</p><img src="${dataUrl}" alt="${esc(f.title)}"><div class="actions tight"><button class="btn sm" data-fig-ov="close">닫기</button></div></div>`; ov.addEventListener('click', e => { if (e.target === ov || e.target.closest('[data-fig-ov]')) ov.remove(); }); document.body.appendChild(ov); return; }
+    const a = document.createElement('a'); a.href = dataUrl; a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => a.remove(), 300);
+  }
+  let preFigs = [];   // 사전 분석의 점수 분포 그림 (결과에 저장하지 않음)
+  document.addEventListener('click', async e => {
+    const b = e.target.closest('[data-fig-act]'); if (!b) return;
+    if (b.dataset.src === 'pre') { const f = preFigs[+b.dataset.i]; if (f) { try { await figPng(f, b.dataset.mono === '1', `${f.title.replace(/[^\w가-힣]+/g, '_')}${b.dataset.mono === '1' ? '_흑백' : ''}.png`); } catch (err) { toast('그림을 만들지 못했습니다.'); } } return; }
+    const a = analyses.find(x => x.id === b.dataset.id), f = a && a.figs && a.figs[+b.dataset.i]; if (!f) return;
+    const no = figNoMap().get(`${a.id}:${b.dataset.i}`) || 1;
+    if (b.dataset.figAct === 'cap') { const t = `그림 ${no}. ${f.title}`; try { navigator.clipboard.writeText(t).then(() => toast('그림 제목을 복사했습니다.'), () => showSheet('그림 제목', t)); } catch (err) { showSheet('그림 제목', t); } return; }
+    try { await figPng(f, b.dataset.mono === '1', `그림${no}_${f.title.replace(/[^\w가-힣]+/g, '_').slice(0, 40)}${b.dataset.mono === '1' ? '_흑백' : ''}.png`); } catch (err) { toast('그림을 만들지 못했습니다.'); }
+  });
+
   function renderAnalyses() {
     const box = $('#an-results');
     if (!analyses.length) { box.innerHTML = ''; return; }
+    const fnos = figNoMap();
     box.innerHTML = rPanelHtml() + analyses.map(a => `<div class="card result-card" id="res-${a.id}">
       <div class="res-head">
         <div><h3 class="card-title">${confTag(a)}${esc(a.title)}</h3><div class="hint">N = ${a.n} · ${esc(a.at)}${a.sample ? ' · <b>예시(가짜) 자료</b>' : ''}${a.dv !== dataVersion ? ' · <span class="a-mid">지금 자료와 다른 자료로 계산함</span>' : ''}</div></div>
@@ -1354,6 +1661,7 @@
         <div class="table-wrap"><table class="compact stat-table"><thead><tr>${t.head.map((h, i) => `<th class="${(t.num || []).includes(i) ? 'num' : ''}">${esc(h)}</th>`).join('')}</tr></thead>
         <tbody>${t.rows.map(r => `<tr>${r.map((c, i) => `<td class="${(t.num || []).includes(i) ? 'num' : ''}">${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
         ${t.foot ? `<p class="hint">${esc(t.foot)}</p>` : ''}`).join('')}
+      ${figsHtml(a, fnos)}
       ${a.notes.length ? `<ul class="notes">${a.notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
       ${a.decisions ? `<p class="hint" style="margin-top:12px">분석 결정: ${a.decisions.map(esc).join(' · ')}</p>` : ''}
       ${checksHtml(a)}
@@ -1371,7 +1679,7 @@
 
   // =================================================================
 
-// ##### 4. 분석 방법 (RUN 이어서): 반복측정·혼합설계 분산분석, 맥니마, 코크란 Q (stats-ladder.html 10353~10626줄) #####
+// ##### 4. 분석 방법 (RUN 이어서): 반복측정·혼합설계 분산분석, 맥니마, 코크란 Q (stats-ladder.html 10720~10997줄) #####
   // =================================================================
   // 반복측정 · 혼합설계 분산분석, 맥니마, 코크란 Q
   // =================================================================
@@ -1458,6 +1766,7 @@
       const names = r.ys.map(x => P.V[x].name), c = rmCore(Y), use = sphChoice(o, c.sp, k);
       const rows = withinRows('시점', c.ssC, c.df1, c.ssE, c.df2, c.sp), main = rows.find(x => x.c === use);
       const R = newResult('rm_anova', `반복측정 분산분석: ${names.join(' → ')}`); R.n = n;
+      addFig(R, { type: 'lines', title: `시점별 평균: ${names.join(' → ')}`, yLabel: '점수', yRange: unionRange(r.ys.map(scoreRange)), xs: names, series: [{ name: '평균', pts: r.ys.map((_, j) => ciOf(Y.map(row => row[j]))) }], note: '점은 평균, 막대는 각 시점 점수의 95% 신뢰구간입니다(같은 사람의 점수라 시점 차이 검정과는 다름).' });
       R.tables.push({ title: '시점별 기술통계', head: ['시점', 'n', 'M', 'SD'], num: [1, 2, 3], rows: r.ys.map((x, j) => [names[j], String(n), F2(c.cm[j]), F2(sd(Y.map(row => row[j])))]) });
       if (k >= 3) R.tables.push({ title: '구형성 검정 (Mauchly)', head: ['W', 'χ²', 'df', 'p', 'ε (Greenhouse-Geisser)', 'ε (Huynh-Feldt)'], num: [0, 1, 2, 3, 4, 5], rows: [[F2(c.sp.W, 3), F2(c.sp.chi), String(c.sp.df), PV(c.sp.p), F2(c.sp.gg, 3), F2(Math.min(1, c.sp.hf), 3)]] });
       R.tables.push({ title: '집단 안 효과', head: ['', '보정', 'SS', 'df', 'MS', 'F', 'p', '부분 η²'], num: [2, 3, 4, 5, 6, 7],
@@ -1477,6 +1786,7 @@
       const Y = P.keep.map((_, i) => keys.map(k => P.col(k)[i])), N = Y.length, k = keys.length, a = lv.length, p = k - 1;
       const gi = g.map(x => lv.indexOf(x)), ng = lv.map((_, j) => gi.filter(x => x === j).length); need(ng.every(x => x >= 2), '각 집단에 2명 이상 있어야 합니다.');
       const names = keys.map(x => P.V[x].name);
+      const figMixed = R => { if (lv.length <= 3) addFig(R, { type: 'lines', title: `${P.V[r.g].name}별 시점 평균: ${names.join(' → ')}`, yLabel: '점수', yRange: unionRange(keys.map(scoreRange)), xs: names, series: lv.map((l, j) => ({ name: `${P.V[r.g].name}: ${l}`, pts: keys.map((_, q) => ciOf(Y.filter((_, i) => gi[i] === j).map(rw => rw[q]))) })), note: '선이 평행하지 않으면 시점에 따른 변화가 집단마다 다르다는 뜻(상호작용)입니다. 막대는 95% 신뢰구간입니다.' }); };
       // 집단 사이: 사람 평균으로 일원분산분석 × k
       const s = Y.map(rw => mean(rw)), sg = lv.map((_, j) => mean(s.filter((_, i) => gi[i] === j))), sAll = mean(s);
       const ssG = k * lv.reduce((t, _, j) => t + ng[j] * (sg[j] - sAll) ** 2, 0), ssEb = k * s.reduce((t, v, i) => t + (v - sg[gi[i]]) ** 2, 0);
@@ -1496,7 +1806,7 @@
       const FG = (ssG / (a - 1)) / (ssEb / dfEb), pG = ST.pF(FG, a - 1, dfEb), peG = ssG / (ssG + ssEb);
       const rT = withinRows('시점', ssT, p, ssEw, dfEw, sp), rI = withinRows(`${P.V[r.g].name} × 시점`, ssI, p * (a - 1), ssEw, dfEw, sp);
       const mT = rT.find(x => x.c === use), mI = rI.find(x => x.c === use);
-      const R = newResult('mixed_anova', `혼합설계 분산분석: ${P.V[r.g].name} × 시점 (${names.join(' → ')})`); R.n = N;
+      const R = newResult('mixed_anova', `혼합설계 분산분석: ${P.V[r.g].name} × 시점 (${names.join(' → ')})`); R.n = N; figMixed(R);
       R.tables.push({ title: '집단 × 시점 평균 (SD)', head: ['집단', 'n'].concat(names), num: names.map((_, j) => j + 2).concat([1]),
         rows: lv.map((l, j) => { const rows = Y.filter((_, i) => gi[i] === j); return [l, String(ng[j])].concat(names.map((_, q) => `${F2(mean(rows.map(x => x[q])))} (${F2(sd(rows.map(x => x[q])))})`)); }) });
       if (k >= 3) R.tables.push({ title: '구형성 검정 (Mauchly)', head: ['W', 'χ²', 'df', 'p', 'ε (Greenhouse-Geisser)', 'ε (Huynh-Feldt)'], num: [0, 1, 2, 3, 4, 5], rows: [[F2(sp.W, 3), F2(sp.chi), String(sp.df), PV(sp.p), F2(sp.gg, 3), F2(Math.min(1, sp.hf), 3)]] });
@@ -1523,6 +1833,7 @@
       const chi = (Math.abs(n10 - n01) - 1) ** 2 / disc, p = ST.pChi(chi, 1), pEx = binomTwo(n01, disc);
       const p1 = (n11 + n10) / P.n, p2 = (n11 + n01) / P.n;
       const R = newResult('mcnemar', `맥니마 검정: ${P.V[r.a].name} → ${P.V[r.b].name}`); R.n = P.n;
+      addFig(R, { type: 'lines', pct: true, title: `'${t}' 응답 비율의 변화: ${P.V[r.a].name} → ${P.V[r.b].name}`, yLabel: `'${t}' 비율`, xs: [P.V[r.a].name, P.V[r.b].name], series: [{ name: `'${t}' 비율`, pts: [wilsonPct(n11 + n10, P.n), wilsonPct(n11 + n01, P.n)] }], note: '막대는 비율의 95% 신뢰구간(Wilson)입니다.' });
       R.tables.push({ title: '짝지은 교차표', head: [`${P.V[r.a].name} \\ ${P.V[r.b].name}`, lv[0], lv[1], '전체'], num: [1, 2, 3], rows: [[lv[0], String(n11), String(n10), String(n11 + n10)], [lv[1], String(n01), String(n00), String(n01 + n00)], ['전체', String(n11 + n01), String(n10 + n00), String(P.n)]] });
       R.tables.push({ title: '검정 결과', head: [`'${t}' 비율 (첫째)`, `'${t}' 비율 (둘째)`, 'χ² (연속성 교정)', 'df', 'p', '정확 p (이항)', '바뀐 사람'], num: [0, 1, 2, 3, 4, 5, 6], rows: [[`${F2(p1 * 100, 1)}%`, `${F2(p2 * 100, 1)}%`, F2(chi), '1', PV(p), PV(pEx), `${disc}명 (${lv[0]}→${lv[1]} ${n10}, ${lv[1]}→${lv[0]} ${n01})`]] });
       if (disc < 25) R.notes.push(`바뀐 사람이 ${disc}명으로 적어 정확 p(이항검정)를 함께 보고하는 것이 좋습니다.`);
@@ -1540,6 +1851,7 @@
       const Q = (k - 1) * (k * Cj.reduce((s, c) => s + c * c, 0) - Nt * Nt) / den, df = k - 1, p = ST.pChi(Q, df), W = Q / (n * (k - 1));
       const names = keys.map(x => P.V[x].name);
       const R = newResult('cochran', `코크란 Q 검정: ${names.join(', ')}`); R.n = n;
+      addFig(R, { type: 'lines', pct: true, title: `'${t}' 응답 비율: ${names.join(', ')}`, yLabel: `'${t}' 비율`, xs: names, series: [{ name: `'${t}' 비율`, pts: Cj.map(c => wilsonPct(c, n)) }], note: '막대는 비율의 95% 신뢰구간(Wilson)입니다.' });
       R.tables.push({ title: `'${t}' 응답 비율`, head: ['변인', `'${t}' (명)`, '비율'], num: [1, 2], rows: names.map((nm, j) => [nm, String(Cj[j]), `${F2(Cj[j] / n * 100, 1)}%`]) });
       R.tables.push({ title: '검정 결과', head: ['Q', 'df', 'p', 'Kendall의 W'], num: [0, 1, 2, 3], rows: [[F2(Q), String(df), PV(p), NZ(W, 3)]] });
       const m = k * (k - 1) / 2, post = [];
@@ -1647,7 +1959,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
 
   // =================================================================
 
-// ##### 5. 결과 해석: 학생이 읽은 결과 점검(gistCheck), 가설↔효과 연결(autoLink), 결과 문단 틀 (stats-ladder.html 5459~5686줄) #####
+// ##### 5. 결과 해석: 학생이 읽은 결과 점검(gistCheck), 가설↔효과 연결(autoLink), 결과 문단 틀 (stats-ladder.html 5776~6003줄) #####
   // ---------- 결과의 줄기: 학생이 먼저 읽고, 코드가 판정과 맞는지 봄 ----------
   function readHint(e) {
     if (e.ciBased) return `신뢰구간 [${e.lo?.toFixed(3)}, ${e.hi?.toFixed(3)}]이 0을 포함하는지 보세요. 포함하지 않으면 간접효과가 있다고 읽습니다. 직접효과도 함께 보면 매개의 모양을 알 수 있어요.`;
@@ -1877,7 +2189,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
   }
 
 
-// ##### 6. 보고 체크리스트: 효과크기 신뢰구간, 정규성, 가정 점검 (stats-ladder.html 6454~6653줄) #####
+// ##### 6. 보고 체크리스트: 효과크기 신뢰구간, 정규성, 가정 점검 (stats-ladder.html 6797~6996줄) #####
   // =================================================================
   // 보고 체크리스트 (APA 7 결과 보고 항목을 코드가 점검)
   // =================================================================
@@ -1912,7 +2224,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
     return !vifs.length || !isFinite(mx) ? { item: '다중공선성 (VIF)', st: 'na', note: '예측변인이 하나라 해당 없음' }
       : { item: '다중공선성 (VIF)', st: mx < 10 ? 'ok' : 'warn', note: `가장 큰 VIF = ${F2(mx)}${mx < 10 ? ' (10 미만)' : ' — 10 이상이라 다중공선성을 의심할 수 있습니다'}` };
   };
-  const residPlot = { item: '잔차의 등분산성·선형성', st: 'warn', note: '이 사이트는 잔차 그림을 그리지 않습니다. SPSS·jamovi의 잔차 산점도로 확인하고 결과에 한 줄 적으세요.' };
+  const residPlot = { item: '잔차의 등분산성·선형성', st: 'warn', note: '결과 아래의 잔차 그림(예측값 × 잔차)을 보고, 깔때기나 곡선 모양이 없는지 확인해 결과에 한 줄 적으세요.' };
 
   // 방법별로 필요한 값을 다시 계산해 체크 항목을 만듦
   const CHECKS = {
@@ -2079,7 +2391,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
 
   // =================================================================
 
-// ##### 7. 분석 결정 (기본값) (stats-ladder.html 6765~6879줄) #####
+// ##### 7. 분석 결정 (기본값) (stats-ladder.html 7108~7222줄) #####
   // =================================================================
   // 분석 결정 (연구자가 정하고, 바꾼 것은 기록)
   // =================================================================
@@ -2196,7 +2508,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
 
   // =================================================================
 
-// ##### 8. R 코드 만들기 (재계산용) (stats-ladder.html 6879~7243줄) #####
+// ##### 8. R 코드 만들기 (재계산용) (stats-ladder.html 7222~7586줄) #####
   // =================================================================
   // R 코드 만들기 (분석 계획서 그대로, 기본 R만 사용)
   // =================================================================
@@ -2563,7 +2875,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
 
   // =================================================================
 
-// ##### 9. SPSS 명령문 만들기 · SPSS 출력과 대조 (stats-ladder.html 10626~10803줄) #####
+// ##### 9. SPSS 명령문 만들기 · SPSS 출력과 대조 (stats-ladder.html 10997~11174줄) #####
   // =================================================================
   // SPSS로 확인하기: 명령문(.sps) 만들기 + SPSS 출력의 숫자와 맞춰 보기 (AI 없이 규칙으로)
   // =================================================================
@@ -2743,7 +3055,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
   });
 
 
-// ##### 10. 표본 수 계산 (G*Power 방식): 분포 함수 (stats-ladder.html 9292~9389줄) #####
+// ##### 10. 표본 수 계산 (G*Power 방식): 분포 함수 (stats-ladder.html 9657~9754줄) #####
   // ---------- 표본 수 계산: 비중심 분포 (G*Power와 같은 방식) ----------
   const PW = (() => {
     const { pF, pChi, zInv } = ST;
@@ -2843,7 +3155,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
 
   // =================================================================
 
-// ##### 11. 표본 수 계산: 화면이 넘기는 자유도·비중심 모수 (stats-ladder.html 9464~9644줄) #####
+// ##### 11. 표본 수 계산: 화면이 넘기는 자유도·비중심 모수 (stats-ladder.html 9829~10009줄) #####
   // ---------- 표본 수 계산 ----------
   const ESZ = {
     d: { lab: 'd', v: [0.2, 0.5, 0.8] }, f: { lab: 'f', v: [0.1, 0.25, 0.4] }, f2: { lab: 'f²', v: [0.02, 0.15, 0.35] }, r: { lab: 'r', v: [0.1, 0.3, 0.5] },
@@ -3026,7 +3338,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
   });
 
 
-// ##### 12. 탐색적 요인분석 (PAF·PCA, 베리맥스) (stats-ladder.html 9897~9974줄) #####
+// ##### 12. 탐색적 요인분석 (PAF·PCA, 베리맥스) (stats-ladder.html 10262~10339줄) #####
   // ---------- 탐색적 요인분석: 주축요인추출(PAF) 또는 주성분 추출 + 베리맥스 회전 ----------
   // PAF는 R psych::fa(fm = "pa")·SPSS '주축 요인 추출'과 같은 반복 방식, 주성분은 R의 eigen과 같음. 회전은 R의 varimax(정규화)와 같음
   function jacobiEig(A) {
@@ -3106,7 +3418,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
 
   // =================================================================
 
-// ##### 13. 자료 점검: 이상치·결측·표본 확인·측정 점검·사전 분석 (stats-ladder.html 9974~10353줄) #####
+// ##### 13. 자료 점검: 이상치·결측·표본 확인·측정 점검·사전 분석 (stats-ladder.html 10339~10720줄) #####
   // =================================================================
   // 자료 점검: 응답 정리(중복·이상치·결측) · 표본 확인 · 측정 점검 · 사전 분석
   // =================================================================
@@ -3445,7 +3757,9 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
     box.innerHTML = `${pilotNote()}${sampleNote()}
       ${preLock ? '<p class="cf-note">아직 가설을 확정하지 않았습니다. 본조사 자료의 상관을 보고 모형을 바꾸면 결과를 보고 가설을 정한 셈이 됩니다. <button class="linkish" data-nav-to="model">모델 검토에서 먼저 확정하기</button></p>' : ''}
       <div class="card"><h3 class="card-title">기술통계와 정규성</h3>${tableHtml(['변인', 'N', 'M', 'SD', '최솟값', '최댓값', '왜도', '첨도', 'Shapiro-Wilk W', '정규성'], normRows, [1, 2, 3, 4, 5, 6, 7])}
-        <p class="hint">왜도 절댓값 2, 첨도 절댓값 7보다 작으면 정규분포에서 크게 벗어나지 않았다고 봅니다(Curran, West, & Finch, 1996). Shapiro-Wilk는 표본이 크면 작은 차이에도 유의하게 나오므로 왜도·첨도와 함께 판단합니다.</p></div>
+        <p class="hint">왜도 절댓값 2, 첨도 절댓값 7보다 작으면 정규분포에서 크게 벗어나지 않았다고 봅니다(Curran, West, & Finch, 1996). Shapiro-Wilk는 표본이 크면 작은 차이에도 유의하게 나오므로 왜도·첨도와 함께 판단합니다.</p>
+        ${(() => { preFigs = sv.scales.map((sc, si) => ({ type: 'hist', title: `${sc.name || scaleCode(sc, si)} 점수의 분포`, xLabel: sc.name || scaleCode(sc, si), vals: L.inc.map(p => p.score[si]).filter(v => v != null), range: scoreRange('S' + si), note: '막대는 점수 구간별 사람 수, 선은 같은 평균·표준편차의 정규분포입니다. 막대가 선에서 크게 벗어나 한쪽으로 쏠리면 정규성을 다시 확인하세요.' })).filter(f => f.vals.length >= 5);
+          return preFigs.length ? `<details class="item-detail"><summary>점수 분포 그림 ${preFigs.length}개</summary><div class="tfigs" style="padding:4px 12px 12px">${preFigs.map((f, i) => `<figure class="tfig"><figcaption><b>${esc(f.title)}</b></figcaption><div class="tfig-svg">${figRender(f)}</div><p class="hint">${esc(f.note)}</p><div class="actions tight"><button class="btn sm" data-fig-act="png" data-src="pre" data-i="${i}">그림 받기 (PNG)</button><button class="btn sm" data-fig-act="png" data-src="pre" data-i="${i}" data-mono="1">흑백으로 받기</button></div></figure>`).join('')}</div></details>` : ''; })()}</div>
       <div class="card"><h3 class="card-title">표 2. 주요 변인의 기술통계와 상관 <small class="hint">(N = ${L.inc.length})</small></h3>${tableHtml(C.head, C.rows, C.head.map((_, i) => i).slice(1))}
         <p class="hint">*p < .05, **p < .01, ***p < .001. 상관이 .80을 넘는 변인 쌍은 서로 너무 비슷해(다중공선성) 함께 예측변인으로 넣기 어렵습니다.</p>
         <div class="actions tight"><button class="btn sm" data-dq-act="t2-csv">표 2 CSV</button></div></div>
