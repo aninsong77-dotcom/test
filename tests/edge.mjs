@@ -97,6 +97,49 @@ console.log('\n1. 응답 정리');
   await ctx.close();
 }
 
+// ===================== 1-2. 클리닝 보강 =====================
+console.log('\n1-2. 클리닝: 주의 확인 · 불성실 기준 · 대상 조건 · 값 정리 · 직접 빼기');
+{
+  const { p, sv, errs } = await open(`sv.attn = [{ text: "이 문항에는 '그렇다'를 골라 주세요.", si: 1, answer: 3 }];`);
+  let longId = '', revId = '';
+  const r = await loadRows(p, (rows, head) => {
+    const gc = head.indexOf(sv.demos[0].text), ac = head.indexOf(sv.demos[1].text);
+    rows[2][gc] = '남'; rows[3][gc] = '여자'; rows[4][gc] = '모름';           // 선택지에 없는 값
+    rows[5][ac] = '23세'; rows[6][ac] = '스물셋';                           // 숫자 정리
+    // 같은 번호 연속: 첫 15문항을 '보통이다'로 (나머지는 그대로)
+    const it = sv.scales.flatMap((s0, si) => s0.items.map(x => ({ c: head.indexOf(x.text), lab: s0.labels }))).filter(x => x.c >= 0);
+    it.slice(0, 15).forEach(x => { rows[10][x.c] = x.lab[2]; }); longId = 'R011';
+    // 역문항 모순: 첫 척도의 모든 문항(정·역)에 '매우 그렇다'
+    sv.scales[0].items.forEach(x => { rows[12][head.indexOf(x.text)] = sv.scales[0].labels[sv.scales[0].labels.length - 1]; }); revId = 'R013';
+    return rows;
+  });
+  ok('주의 확인 문항: 틀린 응답은 기본으로 뺌', /주의 확인 [1-9]/.test(r.stats), r.stats.match(/제외[^)]*\)/)?.[0]);
+  const box = await p.$eval('.dq-clean', e => e.innerText);
+  ok('같은 번호 연속 응답을 찾음', box.includes(longId), (box.match(/같은 번호 연속[^\n]*\n[^\n]*/) || [''])[0].replace(/\n/g, ' '));
+  ok('정문항·역문항 모순 응답을 찾음', box.includes(revId));
+  ok('선택지에 없는 성별 값: 같은 뜻은 자동으로 바꾸고, 모르는 값은 고르게 함', /"남" 1명[^\n]*자동/.test(box) && /"모름" 1명[^\n]*선택지에 없는 값/.test(box));
+  ok('나이 "23세", "스물셋"을 숫자로 바꿈', /"23세" → 23/.test(box) && /"스물셋" → 23/.test(box));
+  // 범주 합치기: '모름'을 빈 값으로
+  await p.selectOption('select[data-dq-recode="0"][data-from="모름"]', '');
+  await p.waitForTimeout(400);
+  const st = await p.evaluate(() => JSON.parse(localStorage.getItem('ladder.plan')));
+  ok('값 바꾸기가 기록에 남음', st.recode?.['0']?.['모름'] === '' && st.log.some(l => /모름/.test(l.q)));
+  // 연구 대상 조건: 나이 25 이상
+  await p.selectOption('select[data-dq-elig=di]', '1'); await p.waitForTimeout(300);
+  await p.fill('input[data-dq-elig=min]', '25'); await p.$eval('input[data-dq-elig=min]', e => e.dispatchEvent(new Event('change', { bubbles: true })));
+  await p.click('[data-dq-act=elig-add]'); await p.waitForTimeout(400);
+  const st2 = await p.$eval('#co-result .stats', e => e.innerText.replace(/\n/g, ' '));
+  ok('연구 대상 조건(나이 25 이상)으로 거름', /대상 아님 [1-9]/.test(st2), st2.match(/제외[^)]*\)/)?.[0]);
+  // 직접 빼기
+  const target = await p.evaluate(() => [...document.querySelectorAll('#dq-ids option')][3].value);
+  await p.fill('input[data-dq-man=id]', target); await p.fill('input[data-dq-man=why]', '자유 응답에 장난 글'); await p.click('[data-dq-act=manual-add]'); await p.waitForTimeout(400);
+  const st3 = await p.$eval('#co-result .stats', e => e.innerText.replace(/\n/g, ' '));
+  ok('응답 번호로 직접 빼고 이유를 남김', /직접 뺌 1/.test(st3) && (await p.evaluate(() => JSON.parse(localStorage.getItem('ladder.plan')).manual))[target] === '자유 응답에 장난 글');
+  const rep = await p.$eval('.dq-report p', e => e.innerText);
+  ok('연구 대상 절 문장에 제외 사유와 인원이 들어감', /연구 대상 조건에 맞지 않는 \d+명/.test(rep) && /부적절하다고 판단한 1명/.test(rep) && /주의 확인 문항 1개/.test(rep) && /최종 \d+명/.test(rep), rep.slice(0, 120));
+  ok('페이지 오류 없음 (클리닝)', !errs.length, errs.join(' | '));
+}
+
 // ===================== 2. 계산이 안 되는 자료 =====================
 console.log('\n2. 계산이 안 되는 자료 → 한국어 안내');
 { // 로지스틱: 완전 분리
@@ -182,6 +225,49 @@ console.log('\n4. 가설 붙여 넣기');
   const st2 = await p.evaluate(() => JSON.parse(localStorage.getItem('ladder.hyp')));
   ok('[따로 분석하기]를 누르면 회귀 가설이 따로 카드가 됨', st2.cards.some(c => c.model === 'pred' && /정적 영향/.test(c.src || '')));
   ok('페이지 오류 없음 (가설)', !errs.length, errs.join(' | '));
+  await ctx.close();
+}
+
+// ===================== 5. 가설 전부 계산하기 =====================
+console.log('\n5. 가설 전부 계산하기');
+{
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } }); const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('dialog', d => d.accept());
+  await p.goto(BASE); await p.evaluate(() => { localStorage.clear(); localStorage.setItem('ladder.noWelcome', 'true'); }); await p.reload(); await p.waitForTimeout(700);
+  await p.click('#splash').catch(() => {}); await p.click('[data-hp=mode-hyp]'); await p.waitForTimeout(300);
+  await p.fill('#hp-title', '능력주의 신념이 외집단 혐오에 미치는 영향: 사회비교경향성과 외로움의 순차적 매개효과'); await p.waitForTimeout(600);
+  await p.click('[data-mb-act=from-title]').catch(() => {}); await p.waitForTimeout(300);
+  // 경로 가설도 세움 (c, a, b 경로 → 상관·회귀·매개 결과가 섞임)
+  const pc = await p.$('[data-mb="c.0.paths"]'); if (pc) { await pc.check(); await p.waitForTimeout(300); }
+  await p.click('[data-hp=apply]').catch(() => {}); await p.waitForTimeout(700);
+  await p.evaluate(() => {
+    const sv = JSON.parse(localStorage.getItem('ladder.survey'));
+    const bank = { '능력주의 신념': ['노력하면 누구나 성공할 수 있다', '성공은 개인의 능력에 달려 있다', '보상은 노력에 비례해야 한다', '가난은 노력 부족 때문이다'], '사회비교경향성': ['나는 내가 한 일을 다른 사람이 한 일과 자주 비교한다', '나는 다른 사람과 나를 비교하지 않는다', '나는 남의 성취에 관심이 많다'], '외로움': ['나는 함께할 사람이 없다고 느낀다', '나는 혼자라고 느낀다', '나는 주변 사람과 가깝다고 느낀다'], '외집단 혐오': ['나와 다른 집단의 사람들은 불편하다', '나는 다른 집단 사람과 어울리기 싫다', '다른 집단 사람도 친구가 될 수 있다'] };
+    sv.scales.forEach(s => { const b = bank[s.name]; if (b) s.items = b.map((t, i) => ({ text: t, reverse: i === b.length - 1 })); });
+    if (!sv.demos.length) sv.demos = [{ text: '성별', type: 'choice', options: ['남성', '여성'] }, { text: '나이', type: 'number' }];
+    localStorage.setItem('ladder.survey', JSON.stringify(sv));
+  });
+  await p.reload(); await p.waitForTimeout(800); await p.click('#splash').catch(() => {});
+  await p.click('[data-nav=collect]'); await p.waitForTimeout(250);
+  await p.evaluate(() => document.querySelector('#co-sample').click()); await p.waitForTimeout(300);
+  await p.click('#co-run'); await p.waitForTimeout(600);
+  const nPlan = await p.evaluate(() => (JSON.parse(localStorage.getItem('ladder.hyp')).plan || []).length);
+  await p.click('[data-nav=analysis]'); await p.waitForTimeout(400);
+  ok('분석 화면에 [가설 전부 계산하기]가 있음', !!(await p.$('#an-main [data-an-act=run-all]')), `확정한 가설 ${nPlan}개`);
+  await p.click('#an-main [data-an-act=run-all]');
+  await p.waitForSelector('#an-runall', { timeout: 300000 });
+  const rows = await p.$$eval('#an-runall .hp-row', e => e.map(x => x.innerText.replace(/\n/g, ' ')));
+  const an = await p.evaluate(() => JSON.parse(localStorage.getItem('ladder.analyses')));
+  ok('가설마다 결과 줄이 생김', rows.length === nPlan, rows.map(r => r.slice(0, 40)).join(' | '));
+  ok('모든 가설이 계산됨', rows.every(r => /계산함/.test(r)), rows.filter(r => !/계산함/.test(r)).join(' | '));
+  ok('같은 분석은 한 번만 계산 (경로 가설이 매개분석 결과를 함께 씀)', an.length >= 1 && an.length < nPlan, `가설 ${nPlan}개 → 분석 ${an.length}개`);
+  ok('계산한 가설마다 [결과 보기]가 있음', (await p.$$('#an-runall [data-an-act=goto-res]')).length === nPlan);
+  await p.click('#an-main [data-an-act=run-all]'); await p.waitForTimeout(1500);
+  const an2 = await p.evaluate(() => JSON.parse(localStorage.getItem('ladder.analyses')));
+  ok('다시 눌러도 같은 자료면 다시 계산하지 않음', an2.length === an.length);
+  await p.click('[data-nav=interp]'); await p.waitForTimeout(500);
+  const intent = await p.evaluate(() => JSON.parse(localStorage.getItem('ladder.intent')));
+  ok('결과 해석에서 가설이 효과와 자동으로 이어짐', intent.hyps.every(h => h.effect), intent.hyps.map(h => `${!!h.effect}`).join(','));
+  ok('페이지 오류 없음 (전부 계산)', !errs.length, errs.join(' | '));
   await ctx.close();
 }
 

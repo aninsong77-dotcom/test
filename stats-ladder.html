@@ -2562,6 +2562,15 @@ table.compact.sp-table{min-width:0;table-layout:auto;width:100%}.sp-table td{ver
 .dq-box{border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:14px}
 .dq-box h4{margin:0 0 6px;font-size:14.5px}
 .dq-box p{margin:4px 0}
+.dq-box .chk{display:block;margin:6px 0 2px;font-weight:500;font-size:13.5px;line-height:1.45}
+.dq-elig{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
+.dq-elig select,.dq-elig input{padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font-size:13.5px;max-width:100%}
+.dq-elig .dq-keep{display:flex;flex-wrap:wrap;gap:2px 10px}
+.dq-elig .dq-keep .chk{display:inline-flex;margin:0}
+.dq-out select{padding:2px 6px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:13px;max-width:100%}
+.dq-report{margin-top:12px;border:1px dashed var(--line);border-radius:12px;padding:12px 14px}
+.dq-report h4{margin:0 0 6px;font-size:14.5px}
+.dq-report p{margin:4px 0}
 .dq-out{margin:4px 0 8px;padding-left:18px;font-size:13px;color:var(--ink-2)}
 .dq-target{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:10px;font-size:14px}
 .dq-target>b{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;flex:none}
@@ -3544,6 +3553,9 @@ table.compact.sp-table{min-width:0;table-layout:auto;width:100%}.sp-table td{ver
   };
   const DEFAULT_INSTR = '각 문항을 읽고 평소 자신의 생각이나 느낌과 가장 가까운 곳에 표시해 주세요.';
   const DEFAULT_CONSENT = '이 설문은 ○○대학교 ○○학과 석사학위논문 연구를 위한 것입니다.\n응답은 익명으로 처리되며 연구 목적 외에는 쓰지 않습니다.\n참여는 자유이며, 응답 중 언제든 그만둘 수 있습니다. 소요 시간은 약 ○분입니다.\n문의: 연구자 ○○○ (이메일 ○○○)\n\n위 내용을 읽고 연구 참여에 동의하십니까?';
+  const attnText = label => `이 문항에는 '${label || '그렇다'}'를 골라 주세요.`;
+  // 주의 확인 문항 (정답이 정해진 문항): 변인 si의 문항들 가운데에 같은 선택지로 들어감
+  const attnItems = () => (sv.attn || []).filter(a => norm(a.text) && sv.scales[a.si]).map((a, k) => ({ ...a, k, labels: sv.scales[a.si].labels }));
   const blankSurvey = () => ({ title: '', intro: '', consent: { on: true, text: DEFAULT_CONSENT }, scoring: 'mean', scales: [], demos: [], example: false });
   const newScale = (name = '', role = '독립') => ({ name, code: '', role, points: 5, labels: LABELS[5].slice(), source: '', section: '', instruction: '', items: [{ text: '', reverse: false }] });
   const newDemo = (text = '', type = 'choice', options = []) => ({ text, code: '', type, options });
@@ -3684,6 +3696,18 @@ table.compact.sp-table{min-width:0;table-layout:auto;width:100%}.sp-table td{ver
         <button class="btn primary" data-sv-act="scale-add">+ 변인(척도) 추가</button>
       </div>
       <div class="card">
+        <h3 class="card-title">주의 확인 문항 <small class="hint">(권장)</small></h3>
+        <p class="hint">"이 문항에는 '그렇다'를 골라 주세요"처럼 정답이 정해진 문항입니다. 문항을 읽지 않고 답한 응답을 가장 확실하게 찾는 방법입니다. 고른 변인의 문항들 사이에 같은 선택지로 들어가고, 점수 계산에는 쓰이지 않습니다. 틀린 응답을 뺄지는 [응답 취합]에서 정합니다.</p>
+        <div class="items">${(sv.attn || []).map((a, k) => { const sc = sv.scales[a.si] || sv.scales[0]; const labels = sc ? sc.labels : []; return `<div class="it-row attn-row">
+          <div class="grid3">
+            <label class="f" style="grid-column:1/-1">문항<input data-at="${k}" data-f="text" value="${esc(a.text)}" placeholder="예: 이 문항에는 '그렇다'를 골라 주세요."></label>
+            <label class="f">넣을 곳 (그 변인의 선택지를 씀)<select data-at="${k}" data-f="si">${sv.scales.map((x, si) => `<option value="${si}" ${si === a.si ? 'selected' : ''}>${esc(x.name || scaleCode(x, si))} 문항 사이</option>`).join('')}</select></label>
+            <label class="f">정답<select data-at="${k}" data-f="answer">${labels.map((l, li) => `<option value="${li}" ${li === a.answer ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></label>
+          </div><span></span>
+          <button class="icon-btn" data-sv-act="attn-del" data-i="${k}" title="문항 지우기">×</button></div>`; }).join('') || '<p class="hint">아직 없습니다. 문항이 20개 넘는 설문이면 1~2개를 권합니다.</p>'}</div>
+        <div class="item-tools"><button class="btn sm" data-sv-act="attn-add" ${sv.scales.length ? '' : 'disabled'}>+ 주의 확인 문항 추가</button></div>
+      </div>
+      <div class="card">
         <h3 class="card-title">기본 정보 문항</h3>
         <p class="hint">성별, 나이처럼 설문 끝에 묻는 문항입니다. 이름·연락처처럼 사람을 알아볼 수 있는 정보는 받지 않는 것을 권합니다.</p>
         <div class="items">${demos || '<p class="hint">아직 없습니다.</p>'}</div>
@@ -3716,6 +3740,7 @@ table.compact.sp-table{min-width:0;table-layout:auto;width:100%}.sp-table td{ver
     const pages = [{ title: norm(sv.title) || '(설문 제목)', help: sv.intro || '', items: sv.consent.on ? [{ id: 'consent', title: '연구 참여 동의', help: sv.consent.text, type: 'choice', choices: ['동의합니다', '동의하지 않습니다'], required: true }] : [], first: true }];
     sv.scales.forEach((sc, si) => {
       const its = sc.items.map((it, ii) => ({ id: `s${si}.${ii}`, title: norm(it.text), type: 'choice', choices: sc.labels, required: true, code: itemCode(sc, si, ii) + (it.reverse ? '_r' : '') })).filter(x => x.title);
+      attnItems().filter(a => a.si === si).forEach(a => its.splice(Math.ceil(its.length / 2), 0, { id: `a${a.k}`, title: norm(a.text), type: 'choice', choices: sc.labels, required: true, code: `ATT${a.k + 1}` }));
       if (its.length) pages.push({ title: norm(sc.section) || `${si + 1}부`, help: norm(sc.instruction) || DEFAULT_INSTR, items: its });
     });
     const dm = sv.demos.filter(d => norm(d.text)).map((d, di) => ({ id: `d${di}`, title: norm(d.text), type: d.type, choices: d.options, required: d.type !== 'text' }));
@@ -3783,7 +3808,7 @@ table.compact.sp-table{min-width:0;table-layout:auto;width:100%}.sp-table td{ver
         section: norm(s.section) || `${i + 1}부`,
         instruction: norm(s.instruction) || DEFAULT_INSTR,
         choices: s.labels,
-        items: s.items.map(it => norm(it.text)).filter(Boolean)
+        items: (() => { const L = s.items.map(it => norm(it.text)).filter(Boolean); attnItems().filter(a => a.si === i).forEach(a => L.splice(Math.ceil(L.length / 2), 0, norm(a.text))); return L; })()
       })).filter(s => s.items.length),
       demos: sv.demos.filter(d => norm(d.text)).map(d => ({ text: norm(d.text), type: d.type, choices: d.options }))
     };
@@ -3908,6 +3933,11 @@ function createSurvey() {
       if (f === 'labels') sc.labels = t.value.split(/[,，]/).map(norm).filter(Boolean);
       else sc[f] = t.value;
       if (f === 'code') { saveSv(); const pos = t.selectionStart; renderSurvey(); const el = $(`[data-sc="${sIdx}"][data-f="code"]`); el.focus(); el.setSelectionRange(pos, pos); return; }
+    } else if (t.dataset.at != null) {
+      const a = sv.attn[+t.dataset.at];
+      if (f === 'si') { a.si = +t.value; const L = (sv.scales[a.si] || {}).labels || []; a.answer = Math.min(a.answer, L.length - 1); a.text = attnText(L[a.answer]); saveSv(); renderSurvey(); return; }
+      if (f === 'answer') { const L = (sv.scales[a.si] || {}).labels || [], old = attnText(L[a.answer]); a.answer = +t.value; if (!norm(a.text) || a.text === old) a.text = attnText(L[a.answer]); saveSv(); renderSurvey(); return; }
+      a[f] = t.value;
     } else if (t.dataset.dm != null) {
       const d = sv.demos[+t.dataset.dm];
       if (f === 'options') d.options = t.value.split(/[,，]/).map(norm).filter(Boolean);
@@ -3936,6 +3966,8 @@ function createSurvey() {
       sv.scales[i].items = its; toast(`문항 ${lines.length}개를 넣었습니다.`);
     }
     else if (act === 'demo-add') sv.demos.push(newDemo());
+    else if (act === 'attn-add') { sv.attn = sv.attn || []; const si = Math.min(sv.scales.length - 1, Math.floor(sv.scales.length / 2) + sv.attn.length), L = sv.scales[si].labels, ans = Math.max(0, L.length - 2); sv.attn.push({ text: attnText(L[ans]), si, answer: ans }); }
+    else if (act === 'attn-del') sv.attn.splice(i, 1);
     else if (act === 'demo-del') sv.demos.splice(i, 1);
     else if (act === 'scale-src') { openImport(); return; }
     else if (act === 'import') { const n = importFromLadder(vars); toast(n ? `사다리 변인 ${n}개를 넣었습니다.` : '가져올 새 변인이 없습니다. 사다리 도착 화면의 변인 고정칸을 채워 주세요.'); return; }
@@ -3998,6 +4030,7 @@ function createSurvey() {
     sv.scales.forEach((s, si) => s.items.forEach((it, ii) => {
       if (norm(it.text)) out.push({ key: `s${si}.${ii}`, kind: 'item', si, ii, code: itemCode(s, si, ii) + (it.reverse ? '_r' : ''), text: norm(it.text), group: s.name || scaleCode(s, si) });
     }));
+    attnItems().forEach(a => out.push({ key: `a${a.k}`, kind: 'attn', ai: a.k, si: a.si, code: `ATT${a.k + 1}`, text: norm(a.text), group: '주의 확인' }));
     sv.demos.forEach((d, di) => { if (norm(d.text)) out.push({ key: `d${di}`, kind: 'demo', di, code: demoCode(d, di), text: norm(d.text), group: '기본 정보' }); });
     return out;
   }
@@ -4079,6 +4112,10 @@ function createSurvey() {
           v = Math.min(P, Math.max(1, v));
           if (it.reverse && !straight) v = P + 1 - v;
           row.push(s.labels[v - 1] ?? String(v));
+        } else if (d.kind === 'attn') {
+          // 대부분 정답, 같은 번호만 고른 사람과 한 사람은 틀림
+          const a = sv.attn[d.ai], L = sv.scales[a.si].labels;
+          row.push(straight ? L[L.length - 1] : r === 45 ? L[0] : L[a.answer]);
         } else {
           const dm = sv.demos[d.di];
           if (dm.type === 'choice') row.push(dm.options[Math.floor(rnd() * dm.options.length)] || '');
@@ -4168,16 +4205,52 @@ function createSurvey() {
 
   let lastScored = null;
 
+  // 기본 정보 값 정리: 숫자 문항은 '23세', '만 23', '스물셋'을 숫자로, 고르기 문항은 연구자가 정한 바꾸기(합치기) 표를 따름
+  const KTEN = { 열: 10, 스물: 20, 서른: 30, 마흔: 40, 쉰: 50, 예순: 60, 일흔: 70, 여든: 80 }, KONE = { 하나: 1, 한: 1, 둘: 2, 두: 2, 셋: 3, 세: 3, 넷: 4, 네: 4, 다섯: 5, 여섯: 6, 일곱: 7, 여덟: 8, 아홉: 9 };
+  function demoNum(v) {
+    const t = norm(v); if (!t) return '';
+    const m = t.replace(/,/g, '').match(/-?\d+(?:\.\d+)?/); if (m) return m[0];
+    const k = t.replace(/\s/g, '').replace(/^만/, '').match(/^(열|스물|서른|마흔|쉰|예순|일흔|여든)?(하나|한|둘|두|셋|세|넷|네|다섯|여섯|일곱|여덟|아홉)?(?:살|세)?$/);
+    return k && (k[1] || k[2]) ? String((KTEN[k[1]] || 0) + (KONE[k[2]] || 0)) : null;
+  }
+  // 자주 쓰는 같은 뜻의 값 (선택지에 그 이름이 있을 때만 자동으로)
+  const SYNO = [[/^(남|남자|남성|male|m)$/i, '남성'], [/^(여|여자|여성|female|f)$/i, '여성']];
+  function demoCat(dm, di, cell) {
+    const map = (plan.recode || {})[di] || {};
+    if (Object.prototype.hasOwnProperty.call(map, cell)) return { v: map[cell], how: 'recode' };
+    if (!cell || (dm.options || []).includes(cell)) return { v: cell, how: '' };
+    const syn = SYNO.find(([re, to]) => re.test(cell) && (dm.options || []).includes(to));
+    return syn ? { v: syn[1], how: 'auto' } : { v: cell, how: 'other' };
+  }
+  // 연속 같은 답의 가장 긴 길이
+  const longestRun = a => { let best = 0, cur = 0; a.forEach((v, i) => { cur = i && v === a[i - 1] ? cur + 1 : 1; best = Math.max(best, cur); }); return best; };
+  const longRunCut = n => Math.max(10, Math.ceil(n * 0.5));
+  // 연구 대상 조건에 맞나
+  function eligOk(p) {
+    return (plan.elig || []).every(c => {
+      const v = p.items[`d${c.di}`];
+      if (c.type === 'num') { const x = v === '' || v == null ? NaN : +v; return isFinite(x) && (c.min === '' || c.min == null || x >= +c.min) && (c.max === '' || c.max == null || x <= +c.max); }
+      return (c.keep || []).includes(v);
+    });
+  }
+
   function runScoring() {
     const items = designItems();
     const unknown = new Map(); // 값 -> 횟수
+    const demoFix = new Map(); // `${di}|원래값` -> { di, from, to, how, n }
     const people = raw.rows.map((row, r) => {
-      const p = { id: 'R' + String(r + 1).padStart(3, '0'), row, items: {}, rawLikert: [], excluded: '' };
+      const p = { id: 'R' + String(r + 1).padStart(3, '0'), row, items: {}, rawLikert: [], excluded: '', careless: [], attn: [] };
       const cv = consentCol >= 0 ? norm(row[consentCol]) : '';
       if (consentCol >= 0 && isRefusal(cv)) p.excluded = '비동의';
       items.forEach(d => {
-        const cell = norm(d.kind === 'item' || d.kind === 'demo' ? (colMap[d.key] >= 0 ? row[colMap[d.key]] : '') : '');
-        if (d.kind === 'demo') { p.items[d.key] = cell; return; }
+        const cell = norm(colMap[d.key] >= 0 ? row[colMap[d.key]] : '');
+        if (d.kind === 'demo') {
+          const dm = sv.demos[d.di];
+          if (dm.type === 'number') { const x = demoNum(cell); p.items[d.key] = x == null ? '' : x; if (cell && x !== cell) { const k = `${d.di}|${cell}`, o = demoFix.get(k) || { di: d.di, from: cell, to: x, how: x == null ? 'bad' : 'num', n: 0 }; o.n++; demoFix.set(k, o); } }
+          else if (dm.type === 'choice') { const c = demoCat(dm, d.di, cell); p.items[d.key] = c.v; if (c.how) { const k = `${d.di}|${cell}`, o = demoFix.get(k) || { di: d.di, from: cell, to: c.v, how: c.how, n: 0 }; o.n++; demoFix.set(k, o); } }
+          else p.items[d.key] = cell;
+          return;
+        }
         const s = sv.scales[d.si], P = +s.points;
         let v = null;
         if (cell !== '') {
@@ -4185,14 +4258,33 @@ function createSurvey() {
           if (li >= 0) v = li + 1;
           else { const m = cell.match(/^(\d+)/); if (m && +m[1] >= 1 && +m[1] <= P) v = +m[1]; else unknown.set(cell, (unknown.get(cell) || 0) + 1); }
         }
+        if (d.kind === 'attn') { const a = sv.attn[d.ai]; p.attn.push({ code: d.code, ok: v === a.answer + 1, ans: cell }); return; }
         if (v != null) p.rawLikert.push(v);
         p.items[d.key] = v == null ? null : (s.items[d.ii].reverse ? P + 1 - v : v);
       });
       const likertN = items.filter(d => d.kind === 'item').length;
       if (!p.excluded && !p.rawLikert.length && likertN) p.excluded = '척도 응답 없음';
+      // 불성실 의심: ① 모든 문항 같은 번호 ② 같은 번호를 길게 이어 고름 ③ 같은 변인의 정문항과 역문항에 모두 강하게 동의(또는 모두 강하게 반대)
       p.straight = p.rawLikert.length >= 8 && p.rawLikert.every(v => v === p.rawLikert[0]);
-      if (!p.excluded && p.straight && plan.dec.straight === 'drop') p.excluded = '불성실 의심';
+      if (p.straight) p.careless.push('모든 문항 같은 번호');
+      else { const run = longestRun(p.rawLikert); p.longRun = run; if (p.rawLikert.length >= 12 && run >= longRunCut(p.rawLikert.length)) p.careless.push(`같은 번호 ${run}문항 연속`); }
+      sv.scales.forEach((s, si) => {
+        const P = +s.points, its = items.filter(d => d.kind === 'item' && d.si === si), raw0 = d => p.items[d.key] == null ? null : (s.items[d.ii].reverse ? P + 1 - p.items[d.key] : p.items[d.key]);
+        const pos = its.filter(d => !s.items[d.ii].reverse).map(raw0).filter(v => v != null), neg = its.filter(d => s.items[d.ii].reverse).map(raw0).filter(v => v != null);
+        if (!p.straight && pos.length >= 2 && neg.length >= 1 && ((mean(pos) >= P - 0.5 && mean(neg) >= P - 0.5) || (mean(pos) <= 1.5 && mean(neg) <= 1.5))) p.careless.push(`${s.name || scaleCode(s, si)} 역문항 모순`);
+      });
+      p.revCon = p.careless.some(c => /역문항 모순/.test(c));
+      p.attnFail = p.attn.some(a => !a.ok);
       return p;
+    });
+    // 제외 순서: 비동의 → 빈 응답 → 대상 아님 → 주의 확인 실패 → 불성실 의심 → 직접 뺌 → 중복 → 이상치 (사람마다 첫 사유 하나만)
+    const dropCareless = p => (p.straight && plan.dec.straight === 'drop') || (p.careless.some(c => /연속/.test(c)) && plan.dec.longrun === 'drop') || (p.revCon && plan.dec.revcon === 'drop');
+    people.forEach(p => {
+      if (p.excluded) return;
+      if (!eligOk(p)) p.excluded = '대상 아님';
+      else if (p.attnFail && (plan.dec.attn || 'drop') === 'drop') p.excluded = '주의 확인 실패';
+      else if (dropCareless(p)) p.excluded = '불성실 의심';
+      else if ((plan.manual || {})[p.id] != null) p.excluded = '직접 뺌';
     });
     // 중복 응답: 문항 답이 통째로 같은 응답 (뒤의 것). 제출 시각 열이 있으면 먼저 낸 응답과의 간격(분)을 남김
     const tsCol = raw.headers.findIndex(h => /타임스탬프|timestamp|제출\s*(시각|시간|일시)|응답\s*(시각|시간|일시)/i.test(norm(h)));
@@ -4243,7 +4335,7 @@ function createSurvey() {
       return { dm, di, kind: 'cat', n: vals.length, freq: order.map(k => [k, freq.get(k)]) };
     });
 
-    lastScored = { people, inc, items, scaleInfo, demoInfo, unknown, sample: !!raw.sample, outliers, pilot: dataKind() === 'pilot' };
+    lastScored = { people, inc, items, scaleInfo, demoInfo, unknown, demoFix: [...demoFix.values()], sample: !!raw.sample, outliers, pilot: dataKind() === 'pilot' };
     dataVersion++;
     scheduleSave();
     renderScored();
@@ -4282,7 +4374,8 @@ function createSurvey() {
     const L = lastScored;
     const ex = L.people.filter(p => p.excluded);
     const exCount = k => ex.filter(p => p.excluded === k).length;
-    const straightKept = L.inc.filter(p => p.straight).length;
+    const straightKept = L.inc.filter(p => p.careless.length).length;
+    const extra = [['대상 아님', '대상 아님'], ['주의 확인 실패', '주의 확인'], ['직접 뺌', '직접 뺌']].filter(([k]) => exCount(k)).map(([k, l]) => ` · ${l} ${exCount(k)}`).join('');
     const unk = [...L.unknown.entries()];
     const preview = analysisRows();
     const pvCols = preview[0].length;
@@ -4293,7 +4386,7 @@ function createSurvey() {
       <div class="stats">
         <div class="stat"><b>${L.people.length}</b><span>전체 응답</span></div>
         <div class="stat"><b>${L.inc.length}</b><span>분석에 포함</span></div>
-        <div class="stat"><b>${ex.length}</b><span>제외 (비동의 ${exCount('비동의')} · 빈 응답 ${exCount('척도 응답 없음')} · 불성실 ${exCount('불성실 의심')} · 중복 ${exCount('중복')} · 이상치 ${exCount('이상치')})</span></div>
+        <div class="stat"><b>${ex.length}</b><span>제외 (비동의 ${exCount('비동의')} · 빈 응답 ${exCount('척도 응답 없음')} · 불성실 ${exCount('불성실 의심')} · 중복 ${exCount('중복')} · 이상치 ${exCount('이상치')}${extra})</span></div>
         <div class="stat"><b>${straightKept}</b><span>불성실 의심이지만 포함됨</span></div>
       </div>
       ${unk.length ? `<div class="errbox">선택지에 없는 값이 있어 빈 값으로 처리했습니다: ${unk.slice(0, 8).map(([v, c]) => `"${esc(v)}" ${c}회`).join(', ')}${unk.length > 8 ? ' 외' : ''}\n폼의 선택지 문장을 고쳤다면 설문 설계의 선택지도 같게 맞춰 주세요.</div>` : ''}
@@ -4642,7 +4735,7 @@ function createSurvey() {
     r_factorial_anova: 'factorial', r_chisq: 'chisq', r_logistic: 'logistic', r_pearson: 'pearson', r_spearman: 'spearman', r_partial: 'partial',
     r_pointbiserial: 'pointbiserial', r_simple_reg: 'regression', r_multiple_reg: 'regression', r_hier_reg: 'hier', r_med_simple: 'med_parallel',
     r_med_parallel: 'med_parallel', r_med_serial: 'med_serial', r_moderation: 'moderation', r_modmed_a: 'modmed7', r_modmed_b: 'modmed14',
-    r_rm_anova: null, r_mixed_anova: null, r_rm_factorial: null, r_mcnemar: null, r_cochran: null, r_multilevel: null, r_multinom: null, r_ordinal: null
+    r_rm_anova: 'rm_anova', r_mixed_anova: 'mixed_anova', r_rm_factorial: null, r_mcnemar: 'mcnemar', r_cochran: 'cochran', r_multilevel: null, r_multinom: null, r_ordinal: null
   };
 
   const ladderResultId = () => { const w = walk(path); return w.cur.type === 'result' ? w.cur.id : null; };
@@ -4717,7 +4810,7 @@ function createSurvey() {
       return `<label class="f slot">${esc(s.label)}<select data-slot="${s.k}"><option value="">(고르세요)</option>${cand.map(v => `<option value="${v.key}" ${anSel.roles[s.k] === v.key ? 'selected' : ''}>${esc(vlabel(v))}</option>`).join('')}</select></label>`;
     };
     const o = anSel.opts;
-    box.innerHTML = `<div class="card">
+    box.innerHTML = `${planItems().some(p => LADDER_TO_METHOD[p.result]) ? `<div class="card"><h3 class="card-title">확정한 가설 ${planItems().length}개</h3><p class="hint">미리 정한 통계 방법과 분석 결정 그대로 가설의 분석을 모두 계산합니다. 하나씩 하려면 아래에서 방법과 변인을 고르세요.</p>${runAllBtn()}</div>` : ''}${runAllHtml()}<div class="card">
       <div class="data-line"><span class="st auto">자료</span> 분석에 포함된 응답 ${lastScored.inc.length}명 · 변인 ${vs.length}개${lastScored.sample ? ' · <b>예시(가짜) 자료</b>' : ''}</div>
       <p class="hint">${ladderNote}</p>
       <label class="f" style="max-width:520px;margin-top:12px">분석 방법<select id="an-method">${groups.map(g => `<optgroup label="${esc(g)}">${Object.entries(METHODS).filter(([, m]) => m.group === g).map(([k, m]) => `<option value="${k}" ${k === anSel.method ? 'selected' : ''}>${esc(m.name)}${k === lm ? ' ← 사다리' : ''}</option>`).join('')}</optgroup>`).join('')}</select></label>
@@ -4769,6 +4862,8 @@ function createSurvey() {
     else if (act === 'plan-dl') download('analysis_plan.md', planText());
     else if (act === 'r-data') download('analysis_data.csv', toCsv(analysisRows()), 'text/csv');
     else if (act === 'r-code') download('analysis.R', rScript(analyses.slice().reverse()));
+    else if (act === 'run-all') { b.disabled = true; try { await runAllHyps(); } finally { b.disabled = false; } }
+    else if (act === 'goto-res') { rtabManual = false; setRtab('results'); openRight(); $(`#res-${b.dataset.id}`)?.scrollIntoView({ block: 'start' }); }
     else if (act === 'r-copy' || act === 'r-one') {
       const a = analyses.find(x => x.id === b.dataset.id); if (!a) return; const txt = rScript([a]);
       if (act === 'r-one') download(`analysis_${a.method}.R`, txt);
@@ -4820,7 +4915,7 @@ function createSurvey() {
   const eff = (R, o) => { const e = { id: `${R.id}.${R.effects.length}`, kind: 'signed', ...o }; R.effects.push(e); return e; };
   const sigOf = e => e.ciBased ? !(e.lo <= 0 && e.hi >= 0) : e.p < 0.05;
 
-  async function runAnalysis() {
+  async function runAnalysis(quiet) {
     ensureSel();
     const M = METHODS[anSel.method], r = anSel.roles;
     for (const s of M.slots) {
@@ -4836,7 +4931,9 @@ function createSurvey() {
     prog.textContent = '보고 체크리스트 점검 중…'; await tick();
     buildChecks(R, anSel.roles);
     prog.textContent = '';
-    analyses.unshift(R); saveAnalyses(); renderAnalyses(); renderInterp();
+    analyses.unshift(R); saveAnalyses();
+    if (quiet) return R;
+    renderAnalyses(); renderInterp();
     addSys('analysis', `계산했습니다: ${R.title} (N = ${R.n}). 결과는 오른쪽 [결과] 탭에 있습니다.`);
     rtabManual = false; setRtab('results'); openRight();
     $(`#res-${R.id}`)?.scrollIntoView({ block: 'start' });
@@ -6669,6 +6766,7 @@ ${reviewText()}
   // 분석 결정 (연구자가 정하고, 바꾼 것은 기록)
   // =================================================================
   let plan = store.get('ladder.plan', null) || { dec: { minPct: '80', straight: 'keep', dup: 'keep', outlier: 'keep' }, locked: '', seen: false, log: [] };
+  plan.elig = plan.elig || []; plan.recode = plan.recode || {}; plan.manual = plan.manual || {};
   const savePlan = () => store.set('ladder.plan', plan);
   const AO = () => { ensureSelLite(); return anSel.opts; };
   function ensureSelLite() { if (!anSel) anSel = { method: null, roles: {}, opts: {} }; const o = anSel.opts; if (o.boot == null) o.boot = 5000; if (o.center == null) o.center = true; if (!o.welch) o.welch = 'always'; if (!o.posthoc) o.posthoc = 'scheffe'; if (o.testValue == null) o.testValue = 3; }
@@ -6684,6 +6782,15 @@ ${reviewText()}
     { id: 'straight', scope: 'data', q: '모든 척도 문항에 같은 번호로 답한 응답(불성실 의심)을 뺄까요?',
       opts: [['keep', '빼지 않음', '실제로 그렇게 느낀 사람일 수도 있습니다. 빼지 않되 몇 명인지 보고합니다.'], ['drop', '뺌', '역문항이 있는데도 같은 번호만 고른 것은 대충 답한 신호일 수 있습니다. 뺀 인원을 보고합니다.']],
       get: () => plan.dec.straight, set: v => { plan.dec.straight = v; } },
+    { id: 'longrun', scope: 'data', q: '같은 번호를 길게 이어 고른 응답(불성실 의심)을 뺄까요?',
+      opts: [['keep', '빼지 않음', '문항이 비슷하면 실제로 이어서 같은 답을 할 수 있습니다. 빼지 않되 몇 명인지 보고합니다.'], ['drop', '뺌', '척도 문항 절반 이상(최소 10문항)을 연달아 같은 번호로 고른 응답을 뺍니다(long-string 기준). 뺀 인원을 보고합니다.']],
+      get: () => plan.dec.longrun || 'keep', set: v => { plan.dec.longrun = v; } },
+    { id: 'revcon', scope: 'data', q: '같은 변인의 정문항과 역문항에 모두 강하게 동의한 응답(앞뒤가 맞지 않음)을 뺄까요?',
+      opts: [['keep', '빼지 않음', '역문항 문장이 헷갈리게 쓰였을 수도 있습니다. 빼지 않되 몇 명인지 보고합니다.'], ['drop', '뺌', '"나는 행복하다"와 "나는 불행하다"에 모두 "매우 그렇다"처럼 앞뒤가 맞지 않는 응답을 뺍니다. 뺀 인원을 보고합니다.']],
+      get: () => plan.dec.revcon || 'keep', set: v => { plan.dec.revcon = v; } },
+    { id: 'attn', scope: 'data', q: '주의 확인 문항에서 정답을 고르지 않은 응답을 뺄까요?',
+      opts: [['drop', '뺌 (기본)', '문항을 읽지 않고 답한 신호입니다. 미리 넣어 둔 문항이므로 연구 계획대로 빼는 것이 보통입니다. 뺀 인원을 보고합니다.'], ['keep', '빼지 않음', '문항이 헷갈리게 쓰였다고 판단할 때. 이유를 기록해 두세요.']],
+      get: () => plan.dec.attn || 'drop', set: v => { plan.dec.attn = v; }, when: () => attnItems().length > 0 },
     { id: 'dup', scope: 'data', q: '모든 답이 똑같은 응답(중복)이 있으면 어떻게 할까요?',
       opts: [['keep', '빼지 않음 (기본)', '모든 답이 같아도 다른 사람일 수 있습니다(문항이 적거나, 모두 같은 번호로 답한 경우). [응답 정리]의 목록과 제출 시각 간격을 보고 판단하세요.'], ['drop', '뒤의 것을 뺌', '같은 사람이 두 번 낸 것으로 볼 때. 먼저 들어온 응답만 남깁니다. 뺀 수를 논문에 적으세요.']],
       get: () => plan.dec.dup || 'keep', set: v => { plan.dec.dup = v; } },
@@ -6711,7 +6818,8 @@ ${reviewText()}
     ['효과크기 기준', 'Cohen(1988)의 작음·중간·큼 기준. 간접효과는 합의된 기준이 없어 크기만 적습니다.']
   ];
   const decLabel = (d, v) => (d.opts.find(o => o[0] === String(v)) || [v, v])[1];
-  const applicable = (d, method) => d.scope === 'data' || d.scope.includes(method);
+  const liveDecisions = () => DECISIONS.filter(d => !d.when || d.when());
+  const applicable = (d, method) => (d.scope === 'data' || d.scope.includes(method)) && (!d.when || d.when());
 
   function changeDecision(id, v) {
     const d = DECISIONS.find(x => x.id === id), from = String(d.get());
@@ -6747,7 +6855,7 @@ ${reviewText()}
 
   function planText() {
     const lines = ['# 분석 계획서 — 통', '', `작성: ${today()}`, `확정: ${plan.locked || '확정하지 않음'}`, '', '## 결정'];
-    DECISIONS.forEach(d => lines.push(`- ${d.q} → **${decLabel(d, d.get())}**${d.scope === 'data' ? '' : ` (해당: ${d.scope.map(m => METHODS[m]?.name || m).join(', ')})`}`));
+    liveDecisions().forEach(d => lines.push(`- ${d.q} → **${decLabel(d, d.get())}**${d.scope === 'data' ? '' : ` (해당: ${d.scope.map(m => METHODS[m]?.name || m).join(', ')})`}`));
     lines.push('', '## 정해진 기본값'); FIXED.forEach(([k, v]) => lines.push(`- ${k}: ${v}`));
     lines.push('', '## 결정 기록');
     if (!plan.log.length) lines.push('- 없음');
@@ -6765,7 +6873,7 @@ ${reviewText()}
     analyses.slice().reverse().forEach(a => lines.push(`- ${a.at} · ${a.conf ? `[${confLabel(a, true)}] ` : ''}${a.title} (N = ${a.n})`));
     return lines.join('\n');
   }
-  const planPayload = () => ({ 결정: DECISIONS.map(d => `${d.q} → ${decLabel(d, d.get())}`), 기본값: FIXED.map(([k, v]) => `${k}: ${v}`),
+  const planPayload = () => ({ 결정: liveDecisions().map(d => `${d.q} → ${decLabel(d, d.get())}`), 기본값: FIXED.map(([k, v]) => `${k}: ${v}`),
     사후_변경: plan.log.filter(l => l.after).map(l => `${l.q}: ${l.from} → ${l.to}${l.reason ? ` (이유: ${l.reason})` : ' (이유 미기재)'}`) });
 
   // =================================================================
@@ -7000,7 +7108,7 @@ ${RGEN[a.spec.method](a.spec).split('\n').map(l => '  ' + l).join('\n')}
 # 결정을 바꾸려면 코드를 고치지 말고 통에서 바꾼 뒤 다시 받으세요.
 #
 # 분석 결정
-${DECISIONS.map(d => `#   - ${d.q} → ${decLabel(d, d.get())}`).join('\n')}
+${liveDecisions().map(d => `#   - ${d.q} → ${decLabel(d, d.get())}`).join('\n')}
 ${plan.log.filter(l => l.after).map(l => `#   * 사후 변경: ${l.q} ${l.from} → ${l.to}${l.reason ? ` (이유: ${l.reason})` : ''}`).join('\n')}
 #
 # 실행: 이 파일과 analysis_data.csv를 같은 폴더에 두고 (연구 폴더라면 3_analysis 폴더에서 그대로)
@@ -7199,6 +7307,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
       L.push(`## ${scaleCode(s, si)} ${s.name || ''} (${s.role}, ${s.points}점 척도)`, `선택지: ${s.labels.map((l, k) => `${k + 1}=${l}`).join(', ')}`, s.source ? `출처: ${s.source}` : '', '');
       s.items.forEach((it, ii) => norm(it.text) && L.push(`${ii + 1}. ${it.text}${it.reverse ? ' (역문항)' : ''}`)); L.push('');
     });
+    if (attnItems().length) { L.push('## 주의 확인 문항 (점수에 쓰지 않음)'); attnItems().forEach(a => L.push(`- ATT${a.k + 1} ${a.text} (정답: ${a.labels[a.answer]}, ${scaleCode(sv.scales[a.si], a.si)} 문항 사이)`)); L.push(''); }
     if (sv.demos.length) { L.push('## 기본 정보'); sv.demos.forEach((d, di) => L.push(`- ${demoCode(d, di)} ${d.text}${d.type === 'choice' ? ` (${d.options.join(', ')})` : d.type === 'number' ? ' (숫자)' : ''}`)); }
     return L.join('\n');
   }
@@ -7486,7 +7595,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
     $('#rp-method-bottom').innerHTML = `
       <div class="card"><h4>변인 ${vars.locked ? '🔒 잠김' : ''}</h4>${varRows ? `<div class="rkv">${varRows}</div>` : '<p class="rempty">사다리 도착 화면의 변인 고정칸에 적으면 여기에 보입니다.</p>'}</div>
       <div class="card"><h4>분석 결정 ${plan.locked ? `<span class="st auto">확정</span>` : '<span class="st missing">미확정</span>'} ${plan.log.some(l => l.after) ? `<span class="st manual">사후 변경 ${plan.log.filter(l => l.after).length}</span>` : ''}</h4>
-        <div class="rkv">${DECISIONS.map(d => `<span>${esc({ scoring: '점수', minPct: '최소 응답', straight: '불성실 응답', welch: '분산 다를 때', posthoc: '사후검정', boot: '부트스트랩', center: '평균중심화', dup: '중복 응답', outlier: '이상치', sph: '구형성 보정' }[d.id] || d.id)}</span><span>${esc(decLabel(d, d.get()))}</span>`).join('')}</div></div>`;
+        <div class="rkv">${liveDecisions().map(d => `<span>${esc({ scoring: '점수', minPct: '최소 응답', straight: '불성실 응답', longrun: '연속 같은 답', revcon: '역문항 모순', attn: '주의 확인', welch: '분산 다를 때', posthoc: '사후검정', boot: '부트스트랩', center: '평균중심화', dup: '중복 응답', outlier: '이상치', sph: '구형성 보정' }[d.id] || d.id)}</span><span>${esc(decLabel(d, d.get()))}</span>`).join('')}</div></div>`;
   }
 
   let rpv = { page: 0 };
@@ -7572,7 +7681,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
       변인: { 독립: vars.ivs.filter(v => norm(v.name)).map(v => v.name + (v.levels ? `(${v.levels})` : '')), 종속: vars.dv, 그밖: vars.others.map(o => `${o.role}: ${o.name}`) },
       설문: sv.scales.map((s, si) => `${s.name || scaleCode(s, si)}(${s.role}, ${s.items.filter(i => norm(i.text)).length}문항)`),
       응답: lastScored ? `분석에 포함 ${lastScored.inc.length}명` : '아직 없음',
-      분석_결정: DECISIONS.map(d => `${d.q} → ${decLabel(d, d.get())}`),
+      분석_결정: liveDecisions().map(d => `${d.q} → ${decLabel(d, d.get())}`),
       분석_결과: analyses.slice(0, 4).map(a => ({ 분석: a.title, N: a.n, 효과: a.effects.slice(0, 12).map(e => `${e.label}: ${e.stat}`), 확인_필요: (a.checks || []).filter(c => c.st === 'warn').map(c => c.item) })),
       가설: intent.hyps.filter(h => norm(h.text)).map((h, i) => { const v = verdict(h); return `가설 ${i + 1}: ${h.text}${v ? ` → 판정 ${v.v}` : ''}`; })
     };
@@ -8988,11 +9097,46 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
   }
   function hypPlanHtml() {
     if (!hp.plan || !hp.plan.length) return '';
-    return `<div class="card"><h4>가설별 통계 기법</h4><div class="hp-plan">${hp.plan.map(p => {
+    return `<div class="card"><h4>가설별 통계 기법</h4>${runAllBtn()}<div class="hp-plan">${hp.plan.map(p => {
       const lm = LADDER_TO_METHOD[p.result];
       return `<div class="hp-row"><span class="hi-no">가설 ${p.no}</span><div><b>${esc(RULES.results[p.result].name)}</b><small>${esc(p.text)}</small></div>${lm ? `<button class="btn sm" data-hp-calc="${p.result}" data-hp-no="${p.no}" title="분석 결정·계산 화면으로">계산</button>` : '<span class="hint">안내만</span>'}</div>`;
     }).join('')}</div></div>`;
   }
+  // ---------- 가설 전부 계산하기: 확정한 가설의 분석을 미리 정한 방법 그대로 한 번에 ----------
+  const runAllBtn = () => planItems().some(p => LADDER_TO_METHOD[p.result]) ? `<div class="actions tight"><button class="btn primary" data-an-act="run-all" ${lastScored ? '' : 'disabled title="먼저 [응답 취합]에서 점수를 만들어 주세요"'}>가설 전부 계산하기</button>${lastScored ? '' : '<span class="hint">점수를 만든 뒤 쓸 수 있습니다</span>'}</div>` : '';
+  let runAllLog = null;
+  async function runAllHyps() {
+    if (!lastScored) { toast('먼저 [응답 취합]에서 점수를 만들어 주세요.'); return; }
+    const items = planItems(), keep = anSel ? JSON.parse(JSON.stringify(anSel)) : null;
+    const base = { boot: 5000, center: true, testValue: 3, ...(anSel?.opts || {}) };
+    const rows = [], bySig = new Map();
+    switchView('analysis');
+    const prog = $('#an-prog');
+    for (const pi of items) {
+      const lm = LADDER_TO_METHOD[pi.result];
+      if (!lm) { rows.push({ no: pi.no, text: pi.text, st: 'na', msg: `${RULES.results[pi.result]?.name || pi.result}은 통에서 계산하지 않습니다(안내만). jamovi·SPSS에서 계산하세요.` }); continue; }
+      const roles = rolesFor(pi, lm), sig = lm + roleSig(roles);
+      if (bySig.has(sig)) { const r0 = bySig.get(sig); rows.push({ no: pi.no, text: pi.text, st: r0.st, msg: r0.st === 'ok' ? `가설 ${r0.no}와 같은 분석 결과에 들어 있습니다.` : r0.msg, id: r0.id, lm }); continue; }
+      const old = analyses.find(a => a.dv === dataVersion && a.spec && a.spec.method === lm && roleSig(a.spec.roles) === roleSig(roles));
+      if (old) { const r = { no: pi.no, text: pi.text, st: 'ok', msg: '같은 자료로 이미 계산해 두었습니다.', id: old.id, lm }; rows.push(r); bySig.set(sig, r); continue; }
+      anSel = { method: lm, roles, opts: { ...base } };
+      if (prog) prog.textContent = `가설 ${pi.no} 계산 중… (${METHODS[lm].name})`;
+      try { const R = await runAnalysis(true); const r = { no: pi.no, text: pi.text, st: 'ok', msg: `${R.title} (N = ${R.n})`, id: R.id, lm }; rows.push(r); bySig.set(sig, r); }
+      catch (err) { const r = { no: pi.no, text: pi.text, st: 'fail', msg: err.message || String(err), lm }; rows.push(r); bySig.set(sig, r); }
+    }
+    if (keep) anSel = keep; saveAnSel();
+    if (prog) prog.textContent = '';
+    runAllLog = { at: koNow(), rows };
+    renderAnalysis(); renderAnalyses(); renderInterp(); renderRight();
+    const ok = rows.filter(r => r.st === 'ok').length, bad = rows.filter(r => r.st === 'fail').length;
+    addSys('analysis', `가설 ${rows.length}개를 계산했습니다: 계산 ${ok}개${bad ? `, 변인을 골라야 하는 것 ${bad}개` : ''}. 결과는 [결과] 탭과 아래 목록에 있습니다.`);
+    toast(`가설 ${ok}개를 계산했습니다.${bad ? ` ${bad}개는 변인을 직접 골라 주세요.` : ''}`);
+    $('#an-runall')?.scrollIntoView({ block: 'start' });
+  }
+  const runAllHtml = () => !runAllLog ? '' : `<div class="card" id="an-runall"><h3 class="card-title">가설 전부 계산하기 결과 <small class="hint">${esc(runAllLog.at)}</small></h3>
+    <div class="hp-plan">${runAllLog.rows.map(r => `<div class="hp-row"><span class="hi-no">가설 ${r.no}</span><div><b>${r.st === 'ok' ? '<span class="a-ok">✓ 계산함</span>' : r.st === 'na' ? '<span class="hint">안내만</span>' : '<span class="a-low">✗ 계산하지 못함</span>'}</b><small>${esc(r.text)}</small><small>${esc(r.msg)}</small></div>
+      ${r.st === 'ok' && r.id ? `<button class="btn sm" data-an-act="goto-res" data-id="${r.id}">결과 보기</button>` : r.st === 'fail' ? `<button class="btn sm" data-hp-calc="${planItems().find(x => x.no === r.no)?.result || ''}" data-hp-no="${r.no}">변인 고르기</button>` : ''}</div>`).join('')}</div>
+    <p class="hint">분석 방법과 분석 결정은 미리 확정한 그대로 썼습니다. 계산하지 못한 가설은 [변인 고르기]로 분석 칸을 채운 뒤 [계산하기]를 누르세요.</p></div>`;
   // 매개모형 안 경로의 이름
   const PATH_NAME = k => ({ c: 'c 경로 (원인 → 결과, 총효과)', a: 'a 경로 (원인 → 매개)', b: 'b 경로 (매개 → 결과)', d: 'd 경로 (매개 → 매개)' }[k[0]] || '경로');
   // 오른쪽: 만드는 중인 가설 목록
@@ -9889,7 +10033,7 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
   function flowSteps() {
     const L = lastScored, ex = L.people.filter(p => p.excluded), c = k => ex.filter(p => p.excluded === k).length;
     let n = L.people.length; const st = [{ l: '전체 응답', n }];
-    [['비동의', '동의 안 함'], ['척도 응답 없음', '빈 응답'], ['불성실 의심', '불성실 의심'], ['중복', '중복 응답'], ['이상치', '이상치']].forEach(([k, l]) => { const m = c(k); if (m) { n -= m; st.push({ l, minus: m, n }); } });
+    [['비동의', '동의 안 함'], ['척도 응답 없음', '빈 응답'], ['대상 아님', '연구 대상 아님'], ['주의 확인 실패', '주의 확인 문항 틀림'], ['불성실 의심', '불성실 의심'], ['직접 뺌', '연구자가 직접 뺌'], ['중복', '중복 응답'], ['이상치', '이상치']].forEach(([k, l]) => { const m = c(k); if (m) { n -= m; st.push({ l, minus: m, n }); } });
     return st;
   }
   function flowHtml() {
@@ -9922,11 +10066,127 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
           <ul class="dq-out">${O.slice(0, 8).map(o => `<li><b>${o.id}</b> ${o.z.map(z => `${esc(scName(z.si))} z = ${F2(z.z)}`).join(', ')}${o.d2 != null ? `${o.z.length ? ' · ' : ''}마할라노비스 D² = ${F2(o.d2)}, p ${o.pD < 0.001 ? '< .001' : '= ' + NZ(o.pD, 3)}` : ''}</li>`).join('')}${O.length > 8 ? '<li>…</li>' : ''}</ul>` : '<p><b class="a-ok">기준을 넘는 이상치가 없습니다.</b></p>'}
           <label class="chk"><input type="checkbox" data-dq-dec="outlier" ${outOn ? 'checked' : ''}> 이상치 빼고 계산</label>
           <p class="hint">기준: 변인 점수 |z| > 3.29, 마할라노비스 거리 p < .001 (Tabachnick & Fidell). 실제로 극단적인 사람일 수 있어 기본은 빼지 않습니다. 뺐다면 몇 명인지 논문에 밝힙니다.</p></div>
-      </div></div>`;
+        ${carelessBox()}${attnBox()}
+      </div>
+      <div class="dq-grid" style="margin-top:12px">${eligBox()}${demoFixBox()}${manualBox()}</div>
+      ${cleanReportBox()}
+    </div>`;
+  }
+  // ----- 응답 정리 상자들 -----
+  const dqList = (arr, f, n = 8) => arr.length ? `<ul class="dq-out">${arr.slice(0, n).map(p => `<li><b>${p.id}</b> ${f(p)}</li>`).join('')}${arr.length > n ? `<li>… 외 ${arr.length - n}명</li>` : ''}</ul>` : '';
+  const earlyOut = p => ['비동의', '척도 응답 없음', '대상 아님', '주의 확인 실패'].includes(p.excluded);
+  function carelessBox() {
+    const pool = lastScored.people.filter(p => !earlyOut(p));
+    const c1 = pool.filter(p => p.straight), c2 = pool.filter(p => p.careless.some(c => /연속/.test(c))), c3 = pool.filter(p => p.revCon);
+    const row = (id, on, label, arr, f) => `<label class="chk"><input type="checkbox" data-dq-dec="${id}" ${on ? 'checked' : ''}> ${label} <b>${arr.length}명</b> 빼기</label>${dqList(arr, f, 5)}`;
+    return `<div class="dq-box"><h4>불성실 의심</h4>
+      ${row('straight', plan.dec.straight === 'drop', '모든 문항 같은 번호', c1, () => '')}
+      ${row('longrun', plan.dec.longrun === 'drop', `같은 번호 연속 (척도 문항 절반 이상, 최소 10문항)`, c2, p => `${p.longRun}문항 연속`)}
+      ${row('revcon', plan.dec.revcon === 'drop', '정문항·역문항 모두 강하게 동의(반대)', c3, p => p.careless.filter(c => /역문항/.test(c)).map(c => c.replace(' 역문항 모순', '')).join(', '))}
+      <p class="hint">모두 기본은 빼지 않고 보여 줍니다. 실제로 그렇게 느낀 사람일 수도 있으니, 뺐다면 기준과 인원을 논문에 적으세요(예: Curran, 2016의 long-string 기준).</p></div>`;
+  }
+  function attnBox() {
+    if (!attnItems().length) return `<div class="dq-box"><h4>주의 확인 문항</h4><p class="hint">설문에 주의 확인 문항이 없습니다. 다음 조사부터는 [설문 설계]에서 넣을 수 있습니다("이 문항에는 '그렇다'를 골라 주세요").</p></div>`;
+    const fail = lastScored.people.filter(p => p.attnFail && !['비동의', '척도 응답 없음', '대상 아님'].includes(p.excluded)), on = (plan.dec.attn || 'drop') === 'drop';
+    return `<div class="dq-box"><h4>주의 확인 문항</h4><p>정답을 고르지 않은 응답 <b>${fail.length}명</b> ${on ? '(뺌)' : '(포함함)'}</p>
+      ${dqList(fail, p => p.attn.filter(a => !a.ok).map(a => `${a.code}: '${esc(a.ans || '빈 칸')}'`).join(', '))}
+      <label class="chk"><input type="checkbox" data-dq-dec="attn" ${on ? 'checked' : ''}> 주의 확인 문항을 틀린 응답 빼기</label></div>`;
+  }
+  // 연구 대상 조건: 기본 정보로 대상이 아닌 사람 거르기
+  function eligBox() {
+    const ds = sv.demos.map((d, di) => ({ d, di })).filter(x => norm(x.d.text) && x.d.type !== 'text');
+    const out = lastScored.people.filter(p => p.excluded === '대상 아님').length;
+    const vals = di => [...new Set(lastScored.people.map(p => p.items[`d${di}`]).filter(v => v !== '' && v != null))];
+    const desc = c => { const d = sv.demos[c.di]; return d ? (c.type === 'num' ? `${esc(d.text)} ${c.min !== '' && c.min != null ? `${esc(c.min)} 이상` : ''}${c.max !== '' && c.max != null ? ` ${esc(c.max)} 이하` : ''}` : `${esc(d.text)}: ${c.keep.map(esc).join(', ')}만`) : '(지워진 문항)'; };
+    const sel = eligDraft.di != null && sv.demos[eligDraft.di] ? eligDraft.di : (ds[0] || {}).di;
+    const dsel = sel != null ? sv.demos[sel] : null;
+    return `<div class="dq-box"><h4>연구 대상 조건</h4>
+      ${(plan.elig || []).length ? `<ul class="dq-out">${plan.elig.map((c, k) => `<li>${desc(c)} <button class="linkish" data-dq-act="elig-del" data-k="${k}">지우기</button></li>`).join('')}</ul><p>조건에 맞지 않아 뺀 응답 <b>${out}명</b></p>` : '<p class="hint">연구 대상이 정해져 있으면(예: 대학생만, 만 19세 이상) 기본 정보로 거릅니다.</p>'}
+      ${ds.length ? `<div class="dq-elig">
+        <select data-dq-elig="di">${ds.map(x => `<option value="${x.di}" ${x.di === sel ? 'selected' : ''}>${esc(x.d.text)}</option>`).join('')}</select>
+        ${dsel && dsel.type === 'number' ? `<input data-dq-elig="min" inputmode="numeric" placeholder="이상" value="${esc(eligDraft.min ?? '')}"><input data-dq-elig="max" inputmode="numeric" placeholder="이하" value="${esc(eligDraft.max ?? '')}">`
+          : `<span class="dq-keep">${vals(sel).map(v => `<label class="chk"><input type="checkbox" data-dq-elig="keep" value="${esc(v)}" ${(eligDraft.keep || []).includes(v) ? 'checked' : ''}> ${esc(v)}</label>`).join('')}</span>`}
+        <button class="btn sm" data-dq-act="elig-add">${dsel && dsel.type === 'number' ? '범위 조건 추가' : '고른 값만 남기기'}</button></div>` : '<p class="hint">기본 정보 문항이 없습니다.</p>'}</div>`;
+  }
+  let eligDraft = {};
+  // 기본 정보 값 정리: 숫자로 바꾼 값, 선택지에 없는 값, 인원이 적은 범주 합치기
+  function demoFixBox() {
+    const L = lastScored, rows = [];
+    sv.demos.forEach((d, di) => {
+      if (!norm(d.text) || d.type === 'text') return;
+      const fx = L.demoFix.filter(f => f.di === di);
+      if (d.type === 'number') { fx.forEach(f => rows.push(`<li>${esc(d.text)}: "${esc(f.from)}" → ${f.how === 'bad' ? '<span class="a-low">숫자로 못 읽어 빈 값</span>' : `<b>${esc(f.to)}</b>`} (${f.n}명)</li>`)); return; }
+      const info = L.demoInfo.find(x => x.di === di), small = info && info.kind === 'cat' ? info.freq.filter(([v, n]) => n < 5 && v !== '') : [];
+      const targets = [...new Set([...(d.options || []), ...((info && info.freq) || []).map(([v]) => v)].filter(Boolean))];
+      const pick = (from, cur) => `<select data-dq-recode="${di}" data-from="${esc(from)}"><option value="__keep" ${cur === from ? 'selected' : ''}>그대로 (${esc(from)})</option>${targets.filter(t => t !== from).map(t => `<option value="${esc(t)}" ${cur === t ? 'selected' : ''}>→ ${esc(t)}</option>`).join('')}<option value="" ${cur === '' ? 'selected' : ''}>→ 빈 값(결측)</option></select>`;
+      fx.forEach(f => rows.push(`<li>${esc(d.text)}: "${esc(f.from)}" ${f.n}명 ${f.how === 'auto' ? '<span class="hint">(같은 뜻이라 자동으로 바꿈)</span>' : f.how === 'other' ? '<span class="a-mid">선택지에 없는 값</span>' : ''} ${pick(f.from, f.to)}</li>`));
+      small.filter(([v]) => !fx.some(f => f.to === v && f.from === v)).forEach(([v, n]) => rows.push(`<li>${esc(d.text)}: "${esc(v)}" <span class="a-mid">${n}명뿐</span> ${pick(v, v)}</li>`));
+    });
+    return `<div class="dq-box"><h4>기본 정보 값 정리</h4>${rows.length ? `<ul class="dq-out">${rows.join('')}</ul><p class="hint">인원이 5명보다 적은 범주는 집단 비교에서 막히기 쉬워, 이론적으로 가까운 범주와 합치는 것을 검토하세요(예: 대학원생 → 대학생). 합친 기준은 논문에 적습니다.</p>` : '<p><b class="a-ok">정리할 값이 없습니다.</b></p><p class="hint">숫자 문항의 "23세", "스물셋" 같은 값은 숫자로 바꾸고, 선택지에 없는 값과 인원이 적은 범주를 여기에 보여 줍니다.</p>'}</div>`;
+  }
+  function manualBox() {
+    const M = Object.entries(plan.manual || {});
+    return `<div class="dq-box"><h4>직접 빼기</h4>
+      ${M.length ? `<ul class="dq-out">${M.map(([id, why]) => `<li><b>${esc(id)}</b> ${esc(why || '(이유 없음)')} <button class="linkish" data-dq-act="manual-del" data-id="${esc(id)}">되돌리기</button></li>`).join('')}</ul>` : '<p class="hint">위 기준에 걸리지 않지만 빼야 할 응답(예: 자유 응답에 장난으로 쓴 것)을 응답 번호로 뺍니다. 이유는 기록에 남습니다.</p>'}
+      <div class="dq-elig"><input data-dq-man="id" list="dq-ids" placeholder="응답 번호 (예: R012)" style="width:9em"><input data-dq-man="why" placeholder="빼는 이유"><button class="btn sm" data-dq-act="manual-add">빼기</button></div>
+      <datalist id="dq-ids">${lastScored.people.filter(p => !p.excluded).map(p => `<option value="${p.id}">`).join('')}</datalist></div>`;
+  }
+  // 논문 '연구 대상' 절에 쓸 문장
+  function cleanReport() {
+    const L = lastScored, c = k => L.people.filter(p => p.excluded === k).length, parts = [];
+    [['비동의', '연구 참여에 동의하지 않은'], ['척도 응답 없음', '척도 문항에 응답하지 않은'], ['대상 아님', '연구 대상 조건에 맞지 않는'], ['주의 확인 실패', '주의 확인 문항에 정답을 고르지 않은'], ['불성실 의심', '불성실 응답으로 판단된'], ['직접 뺌', '연구자가 검토해 부적절하다고 판단한'], ['중복', '중복 응답으로 판단된'], ['이상치', '이상치로 판단된']].forEach(([k, l]) => { if (c(k)) parts.push(`${l} ${c(k)}명`); });
+    const crit = [];
+    if ((plan.elig || []).length) crit.push(`연구 대상 조건(${plan.elig.map(x => { const d = sv.demos[x.di]; return d ? (x.type === 'num' ? `${d.text} ${x.min !== '' && x.min != null ? `${x.min} 이상` : ''}${x.max !== '' && x.max != null ? ` ${x.max} 이하` : ''}` : `${d.text}: ${x.keep.join('·')}`) : ''; }).filter(Boolean).join(', ')})`);
+    if (attnItems().length && (plan.dec.attn || 'drop') === 'drop') crit.push(`설문 중간에 넣은 주의 확인 문항 ${attnItems().length}개`);
+    const cr = [plan.dec.straight === 'drop' && '모든 문항에 같은 번호로 답한 경우', plan.dec.longrun === 'drop' && '척도 문항의 절반 이상(최소 10문항)을 연달아 같은 번호로 답한 경우', plan.dec.revcon === 'drop' && '같은 변인의 정문항과 역문항에 모두 강하게 동의하거나 반대한 경우'].filter(Boolean);
+    if (cr.length) crit.push(`불성실 응답 기준(${cr.join(', ')})`);
+    if ((plan.dec.dup || 'keep') === 'drop') crit.push('모든 응답이 같은 중복 응답');
+    if ((plan.dec.outlier || 'keep') === 'drop') crit.push('변인 점수 |z| > 3.29 또는 마할라노비스 거리 p < .001인 이상치');
+    return `자료는 총 ${L.people.length}명에게서 수집되었다. ${parts.length ? `이 중 ${parts.join(', ')}을 제외하고, ` : ''}최종 ${L.inc.length}명의 자료를 분석에 사용하였다.${crit.length ? ` 자료 정제에는 ${crit.join(', ')}을 기준으로 삼았다.` : ''}`;
+  }
+  const cleanReportBox = () => `<div class="dq-report"><h4>논문 '연구 대상' 절에 쓸 문장</h4><p>${esc(cleanReport())}</p><div class="actions tight"><button class="btn sm" data-dq-act="copy-report">문장 복사</button></div><p class="hint">정리 결과가 바뀌면 문장도 바뀝니다. 학교 양식과 문체에 맞게 다듬어 쓰세요.</p></div>`;
+  // 정리 기준을 바꾸면 기록에 남기고 다시 계산
+  function cleanChange(q, from, to) {
+    plan.log.push({ at: new Date().toLocaleString('ko-KR'), id: 'clean', q, from, to, after: !!plan.seen, reason: '' });
+    savePlan(); addSys('analysis', `응답 정리: ${q} → ${to}${plan.seen ? ' (결과를 본 뒤 바꿈: 사후 변경으로 기록)' : ''}`);
+    runScoring();
   }
   $('#co-result').addEventListener('change', e => {
-    const t = e.target; if (!t.dataset.dqDec) return;
-    const k = t.dataset.dqDec; changeDecision(k, k === 'dup' ? (t.checked ? 'drop' : 'keep') : (t.checked ? 'drop' : 'keep'));
+    const t = e.target;
+    if (t.dataset.dqElig) {
+      const k = t.dataset.dqElig;
+      if (k === 'di') eligDraft = { di: +t.value };
+      else if (k === 'keep') { const set = new Set(eligDraft.keep || []); t.checked ? set.add(t.value) : set.delete(t.value); eligDraft.keep = [...set]; return; }
+      else { eligDraft[k] = t.value; return; }
+      renderScored(); return;
+    }
+    if (t.dataset.dqRecode != null) {
+      const di = +t.dataset.dqRecode, from = t.dataset.from, d = sv.demos[di]; plan.recode = plan.recode || {}; const m = plan.recode[di] = plan.recode[di] || {};
+      const before = Object.prototype.hasOwnProperty.call(m, from) ? (m[from] || '빈 값') : from;
+      if (t.value === '__keep') m[from] = from; else m[from] = t.value;
+      cleanChange(`${d.text} 값 "${from}" 바꾸기`, before, t.value === '__keep' ? from : (t.value || '빈 값')); return;
+    }
+    if (!t.dataset.dqDec) return;
+    const k = t.dataset.dqDec; changeDecision(k, t.checked ? 'drop' : 'keep');
+  });
+  $('#co-result').addEventListener('click', e => {
+    const b = e.target.closest('[data-dq-act]'); if (!b) return;
+    const act = b.dataset.dqAct; plan.elig = plan.elig || []; plan.manual = plan.manual || {};
+    if (act === 'elig-add') {
+      const di = eligDraft.di != null && sv.demos[eligDraft.di] ? eligDraft.di : sv.demos.findIndex(d => norm(d.text) && d.type !== 'text'), d = sv.demos[di]; if (!d) return;
+      if (d.type === 'number') { const min = norm(eligDraft.min || ''), max = norm(eligDraft.max || ''); if (!min && !max) { toast('이상·이하 중 하나는 적어 주세요.'); return; } plan.elig.push({ di, type: 'num', min, max }); cleanChange('연구 대상 조건 추가', '-', `${d.text} ${min ? min + ' 이상' : ''}${max ? ' ' + max + ' 이하' : ''}`); }
+      else { const keep = eligDraft.keep || []; if (!keep.length) { toast('남길 값을 하나 이상 골라 주세요.'); return; } plan.elig.push({ di, type: 'cat', keep }); cleanChange('연구 대상 조건 추가', '-', `${d.text}: ${keep.join(', ')}만`); }
+      eligDraft = {};
+    }
+    else if (act === 'elig-del') { const c = plan.elig.splice(+b.dataset.k, 1)[0]; cleanChange('연구 대상 조건 지우기', c ? (sv.demos[c.di] || {}).text || '-' : '-', '없음'); }
+    else if (act === 'manual-add') {
+      const id = norm($('[data-dq-man=id]').value).toUpperCase(), why = norm($('[data-dq-man=why]').value);
+      if (!lastScored.people.some(p => p.id === id)) { toast('그런 응답 번호가 없습니다. 예: R012'); return; }
+      if (!why) { toast('빼는 이유를 적어 주세요. 논문과 기록에 남습니다.'); return; }
+      plan.manual[id] = why; cleanChange(`응답 ${id} 직접 빼기`, '포함', `뺌 (${why})`);
+    }
+    else if (act === 'manual-del') { const id = b.dataset.id; delete plan.manual[id]; cleanChange(`응답 ${id} 직접 빼기 되돌리기`, '뺌', '포함'); }
+    else if (act === 'copy-report') { const txt = cleanReport(); try { navigator.clipboard.writeText(txt).then(() => toast('문장을 복사했습니다.'), () => showSheet('연구 대상 문장', txt)); } catch (err) { showSheet('연구 대상 문장', txt); } }
   });
 
   // ---------- 표본 확인 ----------
