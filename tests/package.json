@@ -1,0 +1,8 @@
+{
+  "name": "tong-reference-tests",
+  "private": true,
+  "type": "module",
+  "description": "통의 계산을 R 기준값과 비교하는 테스트",
+  "scripts": { "test": "node reference.mjs", "test:no-r": "node reference.mjs --no-r", "reference": "Rscript make_reference.R" },
+  "devDependencies": { "playwright": "1.64.1" }
+}
