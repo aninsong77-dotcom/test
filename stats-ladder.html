@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ㅌㅗㅇ · 설문부터 통계 해석까지</title>
+<title>통 · 설문부터 통계 해석까지</title>
 <meta name="description" content="통계 용어를 몰라도 질문에 답하며 내 연구에 맞는 통계 기법을 고르고, 설문을 만들고, 응답을 모아 계산하고, AI와 결과를 해석하는 대학원생용 도구">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='40 6 48 52'%3E%3Cpath d='M44 15 Q44 10 64 10 Q84 10 84 15 V51 Q84 56 64 56 Q44 56 44 51 Z' fill='%232563eb'/%3E%3Cellipse cx='64' cy='14' rx='20' ry='4.5' fill='%234a84f5'/%3E%3Ccircle cx='57' cy='34' r='2.6' fill='white'/%3E%3Cpath d='M68.5 34.5 Q71 32 73.5 34.5 M60 39 Q64 42 68 39' fill='none' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E">
-<meta property="og:title" content="ㅌㅗㅇ · 설문부터 통계 해석까지">
+<meta property="og:title" content="통 · 설문부터 통계 해석까지">
 <meta property="og:description" content="통계 용어를 몰라도 질문에 답하며 내 연구에 맞는 통계 기법을 고르고, 설문을 만들고, 응답을 모아 계산하고, AI와 결과를 해석하는 대학원생용 도구">
 <meta property="og:image" content="https://aninsong77-dotcom.github.io/tong/og-image.png">
 <meta property="og:type" content="website">
@@ -2280,6 +2280,10 @@ button,input,textarea,select{font-family:inherit}
 
 .gd-mark{background:#ffe7c7;color:inherit;border-radius:3px;padding:0 1px}
 
+/* 글 속의 '통': 로고 글씨(ㅌㅗㅇ이 모인 통)로 */
+.tw{display:inline-block;height:1.15em;vertical-align:-.2em;margin:0 .05em;line-height:0;white-space:nowrap}
+.tw svg{height:100%;width:auto;overflow:visible;display:block}
+.tw .tw-t{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
 /* ㅌㅗㅇ → 통 → ㅌㅗㅇ */
 .hdr-title .wm{overflow:visible}
 .wm .j1,.wm .j2,.wm .j3{transform-box:view-box;transform-origin:0 0}
@@ -2653,7 +2657,7 @@ table.compact.sp-table{min-width:0;table-layout:auto;width:100%}.sp-table td{ver
     </g>
     <g class="t-bars"><rect class="t-bar" x="102" y="40" width="10" height="16" rx="2.5" fill="#c5d6fb"/><rect class="t-bar" x="117" y="31" width="10" height="25" rx="2.5" fill="#8eb0f6"/><rect class="t-bar" x="132" y="20" width="10" height="36" rx="2.5" fill="#2563eb"/></g>
   </svg>
-  <span class="hdr-title"><svg class="wm" viewBox="0 0 76 24" role="img" aria-label="ㅌㅗㅇ (통)"><g class="wm-g" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path class="j1" vector-effect="non-scaling-stroke" d="M3 3H18M3 12H17M3 21H18M3 3V21"/><path class="j2" vector-effect="non-scaling-stroke" d="M38 6V20M29 20H47"/><circle class="j3" vector-effect="non-scaling-stroke" cx="64" cy="12" r="8.6"/></g></svg><span>설문부터 통계 해석까지</span></span>
+  <span class="hdr-title"><svg class="wm" viewBox="0 0 76 24" role="img" aria-label="통"><g class="wm-g" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path class="j1" vector-effect="non-scaling-stroke" d="M3 3H18M3 12H17M3 21H18M3 3V21"/><path class="j2" vector-effect="non-scaling-stroke" d="M38 6V20M29 20H47"/><circle class="j3" vector-effect="non-scaling-stroke" cx="64" cy="12" r="8.6"/></g></svg><span>설문부터 통계 해석까지</span></span>
   <div class="proj-wrap"><button class="proj-chip" id="proj-chip" aria-haspopup="true"></button><div class="proj-pop" id="proj-pop" hidden></div></div>
   <span class="hdr-sp"></span>
   <div class="fold-wrap"><button class="fold-chip" id="fold-chip">📁 연구 폴더</button><div class="fold-pop" id="fold-pop" hidden><div class="folder-bar" id="folder-bar"></div></div></div>
@@ -2823,7 +2827,7 @@ table.compact.sp-table{min-width:0;table-layout:auto;width:100%}.sp-table td{ver
   <section class="view" id="view-guide" hidden>
     <div class="guide">
       <aside class="gd-side">
-        <div class="gd-head"><b>사용 설명</b><span>ㅌㅗㅇ 위키</span></div>
+        <div class="gd-head"><b>사용 설명</b><span>통 위키</span></div>
         <div class="gd-search"><input id="gd-q" type="search" placeholder="찾기 (예: 역문항, 무료)" aria-label="사용 설명 찾기"></div>
         <nav id="gd-nav"></nav>
       </aside>
@@ -3288,7 +3292,7 @@ table.compact.sp-table{min-width:0;table-layout:auto;width:100%}.sp-table td{ver
     const w = walk(path);
     const r = w.cur.type === 'result' ? RULES.results[w.cur.id] : null;
     const lines = [
-      'ㅌㅗㅇ — 변인 고정 기록',
+      '통 — 변인 고정 기록',
       `작성일: ${today()}`,
       `상태: ${vars.locked ? '잠김 (' + vars.lockedAt + ')' : '잠기지 않음'}`,
       '',
@@ -3473,7 +3477,7 @@ table.compact.sp-table{min-width:0;table-layout:auto;width:100%}.sp-table td{ver
     }).join('');
   }
 
-  $('#rules-export').addEventListener('click', () => download(`ㅌㅗㅇ_규칙_${today()}.json`, JSON.stringify(RULES, null, 2), 'application/json'));
+  $('#rules-export').addEventListener('click', () => download(`통_규칙_${today()}.json`, JSON.stringify(RULES, null, 2), 'application/json'));
   $('#rules-import').addEventListener('change', async e => {
     const file = e.target.files[0]; e.target.value = '';
     if (!file) return;
@@ -3747,7 +3751,7 @@ table.compact.sp-table{min-width:0;table-layout:auto;width:100%}.sp-table td{ver
       demos: sv.demos.filter(d => norm(d.text)).map(d => ({ text: norm(d.text), type: d.type, choices: d.options }))
     };
     return `/**
- * 구글 폼 만들기 스크립트 — ㅌㅗㅇ에서 만듦 (${today()})
+ * 구글 폼 만들기 스크립트 — 통에서 만듦 (${today()})
  *
  * 1) https://script.google.com 에서 [새 프로젝트]를 엽니다.
  * 2) 원래 있던 코드를 지우고 이 코드를 모두 붙여 넣은 뒤 저장(Ctrl+S)합니다.
@@ -3757,7 +3761,7 @@ table.compact.sp-table{min-width:0;table-layout:auto;width:100%}.sp-table td{ver
  *    폼과 응답 시트는 내 구글 드라이브에 저장됩니다.
  *
  * 문항 문장을 폼에서 고치면 응답을 합칠 때 자동 연결이 안 될 수 있습니다.
- * 고칠 일이 있으면 ㅌㅗㅇ의 설문 설계에서 고친 뒤 스크립트를 다시 만드세요.
+ * 고칠 일이 있으면 통의 설문 설계에서 고친 뒤 스크립트를 다시 만드세요.
  */
 const SURVEY = ${JSON.stringify(data, null, 2)};
 
@@ -5250,7 +5254,7 @@ function createSurvey() {
       if (norm(h.gist)) D.push(`[${no} · 내가 읽은 결과] ${norm(h.gist)}\n[선행연구 비교: 이 결과를 어떤 선행연구와 견줄지]`);
     });
     return { results: R.join('\n\n'), discussion: D.length ? D.join('\n\n') : '[논의: 2번에서 가설마다 "내가 읽은 결과"를 적으면 여기에 모입니다]',
-      limitations: cross ? ['한 시점에 모두 측정한 자료라 변인 사이의 인과관계를 단정할 수 없다.'] : [], check: ['ㅌㅗㅇ이 판정과 숫자로 만든 틀 문장입니다. 문장을 다듬고, 논의는 내가 읽은 결과를 바탕으로 이어 쓰세요.'] };
+      limitations: cross ? ['한 시점에 모두 측정한 자료라 변인 사이의 인과관계를 단정할 수 없다.'] : [], check: ['통이 판정과 숫자로 만든 틀 문장입니다. 문장을 다듬고, 논의는 내가 읽은 결과를 바탕으로 이어 쓰세요.'] };
   }
 
   function renderInterp() {
@@ -5369,7 +5373,7 @@ function createSurvey() {
               <p class="hint">CLAUDE.md는 Claude가 지킬 규칙, interpretation.json은 연구 의도·가설·판정·결과표입니다. 응답 원자료는 들어 있지 않습니다. 가설이나 분석을 바꾸면 interpretation.json을 다시 받으세요.</p></div></div>
             <div class="chat-step"><span class="n">2</span><div><b>Claude 데스크톱 앱에서 그 폴더 열기</b>
               <p class="hint" style="margin-top:4px">앱 위쪽 <b>Code</b> 탭 → <b>Local</b> → <b>Select folder</b>. 터미널이 필요 없습니다. (<a href="https://claude.ai/download" target="_blank" rel="noopener">앱 설치</a> · 터미널이 익숙하면 그 폴더에서 <code>claude</code> 실행)</p>
-              <p class="hint">"ㅌㅗㅇ 해석 모드입니다."가 나오면 성공입니다. "해석해 줘"라고 쓰면 시작합니다.</p></div></div>
+              <p class="hint">"통 해석 모드입니다."가 나오면 성공입니다. "해석해 줘"라고 쓰면 시작합니다.</p></div></div>
             <div class="chat-step"><span class="n">3</span><div><b>Claude가 묻는 것에 답하면 폴더에 <code>draft.md</code>가 생깁니다</b></div></div>
             <div class="chat-step"><span class="n">4</span><div><b>draft.md 내용을 아래 [초안 점검] 칸에 붙여 넣기</b></div></div>
           </div>` : ''}
@@ -5462,26 +5466,26 @@ ${writingRules()}
 
   // Claude Code 해석 모드용 CLAUDE.md
   function claudeMd() {
-    return `# ㅌㅗㅇ 해석 모드
+    return `# 통 해석 모드
 
-이 폴더는 ㅌㅗㅇ(https://claude.ai/artifact/Gaiius2CkfmCTb1pJWx2kd)에서 내보낸 분석 결과를 바탕으로,
+이 폴더는 통(https://claude.ai/artifact/Gaiius2CkfmCTb1pJWx2kd)에서 내보낸 분석 결과를 바탕으로,
 사회과학 석사논문의 결과·논의 초안을 함께 쓰는 곳이다. 너는 연구자를 돕는 통계 해석 조교다.
 
 ## 파일 위치
-- ㅌㅗㅇ의 **연구 폴더**라면 파일이 하위 폴더에 있다: \`2_data/analysis_data.csv\`, \`3_analysis/analysis.R\`, \`4_interpretation/interpretation.json\`. 파일을 하나씩 받아 넣었다면 모두 이 폴더 맨 위에 있다. 둘 중 있는 곳을 찾아서 쓴다.
-- 만드는 파일은 입력 파일 옆에 둔다: \`R_output.txt\`·\`R_results.csv\`는 \`analysis.R\` 옆, \`draft.md\`·\`review.md\`는 \`interpretation.json\` 옆, \`decision_log.md\`는 이 폴더 맨 위. ㅌㅗㅇ은 이 위치에서 파일을 읽어 와 대조·점검한다.
-- \`project.json\`, \`README.md\`, \`1_survey\`의 파일은 ㅌㅗㅇ이 관리하니 고치지 않는다.
+- 통의 **연구 폴더**라면 파일이 하위 폴더에 있다: \`2_data/analysis_data.csv\`, \`3_analysis/analysis.R\`, \`4_interpretation/interpretation.json\`. 파일을 하나씩 받아 넣었다면 모두 이 폴더 맨 위에 있다. 둘 중 있는 곳을 찾아서 쓴다.
+- 만드는 파일은 입력 파일 옆에 둔다: \`R_output.txt\`·\`R_results.csv\`는 \`analysis.R\` 옆, \`draft.md\`·\`review.md\`는 \`interpretation.json\` 옆, \`decision_log.md\`는 이 폴더 맨 위. 통은 이 위치에서 파일을 읽어 와 대조·점검한다.
+- \`project.json\`, \`README.md\`, \`1_survey\`의 파일은 통이 관리하니 고치지 않는다.
 
 ## 시작할 때
-첫 답에서 "ㅌㅗㅇ 해석 모드입니다."라고 말하고, 같은 폴더의 \`interpretation.json\`을 읽은 뒤 다음 순서로 진행한다.
-파일이 없으면 ㅌㅗㅇ의 결과 해석 메뉴 → [Claude Code] → [interpretation.json 받기]로 받아 이 폴더에 넣으라고 안내한다.
+첫 답에서 "통 해석 모드입니다."라고 말하고, 같은 폴더의 \`interpretation.json\`을 읽은 뒤 다음 순서로 진행한다.
+파일이 없으면 통의 결과 해석 메뉴 → [Claude Code] → [interpretation.json 받기]로 받아 이 폴더에 넣으라고 안내한다.
 
 ## 진행 순서
 1. **의도 확인**: 해석하기 전에 아래를 한국어로 보여 주고, 연구자가 답할 때까지 기다린다.
 ${CHECK_TASK.replace(/^할 일:\n/, '').split('\n').map(l => '   ' + l).join('\n')}
 2. **초안 쓰기**: 연구자가 답하면 \`draft.md\` 파일을 만들어 아래 형식으로 쓴다. 연구자가 고쳐 달라고 하면 그 파일을 고친다.
 3. **스스로 점검**: 다 쓴 뒤 초안의 숫자가 모두 \`interpretation.json\`에 그대로 있는지, 가설마다 판정과 같게 썼는지, 금지 표현이 없는지 확인하고 결과를 짧게 알린다.
-4. **마무리 안내**: "초안을 ㅌㅗㅇ 결과 해석 메뉴의 [초안 점검] 칸에 붙여 넣으면 숫자와 판정을 한 번 더 점검합니다."라고 알린다.
+4. **마무리 안내**: "초안을 통 결과 해석 메뉴의 [초안 점검] 칸에 붙여 넣으면 숫자와 판정을 한 번 더 점검합니다."라고 알린다.
 
 ## 반드시 지킬 것
 아래에서 [연구 자료]는 \`interpretation.json\`을 말한다.
@@ -5493,14 +5497,14 @@ ${writingRules()}
 ${TEXT_FORMAT}
 
 ## "R로 분석해줘"라고 하면
-이 폴더의 \`analysis.R\`과 \`analysis_data.csv\`로 R 분석을 실행한다. \`analysis.R\`은 ㅌㅗㅇ이 연구자의 분석 결정대로 만든 코드다. 파일 이름이 \`analysis.R.txt\`이면 \`analysis.R\`로 바꾼다.
+이 폴더의 \`analysis.R\`과 \`analysis_data.csv\`로 R 분석을 실행한다. \`analysis.R\`은 통이 연구자의 분석 결정대로 만든 코드다. 파일 이름이 \`analysis.R.txt\`이면 \`analysis.R\`로 바꾼다.
 1. \`Rscript --version\`으로 R이 있는지 확인한다. 없으면 설치 방법을 알려 준다 (맥·윈도우: https://cran.r-project.org 설치 파일, 맥은 \`brew install r\`도 가능). 연구자가 허락하면 설치를 돕는다.
 2. \`analysis.R\`이 있는 폴더에서 \`Rscript analysis.R > R_output.txt 2>&1\`로 실행한다 (연구 폴더라면 \`cd 3_analysis\` 후). 추가 패키지는 필요 없다.
 3. 숫자는 \`R_output.txt\`와 \`R_results.csv\`에 나온 값만 쓴다. 직접 계산하거나 고치지 않는다.
 4. \`analysis.R\`의 분석 내용(변인, 방법, 분석 결정)을 바꾸지 않는다. 실행 오류가 나면 원인을 설명하고, 파일 경로·인코딩처럼 분석과 관계없는 문제만 연구자의 허락을 받아 고친다. 고친 것은 \`decision_log.md\`에 적는다.
 5. \`analysis_data.csv\`의 내용을 화면에 출력하거나 대화에 옮기지 않는다. 열 이름 확인만 한다.
 6. R 출력에 계획에 없던 문제(경고, 수렴 실패, 가정이 크게 어긋남 등)가 보이면 멈추고, 선택지와 각 선택의 결과를 쉬운 말로 설명해 연구자에게 묻는다. 연구자가 고른 것과 이유를 \`decision_log.md\`에 "결과를 본 뒤의 결정"으로 적는다. 더 유의하게 나오는 쪽을 권하지 않는다.
-7. 끝나면 주요 결과를 짧은 표로 보여 주고, "R_output.txt 내용을 ㅌㅗㅇ 분석 결정·계산 화면의 [R 결과와 맞춰 보기]에 붙여 넣으면 숫자를 대조합니다."라고 알린다.
+7. 끝나면 주요 결과를 짧은 표로 보여 주고, "R_output.txt 내용을 통 분석 결정·계산 화면의 [R 결과와 맞춰 보기]에 붙여 넣으면 숫자를 대조합니다."라고 알린다.
 
 ## "허점 점검해줘"라고 하면
 \`draft.md\`(연구자가 다른 파일을 말하면 그 파일)를 읽고 깐깐한 동료로서 점검한다. 글을 고치지 않고 \`review.md\` 파일에 아래 형식으로 쓴다.
@@ -5520,7 +5524,7 @@ ${REVIEW_RULES}
 `;
   }
   function exportJson() {
-    return JSON.stringify({ 안내: 'ㅌㅗㅇ에서 내보낸 해석 자료입니다. 판정은 ㅌㅗㅇ의 코드가 정했고, 숫자는 계산 결과를 그대로 옮겼습니다. 이 파일은 고치지 마세요.', 내보낸_날짜: today(), 판정_규칙: '간접효과는 부트스트랩 95% 신뢰구간이 0을 포함하지 않으면 유의, 나머지는 p < .05이면 유의. 예상 방향과 같을 때만 지지.', 예시_자료: analyses.some(a => a.sample), ...payload() }, null, 2);
+    return JSON.stringify({ 안내: '통에서 내보낸 해석 자료입니다. 판정은 통의 코드가 정했고, 숫자는 계산 결과를 그대로 옮겼습니다. 이 파일은 고치지 마세요.', 내보낸_날짜: today(), 판정_규칙: '간접효과는 부트스트랩 95% 신뢰구간이 0을 포함하지 않으면 유의, 나머지는 p < .05이면 유의. 예상 방향과 같을 때만 지지.', 예시_자료: analyses.some(a => a.sample), ...payload() }, null, 2);
   }
 
   // 붙여 넣은 초안 읽기: JSON이면 그대로, 아니면 [결과] [논의] 등 제목으로 나눔
@@ -5651,7 +5655,7 @@ ${REVIEW_RULES}
     else if (act === 'check' || act === 'write') askAI(act, !!b.dataset.fresh);
     else if (act === 'tmpl') {
       if (!intent.hyps.some(h => norm(h.text) && h.effect)) { toast('가설 문장을 적고 검증할 효과를 먼저 골라 주세요.'); return; }
-      const o = templateDraft(); Object.assign(o, postCheck(o)); o.sample = analyses.some(a => a.sample); o.src = 'ㅌㅗㅇ 틀 (AI 없음)';
+      const o = templateDraft(); Object.assign(o, postCheck(o)); o.sample = analyses.some(a => a.sample); o.src = '통 틀 (AI 없음)';
       intent.out = o; saveIntent(); renderInterp(); $('#in-out')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
     else if (act === 'stop') aiCtl?.abort();
@@ -5693,7 +5697,7 @@ ${REVIEW_RULES}
   const TONG_URL = 'https://aninsong77-dotcom.github.io/tong/';
   const GUIDE = [
     { id: 'start', group: '시작하기', title: '처음 오셨나요', body: `
-      <p class="g-sum">ㅌㅗㅇ은 <b>통계 기법 고르기 → 설문 만들기 → 설계 점검 → 응답 모으기 → 자료 점검 → 계산 → 해석</b>을 한곳에서 돕습니다. 통계 용어를 몰라도 됩니다.</p>
+      <p class="g-sum">통은 <b>통계 기법 고르기 → 설문 만들기 → 설계 점검 → 응답 모으기 → 자료 점검 → 계산 → 해석</b>을 한곳에서 돕습니다. 통계 용어를 몰라도 됩니다.</p>
       <h3>순서</h3>
       <ol class="flow">
         <li><a href="#guide-ladder">통계 기법 고르기</a> — 질문에 답하면 기법이 정해집니다.</li>
@@ -5737,7 +5741,7 @@ ${REVIEW_RULES}
       <p class="g-sum">내 컴퓨터 폴더를 연결하면 작업이 그 폴더에 <b>파일로 자동 저장</b>됩니다. 연구 하나에 폴더 하나입니다.</p>
       <h3>준비</h3>
       <ul>
-        <li>PC의 <b>크롬·엣지·웨일</b>에서 <a href="${TONG_URL}" target="_blank" rel="noopener">ㅌㅗㅇ 웹 주소</a>로 엽니다. 설치는 없습니다.</li>
+        <li>PC의 <b>크롬·엣지·웨일</b>에서 <a href="${TONG_URL}" target="_blank" rel="noopener">통 웹 주소</a>로 엽니다. 설치는 없습니다.</li>
         <li>claude.ai 링크, 사파리, 파이어폭스, 휴대폰에서는 연결이 안 됩니다. 이때는 [연구 폴더 zip 받기]로 백업하세요.</li>
       </ul>
       <div class="gstep"><b>STEP 1. 연결</b><p>위 띠 <b>[📁 연구 폴더]</b> → <b>[연구 폴더 연결]</b> → 새 폴더를 고르고 "편집 허용"을 누릅니다.</p></div>
@@ -5750,7 +5754,7 @@ ${REVIEW_RULES}
 ├─ 2_data/            분석용 자료, 문항 분석 (+ 응답 원자료: 고를 때만)
 ├─ 3_analysis/        분석 계획서, R 코드, 결과표
 └─ 4_interpretation/  해석 자료, 초안</pre></div>
-      <div class="gstep"><b>STEP 3. AI에게 맡기기 (선택)</b><p>같은 폴더를 Claude Code로 열면 해석, R 분석, 허점 점검을 맡길 수 있습니다. 결과 파일은 ㅌㅗㅇ이 저절로 읽어 옵니다. <a href="#guide-claude-code">따라 하기</a></p></div>
+      <div class="gstep"><b>STEP 3. AI에게 맡기기 (선택)</b><p>같은 폴더를 Claude Code로 열면 해석, R 분석, 허점 점검을 맡길 수 있습니다. 결과 파일은 통이 저절로 읽어 옵니다. <a href="#guide-claude-code">따라 하기</a></p></div>
       <div class="gstep"><b>STEP 4. 다음에 이어 하기</b><p>같은 브라우저로 다시 열고 <b>[다시 연결]</b>을 누릅니다.</p></div>
       <div class="gnote"><b>응답 원자료 저장</b>은 기본으로 꺼져 있습니다. 켜면 다시 열 때 응답을 다시 넣지 않아도 됩니다. 폴더가 구글 드라이브처럼 동기화되는 곳이면 개인정보 규정을 먼저 확인하세요.</div>` },
 
@@ -5761,7 +5765,7 @@ ${REVIEW_RULES}
         <li><b>변인</b>: 연구에 쓰는 변인을 적습니다. 점수(척도)인지, 집단으로 나뉘는지(성별 등) 고르고, 하위 차원이 있으면 개수를 고릅니다. 논문 제목을 적으면 제목에서 모형을 짐작해 줍니다.</li>
         <li><b>모형 카드</b>: 가설마다 집단 차이 · 관계 · 영향 · 매개 · 순차매개 · 조절 · 조절된 매개 중 그림을 고릅니다.</li>
         <li><b>빈칸 채우기</b>: 원인·매개·결과 칸에 변인을 넣고 예상 방향을 고르면 논문 문체의 가설 문장과 연구모형 그림이 만들어집니다. 매개모형은 a·b·c 경로마다 가설을 따로 세울 수 있고, 경로를 관계(상관)로 볼지 영향(PROCESS 경로계수)으로 볼지 고릅니다.</li>
-        <li><b>할 수 있는 분석</b>: 그 모형에 쓰이는 분석이 모두 나옵니다. 추천 표시가 있는 것이 기본이고, 주 분석 하나와 보조 분석을 고릅니다. ㅌㅗㅇ이 계산하지 않는 분석은 '안내만'으로 표시합니다. <b>고른 이유</b>를 한두 줄 적어 두면 심사 준비가 됩니다.</li>
+        <li><b>할 수 있는 분석</b>: 그 모형에 쓰이는 분석이 모두 나옵니다. 추천 표시가 있는 것이 기본이고, 주 분석 하나와 보조 분석을 고릅니다. 통이 계산하지 않는 분석은 '안내만'으로 표시합니다. <b>고른 이유</b>를 한두 줄 적어 두면 심사 준비가 됩니다.</li>
         <li>이미 써 둔 가설이 있으면 [붙여 넣기]로 카드를 만들 수 있습니다. 못 읽은 문장은 모형만 고르면 됩니다.</li>
         <li>빈칸이 다 차면 <b>[가설 확정하고 설문 만들기로 →]</b>. 변인은 설문에, 가설은 결과 해석에 채워집니다.</li>
       </ol>
@@ -5854,7 +5858,7 @@ ${REVIEW_RULES}
       <div class="gstep"><b>STEP 3. 실행</b><p>위쪽 함수가 <code>createSurvey</code>인지 보고 [실행]을 누릅니다. 처음 한 번은 [권한 검토] → 내 계정 → [고급] → [(프로젝트)(으)로 이동] → [허용]. 내가 만든 스크립트라서 나오는 확인입니다.</p></div>
       <div class="gstep"><b>STEP 4. 배포</b><p>아래 [실행 로그]에 링크 세 개가 나옵니다.</p>
         <ul><li><b>응답자용 링크</b>: 카톡, 메일로 보냅니다.</li><li><b>폼 고치기</b>: 마감 설정 등</li><li><b>응답 시트</b>: 응답이 쌓이는 곳</li></ul></div>
-      <div class="gnote">문항을 구글 폼에서 직접 고치면 나중에 응답이 자동으로 연결되지 않을 수 있습니다. ㅌㅗㅇ에서 고치고 스크립트를 다시 만드세요.</div>` },
+      <div class="gnote">문항을 구글 폼에서 직접 고치면 나중에 응답이 자동으로 연결되지 않을 수 있습니다. 통에서 고치고 스크립트를 다시 만드세요.</div>` },
 
     { id: 'collect', group: '단계별 사용법', title: '⑥ 응답 취합·정리', kw: '응답 CSV 점수 신뢰도', tab: 'collect', body: `
       <p class="g-sum">응답 파일을 넣으면 변인 점수와 신뢰도가 나옵니다.</p>
@@ -5868,7 +5872,7 @@ ${REVIEW_RULES}
       <table class="gtable"><tbody>
         <tr><td>중복 응답</td><td>모든 답이 똑같은 응답. 기본으로 뒤의 것을 뺍니다.</td></tr>
         <tr><td>이상치</td><td>변인 점수 |z| > 3.29, 마할라노비스 거리 p < .001. 기본은 빼지 않고 목록만 보여 줍니다. 뺄지는 연구자가 정합니다.</td></tr>
-        <tr><td>빠진 값</td><td>문항별·사람별로 셉니다. 한 변인의 문항 80% 이상 답했으면 답한 문항 평균으로 점수를 냅니다. ㅌㅗㅇ이 만든 구글 폼은 필수 응답이라 보통 없습니다.</td></tr>
+        <tr><td>빠진 값</td><td>문항별·사람별로 셉니다. 한 변인의 문항 80% 이상 답했으면 답한 문항 평균으로 점수를 냅니다. 통이 만든 구글 폼은 필수 응답이라 보통 없습니다.</td></tr>
       </tbody></table>
       <p>몇 명이 왜 빠졌는지 <b>흐름</b>으로 보여 줍니다. 논문의 자료 처리 문단에 그대로 쓰세요.</p>
       <div class="gnote"><b>예비조사</b>(30~50명)를 먼저 했다면 그 응답을 넣을 때 [예비조사]를 고르세요. 계산 결과에 예비조사 표시가 붙고, 문항과 모형을 다듬는 데만 씁니다.</div>
@@ -5948,8 +5952,8 @@ ${REVIEW_RULES}
       <p>결과를 보고 유의하게 나오는 쪽으로 방법을 바꾸면 우연한 결과를 진짜처럼 보고하게 됩니다(p-해킹). 확정한 뒤 바꾸면 <b>사후 변경</b>으로 기록되고 이유를 적게 됩니다. <b>[분석 계획서 받기]</b>로 받아 논문 부록에 쓸 수 있습니다.</p>` },
 
     { id: 'r', group: '단계별 사용법', title: '⑩-2 R·SPSS로 확인하기', kw: 'R RStudio SPSS 명령문 syntax PROCESS 재계산 대조', tab: 'analysis', body: `
-      <p class="g-sum">ㅌㅗㅇ의 숫자를 무료 통계 프로그램 <b>R</b>로 다시 계산해 맞는지 봅니다. R 문법은 몰라도 됩니다.</p>
-      <ul><li>R 코드는 ㅌㅗㅇ이 분석 결정 그대로 만듭니다.</li><li>기본 R만 씁니다. 추가 설치가 없습니다.</li></ul>
+      <p class="g-sum">통의 숫자를 무료 통계 프로그램 <b>R</b>로 다시 계산해 맞는지 봅니다. R 문법은 몰라도 됩니다.</p>
+      <ul><li>R 코드는 통이 분석 결정 그대로 만듭니다.</li><li>기본 R만 씁니다. 추가 설치가 없습니다.</li></ul>
       <div class="gstep"><b>STEP 1. 파일 받기</b><p>오른쪽 [결과] 탭의 <b>R로 확인하기</b>에서 <code>analysis_data.csv</code>와 <code>analysis.R</code>을 받아 한 폴더에 둡니다. 연구 폴더를 연결했다면 이미 들어 있습니다. 파일 이름이 <code>analysis.R.txt</code>로 저장되면 <code>.txt</code>를 지우세요.</p></div>
       <div class="gstep"><b>STEP 2-가. AI에게 맡기기</b><p>Claude Code로 그 폴더를 열고 <b>"R로 분석해줘"</b>. 결과가 <code>R_output.txt</code>로 남습니다. <a href="#guide-claude-code">따라 하기</a></p></div>
       <div class="gstep"><b>STEP 2-나. 직접 실행</b><p><a href="https://posit.co/download/rstudio-desktop/" target="_blank" rel="noopener">R과 RStudio</a>를 설치하고 <code>analysis.R</code>을 연 뒤 [Source]를 누릅니다.</p></div>
@@ -5961,7 +5965,7 @@ ${REVIEW_RULES}
       <div class="gstep"><b>STEP 3. 대조</b><p>각 결과 아래 <b>[SPSS와 맞춰 보기]</b>를 열면 SPSS 출력의 어느 표, 어느 칸을 보면 되는지 적혀 있습니다. 보이는 숫자를 그대로 적으면 적은 자릿수만큼 반올림해 비교합니다.</p>
         <ul><li>✓ 같음</li><li>≈ 부트스트랩 신뢰구간이라 조금 다름 (정상)</li><li>± 부호만 다름: 집단·범주 순서가 반대인 경우</li><li>✗ 다름: 변인, 제외된 응답, 분석 결정이 같은지 먼저 확인</li></ul></div>
       <div class="gnote">매개·조절 분석은 Hayes의 <b>PROCESS 매크로</b>(무료)가 SPSS에 설치되어 있어야 합니다. 반복측정·혼합설계는 SPSS의 GLM 반복측정을, 나머지는 SPSS 기본 메뉴와 같은 명령을 씁니다.</div>
-      <div class="gnote">논문에는 "ㅌㅗㅇ으로 분석하고 R(또는 SPSS)로 재계산해 확인하였다"처럼 적을 수 있습니다.</div>` },
+      <div class="gnote">논문에는 "통으로 분석하고 R(또는 SPSS)로 재계산해 확인하였다"처럼 적을 수 있습니다.</div>` },
 
     { id: 'interp', group: '단계별 사용법', title: '⑪ 결과 해석', tab: 'interp', body: `
       <p class="g-sum">가설마다 지지·기각을 <b>코드가 판정</b>하고, AI는 그 판정과 숫자 그대로 초안을 씁니다.</p>
@@ -5989,7 +5993,7 @@ ${REVIEW_RULES}
         <tr><td>다중비교·유의성</td><td>사후검정, α 수준, 통계적 유의성과 실질적 의미 구별</td></tr>
       </tbody></table>
       <p><span class="ck ok" style="display:inline-grid">✓</span> 갖춤 &nbsp; <span class="ck warn" style="display:inline-grid">!</span> 확인 필요 &nbsp; <span class="ck na" style="display:inline-grid">–</span> 해당 없음</p>
-      <p>'확인 필요'는 ㅌㅗㅇ이 계산하지 않는 것이거나 가정이 어긋난 것입니다. SPSS·jamovi로 보충하거나 연구의 한계에 적으세요.</p>
+      <p>'확인 필요'는 통이 계산하지 않는 것이거나 가정이 어긋난 것입니다. SPSS·jamovi로 보충하거나 연구의 한계에 적으세요.</p>
       <h3>허점 점검 (AI)</h3>
       <p>왼쪽 메뉴 <b>허점 점검 (AI)</b>에서 결과·논의 글을 넣으면, AI가 심사위원처럼 약한 곳을 <b>질문</b>합니다. 글은 고치지 않습니다.</p>
       <ul><li>인과 해석, 반대 방향, 제3의 변인</li><li>작은 효과를 크게 쓴 곳, 지나친 일반화</li><li>측정 문제, 체크리스트의 '확인 필요'를 넘어간 곳</li></ul>
@@ -6011,7 +6015,7 @@ ${REVIEW_RULES}
         <li><b>[② 초안 쓰기 지시문 복사]</b> → 같은 채팅에 붙여 넣기</li>
         <li>AI의 초안을 <b>[초안 점검]</b> 칸에 붙여 넣고 [초안 점검하기]</li>
       </ol>
-      <div class="gnote">어느 방식이든 <b>판정은 코드가 정하고, 초안의 숫자와 판정은 ㅌㅗㅇ이 다시 점검</b>합니다. AI에게는 연구 의도와 집계된 결과표만 갑니다. 응답 원자료는 가지 않습니다.</div>
+      <div class="gnote">어느 방식이든 <b>판정은 코드가 정하고, 초안의 숫자와 판정은 통이 다시 점검</b>합니다. AI에게는 연구 의도와 집계된 결과표만 갑니다. 응답 원자료는 가지 않습니다.</div>
       <p class="hint">Claude 바로 쓰기 링크: <a href="${ARTIFACT_URL}" target="_blank" rel="noopener">${ARTIFACT_URL}</a> (만든 사람이 공유를 켜야 다른 사람이 열 수 있습니다)</p>` },
 
     { id: 'claude-code', group: 'AI 연결', title: 'Claude Code로 맡기기', kw: 'Claude Code 클로드 데스크톱 터미널 폴더 방식', tab: 'interp', body: `
@@ -6019,10 +6023,10 @@ ${REVIEW_RULES}
       <p>채팅과 다른 점: AI가 폴더의 파일을 직접 읽고, R을 직접 실행하고, 결과를 파일로 남깁니다. 복사·붙여 넣기가 없습니다.</p>
       <h3>방법 1. Claude 데스크톱 앱 (추천 · 터미널 없음)</h3>
       <div class="gstep"><b>STEP 1. 앱 설치</b><p><a href="https://claude.ai/download" target="_blank" rel="noopener">Claude 데스크톱 앱</a>을 설치하고 로그인합니다.</p></div>
-      <div class="gstep"><b>STEP 2. 연구 폴더 연결</b><p>ㅌㅗㅇ에서 <b>[📁 연구 폴더] → [연구 폴더 연결]</b>. 필요한 파일이 저절로 들어갑니다. <a href="#guide-folder">연구 폴더</a></p></div>
+      <div class="gstep"><b>STEP 2. 연구 폴더 연결</b><p>통에서 <b>[📁 연구 폴더] → [연구 폴더 연결]</b>. 필요한 파일이 저절로 들어갑니다. <a href="#guide-folder">연구 폴더</a></p></div>
       <div class="gstep"><b>STEP 3. 앱에서 폴더 열기</b><p>앱 위쪽 <b>Code</b> 탭 → <b>Local</b> → <b>Select folder</b> → 연구 폴더</p></div>
-      <div class="gstep"><b>STEP 4. 말로 시키기</b><p><b>"해석해 줘"</b>, <b>"R로 분석해줘"</b>, <b>"허점 점검해줘"</b>. 첫 답에 "ㅌㅗㅇ 해석 모드입니다."가 나오면 성공입니다. 허락을 물으면 확인하고 허용하세요. R 분석은 컴퓨터에 <a href="https://cran.r-project.org/" target="_blank" rel="noopener">R</a>이 있어야 합니다.</p></div>
-      <div class="gstep"><b>STEP 5. 결과 보기</b><p>Claude가 만든 초안, R 결과, 허점 점검은 ㅌㅗㅇ 창을 다시 누르면 저절로 들어옵니다.</p></div>
+      <div class="gstep"><b>STEP 4. 말로 시키기</b><p><b>"해석해 줘"</b>, <b>"R로 분석해줘"</b>, <b>"허점 점검해줘"</b>. 첫 답에 "통 해석 모드입니다."가 나오면 성공입니다. 허락을 물으면 확인하고 허용하세요. R 분석은 컴퓨터에 <a href="https://cran.r-project.org/" target="_blank" rel="noopener">R</a>이 있어야 합니다.</p></div>
+      <div class="gstep"><b>STEP 5. 결과 보기</b><p>Claude가 만든 초안, R 결과, 허점 점검은 통 창을 다시 누르면 저절로 들어옵니다.</p></div>
       <p class="hint">앱 메뉴 이름이 다르면 <a href="https://code.claude.com/docs/en/desktop-quickstart" target="_blank" rel="noopener">공식 안내</a>를 보세요.</p>
       <h3>방법 2. 터미널 (익숙한 분)</h3>
       <div class="gstep"><b>설치 (처음 한 번)</b>
@@ -6037,7 +6041,7 @@ ${REVIEW_RULES}
 
     { id: 'faq', group: '도움말', title: '자주 묻는 질문', body: `
       <dl class="faq">
-        <dt>돈이 드나요?</dt><dd>ㅌㅗㅇ과 구글 폼은 무료입니다. AI는 무료 계정으로도 쓸 수 있습니다. Claude Code만 유료 요금제가 필요합니다.</dd>
+        <dt>돈이 드나요?</dt><dd>통도 구글 폼도 무료입니다. AI는 무료 계정으로도 쓸 수 있습니다. Claude Code만 유료 요금제가 필요합니다.</dd>
         <dt>내 자료는 어디에 저장되나요?</dt><dd>연구 폴더를 연결하면 그 폴더에, 아니면 이 브라우저에만 저장됩니다. 브라우저 기록을 지우면 사라지니 [연구 폴더 zip 받기]로 백업하세요.</dd>
         <dt>다시 여니 점수가 없어요.</dt><dd>응답 원자료는 저장하지 않습니다. [응답 취합]에 CSV를 다시 넣고 [점수 만들기]를 누르세요. 계산 결과표는 남아 있습니다.</dd>
         <dt>SPSS 결과와 조금 달라요.</dt><dd>제외한 응답(동의 안 함, 빈 응답, 불성실)과 역문항 표시가 같은지 보세요. 부트스트랩 신뢰구간은 프로그램마다 소수 셋째 자리가 조금 다를 수 있습니다.</dd>
@@ -6513,7 +6517,7 @@ ${reviewText()}
   }
 
   function planText() {
-    const lines = ['# 분석 계획서 — ㅌㅗㅇ', '', `작성: ${today()}`, `확정: ${plan.locked || '확정하지 않음'}`, '', '## 결정'];
+    const lines = ['# 분석 계획서 — 통', '', `작성: ${today()}`, `확정: ${plan.locked || '확정하지 않음'}`, '', '## 결정'];
     DECISIONS.forEach(d => lines.push(`- ${d.q} → **${decLabel(d, d.get())}**${d.scope === 'data' ? '' : ` (해당: ${d.scope.map(m => METHODS[m]?.name || m).join(', ')})`}`));
     lines.push('', '## 정해진 기본값'); FIXED.forEach(([k, v]) => lines.push(`- ${k}: ${v}`));
     lines.push('', '## 결정 기록');
@@ -6562,7 +6566,7 @@ eff <- function(label, est, lo = NA, hi = NA, p = NA) {
 }
 num <- function(col) as.numeric(d[[col]])
 catf <- function(col, lv) factor(d[[col]], levels = unique(c(lv, setdiff(unique(na.omit(d[[col]])), lv))))
-# 분류 변인 → 더미 (첫 범주가 기준). 이름은 ㅌㅗㅇ과 같게
+# 분류 변인 → 더미 (첫 범주가 기준). 이름은 통에서와 같게
 dum <- function(f, name) {
   f <- droplevels(f); lv <- levels(f)
   m <- sapply(lv[-1], function(l) as.numeric(f == l)); m <- matrix(m, ncol = length(lv) - 1)
@@ -6749,7 +6753,7 @@ for (j in seq_along(pts)) eff(paste0("조건부 간접효과 (", ${rq(W)}, " ", 
     const parts = ok.map((a, i) => `
 # ---------------------------------------------------------------------
 # [${i + 1}] ${a.title}
-#     ㅌㅗㅇ 계산: ${a.at}, N = ${a.n}
+#     통 계산: ${a.at}, N = ${a.n}
 ${a.conf ? `#     구분: ${confLabel(a)}\n` : ''}${(a.decisions || []).map(x => `#     분석 결정: ${x}`).join('\n')}
 # ---------------------------------------------------------------------
 AID <- ${rq(a.id)}; cat("\\nANALYSIS\\t", AID, "\\t", ${rq(a.title)}, "\\n", sep = "")
@@ -6757,9 +6761,9 @@ local({
 ${RGEN[a.spec.method](a.spec).split('\n').map(l => '  ' + l).join('\n')}
 })`);
     return `# =====================================================================
-# ㅌㅗㅇ R 분석 코드 — 만든 날 ${today()}
+# 통 R 분석 코드 — 만든 날 ${today()}
 # 연구자가 정한 분석 결정을 그대로 따르는 코드입니다. 기본 R만 씁니다 (추가 패키지 없음).
-# 결정을 바꾸려면 코드를 고치지 말고 ㅌㅗㅇ에서 바꾼 뒤 다시 받으세요.
+# 결정을 바꾸려면 코드를 고치지 말고 통에서 바꾼 뒤 다시 받으세요.
 #
 # 분석 결정
 ${DECISIONS.map(d => `#   - ${d.q} → ${decLabel(d, d.get())}`).join('\n')}
@@ -6768,7 +6772,7 @@ ${plan.log.filter(l => l.after).map(l => `#   * 사후 변경: ${l.q} ${l.from} 
 # 실행: 이 파일과 analysis_data.csv를 같은 폴더에 두고 (연구 폴더라면 3_analysis 폴더에서 그대로)
 #   터미널:  Rscript analysis.R > R_output.txt
 #   RStudio: 파일을 열고 [Source]
-# 끝에 나오는 EFFECT 줄을 ㅌㅗㅇ [R 결과와 맞춰 보기]에 붙여 넣으면 숫자를 대조합니다.
+# 끝에 나오는 EFFECT 줄을 통 [R 결과와 맞춰 보기]에 붙여 넣으면 숫자를 대조합니다.
 # =====================================================================
 ${R_HEAD}${parts.join('\n')}
 
@@ -6837,7 +6841,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
           <li>결과의 숫자를 각 결과 아래 <b>[SPSS와 맞춰 보기]</b>에 적기 → ✓가 나오면 같은 값</li></ol>
         <p class="hint">매개·조절은 Hayes의 PROCESS 매크로(무료)가 SPSS에 설치되어 있어야 합니다. 부트스트랩 신뢰구간은 재표집 때문에 소수 둘째 자리쯤에서 조금 다를 수 있습니다(정상).</p></div>
       <h4 style="margin:14px 0 4px">R로 확인하기</h4>
-      <p class="hint">ㅌㅗㅇ의 숫자를 표준 통계 프로그램인 R로 다시 계산해 대조합니다. R 코드는 위의 분석 결정을 그대로 따르고, 추가 패키지 없이 기본 R만 씁니다. AI가 숫자를 만들지 않습니다.</p>
+      <p class="hint">통의 숫자를 표준 통계 프로그램인 R로 다시 계산해 대조합니다. R 코드는 위의 분석 결정을 그대로 따르고, 추가 패키지 없이 기본 R만 씁니다. AI가 숫자를 만들지 않습니다.</p>
       <div class="chat-steps">
         <div class="chat-step"><span class="n">1</span><div><b>두 파일을 받아 한 폴더에 넣기</b>
           <div class="actions tight"><button class="btn sm primary" data-an-act="r-data" ${lastScored ? '' : 'disabled'}>analysis_data.csv 받기</button><button class="btn sm primary" data-an-act="r-code" ${n ? '' : 'disabled'}>analysis.R 받기 (분석 ${n}개)</button></div>
@@ -6891,10 +6895,10 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
 
   // ---------- 프로젝트 상태 ----------
   function projectState() {
-    return { app: 'ㅌㅗㅇ', version: '0.12', savedAt: new Date().toISOString(), path, vars, sv, plan, anSel, analyses, intent, log, hyp: (typeof hp !== 'undefined' && hp) || null, model: (typeof md !== 'undefined' && md) || null, rules: customRules ? RULES : null };
+    return { app: '통', version: '0.12', savedAt: new Date().toISOString(), path, vars, sv, plan, anSel, analyses, intent, log, hyp: (typeof hp !== 'undefined' && hp) || null, model: (typeof md !== 'undefined' && md) || null, rules: customRules ? RULES : null };
   }
   function applyProject(o) {
-    if (!o || (o.app !== 'ㅌㅗㅇ' && o.app !== '\uD1B5\uACC4 \uC0AC\uB2E4\uB9AC')) throw new Error('ㅌㅗㅇ 프로젝트 파일이 아닙니다.');
+    if (!o || !['통', '통', '\uD1B5\uACC4 \uC0AC\uB2E4\uB9AC'].includes(o.app)) throw new Error('통 프로젝트 파일이 아닙니다.');
     if (o.rules && !checkRules(o.rules).length) { RULES = o.rules; customRules = true; store.set('ladder.rules', o.rules); }
     vars = o.vars || vars; if (!Array.isArray(vars.others)) vars.others = []; saveVars();
     sv = o.sv || blankSurvey(); saveSv();
@@ -6924,7 +6928,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
     const F = [
       ['CLAUDE.md', claudeMd()],
       ['project.json', JSON.stringify(projectState(), null, 1)],
-      ['README.md', `# ㅌㅗㅇ 연구 폴더\n\nㅌㅗㅇ이 자동으로 저장하는 폴더입니다. 마지막 저장: ${new Date().toLocaleString('ko-KR')}\n\n- 1_survey: 설문 설계, 코드북, 구글 폼 스크립트\n- 2_data: 분석용 자료${folderOpts.saveRaw ? ', 응답 원자료' : ''}\n- 3_analysis: 분석 계획서, R 코드, 결과표 (Claude Code가 만든 R_output.txt도 여기)\n- 4_interpretation: 해석 자료 (Claude Code가 만든 draft.md, review.md도 여기)\n\nClaude 데스크톱 앱의 Code 탭 → Local → Select folder로 이 폴더를 열거나(터미널 필요 없음), 이 폴더에서 \`claude\`를 실행하면 Claude Code가 CLAUDE.md의 규칙대로 일합니다.\nproject.json은 ㅌㅗㅇ이 다시 불러올 때 쓰니 고치지 마세요.\n`]
+      ['README.md', `# 통 연구 폴더\n\n통이 자동으로 저장하는 폴더입니다. 마지막 저장: ${new Date().toLocaleString('ko-KR')}\n\n- 1_survey: 설문 설계, 코드북, 구글 폼 스크립트\n- 2_data: 분석용 자료${folderOpts.saveRaw ? ', 응답 원자료' : ''}\n- 3_analysis: 분석 계획서, R 코드, 결과표 (Claude Code가 만든 R_output.txt도 여기)\n- 4_interpretation: 해석 자료 (Claude Code가 만든 draft.md, review.md도 여기)\n\nClaude 데스크톱 앱의 Code 탭 → Local → Select folder로 이 폴더를 열거나(터미널 필요 없음), 이 폴더에서 \`claude\`를 실행하면 Claude Code가 CLAUDE.md의 규칙대로 일합니다.\nproject.json은 통이 다시 불러올 때 쓰니 고치지 마세요.\n`]
     ];
     if (sv.scales.length || sv.demos.length) F.push(['1_survey/survey.md', surveyMd()], ['1_survey/codebook.csv', codebookCsv()], ['1_survey/google_form.gs', buildScript()]);
     if (lastScored) F.push(['2_data/analysis_data.csv', toCsv(analysisRows())], ['2_data/item_analysis.csv', toCsv(itemStatsRows())], ['2_data/data_check.md', prelimMd()]);
@@ -6974,7 +6978,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
     if (pj) {
       let o = null; try { o = JSON.parse(pj.text); } catch (e) {}
       const mine = analyses.length || sv.scales.length || intent.hyps.some(h => norm(h.text));
-      if (o && (o.app === 'ㅌㅗㅇ' || o.app === '\uD1B5\uACC4 \uC0AC\uB2E4\uB9AC')) {
+      if (o && ['통', '통', '\uD1B5\uACC4 \uC0AC\uB2E4\uB9AC'].includes(o.app)) {
         if (o.savedAt && o.savedAt === store.get('ladder.folderSavedAt', '')) { await saveFolder(); }   // 이 브라우저가 마지막으로 저장한 그대로
         else if (!mine) { await loadFromFolder(o); toast(`'${dirHandle.name}' 폴더의 연구를 불러왔습니다.`); }
         else folderInfo.pending = o;     // 화면에도 내용이 있으면 고르게 함
@@ -7069,7 +7073,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
     const bar = $('#folder-bar'); if (!bar) return;
     const zipBtns = `<button class="btn sm" data-fd="zip">연구 폴더 zip 받기</button><label class="btn sm" style="cursor:pointer">불러오기<input type="file" id="fd-import" accept=".json,.zip" hidden></label>`;
     let h;
-    if (!FS_OK) h = `<div class="fb-main"><span class="fb-icon">📁</span><div><b>연구 폴더</b><span>이 화면에서는 폴더 연결을 쓸 수 없습니다 (claude.ai 링크, 휴대폰, 사파리·파이어폭스). PC의 크롬·엣지·웨일에서 <a href="https://aninsong77-dotcom.github.io/tong/" target="_blank" rel="noopener">ㅌㅗㅇ 웹 주소</a>로 열면 폴더에 자동 저장됩니다. <a href="#guide-folder">방법</a></span></div></div><div class="fb-btns">${zipBtns}</div>`;
+    if (!FS_OK) h = `<div class="fb-main"><span class="fb-icon">📁</span><div><b>연구 폴더</b><span>이 화면에서는 폴더 연결을 쓸 수 없습니다 (claude.ai 링크, 휴대폰, 사파리·파이어폭스). PC의 크롬·엣지·웨일에서 <a href="https://aninsong77-dotcom.github.io/tong/" target="_blank" rel="noopener">통 웹 주소</a>로 열면 폴더에 자동 저장됩니다. <a href="#guide-folder">방법</a></span></div></div><div class="fb-btns">${zipBtns}</div>`;
     else if (folderState === 'on') h = `<div class="fb-main"><span class="fb-icon on">📁</span><div><b>${esc(dirHandle.name)}</b><span>${folderInfo.lastErr ? `<span class="a-low">${esc(folderInfo.lastErr)}</span>` : folderInfo.savedAt ? `자동 저장됨 ${esc(folderInfo.savedAt)} · Claude Code가 만든 파일은 이 화면으로 돌아오면 읽어 옵니다` : '연결됨'}</span></div></div>
       <div class="fb-btns"><label class="chk sm"><input type="checkbox" id="fd-raw" ${folderOpts.saveRaw ? 'checked' : ''}> 응답 원자료도 저장</label><button class="btn sm" data-fd="read">폴더 새로 읽기</button>${zipBtns}<button class="btn sm" data-fd="off">연결 끊기</button></div>`;
     else if (folderState === 'need-permission') h = `<div class="fb-main"><span class="fb-icon">📁</span><div><b>${esc(dirHandle?.name || '연구 폴더')}</b><span>지난번에 쓰던 폴더입니다. 다시 연결하면 이어서 저장합니다.</span></div></div><div class="fb-btns"><button class="btn sm primary" data-fd="re">다시 연결</button><button class="btn sm" data-fd="connect">다른 폴더</button>${zipBtns}</div>`;
@@ -7090,7 +7094,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
     else if (a === 're') reconnect();
     else if (a === 'off') disconnectFolder();
     else if (a === 'read') { await readClaudeFiles(); await saveFolder(); toast('폴더를 다시 읽고 저장했습니다.'); }
-    else if (a === 'zip') download(`ㅌㅗㅇ_${(sv.title || '연구').replace(/[^\w가-힣]+/g, '_').slice(0, 20)}_${today()}.zip`, makeZip(folderFiles()), 'application/zip');
+    else if (a === 'zip') download(`통_${(sv.title || '연구').replace(/[^\w가-힣]+/g, '_').slice(0, 20)}_${today()}.zip`, makeZip(folderFiles()), 'application/zip');
     else if (a === 'use-folder') { await loadFromFolder(folderInfo.pending); renderFolderBar(); await readClaudeFiles(true); toast('폴더의 연구를 불러왔습니다.'); }
     else if (a === 'use-screen') { if (!twice(b, '한 번 더 누르면 폴더 내용을 덮어씁니다')) return; folderInfo.pending = null; written.clear(); await saveFolder(); toast('지금 화면 내용으로 폴더에 저장했습니다.'); }
   });
@@ -7297,11 +7301,11 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
   }
   function helperPrompt(q) {
     const recent = thread.filter(m => m.role !== 'sys').slice(-8).map(m => `${m.role === 'me' ? '연구자' : '도우미'}: ${m.text}`).join('\n');
-    return `너는 'ㅌㅗㅇ(통)'의 도우미다. 통계를 잘 모르는 사회과학 대학원생이 통계 기법을 고르고, 설문을 만들고, 분석하고, 결과를 해석하는 것을 돕는다.
+    return `너는 '통'의 도우미다. 통계를 잘 모르는 사회과학 대학원생이 통계 기법을 고르고, 설문을 만들고, 분석하고, 결과를 해석하는 것을 돕는다.
 지킬 것:
 - 쉬운 한국어로 짧게(대개 3~8문장) 답한다. 통계 용어는 괄호로 덧붙인다.
 - 연구자의 결정을 대신 내리지 않는다. 선택지가 있으면 각각의 장단점을 말하고, 이 연구 상황에서 흔히 쓰는 쪽을 근거와 함께 제안하되 결정은 연구자에게 맡긴다.
-- 숫자는 [현재 상태]에 있는 것만 쓴다. 새로 계산하지 않는다. 계산이 필요하면 ㅌㅗㅇ의 어느 단계에서 무엇을 누르면 되는지 안내한다.
+- 숫자는 [현재 상태]에 있는 것만 쓴다. 새로 계산하지 않는다. 계산이 필요하면 통의 어느 단계에서 무엇을 누르면 되는지 안내한다.
 - 가설 판정은 [현재 상태]의 판정을 따른다. 참고문헌을 지어내지 않는다.
 - 마크다운 표나 제목 없이 평범한 문장과 짧은 목록으로 쓴다.
 
@@ -7406,7 +7410,7 @@ ${q}`;
     raw = null; colMap = {}; mapAuto = {}; consentCol = -1; lastScored = null; rawText = '';
     dirHandle = null; folderState = 'off'; folderInfo = { savedAt: '', pending: null, lastErr: '' }; written.clear();
     projReg.cur = id; _set('ladder.projects', projReg);
-    applyProject({ ...o, app: 'ㅌㅗㅇ', log, rules: null });   // 검증 기록과 갈림길 규칙은 모든 연구가 함께 씀
+    applyProject({ ...o, app: '통', log, rules: null });   // 검증 기록과 갈림길 규칙은 모든 연구가 함께 씀
     if (!o.anSel) _set('ladder.anSel', null);
     thread = o.thread || []; _set('ladder.thread', thread);
     seen = o.folderSeen || {}; _set('ladder.folderSeen', seen); _set('ladder.folderSavedAt', o.folderSavedAt || '');
@@ -7561,6 +7565,35 @@ ${q}`;
     if (!reduce && !document.getElementById('splash')) setTimeout(play, 700);   // 시작 애니메이션이 없을 때만 (있으면 그 안에서 합쳐짐)
   })();
 
+  // ---------- 글 속의 '통'(이 앱 이름)을 로고 글씨로: 헤더 로고가 모인 모양 그대로 ----------
+  (function () {
+    const SVG = '<svg viewBox="0 0 22 27" aria-hidden="true" focusable="false"><g fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 1.3H19M2 7.3H18M2 13.3H19M2 1.3V13.3"/><path d="M11 14.6V17.4M1.5 17.4H20.5"/><circle cx="11" cy="22.4" r="3.4"/></g></svg>';
+    // 앞에 한글이 없고(보통·소통 제외), 뒤가 조사·띄어쓰기·문장부호인 '통'만 (통계·통제·통해·통과 제외)
+    const RE = /(^|[^가-힣])통(?=[이은을의에으도만]|[\s,.·:;!?)\]'"’”…\-–—]|$)/g;
+    const SKIP = 'textarea,input,select,option,script,style,svg,code,pre,title,.tw,.no-tw,[contenteditable],.ai-text';
+    const mk = () => { const sp = document.createElement('span'); sp.className = 'tw'; sp.innerHTML = SVG + '<span class="tw-t">통</span>'; return sp; };
+    function fix(root) {
+      if (!root) return;
+      if (root.nodeType === 3) { one(root); return; }
+      if (root.nodeType !== 1 || root.closest?.(SKIP)) return;
+      const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: n => n.data.includes('통') && !n.parentElement?.closest(SKIP) ? 1 : 3 });
+      const list = []; while (w.nextNode()) list.push(w.currentNode);
+      list.forEach(one);
+    }
+    function one(n) {
+      const t = n.data; RE.lastIndex = 0; if (!t.includes('통') || !RE.test(t) || n.parentElement?.closest(SKIP)) return;
+      RE.lastIndex = 0;
+      const f = document.createDocumentFragment(); let last = 0, m;
+      while ((m = RE.exec(t))) { const at = m.index + m[1].length; f.appendChild(document.createTextNode(t.slice(last, at))); f.appendChild(mk()); last = at + 1; }
+      f.appendChild(document.createTextNode(t.slice(last)));
+      n.parentNode.replaceChild(f, n);
+    }
+    let q = new Set(), tick = 0;
+    const flush = () => { tick = 0; const roots = [...q]; q = new Set(); roots.forEach(r => { if (r.isConnected) fix(r); }); };
+    new MutationObserver(ms => { ms.forEach(m => m.type === 'characterData' ? q.add(m.target) : m.addedNodes.forEach(x => q.add(x))); if (!tick) tick = requestAnimationFrame(flush); })
+      .observe(document.body, { childList: true, subtree: true, characterData: true });
+    fix(document.body);
+  })();
 
   // ---------- 로고를 누르면 처음 화면(통계 기법 고르기)으로 ----------
   document.querySelectorAll('.hdr-logo, .hdr-title').forEach(el => {
@@ -8400,9 +8433,9 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
     } else if (c.model === 'med') {
       L = [R(M.length > 1 ? 'r_med_parallel' : 'r_med_simple', '간접효과가 있는가 (PROCESS Model 4, 부트스트랩 신뢰구간)', '지금 매개분석의 표준 방법'),
         R('r_pearson', '경로마다 두 변인의 관계 (상관표)', '보조 분석. 연구문제가 "관계"로 되어 있거나 표 2 상관표로 보일 때'),
-        I('bk', 'Baron & Kenny 3단계 회귀', '단계별 회귀계수로 매개 여부 판단', '예전 논문 방식. 심사에서 물을 수 있지만, 지금은 간접효과를 부트스트랩으로 직접 검정하는 방법을 더 권합니다', 'ㅌㅗㅇ 회귀분석으로 3번 계산 가능'),
+        I('bk', 'Baron & Kenny 3단계 회귀', '단계별 회귀계수로 매개 여부 판단', '예전 논문 방식. 심사에서 물을 수 있지만, 지금은 간접효과를 부트스트랩으로 직접 검정하는 방법을 더 권합니다', '통에서 회귀분석 3번으로 계산 가능'),
         I('sobel', 'Sobel 검정', '간접효과의 유의성 (정규분포 가정)', '예전 방식. 간접효과는 정규분포를 따르지 않는 경우가 많아 부트스트랩을 더 권합니다', '안내만'), SEM];
-      if (X.length > 1 || X.some(n => (vFind(n) || {}).dims > 1)) L.splice(1, 0, I('together', '다른 원인(차원)을 통제변인으로 넣은 PROCESS 4', '한 원인(차원)만의 고유한 간접효과', '원인 변인이나 하위 차원끼리 상관이 높을 때', 'ㅌㅗㅇ 계산 (통제 칸에 넣기)'));
+      if (X.length > 1 || X.some(n => (vFind(n) || {}).dims > 1)) L.splice(1, 0, I('together', '다른 원인(차원)을 통제변인으로 넣은 PROCESS 4', '한 원인(차원)만의 고유한 간접효과', '원인 변인이나 하위 차원끼리 상관이 높을 때', '통 계산 (통제 칸에 넣기)'));
     } else if (c.model === 'serial') {
       L = [R('r_med_serial', '순차 간접효과가 있는가 (PROCESS Model 6)', '매개 변인이 정해진 순서로 이어질 때'),
         R('r_med_parallel', '매개 변인을 순서 없이 나란히 (PROCESS Model 4)', '순서를 가정할 이론이 약할 때'), R('r_pearson', '경로마다 두 변인의 관계 (상관표)', '보조 분석'), SEM];
@@ -8418,7 +8451,7 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
     return L.map(o => {
       if (o.name) return { ...o, info: true, tag: o.how };
       const r = RULES.results[o.id] || { name: o.id };
-      return { ...o, name: r.name, tag: LADDER_TO_METHOD[o.id] ? 'ㅌㅗㅇ 계산' : '안내만 (jamovi·SPSS)' };
+      return { ...o, name: r.name, tag: LADDER_TO_METHOD[o.id] ? '통 계산' : '안내만 (jamovi·SPSS)' };
     });
   }
   const mbRec = c => (mbOptions(c).find(o => !o.info) || {}).id || null;
@@ -8525,7 +8558,7 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
     const X = c.x.filter(n => norm(n)), dimV = X.map(vFind).find(v => v && v.dims > 1);
     return `<div class="mb-an"><div class="mb-an-h">이 모형으로 할 수 있는 분석 <small>주 분석은 하나, 보조 분석은 여러 개 고를 수 있어요</small></div>
       ${L.map(o => `<div class="mb-opt ${o.id === main ? 'on' : ''}">
-        <div><b>${esc(o.name)}</b>${o.id === rec ? ' <span class="mb-rec">추천</span>' : ''} <span class="mb-tag ${/ㅌㅗㅇ/.test(o.tag) ? 'ok' : ''}">${esc(o.tag)}</span><small>${esc(o.q)}</small><small class="mb-when">언제: ${esc(o.when)}</small></div>
+        <div><b>${esc(o.name)}</b>${o.id === rec ? ' <span class="mb-rec">추천</span>' : ''} <span class="mb-tag ${/^통/.test(o.tag) ? 'ok' : ''}">${esc(o.tag)}</span><small>${esc(o.q)}</small><small class="mb-when">언제: ${esc(o.when)}</small></div>
         <span class="mb-roles">${o.info ? '' : `<button class="mb-r ${o.id === main ? 'on' : ''}" data-mb-act="role" data-ci="${ci}" data-id="${o.id}" data-role="main" aria-pressed="${o.id === main}">주 분석</button>`}<button class="mb-r alt ${c.alts.includes(o.id) && o.id !== main ? 'on' : ''}" data-mb-act="role" data-ci="${ci}" data-id="${o.id}" data-role="alt" aria-pressed="${c.alts.includes(o.id) && o.id !== main}" ${o.id === main ? 'disabled' : ''}>보조</button></span></div>`).join('')}
       ${dimV ? `<div class="mb-dim"><b>${esc(dimV.name)}</b>의 하위 차원이 ${dimV.dims}개예요. <select class="mb-sel" data-mb="c.${ci}.dimsMode"><option value="each" ${c.dimsMode !== 'together' ? 'selected' : ''}>차원마다 따로 분석 (${dimV.dims}번)</option><option value="together" ${c.dimsMode === 'together' ? 'selected' : ''}>한 차원을 볼 때 다른 차원은 통제변인으로</option></select>
         <small>설문 만들기에서 척도를 넣을 때 하위요인을 [각각 따로]로 고르면 차원마다 점수가 생깁니다.</small></div>` : ''}
@@ -8991,7 +9024,7 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
   function pwCalc(p) {
     const fam = PFAM[p.result], o = pwOf(p), a = +md.pw.a, pw = +md.pw.pw, es = +o.es;
     const name = RULES.results[p.result].name;
-    if (!fam) return { none: true, note: p.result === 'r_multilevel' ? '다층모형은 정해진 공식이 없어요. 흔히 집단 30개 × 집단당 30명(Kreft, 1996)을 기준으로 삼고, 정확히는 모의실험으로 정합니다.' : '이 기법은 ㅌㅗㅇ에 계산기가 없어요. G*Power(무료)의 같은 이름 메뉴로 계산하세요.' };
+    if (!fam) return { none: true, note: p.result === 'r_multilevel' ? '다층모형은 정해진 공식이 없어요. 흔히 집단 30개 × 집단당 30명(Kreft, 1996)을 기준으로 삼고, 정확히는 모의실험으로 정합니다.' : '이 기법은 통에 계산기가 없어요. G*Power(무료)의 같은 이름 메뉴로 계산하세요.' };
     const ek0 = FAM_ES[fam]; if ((ek0 && !(es > 0)) || ((ek0 === 'r' || ek0 === 'path') && es >= 1)) return { err: '효과크기를 0보다 큰 값으로 넣어 주세요.' };
     const esTxt = FAM_ES[fam] ? `${ESZ[FAM_ES[fam]].lab} = ${fmtEs(FAM_ES[fam], es)}(${SIZE_W[o.size]})` : '';
     const cond = `유의수준 ${a.toFixed(2).replace(/^0\./, '.')}, 검정력 ${pw.toFixed(2).replace(/^0\./, '.')}`;
@@ -9212,7 +9245,7 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
     const items = planItems(), L = [];
     const noCalc = items.filter(p => !LADDER_TO_METHOD[p.result]);
     L.push({ id: 'methods', title: '가설마다 분석 방법이 정해졌나', st: !items.length ? 'todo' : noCalc.length ? 'warn' : 'ok',
-      body: !items.length ? '아직 통계 기법을 정하지 않았어요.' : items.map(p => `가설 ${p.no} ${esc(RULES.results[p.result].name)}`).join(' · ') + (noCalc.length ? `<br>${noCalc.map(p => esc(RULES.results[p.result].name)).join(', ')}은(는) ㅌㅗㅇ에서 계산하지 않아요. jamovi(무료)나 SPSS가 필요합니다.` : ''),
+      body: !items.length ? '아직 통계 기법을 정하지 않았어요.' : items.map(p => `가설 ${p.no} ${esc(RULES.results[p.result].name)}`).join(' · ') + (noCalc.length ? `<br>${noCalc.map(p => esc(RULES.results[p.result].name)).join(', ')}은(는) 통에서 계산하지 않아요. jamovi(무료)나 SPSS가 필요합니다.` : ''),
       ctl: !items.length ? '<button class="btn sm b" data-nav-to="ladder">통계 기법 고르기로</button>' : '' });
     const dn = designNote(), dAck = md.ack.design === intent.design;
     L.push({ id: 'design', title: '연구 설계와 결론의 수위', st: dn.st === 'warn' && dAck ? 'ack' : dn.st, body: dn.t,
@@ -9298,7 +9331,7 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
       if (missC.length) lines.push({ ok: false, t: `통제변인 ${missC.join(', ')}에 해당하는 문항이 설문에 없어요` });
       for (const p of planItems()) {
         const m = LADDER_TO_METHOD[p.result], nm = `${hLabel(p)} ${RULES.results[p.result].name}`;
-        if (!m) { lines.push({ ok: null, t: `${nm}: ㅌㅗㅇ에서 계산하지 않는 기법이라 건너뜀` }); continue; }
+        if (!m) { lines.push({ ok: null, t: `${nm}: 통에서 계산하지 않는 기법이라 건너뜀` }); continue; }
         const roles = rolesFor(p, m), M = METHODS[m];
         const miss = M.slots.filter(s => s.multi ? (roles[s.k] || []).length < (s.min || 0) : !roles[s.k]);
         if (miss.length) {
@@ -9515,7 +9548,7 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
       <div class="dq-grid">
         <div class="dq-box"><h4>빠진 값 (결측)</h4>${M.miss ? `<p>분석에 포함된 응답의 척도 문항 중 <b>${M.pct.toFixed(1)}%</b>(${M.miss}칸)가 비어 있습니다. 하나라도 빠뜨린 사람 ${M.persons}명.</p>
           ${M.top.length ? `<p class="hint">많이 빠진 문항: ${M.top.map(x => `${esc(x.d.code)} ${x.n}명`).join(', ')}</p>` : ''}
-          <p class="hint">처리: 한 변인의 문항 ${+plan.dec.minPct === 100 ? '모두' : `${plan.dec.minPct}% 이상`} 답했으면 답한 문항 평균으로 점수를 내고${M.noScore.length ? ` (점수가 없는 사람: ${M.noScore.map(x => `${esc(scName(x.si))} ${x.n}명`).join(', ')})` : ''}, 분석마다 쓰는 변인을 모두 가진 사람만 넣습니다(목록별 제외).${M.pct > 5 ? ' <b class="a-mid">빠진 값이 5%를 넘어 결과가 치우칠 수 있습니다. 다중대체(R)를 고려하세요.</b>' : ''}</p>` : '<p><b class="a-ok">빠진 값이 없습니다.</b></p><p class="hint">ㅌㅗㅇ이 만든 구글 폼은 척도 문항이 모두 필수 응답이라 보통 빠진 값이 없습니다.</p>'}</div>
+          <p class="hint">처리: 한 변인의 문항 ${+plan.dec.minPct === 100 ? '모두' : `${plan.dec.minPct}% 이상`} 답했으면 답한 문항 평균으로 점수를 내고${M.noScore.length ? ` (점수가 없는 사람: ${M.noScore.map(x => `${esc(scName(x.si))} ${x.n}명`).join(', ')})` : ''}, 분석마다 쓰는 변인을 모두 가진 사람만 넣습니다(목록별 제외).${M.pct > 5 ? ' <b class="a-mid">빠진 값이 5%를 넘어 결과가 치우칠 수 있습니다. 다중대체(R)를 고려하세요.</b>' : ''}</p>` : '<p><b class="a-ok">빠진 값이 없습니다.</b></p><p class="hint">통이 만든 구글 폼은 척도 문항이 모두 필수 응답이라 보통 빠진 값이 없습니다.</p>'}</div>
         <div class="dq-box"><h4>중복 응답</h4>${dups.length ? `<p>모든 답이 같은 응답 <b>${dups.length}개</b>: ${dups.slice(0, 6).map(p => `${p.id}(=${p.dup})`).join(', ')}</p>` : '<p><b class="a-ok">중복 응답이 없습니다.</b></p>'}
           <label class="chk"><input type="checkbox" data-dq-dec="dup" ${dupOn ? 'checked' : ''}> 뒤에 들어온 중복 응답 빼기</label></div>
         <div class="dq-box"><h4>이상치</h4>${O.length ? `<p>점수가 크게 벗어난 응답 <b>${O.length}개</b> ${outOn ? '(뺌)' : '(포함함)'}</p>
@@ -9660,7 +9693,7 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
   // 연구 폴더에 남길 사전 점검 보고서
   function prelimMd() {
     const L = lastScored; if (!L) return '';
-    const md2 = [`# 자료 점검 보고서 — ㅌㅗㅇ`, '', `작성: ${koNow()} · ${L.pilot ? '예비조사' : '본조사'} 자료${L.sample ? ' (예시 가짜 자료)' : ''}`, '', '## 응답 정리'];
+    const md2 = [`# 자료 점검 보고서 — 통`, '', `작성: ${koNow()} · ${L.pilot ? '예비조사' : '본조사'} 자료${L.sample ? ' (예시 가짜 자료)' : ''}`, '', '## 응답 정리'];
     md2.push(flowSteps().map(s => s.minus ? `${s.l} −${s.minus} → ${s.n}명` : `${s.l} ${s.n}명`).join(' → '));
     const M = missingInfo(); md2.push('', `- 빠진 값: 척도 문항 칸의 ${M.pct.toFixed(1)}% (${M.miss}칸), 하나라도 빠뜨린 사람 ${M.persons}명. 변인 점수는 문항 ${plan.dec.minPct}% 이상 응답 시 응답 문항 평균, 분석은 목록별 제외.`);
     md2.push(`- 중복 응답: ${L.people.filter(p => p.dup).length}개 (${(plan.dec.dup || 'drop') === 'drop' ? '뺌' : '포함'})`, `- 이상치(|z| > 3.29 또는 마할라노비스 p < .001): ${(L.outliers || []).length}개 (${(plan.dec.outlier || 'keep') === 'drop' ? '뺌' : '포함'})${(L.outliers || []).length ? ': ' + L.outliers.map(o => o.id).join(', ') : ''}`);
@@ -9993,10 +10026,10 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
     const fmt = h => h.kind === 'id' ? 'A12' : h.kind === 'text' ? 'A200' : h.kind === 'num' ? 'F10.2' : h.kind === 'code' ? 'F3.0' : h.kind === 'item' ? 'F4.0' : h.kind === 'score' ? 'F12.6' : 'F1.0';
     const L = [];
     L.push(`* =====================================================================.`,
-      `* ㅌㅗㅇ 분석을 SPSS로 다시 계산하는 명령문. 만든 날: ${today()}.`,
+      `* 통 분석을 SPSS로 다시 계산하는 명령문. 만든 날: ${today()}.`,
       `* 1) 이 파일과 analysis_data.csv를 한 폴더에 둡니다.`,
       `* 2) 아래 FILE HANDLE 줄의 따옴표 안을 그 폴더 경로로 바꿉니다 (예: C:\\내논문\\2_data).`,
-      `* 3) 메뉴 [실행] → [모두]. 결과의 숫자를 ㅌㅗㅇ 각 결과의 [SPSS와 맞춰 보기]에 넣습니다.`,
+      `* 3) 메뉴 [실행] → [모두]. 결과의 숫자를 통 각 결과의 [SPSS와 맞춰 보기]에 넣습니다.`,
       `* 매개·조절은 Hayes의 PROCESS 매크로가 설치되어 있어야 합니다 (processmacro.org).`,
       `* =====================================================================.`, '',
       `FILE HANDLE tongdir /NAME='C:\\tong'.`, '',
@@ -10019,7 +10052,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
         return (x.levels || []).slice(1).map(l => { const c = lvCode(k, l), nmv = `${v(k)}_${c}`; dummies.push(`COMPUTE ${nmv} = (${v(k)} = ${c}).\nVARIABLE LABELS ${nmv} ${sq(`${x.name}: ${l} (기준 ${x.levels[0]})`)}.`); return nmv; });
       });
       const body = SPSSGEN[S.method](S, { v, lvCode, dum, opts: S.opts || {} });
-      L.push(`* ---------------------------------------------------------------------.`, `* [${i + 1}] ${a.title} (ㅌㅗㅇ N = ${a.n}).`, `* ---------------------------------------------------------------------.`);
+      L.push(`* ---------------------------------------------------------------------.`, `* [${i + 1}] ${a.title} (통 N = ${a.n}).`, `* ---------------------------------------------------------------------.`);
       if (dummies.length) L.push(...dummies, 'EXECUTE.');
       L.push(body, '');
     });
@@ -10119,7 +10152,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
     let lastEff = '';
     return `<details class="item-detail sp-chk" data-spss-a="${a.id}"><summary>SPSS와 맞춰 보기 · ${sum}</summary>
       <p class="hint" style="padding:0 14px"><b>R·SPSS로 확인하기</b>에서 <b>analysis.sps</b>를 받아 SPSS에서 같은 분석을 돌린 뒤, 출력에 보이는 숫자를 그대로 적으세요. 적은 자릿수만큼 반올림해 비교합니다.</p>
-      <div class="table-wrap"><table class="compact sp-table"><thead><tr><th>SPSS에서 찾을 곳</th><th class="num">ㅌㅗㅇ</th><th>SPSS 값</th><th></th></tr></thead><tbody>
+      <div class="table-wrap"><table class="compact sp-table"><thead><tr><th>SPSS에서 찾을 곳</th><th class="num">통</th><th>SPSS 값</th><th></th></tr></thead><tbody>
       ${T.map((t, i) => { const st = sts[i], first = t.eff.label !== lastEff; lastEff = t.eff.label;
         return `${first ? `<tr class="sp-grp"><td colspan="4">${esc(t.eff.label)}</td></tr>` : ''}<tr><td><span class="sp-k">${esc(t.name)}</span> ${esc(t.where)}</td><td class="num">${showV(t)}</td><td><input class="sp-in" data-spss="${a.id}|${t.id}" value="${esc(vals[t.id] || '')}" inputmode="decimal" placeholder="예: .461"></td><td class="sp-st ${st || ''}" title="${st ? SPSS_ST[st][1] : ''}">${st ? SPSS_ST[st][0] : ''}</td></tr>`; }).join('')}
       </tbody></table></div>
