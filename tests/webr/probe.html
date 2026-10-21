@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>webR lavaan probe</title>
+<pre id="log"></pre>
+<script type="module">
+const log = m => { document.getElementById('log').textContent += m + '\n'; console.log(m); };
+const T = {}, t0 = performance.now(), lap = k => { T[k] = Math.round(performance.now() - t0); log(`${k}: ${T[k]} ms`); };
+try {
+  let mod;
+  for (const v of ['v0.6.0', 'latest']) { try { mod = await import(`https://webr.r-wasm.org/${v}/webr.mjs`); T.version = v; break; } catch (e) { log(`import ${v} 실패: ${e.message}`); } }
+  const webR = new mod.WebR();
+  await webR.init(); lap('init');
+  await webR.installPackages(['lavaan', 'jsonlite'], { quiet: true }); lap('install');
+  const code = await (await fetch('model.R')).text();
+  const json = await webR.evalRString(code); lap('fit');
+  const again = await webR.evalRString(code); lap('fit_again');   // 두 번째는 이미 불러온 상태
+  window.__result = JSON.parse(json);
+  window.__crossOriginIsolated = self.crossOriginIsolated;
+} catch (e) { window.__error = String((e && e.stack) || e); log('오류: ' + window.__error); }
+window.__timing = T; window.__done = true;
+</script>
