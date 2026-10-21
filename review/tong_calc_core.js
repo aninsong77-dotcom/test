@@ -4,7 +4,7 @@
 // 검증: tests/README.md 참고 — R 기준값 비교, 화면에서 돌린 분석 전부를 통이 만든 R 코드와 비교, 경계 상황 테스트.
 // 들어 있는 분석 함수 23개: pearson, spearman, partial, pointbiserial, chisq, onesample, ind_t, paired_t, oneway, factorial, ancova, regression, hier, logistic, med_parallel, med_serial, moderation, modmed7, modmed14, rm_anova, mixed_anova, mcnemar, cochran
 
-// ##### 1. 응답 읽기 · 동의 판정 · 점수 만들기(역문항, 최소 응답, 중복) (stats-ladder.html 4047~4157줄) #####
+// ##### 1. 응답 읽기 · 동의 판정 · 점수 만들기(역문항, 최소 응답, 중복) (stats-ladder.html 4054~4164줄) #####
   function autoMap() {
     colMap = {}; mapAuto = {};
     const H = raw.headers.map(h => norm(h).toLowerCase());
@@ -117,7 +117,7 @@
     }
     const hOpts = sel => `<option value="-1" ${sel < 0 ? 'selected' : ''}>(연결 안 함)</option>` + raw.headers.map((h, i) => `<option value="${i}" ${i === sel ? 'selected' : ''}>${i + 1}. ${esc(h.length > 40 ? h.slice(0, 40) + '…' : h)}</option>`).join('');
 
-// ##### 2. 계산 도우미 · 분포 · 회귀(QR) · 부트스트랩 · 베이즈 인자 · 숫자 표기 (stats-ladder.html 4188~4698줄) #####
+// ##### 2. 계산 도우미 · 분포 · 회귀(QR) · 부트스트랩 · 베이즈 인자 · 숫자 표기 (stats-ladder.html 4195~4705줄) #####
   // ---------- 계산 도우미 ----------
   const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
   const sd = a => { if (a.length < 2) return NaN; const m = mean(a); return Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / (a.length - 1)); };
@@ -630,7 +630,7 @@
 
   // =================================================================
 
-// ##### 3. 분석 방법 (RUN): 상관·t·분산분석·회귀·로지스틱·매개·조절 (stats-ladder.html 4698~5744줄) #####
+// ##### 3. 분석 방법 (RUN): 상관·t·분산분석·회귀·로지스틱·매개·조절 (stats-ladder.html 4705~5751줄) #####
   // =================================================================
   // ⑤ 분석
   // =================================================================
@@ -1679,7 +1679,7 @@
 
   // =================================================================
 
-// ##### 4. 분석 방법 (RUN 이어서): 반복측정·혼합설계 분산분석, 맥니마, 코크란 Q (stats-ladder.html 10720~10997줄) #####
+// ##### 4. 분석 방법 (RUN 이어서): 반복측정·혼합설계 분산분석, 맥니마, 코크란 Q (stats-ladder.html 10909~11186줄) #####
   // =================================================================
   // 반복측정 · 혼합설계 분산분석, 맥니마, 코크란 Q
   // =================================================================
@@ -1959,7 +1959,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
 
   // =================================================================
 
-// ##### 5. 결과 해석: 학생이 읽은 결과 점검(gistCheck), 가설↔효과 연결(autoLink), 결과 문단 틀 (stats-ladder.html 5776~6003줄) #####
+// ##### 5. 결과 해석: 학생이 읽은 결과 점검(gistCheck), 가설↔효과 연결(autoLink), 결과 문단 틀 (stats-ladder.html 5783~6010줄) #####
   // ---------- 결과의 줄기: 학생이 먼저 읽고, 코드가 판정과 맞는지 봄 ----------
   function readHint(e) {
     if (e.ciBased) return `신뢰구간 [${e.lo?.toFixed(3)}, ${e.hi?.toFixed(3)}]이 0을 포함하는지 보세요. 포함하지 않으면 간접효과가 있다고 읽습니다. 직접효과도 함께 보면 매개의 모양을 알 수 있어요.`;
@@ -2189,7 +2189,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
   }
 
 
-// ##### 6. 보고 체크리스트: 효과크기 신뢰구간, 정규성, 가정 점검 (stats-ladder.html 6797~6996줄) #####
+// ##### 6. 보고 체크리스트: 효과크기 신뢰구간, 정규성, 가정 점검 (stats-ladder.html 6814~7013줄) #####
   // =================================================================
   // 보고 체크리스트 (APA 7 결과 보고 항목을 코드가 점검)
   // =================================================================
@@ -2391,7 +2391,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
 
   // =================================================================
 
-// ##### 7. 분석 결정 (기본값) (stats-ladder.html 7108~7222줄) #####
+// ##### 7. 분석 결정 (기본값) (stats-ladder.html 7125~7239줄) #####
   // =================================================================
   // 분석 결정 (연구자가 정하고, 바꾼 것은 기록)
   // =================================================================
@@ -2508,7 +2508,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
 
   // =================================================================
 
-// ##### 8. R 코드 만들기 (재계산용) (stats-ladder.html 7222~7586줄) #####
+// ##### 8. R 코드 만들기 (재계산용) (stats-ladder.html 7239~7603줄) #####
   // =================================================================
   // R 코드 만들기 (분석 계획서 그대로, 기본 R만 사용)
   // =================================================================
@@ -2875,7 +2875,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
 
   // =================================================================
 
-// ##### 9. SPSS 명령문 만들기 · SPSS 출력과 대조 (stats-ladder.html 10997~11174줄) #####
+// ##### 9. SPSS 명령문 만들기 · SPSS 출력과 대조 (stats-ladder.html 11186~11363줄) #####
   // =================================================================
   // SPSS로 확인하기: 명령문(.sps) 만들기 + SPSS 출력의 숫자와 맞춰 보기 (AI 없이 규칙으로)
   // =================================================================
@@ -3055,7 +3055,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
   });
 
 
-// ##### 10. 표본 수 계산 (G*Power 방식): 분포 함수 (stats-ladder.html 9657~9754줄) #####
+// ##### 10. 표본 수 계산 (G*Power 방식): 분포 함수 (stats-ladder.html 9673~9770줄) #####
   // ---------- 표본 수 계산: 비중심 분포 (G*Power와 같은 방식) ----------
   const PW = (() => {
     const { pF, pChi, zInv } = ST;
@@ -3155,7 +3155,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
 
   // =================================================================
 
-// ##### 11. 표본 수 계산: 화면이 넘기는 자유도·비중심 모수 (stats-ladder.html 9829~10009줄) #####
+// ##### 11. 표본 수 계산: 화면이 넘기는 자유도·비중심 모수 (stats-ladder.html 9845~10025줄) #####
   // ---------- 표본 수 계산 ----------
   const ESZ = {
     d: { lab: 'd', v: [0.2, 0.5, 0.8] }, f: { lab: 'f', v: [0.1, 0.25, 0.4] }, f2: { lab: 'f²', v: [0.02, 0.15, 0.35] }, r: { lab: 'r', v: [0.1, 0.3, 0.5] },
@@ -3338,7 +3338,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
   });
 
 
-// ##### 12. 탐색적 요인분석 (PAF·PCA, 베리맥스) (stats-ladder.html 10262~10339줄) #####
+// ##### 12. 탐색적 요인분석 (PAF·PCA, 베리맥스) · 확인적 요인분석 (webR lavaan, CR·AVE·HTMT) (stats-ladder.html 10278~10527줄) #####
   // ---------- 탐색적 요인분석: 주축요인추출(PAF) 또는 주성분 추출 + 베리맥스 회전 ----------
   // PAF는 R psych::fa(fm = "pa")·SPSS '주축 요인 추출'과 같은 반복 방식, 주성분은 R의 eigen과 같음. 회전은 R의 varimax(정규화)와 같음
   function jacobiEig(A) {
@@ -3417,8 +3417,180 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
   }
 
   // =================================================================
+  // 확인적 요인분석 (CFA): 브라우저 속 R(webR)에서 lavaan으로 계산. 응답 자료는 브라우저 밖으로 나가지 않음
+  // (R과 lavaan 프로그램만 webr.r-wasm.org에서 내려받음). 안 되면 같은 모형의 lavaan R 코드를 받게 함
+  // =================================================================
+  const WEBR_URL = 'https://webr.r-wasm.org/v0.6.0/webr.mjs';
+  let webRP = null;
+  function getWebR(say) {
+    if (webRP) return webRP;
+    webRP = (async () => {
+      say('R 불러오는 중… (처음 한 번은 몇십 초 걸릴 수 있습니다)');
+      const { WebR } = await import(WEBR_URL);
+      const w = new WebR(); await w.init();
+      say('lavaan 설치 중…');
+      await w.installPackages(['lavaan', 'jsonlite'], { quiet: true });
+      return w;
+    })();
+    webRP.catch(() => { webRP = null; });
+    return webRP;
+  }
+  const cfaSt = () => (plan.cfa = plan.cfa || { est: 'ML', covs: [] });   // 예전 프로젝트에는 없을 수 있음
+  let cfaRes = null, cfaBusy = false, cfaErr = '';
+  const CFA_EST = { ML: '최대우도(ML)', MLR: '강건 최대우도(MLR, 정규성이 어긋날 때)', WLSMV: 'WLSMV (문항을 서열 변수로)' };
+  // 모형: 척도마다 요인 하나, 문항 2개 이상인 척도만. lavaan 이름은 영문 약칭(아니면 v1, v2 …)
+  function cfaModel() {
+    const L = lastScored; if (!L) return null;
+    const its = L.items.filter(d => d.kind === 'item'), ok = n => /^[A-Za-z][A-Za-z0-9_.]*$/.test(n);
+    const name = new Map(); its.forEach((d, k) => name.set(d.key, ok(d.code) && its.filter(x => x.code === d.code).length === 1 ? d.code : `v${k + 1}`));
+    const facs = sv.scales.map((s, si) => ({ si, f: `F${si + 1}`, label: s.name || scaleCode(s, si), items: its.filter(d => d.si === si) })).filter(x => x.items.length >= 2);
+    const used = facs.flatMap(f => f.items);
+    const covs = (cfaSt().covs || []).filter(c => used.some(d => name.get(d.key) === c.a) && used.some(d => name.get(d.key) === c.b));
+    const syntax = facs.map(f => `${f.f} =~ ${f.items.map(d => name.get(d.key)).join(' + ')}`).concat(covs.map(c => `${c.a} ~~ ${c.b}`)).join('\n');
+    return { facs, used, name, covs, syntax };
+  }
+  const CFA_FM = { ML: ['chisq', 'df', 'pvalue', 'cfi', 'tli', 'rmsea', 'rmsea.ci.lower', 'rmsea.ci.upper', 'srmr'],
+    MLR: ['chisq.scaled', 'df.scaled', 'pvalue.scaled', 'cfi.robust', 'tli.robust', 'rmsea.robust', 'rmsea.ci.lower.robust', 'rmsea.ci.upper.robust', 'srmr'],
+    WLSMV: ['chisq.scaled', 'df.scaled', 'pvalue.scaled', 'cfi.scaled', 'tli.scaled', 'rmsea.scaled', 'rmsea.ci.lower.scaled', 'rmsea.ci.upper.scaled', 'srmr'] };
+  // R 코드: forFile이면 analysis_data.csv를 읽어 사람이 볼 출력을, 아니면 브라우저용 JSON을 돌려줌
+  function cfaR(M, forFile) {
+    const est = cfaSt().est || 'ML', vars = M.used.map(d => M.name.get(d.key)), q = s => `"${String(s).replace(/["\\]/g, '\\$&')}"`;
+    const head = `suppressPackageStartupMessages(library(lavaan))
+model <- '
+${M.syntax}
+'
+# 요인: ${M.facs.map(f => `${f.f} = ${f.label}`).join(', ')}
+${M.covs.map(c => `# 연구자가 추가한 오차 공분산 ${c.a} ~~ ${c.b}: ${String(c.why).replace(/\n/g, ' ')}`).join('\n')}`;
+    const fit = `fit <- cfa(model, data = d, estimator = "${est}", missing = "listwise"${est === 'WLSMV' ? ', ordered = TRUE' : ''})`;
+    if (forFile) return `# 통 확인적 요인분석 (lavaan) — 만든 날 ${today()}
+# 실행: 이 파일과 analysis_data.csv를 같은 폴더에 두고 R에서 실행. lavaan이 없으면 먼저 install.packages("lavaan")
+DATA <- c("analysis_data.csv", "../2_data/analysis_data.csv", "2_data/analysis_data.csv"); DATA <- DATA[file.exists(DATA)][1]
+raw <- read.csv(DATA, fileEncoding = "UTF-8-BOM", check.names = FALSE)
+d <- data.frame(${M.used.map(x => `${M.name.get(x.key)} = raw[[${q(x.code)}]]`).join(', ')})
+${head}
+${fit}
+summary(fit, fit.measures = TRUE, standardized = TRUE)
+fitMeasures(fit, c(${CFA_FM[est].map(q).join(', ')}))
+ss <- standardizedSolution(fit); ld <- ss[ss$op == "=~", ]
+lam <- split(ld$est.std, ld$lhs)
+print(round(cbind(CR = sapply(lam, function(l) sum(l)^2 / (sum(l)^2 + sum(1 - l^2))), AVE = sapply(lam, function(l) mean(l^2))), 3))   # 합성신뢰도, 평균분산추출
+print(round(lavInspect(fit, "cor.lv"), 3))   # 요인 간 상관
+mi <- modindices(fit, sort. = TRUE); print(head(mi[mi$op == "~~" & mi$lhs != mi$rhs, ], 10))   # 수정지수 (이론적 근거 없이 따르지 말 것)
+`;
+    return `d <- read.csv(text = csvtxt)
+${head}
+warn <- character(0)
+fit <- withCallingHandlers(${fit.replace('fit <- ', '')}, warning = function(w) { warn <<- c(warn, conditionMessage(w)); invokeRestart("muffleWarning") })
+fm <- fitMeasures(fit, c(${CFA_FM[est].map(q).join(', ')}))
+ss <- standardizedSolution(fit); ld <- ss[ss$op == "=~", ]
+lv <- lavInspect(fit, "cor.lv")
+mi <- tryCatch({ m <- modindices(fit, sort. = TRUE); m <- m[(m$op == "~~" & m$lhs != m$rhs) | m$op == "=~", ]; head(m[, c("lhs", "op", "rhs", "mi", "epc")], 12) }, error = function(e) NULL)
+as.character(jsonlite::toJSON(list(lavaan = as.character(packageVersion("lavaan")), n = lavInspect(fit, "nobs"), converged = lavInspect(fit, "converged"),
+  fit = as.list(unname(fm)), ld = list(lhs = ld$lhs, rhs = ld$rhs, std = ld$est.std, se = ld$se, p = ld$pvalue),
+  lv = list(names = colnames(lv), m = unname(lv)), mi = mi, warn = warn), digits = NA, auto_unbox = TRUE, na = "null", dataframe = "columns"))`;
+  }
+  async function runCfa() {
+    const M = cfaModel(); if (!M || !M.facs.length) return;
+    cfaBusy = true; cfaErr = ''; renderCfa();
+    const say = t => { const el = $('#cfa-prog'); if (el) el.textContent = t; };
+    try {
+      const vars = M.used.map(d => M.name.get(d.key));
+      const csv = [vars.join(',')].concat(lastScored.inc.map(p => M.used.map(d => p.items[d.key] == null ? 'NA' : p.items[d.key]).join(','))).join('\n');
+      const w = await getWebR(say);
+      say('계산 중…');
+      const json = await w.evalRString(cfaR(M, false), { env: { csvtxt: csv } });
+      const r = JSON.parse(json);
+      r.est = cfaSt().est; r.dv = dataVersion; r.syntax = M.syntax; r.at = koNow();
+      // 합성신뢰도(CR)·평균분산추출(AVE), 판별타당도(HTMT)
+      const fac = M.facs.map(f => { const ix = r.ld.lhs.map((l, i) => l === f.f ? i : -1).filter(i => i >= 0), lam = ix.map(i => r.ld.std[i]); const s1 = lam.reduce((a, b) => a + b, 0), e = lam.reduce((a, b) => a + (1 - b * b), 0); return { ...f, CR: s1 * s1 / (s1 * s1 + e), AVE: lam.reduce((a, b) => a + b * b, 0) / lam.length }; });
+      const comp = lastScored.inc.filter(p => M.used.every(d => p.items[d.key] != null)), col = d => comp.map(p => p.items[d.key]);
+      const rr = (A, B) => mean(A.flatMap(a => B.filter(b => b !== a).map(b => Math.abs(corr(col(a), col(b))))));
+      r.htmt = fac.map(a => fac.map(b => a === b ? NaN : rr(a.items, b.items) / Math.sqrt(rr(a.items, a.items) * rr(b.items, b.items))));
+      r.fac = fac.map(({ f, label, CR, AVE, si }) => ({ f, label, CR, AVE, si }));
+      cfaRes = r; window.tongCfaLast = r;
+    } catch (e) { cfaErr = String((e && e.message) || e); }
+    cfaBusy = false; renderCfa();
+  }
+  const renderCfa = () => { const c = $('#cfa-card'); if (c) c.innerHTML = cfaHtml(); };
+  function cfaHtml() {
+    const M = cfaModel();
+    if (!M || !M.facs.length) return `<h3 class="card-title">확인적 요인분석</h3><p class="hint">문항이 2개 이상인 척도가 있어야 합니다.</p>`;
+    const r = cfaRes, est = cfaSt().est || 'ML';
+    const fitRow = (lab, v, rule, good, ok2) => `<tr><td>${lab}</td><td class="num">${v}</td><td>${rule}</td><td>${good == null ? '<span class="hint">참고</span>' : good ? '<span class="a-ok">좋음</span>' : ok2 ? '<span class="a-mid">받아들일 만함</span>' : '<span class="a-low">미흡</span>'}</td></tr>`;
+    let out = '';
+    if (r) {
+      const [chi, df, pv, cfi, tli, rmsea, rlo, rhi, srmr] = r.fit;
+      const stale = r.dv !== dataVersion || r.est !== est || r.syntax !== M.syntax;
+      out += `${stale ? '<p class="cf-note">자료나 모형이 바뀌었습니다. [다시 계산]을 누르세요.</p>' : ''}
+        <div class="dq-kv"><span>분석한 사람</span><b>${r.n}명 <small>(모든 문항에 답한 사람)</small></b><span>추정</span><b>${esc(CFA_EST[r.est])}</b><span>계산</span><b>R lavaan ${esc(r.lavaan)} <small>(브라우저 안에서, ${esc(r.at)})</small></b></div>
+        ${!r.converged ? '<p class="a-low">⚠ 계산이 수렴하지 않았습니다. 결과를 믿을 수 없습니다. 문항 수가 적은 요인이나 응답이 몰린 문항을 확인하세요.</p>' : ''}
+        ${(r.warn || []).length ? `<p class="a-mid">⚠ lavaan 경고: ${r.warn.map(esc).join(' / ')}</p>` : ''}
+        <div class="section-title">적합도</div>
+        <div class="table-wrap"><table class="compact"><thead><tr><th>지표</th><th class="num">값</th><th>흔히 쓰는 기준</th><th>판정</th></tr></thead><tbody>
+          ${fitRow(`χ²${r.est !== 'ML' ? ' (보정)' : ''}`, `${F2(chi)} (df = ${F2(df, 0)}), ${PS(pv)}`, '표본이 크면 거의 언제나 유의해 다른 지표와 함께 봄', null)}
+          ${fitRow('CFI', NZ(cfi, 3), '.90 이상 받아들일 만함, .95 이상 좋음', cfi >= 0.95, cfi >= 0.90)}
+          ${fitRow('TLI', NZ(tli, 3), '.90 이상 받아들일 만함, .95 이상 좋음', tli >= 0.95, tli >= 0.90)}
+          ${fitRow('RMSEA [90% CI]', `${NZ(rmsea, 3)} [${NZ(rlo, 3)}, ${NZ(rhi, 3)}]`, '.08 이하 받아들일 만함, .06 이하 좋음', rmsea <= 0.06, rmsea <= 0.08)}
+          ${fitRow('SRMR', NZ(srmr, 3), '.08 이하 좋음', srmr <= 0.08, false)}
+        </tbody></table></div>
+        <p class="hint">기준은 Hu와 Bentler(1999) 등이 제안한 경험칙입니다. 하나만 보고 판단하지 말고 함께 보고하세요.</p>
+        <div class="section-title">표준화 요인부하량</div>
+        <div class="table-wrap"><table class="compact"><thead><tr><th>요인</th><th>문항</th><th class="num">표준화 부하량</th><th class="num">SE</th><th class="num">p</th></tr></thead><tbody>
+          ${r.ld.lhs.map((l, i) => { const f = M.facs.find(x => x.f === l), d = M.used.find(x => M.name.get(x.key) === r.ld.rhs[i]), v = r.ld.std[i]; return `<tr><td>${esc(f ? f.label : l)}</td><td>${esc(d ? d.code : r.ld.rhs[i])} <small>${esc(d ? d.text.slice(0, 18) : '')}</small></td><td class="num"><span class="${v < 0.4 ? 'a-low' : v < 0.5 ? 'a-mid' : ''}">${NZ(v, 3)}</span></td><td class="num">${F2(r.ld.se[i], 3)}</td><td class="num">${PV(r.ld.p[i])}</td></tr>`; }).join('')}
+        </tbody></table></div>
+        <p class="hint">.50 이상이면 좋다고 봅니다(주황 .40~.50, 빨강 .40 미만). 낮은 문항을 뺄지는 이론과 원척도를 보고 정하고, 뺐다면 논문에 적습니다.</p>
+        <div class="section-title">집중타당도와 판별타당도</div>
+        <div class="table-wrap"><table class="compact"><thead><tr><th>요인</th><th class="num">CR</th><th class="num">AVE</th>${r.fac.map((_, j) => `<th class="num">${j + 1}</th>`).join('')}</tr></thead><tbody>
+          ${r.fac.map((f, i) => `<tr><td>${i + 1}. ${esc(f.label)}</td><td class="num"><span class="${f.CR >= 0.7 ? 'a-ok' : 'a-mid'}">${NZ(f.CR, 3)}</span></td><td class="num"><span class="${f.AVE >= 0.5 ? 'a-ok' : 'a-mid'}">${NZ(f.AVE, 3)}</span></td>${r.fac.map((g, j) => { if (j > i) return '<td></td>'; if (j === i) return `<td class="num"><b>${NZ(Math.sqrt(f.AVE), 3)}</b></td>`; const ii = r.lv.names.indexOf(f.f), jj = r.lv.names.indexOf(g.f), c = r.lv.m[ii][jj]; const bad = Math.abs(c) >= Math.min(Math.sqrt(f.AVE), Math.sqrt(g.AVE)); return `<td class="num"><span class="${bad ? 'a-low' : ''}">${NZ(c, 3)}</span></td>`; }).join('')}</tr>`).join('')}
+        </tbody></table></div>
+        <p class="hint">CR(합성신뢰도) .70 이상, AVE(평균분산추출) .50 이상이면 집중타당도가 있다고 봅니다. 대각선의 굵은 값은 √AVE이고, 그 아래는 요인 간 상관입니다. √AVE가 같은 줄·칸의 상관보다 크면 판별타당도가 있다고 봅니다(Fornell & Larcker, 1981, 빨강은 어긋남).</p>
+        ${r.fac.length > 1 ? `<div class="table-wrap"><table class="compact"><thead><tr><th>HTMT</th>${r.fac.map((_, j) => `<th class="num">${j + 1}</th>`).join('')}</tr></thead><tbody>${r.fac.map((f, i) => `<tr><td>${i + 1}. ${esc(f.label)}</td>${r.fac.map((_, j) => j >= i ? '<td></td>' : `<td class="num"><span class="${r.htmt[i][j] >= 0.9 ? 'a-low' : r.htmt[i][j] >= 0.85 ? 'a-mid' : ''}">${NZ(r.htmt[i][j], 3)}</span></td>`).join('')}</tr>`).join('')}</tbody></table></div>
+        <p class="hint">HTMT가 .85보다 작으면(느슨하게는 .90) 두 요인이 구별된다고 봅니다(Henseler, Ringle, & Sarstedt, 2015). 최근에는 Fornell–Larcker보다 HTMT를 더 권합니다.</p>` : ''}
+        ${cfaMiHtml(r, M)}
+        <div class="dq-report"><h4>논문에 쓸 문장 (초안)</h4><p id="cfa-sent">${esc(cfaSentence(r, M))}</p><div class="actions tight"><button class="btn sm" data-cfa="copy">문장 복사</button></div></div>`;
+    }
+    return `<h3 class="card-title">확인적 요인분석 <small class="hint">(R lavaan)</small></h3>
+      <p class="hint">척도마다 요인 하나로 보고, 원척도의 요인 구조가 이 자료에서도 맞는지 확인합니다. 계산은 이 브라우저 안의 R(lavaan)이 하며 <b>응답 자료는 밖으로 나가지 않습니다</b>(R 프로그램만 처음 한 번 약 10MB를 내려받습니다).</p>
+      <details class="item-detail"><summary>모형 보기 (lavaan 문장)</summary><pre class="r-code no-tw">${esc(M.syntax)}</pre><p class="hint" style="padding:0 14px">${M.facs.map(f => `${f.f} = ${esc(f.label)}`).join(', ')}${M.facs.some(f => f.items.length < 3) ? ' · ⚠ 문항이 2개뿐인 요인은 혼자서는 식별되지 않아 다른 요인과의 상관에 기대어 추정됩니다.' : ''}</p></details>
+      ${M.covs.length ? `<div class="cf-note"><b>연구자가 추가한 오차 공분산 ${M.covs.length}개</b> (사후 수정으로 기록됨)<ul class="dq-out">${M.covs.map((c, k) => `<li>${esc(c.a)} ~~ ${esc(c.b)}: ${esc(c.why)} <button class="linkish" data-cfa="cov-del" data-k="${k}">빼기</button></li>`).join('')}</ul></div>` : ''}
+      <div class="actions tight"><label class="f pw-f" style="flex-direction:row;align-items:center;gap:8px">추정<select data-cfa="est">${Object.entries(CFA_EST).map(([k, l]) => `<option value="${k}" ${k === est ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></label>
+        <button class="btn primary" data-cfa="run" ${cfaBusy ? 'disabled' : ''}>${r ? '다시 계산' : '확인적 요인분석 하기'}</button><button class="btn sm" data-cfa="rcode">lavaan R 코드 받기</button><span class="hint" id="cfa-prog">${cfaBusy ? '계산 중…' : ''}</span></div>
+      ${cfaErr ? `<div class="errbox">브라우저 안에서 R을 불러오지 못했습니다(${esc(cfaErr.slice(0, 120))}). 인터넷 연결을 확인하세요. claude.ai 화면에서는 보안 정책상 R을 불러올 수 없을 수 있습니다. 사이트(https://aninsong77-dotcom.github.io/tong/)에서 하거나, [lavaan R 코드 받기]로 받은 코드를 R에서 실행하세요.</div>` : ''}
+      ${out}`;
+  }
+  // 수정지수: 보여 주되, 모형을 고치려면 이론적 이유를 적게 하고 기록에 남김
+  function cfaMiHtml(r, M) {
+    const mi = (r.mi && r.mi.lhs ? r.mi.lhs.map((_, i) => ({ lhs: r.mi.lhs[i], op: r.mi.op[i], rhs: r.mi.rhs[i], mi: r.mi.mi[i], epc: r.mi.epc[i] })) : []).filter(x => x.mi >= 10);
+    if (!mi.length) return '<p class="hint">수정지수가 10을 넘는 곳이 없습니다.</p>';
+    const lab = n => { const d = M.used.find(x => M.name.get(x.key) === n), f = M.facs.find(x => x.f === n); return d ? d.code : f ? f.label : n; };
+    return `<details class="item-detail"><summary>수정지수 (10 이상, ${mi.length}개)</summary><div style="padding:4px 14px 12px">
+      <p class="a-mid">수정지수를 보고 모형을 고치면 적합도는 좋아지지만, 이 자료에만 맞춘 모형이 되기 쉽습니다(MacCallum 외, 1992). 같은 척도 안의 비슷한 문장처럼 <b>이론적 이유가 있을 때만</b> 오차 공분산을 추가하고, 그 이유를 논문에 적으세요. 추가하면 분석 결정 기록에 사후 수정으로 남습니다.</p>
+      <ul class="dq-out">${mi.map(x => `<li>${esc(lab(x.lhs))} ${x.op === '~~' ? '↔' : '→'} ${esc(lab(x.rhs))}: MI = ${F2(x.mi)}, 예상 변화량 ${F2(x.epc)}${x.op === '~~' ? ` <button class="linkish" data-cfa="cov-add" data-a="${esc(x.lhs)}" data-b="${esc(x.rhs)}">오차 공분산 추가…</button>` : ' <span class="hint">(교차부하: 문항이 다른 요인에도 걸림)</span>'}</li>`).join('')}</ul></div></details>`;
+  }
+  function cfaSentence(r, M) {
+    const [chi, df, pv, cfi, tli, rmsea, rlo, rhi, srmr] = r.fit, lo = Math.min(...r.ld.std), hi = Math.max(...r.ld.std);
+    return `측정모형의 타당성을 확인하기 위해 ${M.facs.length}개 요인(${M.facs.map(f => f.label).join(', ')})으로 확인적 요인분석을 실시하였다(${r.est === 'ML' ? '최대우도법' : r.est === 'MLR' ? '강건 최대우도법(MLR)' : 'WLSMV'}, R lavaan ${r.lavaan}). 그 결과 χ²(${F2(df, 0)}) = ${F2(chi)}, ${PS(pv)}, CFI = ${NZ(cfi)}, TLI = ${NZ(tli)}, RMSEA = ${NZ(rmsea, 3)} (90% CI [${NZ(rlo, 3)}, ${NZ(rhi, 3)}]), SRMR = ${NZ(srmr, 3)}으로 나타났다. 표준화 요인부하량은 ${NZ(lo)}~${NZ(hi)}였고, 합성신뢰도(CR)는 ${NZ(Math.min(...r.fac.map(f => f.CR)))}~${NZ(Math.max(...r.fac.map(f => f.CR)))}, 평균분산추출(AVE)은 ${NZ(Math.min(...r.fac.map(f => f.AVE)))}~${NZ(Math.max(...r.fac.map(f => f.AVE)))}였다.${M.covs.length ? ` 수정지수를 참고하되 이론적 근거가 있는 ${M.covs.length}개의 오차 공분산을 추가하였다(${M.covs.map(c => `${c.a}–${c.b}: ${c.why}`).join('; ')}).` : ''} [적합도와 타당도의 판단은 연구자가 기준과 함께 서술]`;
+  }
+  document.addEventListener('click', async e => {
+    const b = e.target.closest('[data-cfa]'); if (!b) return;
+    const act = b.dataset.cfa;
+    if (act === 'run') { if (!cfaBusy) await runCfa(); }
+    else if (act === 'rcode') { const M = cfaModel(); if (M) download('cfa_lavaan.R', cfaR(M, true)); }
+    else if (act === 'copy') { const t = $('#cfa-sent')?.textContent || ''; try { navigator.clipboard.writeText(t).then(() => toast('문장을 복사했습니다.'), () => showSheet('확인적 요인분석 문장', t)); } catch (err) { showSheet('확인적 요인분석 문장', t); } }
+    else if (act === 'cov-add') {
+      const why = prompt(`${b.dataset.a} ↔ ${b.dataset.b} 오차 공분산을 추가하는 이론적 이유를 적어 주세요 (예: 두 문항이 거의 같은 내용을 반대로 물음). 이 이유는 기록과 논문 문장에 들어갑니다.`);
+      if (!why || !norm(why)) { toast('이유를 적어야 추가할 수 있습니다.'); return; }
+      cfaSt().covs = (cfaSt().covs || []).concat({ a: b.dataset.a, b: b.dataset.b, why: norm(why) });
+      plan.log.push({ at: koNow(), id: 'cfa', q: '확인적 요인분석 모형 수정 (오차 공분산 추가)', from: '-', to: `${b.dataset.a} ~~ ${b.dataset.b} (이유: ${norm(why)})`, after: true, reason: norm(why) });
+      savePlan(); addSys('analysis', `확인적 요인분석: 오차 공분산 ${b.dataset.a} ~~ ${b.dataset.b} 추가 (사후 수정으로 기록)`); await runCfa();
+    }
+    else if (act === 'cov-del') { const c = cfaSt().covs.splice(+b.dataset.k, 1)[0]; if (c) { plan.log.push({ at: koNow(), id: 'cfa', q: '확인적 요인분석 모형 수정 (오차 공분산 빼기)', from: `${c.a} ~~ ${c.b}`, to: '-', after: !!plan.seen, reason: '' }); savePlan(); } renderCfa(); }
+  });
+  document.addEventListener('change', e => { const t = e.target; if (t.dataset && t.dataset.cfa === 'est') { cfaSt().est = t.value; savePlan(); renderCfa(); } });
 
-// ##### 13. 자료 점검: 이상치·결측·표본 확인·측정 점검·사전 분석 (stats-ladder.html 10339~10720줄) #####
+  // =================================================================
+
+// ##### 13. 자료 점검: 이상치·결측·표본 확인·측정 점검·사전 분석 (stats-ladder.html 10527~10909줄) #####
   // =================================================================
   // 자료 점검: 응답 정리(중복·이상치·결측) · 표본 확인 · 측정 점검 · 사전 분석
   // =================================================================
@@ -3709,7 +3881,8 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
     box.innerHTML = `${pilotNote()}${sampleNote()}
       <div class="card"><h3 class="card-title">신뢰도 (크론바흐 α)</h3>${tableHtml(['변인', '문항 수', '분석한 사람', 'α', '판정', '살펴볼 문항'], relRows, [1, 2, 3])}
         <p class="hint">.70 이상이면 받아들일 만하다고 봅니다(.60~.70은 탐색 연구에서 허용하기도 함). 살펴볼 문항은 문항-총점 상관이 .30보다 낮거나 지우면 α가 오르는 문항입니다. 문항별 자세한 값은 [응답 취합·정리]에 있습니다.</p></div>
-      <div class="card"><h3 class="card-title">타당도 (탐색적 요인분석)</h3>${efaHtml}</div>`;
+      <div class="card"><h3 class="card-title">타당도 (탐색적 요인분석)</h3>${efaHtml}</div>
+      <div class="card" id="cfa-card">${cfaHtml()}</div>`;
     markSeen('measure');
   }
 
