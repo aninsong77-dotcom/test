@@ -6144,7 +6144,6 @@ ${REVIEW_RULES}
     const id = a.getAttribute('href').slice(7);
     // 사용 설명 화면 안에서는 그 화면에서, 그 밖(대화·작업 화면)에서는 오른쪽 보기 창에서 연다
     if (a.closest('#view-guide') || curView() === 'guide') openGuide(id); else openGuideRight(id);
-    try { history.replaceState(null, '', a.getAttribute('href')); } catch (err) {}
   });
   $('#view-guide').addEventListener('click', e => { const b = e.target.closest('[data-gd-tab]'); if (b) switchView(b.dataset.gdTab); });
   $('#gd-q').addEventListener('input', () => renderGuide());
@@ -10212,7 +10211,10 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
   renderRules();
   if (store.get('ladder.navMin', window.innerWidth < 1150)) $('#app').classList.add('nav-min');
   renderNav();
-  const hashGuide = (location.hash || '').match(/^#guide-([\w-]+)$/);
+  // 사용 설명 주소(#guide-…)는 새로 연 링크일 때만 따름. 새로고침·뒤로가기·주소창에 남은 것은 무시하고 지움
+  let navType = 'navigate'; try { navType = (performance.getEntriesByType('navigation')[0] || {}).type || 'navigate'; } catch (e) { }
+  const hashGuide = navType === 'navigate' ? (location.hash || '').match(/^#guide-([\w-]+)$/) : null;
+  if (/^#guide-/.test(location.hash || '')) try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { }
   if (hashGuide) openGuide(hashGuide[1]); else { const v0 = store.get('ladder.view', 'ladder'); switchView(v0 === 'guide' ? store.get('ladder.lastWork', 'ladder') : v0); }
   initFolder();
   // ---------- 환영 카드: 시작 애니메이션 뒤 잠깐 나왔다 사라짐 ----------
