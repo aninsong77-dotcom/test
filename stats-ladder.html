@@ -2292,6 +2292,8 @@ button,input,textarea,select{font-family:inherit}
 ::placeholder{color:var(--ink-3);opacity:.5;font-weight:400}
 ::-webkit-input-placeholder{color:var(--ink-3);opacity:.5}
 input:focus::placeholder,textarea:focus::placeholder{opacity:.35}
+.mb-dn{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 6px 12px;padding-left:10px;border-left:2px solid var(--orange-line)}
+.mb-dn span{font-size:12px;font-weight:700;color:var(--ink-3)}.mb-dn .mb-in{flex:1 1 140px}.mb-dn small{flex:1 1 100%;font-size:12px;color:var(--ink-3)}
 /* 환영 카드 */
 #welcome{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(12,18,36,.7);-webkit-backdrop-filter:blur(6px) saturate(.5);backdrop-filter:blur(6px) saturate(.5);opacity:0;transition:opacity .35s}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) #welcome{background:rgba(0,0,0,.74)}:root:not([data-theme="light"]) .wc-card{border-color:#46507a}}
@@ -4728,7 +4730,7 @@ function createSurvey() {
     const spec = specOf(anSel.method, r, anSel.opts);
     const R = await RUN[anSel.method](r, anSel.opts, f => { prog.textContent = `부트스트랩 ${Math.round(f * 100)}%`; });
     R.spec = spec; R.decisions = DECISIONS.filter(d => applicable(d, anSel.method)).map(d => `${d.q} → ${decLabel(d, d.get())}`);
-    R.conf = confOf(anSel.method);
+    R.conf = confOf(anSel.method, r);
     plan.seen = true; savePlan();
     prog.textContent = '보고 체크리스트 점검 중…'; await tick();
     buildChecks(R, anSel.roles);
@@ -5097,7 +5099,7 @@ function createSurvey() {
     R.notes.push(`상호작용항: B = ${F2(inter.b[ii])}, t(${inter.dfe}) = ${F2(inter.t[ii])}, ${PS(inter.p[ii])}.`);
     if (o.center) R.notes.push('점수 변인은 평균중심화한 뒤 곱했습니다. W 수준은 중심화 값 기준입니다.');
     [X, Wb].forEach(b => b.note && R.notes.push(b.note));
-    eff(R, { label: `조절된 매개 지수: ${nw}가 ${nx} → ${nm} → ${ny} 간접효과를 조절`, est: est[0], lo: bs[0].lo, hi: bs[0].hi, ciBased: true, stat: `Index = ${F2(est[0], 3)}, 95% CI ${CI(bs[0].lo, bs[0].hi, 3)}` });
+    eff(R, { label: `조절된 매개 지수: ${J(nw, '이/가')} ${nx} → ${nm} → ${ny} 간접효과를 조절`, est: est[0], lo: bs[0].lo, hi: bs[0].hi, ciBased: true, stat: `Index = ${F2(est[0], 3)}, 95% CI ${CI(bs[0].lo, bs[0].hi, 3)}` });
     ptLab.forEach((l, j) => eff(R, { label: `조건부 간접효과 (${nw} ${l}): ${nx} → ${nm} → ${ny}`, est: est[j + 1], lo: bs[j + 1].lo, hi: bs[j + 1].hi, ciBased: true, stat: `B = ${F2(est[j + 1], 3)}, 95% CI ${CI(bs[j + 1].lo, bs[j + 1].hi, 3)}` }));
     eff(R, { label: `상호작용: ${model === 7 ? nx : nm} × ${nw} → ${model === 7 ? nm : ny}`, est: inter.b[ii], p: inter.p[ii], lo: inter.lo[ii], hi: inter.hi[ii], stat: `B = ${F2(inter.b[ii])}, t(${inter.dfe}) = ${F2(inter.t[ii])}, ${PS(inter.p[ii])}` });
     dropNote(R, P); return R;
@@ -5116,7 +5118,9 @@ function createSurvey() {
       return `${NZ(c.r)}${STAR(c.p)}`;
     })));
     R.n = Math.min(...vs.map(v => v.vals.filter(x => x != null).length));
-    R.tables.push({ title: `${spearman ? '스피어만 순위' : '피어슨'} 상관계수 (N = ${n0})`, head: ['변인', 'M', 'SD'].concat(vs.map((_, i) => String(i + 1))), num: vs.map((_, i) => i + 1).concat([vs.length + 1, vs.length + 2]), rows });
+    const nP = []; vs.forEach((a, i) => vs.forEach((b, j) => { if (j < i) nP.push(pair(a, b).n); }));
+    const nLo = nP.length ? Math.min(...nP) : n0;
+    R.tables.push({ title: `${spearman ? '스피어만 순위' : '피어슨'} 상관계수 (N = ${nLo < n0 ? `${nLo}~${n0}, 빠진 값은 짝마다 제외` : n0})`, head: ['변인', 'M', 'SD'].concat(vs.map((_, i) => String(i + 1))), num: vs.map((_, i) => i + 1).concat([vs.length + 1, vs.length + 2]), rows });
     R.notes.push('* p < .05, ** p < .01, *** p < .001. 짝마다 두 변인 모두 응답한 사람으로 계산했습니다.');
     return R;
   }
@@ -5286,8 +5290,37 @@ function createSurvey() {
       limitations: cross ? ['한 시점에 모두 측정한 자료라 변인 사이의 인과관계를 단정할 수 없다.'] : [], check: ['통이 판정과 숫자로 만든 틀 문장입니다. 문장을 다듬고, 논의는 내가 읽은 결과를 바탕으로 이어 쓰세요.'] };
   }
 
+  // 가설로 시작했으면, 계산한 결과에서 그 가설을 검증하는 효과를 찾아 연결해 둠 (바꿀 수 있음)
+  function autoLink() {
+    if (!(hp && hp.mode === 'hyp' && hp.plan && hp.plan.length) || !analyses.length) return false;
+    let changed = false;
+    intent.hyps.forEach(h => {
+      if (h.effect || !norm(h.text)) return;
+      const p = hp.plan.find(x => norm(x.text) === norm(h.text)); if (!p) return;
+      const it = hp.items[p.no - 1] || {}, v = it.vars || {}, X = (v.iv || [])[0] || '', Y = v.dv || '', M = v.med || [];
+      const A = analyses.filter(a => a.conf && a.conf.k === 'confirm' && (a.conf.hyps || []).includes(p.no));
+      const pick = es => {
+        const has = (e, n) => n && e.label.includes(n);
+        if (it.type === 'rel') return es.find(e => /상관$/.test(e.label) && has(e, X) && has(e, Y)) || es.find(e => /상관$/.test(e.label));
+        if (it.part && it.part !== 'main') { const k = it.part[0], i = +it.part.slice(1) || 0;
+          if (k === 'c') return es.find(e => /^총효과/.test(e.label)) || es.find(e => /^직접효과/.test(e.label));
+          if (k === 'a') return es.find(e => /^경로/.test(e.label) && has(e, X) && has(e, M[i]));
+          if (k === 'b') return es.find(e => /^경로/.test(e.label) && has(e, M[i]) && has(e, Y));
+          if (k === 'd') return es.find(e => /^경로/.test(e.label) && has(e, M[i]) && has(e, M[i + 1])); }
+        if (it.type === 'med') { const ind = es.filter(e => /^간접효과/.test(e.label)); return v.serial ? ind.sort((a, b) => b.label.split('→').length - a.label.split('→').length)[0] : ind[0]; }
+        if (it.type === 'modmed') return es.find(e => /조절된 매개 지수/.test(e.label));
+        if (it.type === 'mod') return es.find(e => /^상호작용/.test(e.label));
+        if (it.type === 'pred') return es.find(e => has(e, X) && e.label.includes('→')) || es[0];
+        return es.find(e => has(e, Y)) || es[0];
+      };
+      for (const a of A) { const e = pick(a.effects); if (e) { h.effect = e.id; h.auto = true; changed = true; break; } }
+    });
+    if (changed) saveIntent();
+    return changed;
+  }
   function renderInterp() {
     const box = $('#in-main'); if (!box) return;
+    autoLink();
     const effs = allEffects();
     const aiChip = aiMode === 'off' ? '<span class="st missing">AI 쓰지 않음</span>' : aiMode === 'copy' ? '<span class="st manual">다른 AI (복사) 방식</span>' : aiState === 'on' ? '<span class="st auto">AI 연결됨</span>' : aiState === 'checking' ? '<span class="st manual">AI 확인 중…</span>'
       : aiState === 'denied' ? '<span class="st missing">AI 사용이 허용되지 않음</span>' : '<span class="st missing">AI 없음 · claude.ai 링크에서 열면 됩니다</span>';
@@ -5299,7 +5332,7 @@ function createSurvey() {
         <div class="hyp-body">
           <label class="f">가설 문장<textarea rows="2" data-in-h="${i}" data-k="text" placeholder="예: 능력주의 신념은 사회비교경향성과 외로움을 차례로 거쳐 외집단 혐오에 정적 영향을 미칠 것이다">${esc(h.text)}</textarea></label>
           <div class="grid2" style="margin-top:10px">
-            <label class="f">검증할 통계 효과<select data-in-h="${i}" data-k="effect">${effOpts(h.effect)}</select></label>
+            <label class="f">검증할 통계 효과${h.auto && h.effect ? ' <span class="st auto" title="가설로 시작해 계산한 결과에서 찾아 연결했습니다. 다르면 고르세요.">자동 연결</span>' : ''}<select data-in-h="${i}" data-k="effect">${effOpts(h.effect)}</select></label>
             <label class="f">예상 방향<select data-in-h="${i}" data-k="expect">${Object.entries(EXPECT).map(([k, l]) => `<option value="${k}" ${k === h.expect ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></label>
           </div>
           ${e ? `<div class="verdict ${v.v === '지지' ? 'ok' : 'no'}"><b>${v.v}</b><span>${esc(e.stat)}</span><small>${esc(v.why)}</small></div>
@@ -5662,7 +5695,7 @@ ${REVIEW_RULES}
   $('#view-interp').addEventListener('input', e => {
     const t = e.target;
     if (t.dataset.inH != null) {
-      const h = intent.hyps[+t.dataset.inH]; h[t.dataset.k] = t.value; saveIntent();
+      const h = intent.hyps[+t.dataset.inH]; h[t.dataset.k] = t.value; if (t.dataset.k === 'effect') h.auto = false; saveIntent();
       if (t.tagName === 'SELECT') renderInterp();
       else if (t.dataset.k === 'gist') { clearTimeout(t._gt); t._gt = setTimeout(() => { const el = $('#gist-ck-' + t.dataset.inH); if (el) el.innerHTML = gistHtml(h, +t.dataset.inH); }, 400); }
       return;
@@ -6024,8 +6057,8 @@ ${REVIEW_RULES}
       </tbody></table>
       <p><span class="ck ok" style="display:inline-grid">✓</span> 갖춤 &nbsp; <span class="ck warn" style="display:inline-grid">!</span> 확인 필요 &nbsp; <span class="ck na" style="display:inline-grid">–</span> 해당 없음</p>
       <p>'확인 필요'는 통이 계산하지 않는 것이거나 가정이 어긋난 것입니다. SPSS·jamovi로 보충하거나 연구의 한계에 적으세요.</p>
-      <h3>허점 점검 (AI)</h3>
-      <p>왼쪽 메뉴 <b>허점 점검 (AI)</b>에서 결과·논의 글을 넣으면, AI가 심사위원처럼 약한 곳을 <b>질문</b>합니다. 글은 고치지 않습니다.</p>
+      <h3>허점 점검</h3>
+      <p>왼쪽 메뉴 <b>허점 점검</b>에서 결과·논의 글을 넣으면, AI가 심사위원처럼 약한 곳을 <b>질문</b>합니다. 글은 고치지 않습니다.</p>
       <ul><li>인과 해석, 반대 방향, 제3의 변인</li><li>작은 효과를 크게 쓴 곳, 지나친 일반화</li><li>측정 문제, 체크리스트의 '확인 필요'를 넘어간 곳</li></ul>
       <p>질문마다 [검토함]에 체크하며 정리하세요.</p>` },
 
@@ -6777,7 +6810,7 @@ stat <- function(i) { a <- fitb(m[i], cbind(x[i], C[i, , drop = FALSE]))[2]; b <
   c(a * b[5], a * (b[3] + b[5] * pts)) }`}
 est <- stat(1:n)
 set.seed(20261019); bs <- t(replicate(${B}, stat(sample.int(n, n, replace = TRUE))))   # 분석 결정: 부트스트랩 ${B.toLocaleString()}번
-eff(${rq(`조절된 매개 지수: ${W}가 ${X} → ${M} → ${Y} 간접효과를 조절`)}, est[1], pct(bs[, 1], .025), pct(bs[, 1], .975))
+eff(${rq(`조절된 매개 지수: ${J(W, '이/가')} ${X} → ${M} → ${Y} 간접효과를 조절`)}, est[1], pct(bs[, 1], .025), pct(bs[, 1], .975))
 for (j in seq_along(pts)) eff(paste0("조건부 간접효과 (", ${rq(W)}, " ", labs[j], "): ", ${rq(`${X} → ${M} → ${Y}`)}), est[j + 1], pct(bs[, j + 1], .025), pct(bs[, j + 1], .975))`;
   }
 
@@ -7163,8 +7196,8 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
     { id: 'prelim', n: '9', label: '사전 분석', view: 'prelim', done: () => !!(typeof md !== 'undefined' && md && md.seen && md.seen.prelim) },
     { grp: '가설 검증과 글쓰기' },
     { id: 'analysis', n: '10', label: '분석 결정·계산', view: 'analysis', sum: () => (analyses.length ? `분석 ${analyses.length}개` : ''), done: () => analyses.length > 0 },
-    { id: 'interp', n: '11', label: '결과 해석 (AI)', view: 'interp', done: () => !!intent.out },
-    { id: 'review', n: '12', label: '허점 점검 (AI)', view: 'interp', after: () => $('#rv-card')?.scrollIntoView({ block: 'start' }), done: () => !!intent.review?.result },
+    { id: 'interp', n: '11', label: '결과 해석', view: 'interp', done: () => !!intent.out },
+    { id: 'review', n: '12', label: '허점 점검', view: 'interp', after: () => $('#rv-card')?.scrollIntoView({ block: 'start' }), done: () => !!intent.review?.result },
     { grp: '도구' },
     { id: 'rcheck', n: 'R', label: 'R·SPSS로 확인하기', view: 'analysis', right: 'results', after: () => { openRight(); $('#an-results')?.scrollIntoView({ block: 'start' }); }, done: () => analyses.some(a => a.rcheck) },
     { id: 'log', n: '✓', label: '검증 기록', view: 'log', sum: () => (log.length ? `${log.length}건` : '') },
@@ -7897,6 +7930,8 @@ ${q}`;
     const nItems = R ? R.sections.reduce((a, s) => a + s.items.filter(i => i.keep).length, 0) : 0;
     const nRev = R ? R.sections.reduce((a, s) => a + s.items.filter(i => i.keep && i.reverse).length, 0) : 0;
     const emptyTargets = sv.scales.map((s, i) => [s, i]).filter(([s]) => !s.items.some(it => norm(it.text)));
+    // 같은 이름(…(차원))으로 묶인 빈 변인들: 하위요인을 차례로 나눠 채울 수 있음
+    const dimGroups = Object.entries(emptyTargets.reduce((o, [s]) => { const m = norm(s.name).match(/^(.+)\(([^()]+)\)$/); if (m) (o[m[1]] = o[m[1]] || []).push(m[2]); return o; }, {})).filter(([, ds]) => ds.length > 1);
     box.innerHTML = `<div class="card si-card">
       <div class="si-head"><h3 class="card-title">척도 원본으로 설문 만들기</h3><button class="icon-btn" data-si="close" title="닫기">×</button></div>
       <p class="hint" style="margin-top:0">논문 부록이나 척도집의 척도를 넣으면 문항, 응답 선택지, 역문항을 찾아 설문 칸을 채웁니다. 넣기 전에 미리보기에서 원본과 대조해 고칠 수 있습니다.</p>
@@ -7924,9 +7959,10 @@ ${q}`;
             <label class="si-rev"><input type="checkbox" data-sii="${si}.${ii}" data-k="reverse" ${it.reverse ? 'checked' : ''}>역</label>
           </div>`).join('')}</div>`).join('')}
         <div class="si-opts">
-          ${R.sections.length > 1 && imp.target !== 'new' ? '<p class="hint" style="margin:0">사다리 변인에 채울 때는 하위요인을 합쳐 그 변인 하나로 넣습니다.</p>' : ''}
+          ${R.sections.length > 1 && imp.target !== 'new' && !String(imp.target).startsWith('dims:') ? '<p class="hint" style="margin:0">사다리 변인 하나에 채울 때는 하위요인을 합쳐 그 변인 하나로 넣습니다.</p>' : ''}
+          ${String(imp.target).startsWith('dims:') ? (() => { const g = dimGroups.find(([n]) => 'dims:' + n === imp.target); const secs = R.sections.filter(x => x.items.some(i => i.keep)); return g ? `<p class="hint" style="margin:0">하위요인을 차례로 나눠 채웁니다: ${secs.map((x, k) => `${esc(norm(x.name) || `하위요인 ${k + 1}`)} → ${g[1][k] ? esc(`${g[0]}(${g[1][k]})`) : '<b>남는 하위요인</b>'}`).join(' · ')}${secs.length !== g[1].length ? ` <b class="a-low">하위요인 ${secs.length}개, 하위 차원 ${g[1].length}개로 수가 다릅니다.</b>` : ''}</p>` : ''; })() : ''}
           ${R.sections.length > 1 && imp.target === 'new' ? `<label class="f">하위요인을<select data-sif="mode"><option value="split" ${imp.mode === 'split' ? 'selected' : ''}>각각 따로 변인으로 (하위요인 점수를 따로 분석)</option><option value="one" ${imp.mode === 'one' ? 'selected' : ''}>한 변인으로 합쳐서 (전체 점수로 분석)</option></select></label>` : ''}
-          <label class="f">어디에 넣을까요<select data-sif="target"><option value="new">새 변인으로 추가</option>${emptyTargets.map(([s, i]) => `<option value="${i}" ${String(imp.target) === String(i) ? 'selected' : ''}>사다리 변인 '${esc(s.name || '(이름 없음)')}'(${esc(s.role)})에 채우기</option>`).join('')}</select></label>
+          <label class="f">어디에 넣을까요<select data-sif="target"><option value="new">새 변인으로 추가</option>${R.sections.length > 1 ? dimGroups.map(([n, ds]) => `<option value="dims:${esc(n)}" ${imp.target === 'dims:' + n ? 'selected' : ''}>'${esc(n)}'의 하위 차원 ${ds.length}개에 나눠 채우기</option>`).join('') : ''}${emptyTargets.map(([s, i]) => `<option value="${i}" ${String(imp.target) === String(i) ? 'selected' : ''}>사다리 변인 '${esc(s.name || '(이름 없음)')}'(${esc(s.role)})에 채우기</option>`).join('')}</select></label>
         </div>
         <label class="si-ok"><input type="checkbox" data-sif="ok" ${imp.ok ? 'checked' : ''}> 이 척도를 써도 되는지(저자 허락 또는 공개 사용 조건) 확인했습니다. 논문에는 출처를 밝힙니다.</label>
         <div class="actions"><button class="btn primary" data-si="apply" ${nItems ? '' : 'disabled'}>설문에 넣기</button><button class="btn" data-si="reset">다시 하기</button></div>
@@ -8000,10 +8036,16 @@ ${q}`;
       items: items.filter(i => i.keep && norm(i.text)).map(i => ({ text: norm(i.text), reverse: !!i.reverse })) });
     const secs = R.sections.filter(s => s.items.some(i => i.keep));
     let made = [];
-    if (secs.length > 1 && imp.mode === 'split' && imp.target === 'new') made = secs.map(s => mk(norm(s.name) || norm(R.name), s.items, `${norm(R.name)}${s.name ? ' · ' + norm(s.name) : ''}`));
+    if (String(imp.target).startsWith('dims:')) made = [];
+    else if (secs.length > 1 && imp.mode === 'split' && imp.target === 'new') made = secs.map(s => mk(norm(s.name) || norm(R.name), s.items, `${norm(R.name)}${s.name ? ' · ' + norm(s.name) : ''}`));
     else made = [mk(norm(R.name) || '새 척도', secs.flatMap(s => s.items), norm(R.name))];
     made.forEach(m => { if (!m.items.length) m.items = [{ text: '', reverse: false }]; });
-    if (imp.target !== 'new' && sv.scales[+imp.target]) {
+    if (String(imp.target).startsWith('dims:')) {
+      const parent = imp.target.slice(5), tg = sv.scales.filter(x => !x.items.some(it => norm(it.text)) && norm(x.name).startsWith(parent + '('));
+      const parts = secs.map(x => mk(norm(x.name) || norm(R.name), x.items, `${norm(R.name)}${x.name ? ' · ' + norm(x.name) : ''}`));
+      parts.forEach((m, k) => { const t = tg[k]; if (t) Object.assign(t, { points: m.points, labels: m.labels, source: m.source, instruction: m.instruction, items: m.items.length ? m.items : t.items, section: m.section }); });
+      made = parts.slice(tg.length).map(m => ({ ...m, role: tg[0] ? tg[0].role : m.role }));
+    } else if (imp.target !== 'new' && sv.scales[+imp.target]) {
       const t = sv.scales[+imp.target];
       const first = made.shift();
       Object.assign(t, { points: first.points, labels: first.labels, source: first.source, instruction: first.instruction, items: first.items, section: first.section || t.section });
@@ -8350,7 +8392,7 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
   }
   // 조사: 받침 있으면 앞, 없으면 뒤 ("은/는")
   const jong = w => { const s = String(w || '').trim().replace(/[\s)\]}'"’”.,]+$/, ''), c = s.slice(-1).charCodeAt(0); if (c >= 0xAC00 && c <= 0xD7A3) return (c - 0xAC00) % 28; if (/[0-9]$/.test(s)) return '0136789'.includes(s.slice(-1)) ? 1 : 0; return -1; };
-  const J = (w, pair) => { const [a, b] = pair.split('/'); const j = jong(w); return w + (j < 0 ? `${a}(${b})` : j ? a : b); };
+  const J = (w, pair) => { const [a, b] = pair.split('/'); const j = jong(w); return w + (j < 0 ? `${a}(${b})` : j && !(pair === '으로/로' && j === 8) ? a : b); };
 
   function mbInit() {
     if (!hp.cards) {
@@ -8365,6 +8407,17 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
   const vKey = n => norm(n).replace(/\s/g, '');
   const vFind = n => vKey(n) ? hp.vlist.find(v => vKey(v.name) === vKey(n)) : null;
   const kindOf = n => (vFind(n) || {}).kind || 'score';
+  // 하위 차원: '능력주의 신념' + ['노력', '능력'] → '능력주의 신념(노력)', '능력주의 신념(능력)'
+  const dimNames = v => Array.from({ length: v.dims || 0 }, (_, k) => norm((v.dn || [])[k]) || `차원${k + 1}`);
+  const dimVar = (v, d) => `${v.name}(${d})`;
+  // 원인 변인에 하위 차원이 있으면 차원마다 카드를 펼침 (따로: 차원별 / 통제: 다른 차원을 통제변인으로 / 영향: 한 회귀식에 함께)
+  function mbExpand(c) {
+    if (!['rel', 'pred', 'med', 'serial', 'mod', 'modmed'].includes(c.model)) return [{ c, first: true }];
+    const X = c.x.filter(n => norm(n)), vi = X.findIndex(n => (vFind(n) || {}).dims > 1); if (vi < 0) return [{ c, first: true }];
+    const v = vFind(X[vi]), ds = dimNames(v).map(d => dimVar(v, d));
+    if (c.model === 'pred' && c.dimsMode !== 'each') return [{ c: { ...c, x: [...X.slice(0, vi), ...ds, ...X.slice(vi + 1)] }, first: true }];
+    return ds.map((d, k) => ({ c: { ...c, x: [d, ...X.filter((_, j) => j !== vi)], ctl: c.dimsMode === 'together' ? [...c.ctl, ...ds.filter(o => o !== d)] : c.ctl }, first: k === 0 }));
+  }
   const guessKind = n => KNOWN2.test(n) ? 'g2' : KNOWN3.test(n) ? 'g3' : 'score';
   function mbAddVar(n, kind) {
     n = norm(n).replace(/^[\s"'“‘(]+|[\s"'”’).,]+$/g, ''); if (!n || vFind(n)) return;
@@ -8539,18 +8592,20 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
   // 카드 → 가설 목록 (앞 단계와 같은 꼴: text, type, vars, expect, flags, result)
   function cardItems() {
     const out = [];
-    hp.cards.forEach((c, ci) => {
-      if (mbMissing(c).length) return;
+    hp.cards.forEach((c0, ci) => {
+      if (mbMissing(c0).length) return;
+      const main = mbMain(c0), type = MB_TYPE[c0.model];
+      mbExpand(c0).forEach(({ c, first }) => {
       const X = c.x.filter(n => norm(n)).map(norm), M = c.m.filter(n => norm(n)).map(norm), ctl = c.ctl.filter(n => norm(n)).map(norm);
-      const main = mbMain(c), type = MB_TYPE[c.model];
-      const vars = { iv: c.model === 'diff' && c.within && !X.length ? [] : X, dv: norm(c.y), med: M, mod: norm(c.w), serial: c.model === 'serial' };
+      const vars = { iv: c.model === 'diff' && c.within && !X.length ? [] : X, dv: norm(c.y), med: M, mod: norm(c.w), serial: c.model === 'serial', ctl };
       const flags = { covar: ctl.length > 0, repeated: c.model === 'diff' && c.within, oneGroup: false, binaryDv: kindOf(c.y) === 'g2' };
-      if (c.paths) mbPaths(c).filter(p => p.on).forEach(p => {
+      if (c.paths) mbPaths(c).filter(p => p.on && (first || /^[ca]/.test(p.k))).forEach(p => {
         const ctlS = ctl.join(', ');
-        out.push(p.how === 'rel' ? { text: relS(p.a, p.b, p.dir, ctlS), type: 'rel', vars: { iv: [p.a], dv: p.b, med: [], mod: '', serial: false }, expect: p.dir, flags: { ...flags, covar: !!ctlS }, result: ctlS ? 'r_partial' : 'r_pearson', ci, part: p.k }
+        out.push(p.how === 'rel' ? { text: relS(p.a, p.b, p.dir, ctlS), type: 'rel', vars: { iv: [p.a], dv: p.b, med: [], mod: '', serial: false, ctl }, expect: p.dir, flags: { ...flags, covar: !!ctlS }, result: ctlS ? 'r_partial' : 'r_pearson', ci, part: p.k }
           : { text: predS(p.a, p.b, p.dir, ''), type, vars, expect: p.dir, flags, result: main, ci, part: p.k });
       });
       out.push({ text: cardSentence(c), type, vars, expect: c.dir, flags, result: main, ci, part: 'main' });
+      });
     });
     return out;
   }
@@ -8600,8 +8655,8 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
       ${L.map(o => `<div class="mb-opt ${o.id === main ? 'on' : ''}">
         <div><b>${esc(o.name)}</b>${o.id === rec ? ' <span class="mb-rec">추천</span>' : ''} <span class="mb-tag ${/^통/.test(o.tag) ? 'ok' : ''}">${esc(o.tag)}</span><small>${esc(o.q)}</small><small class="mb-when">언제: ${esc(o.when)}</small></div>
         <span class="mb-roles">${o.info ? '' : `<button class="mb-r ${o.id === main ? 'on' : ''}" data-mb-act="role" data-ci="${ci}" data-id="${o.id}" data-role="main" aria-pressed="${o.id === main}">주 분석</button>`}<button class="mb-r alt ${c.alts.includes(o.id) && o.id !== main ? 'on' : ''}" data-mb-act="role" data-ci="${ci}" data-id="${o.id}" data-role="alt" aria-pressed="${c.alts.includes(o.id) && o.id !== main}" ${o.id === main ? 'disabled' : ''}>보조</button></span></div>`).join('')}
-      ${dimV ? `<div class="mb-dim"><b>${esc(dimV.name)}</b>의 하위 차원이 ${dimV.dims}개예요. <select class="mb-sel" data-mb="c.${ci}.dimsMode"><option value="each" ${c.dimsMode !== 'together' ? 'selected' : ''}>차원마다 따로 분석 (${dimV.dims}번)</option><option value="together" ${c.dimsMode === 'together' ? 'selected' : ''}>한 차원을 볼 때 다른 차원은 통제변인으로</option></select>
-        <small>설문 만들기에서 척도를 넣을 때 하위요인을 [각각 따로]로 고르면 차원마다 점수가 생깁니다.</small></div>` : ''}
+      ${dimV ? `<div class="mb-dim"><b>${esc(dimV.name)}</b>의 하위 차원이 ${dimV.dims}개예요. <select class="mb-sel" data-mb="c.${ci}.dimsMode">${c.model === 'pred' ? `<option value="each" ${c.dimsMode === 'each' ? 'selected' : ''}>차원마다 따로 회귀 (${dimV.dims}번)</option><option value="together" ${c.dimsMode !== 'each' ? 'selected' : ''}>모든 차원을 한 회귀식에 함께</option>` : `<option value="each" ${c.dimsMode !== 'together' ? 'selected' : ''}>차원마다 따로 분석 (${dimV.dims}번)</option><option value="together" ${c.dimsMode === 'together' ? 'selected' : ''}>한 차원을 볼 때 다른 차원은 통제변인으로</option>`}</select>
+        <small>가설이 차원마다 만들어집니다(${esc(dimNames(dimV).map(d => dimVar(dimV, d)).join(', '))}). 설문에도 차원별 변인으로 들어가니, 척도 원본을 넣을 때 [하위 차원에 나눠 채우기]를 고르세요.</small></div>` : ''}
       <label class="f mb-why">이 분석을 고른 이유 <small>(심사에서 꼭 물어요. 내 말로 한두 줄)</small><textarea rows="2" data-mb="c.${ci}.why" placeholder="예: 간접효과는 정규분포를 따르지 않을 수 있어, 부트스트랩으로 신뢰구간을 구하는 PROCESS Model 4를 썼다.">${esc(c.why)}</textarea></label>
     </div>`;
   }
@@ -8650,7 +8705,8 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
       <div class="mb-vars">${v.map((x, i) => `<div class="mb-var"><input class="mb-in" data-mb="v.${i}.name" value="${esc(x.name)}">
           <select class="mb-sel" data-mb="v.${i}.kind">${Object.entries(VKIND).map(([k, l]) => `<option value="${k}" ${x.kind === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
           ${x.kind === 'score' ? `<select class="mb-sel" data-mb="v.${i}.dims" title="하위 차원(하위요인)이 있으면 고르세요"><option value="0" ${!x.dims ? 'selected' : ''}>하위 차원 없음</option>${[2, 3, 4, 5].map(n => `<option value="${n}" ${x.dims == n ? 'selected' : ''}>하위 차원 ${n}개</option>`).join('')}</select>` : `<input class="mb-in mb-lv" data-mb="v.${i}.levels" value="${esc(x.levels)}" placeholder="집단 이름: 남성, 여성">`}
-          <button class="mb-x" data-mb-act="del-var" data-i="${i}" title="지우기">×</button></div>`).join('')}
+          <button class="mb-x" data-mb-act="del-var" data-i="${i}" title="지우기">×</button>
+          ${x.kind === 'score' && x.dims > 1 ? `<div class="mb-dn"><span>하위 차원 이름</span>${dimNames(x).map((d, k) => `<input class="mb-in" data-mb="v.${i}.dn.${k}" value="${esc(norm((x.dn || [])[k]))}" placeholder="차원 ${k + 1} (예: ${['노력', '능력', '태도', '행동', '정서'][k]})">`).join('')}<small>설문에는 ${esc(J(dimNames(x).map(d => dimVar(x, d)).join(', '), '으로/로'))} 들어갑니다.</small></div>` : ''}</div>`).join('')}
         <div class="mb-var mb-newvar"><input class="mb-in" id="mb-newvar" placeholder="변인 이름 (예: 능력주의 신념) 적고 Enter"><button class="btn sm" data-mb-act="add-var">추가</button></div>
       </div>
 
@@ -8676,10 +8732,11 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
     const main = items.slice().sort((a, b) => rank(b.type) - rank(a.type))[0];
     const pth = pathTo(main.result); if (pth) { path = pth; _set('ladder.path', path); }
     const uniq = a => [...new Set(a.map(norm).filter(Boolean))];
-    const all = uniq(hp.cards.flatMap(c => [...c.x, ...c.m, c.w, c.y, ...c.ctl]));
+    const EC = hp.cards.filter(c => c.model && !mbMissing(c).length).flatMap(c => mbExpand(c).map(e => e.c));
+    const all = uniq(EC.flatMap(c => [...c.x, ...c.m, c.w, c.y, ...c.ctl]));
     const cat = n => kindOf(n) !== 'score';
-    const ivs = uniq(hp.cards.flatMap(c => c.x)).filter(n => !cat(n)), mainDv = norm(main.vars.dv);
-    const meds = uniq(hp.cards.flatMap(c => c.m)), mods = uniq(hp.cards.map(c => c.w)), dvs = uniq(hp.cards.map(c => c.y));
+    const ivs = uniq(EC.flatMap(c => c.x)).filter(n => !cat(n)), mainDv = norm(main.vars.dv);
+    const meds = uniq(EC.flatMap(c => c.m)), mods = uniq(EC.map(c => c.w)), dvs = uniq(EC.map(c => c.y));
     const lvOf = n => (vFind(n) || {}).levels || ((MB_LEVELS.find(([re]) => re.test(n)) || [0, '집단1, 집단2'])[1]);
     const catVars = all.filter(cat).map(n => ({ name: n, levels: lvOf(n) }));
     vars = { ...vars, ivs: [...catVars, ...ivs.map(n => ({ name: n, levels: '' }))], dv: cat(mainDv) ? '' : mainDv,
@@ -8696,7 +8753,7 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
     addSys('ladder', `가설 ${items.length}개로 통계 기법을 정했습니다: ${hp.plan.map(p => `가설 ${p.no} ${RULES.results[p.result].name}`).join(', ')}`);
     const n = Survey.importFromLadder(vars);
     const dimN = hp.vlist.filter(x => x.dims > 1);
-    toast(`가설별 기법을 정했습니다. 변인 ${n}개를 설문에 넣었습니다.${dimN.length ? ` ${dimN.map(x => x.name).join(', ')}는 척도를 넣을 때 하위요인을 [각각 따로]로 고르세요.` : ''}`);
+    toast(`가설별 기법을 정했습니다. 변인 ${n}개를 설문에 넣었습니다.${dimN.length ? ` ${J(dimN.map(x => x.name).join(', '), '은/는')} 하위 차원별 변인으로 넣었으니, 척도 원본을 넣을 때 [하위 차원에 나눠 채우기]를 고르세요.` : ''}`);
     switchView('survey');
   }
   function hypPlanHtml() {
@@ -8770,7 +8827,8 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
     if (kind === 'v') {
       const x = hp.vlist[i]; if (!x) return;
       if (f === 'name') { const old = x.name, nn = norm(t.value); if (!nn) return; x.name = nn; hp.cards.forEach(c => { ['x', 'm', 'ctl'].forEach(k => { c[k] = c[k].map(n => norm(n) === old ? nn : n); }); ['w', 'y'].forEach(k => { if (norm(c[k]) === old) c[k] = nn; }); }); }
-      else if (f === 'dims') x.dims = +t.value;
+      else if (f === 'dims') { x.dims = +t.value; x.dn = (x.dn || []).slice(0, x.dims); }
+      else if (f === 'dn') { x.dn = x.dn || []; x.dn[+sub] = norm(t.value); }
       else if (f === 'kind') { x.kind = t.value; if (x.kind !== 'score' && !x.levels) x.levels = (MB_LEVELS.find(([re]) => re.test(x.name)) || [0, ''])[1]; }
       else x[f] = t.value;
     } else if (kind === 'c') {
@@ -8960,7 +9018,7 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
   // 가설별 계획: 가설로 시작했으면 가설마다, 질문으로 골랐으면 고른 기법 하나
   function planItems() {
     if (hp && hp.mode === 'hyp' && hp.applied && hp.plan && hp.plan.length)
-      return hp.plan.map(p => { const it = hp.items[p.no - 1] || {}; return { no: p.no, text: p.text, result: p.result, type: it.type || null, v: it.vars ? { X: it.vars.iv || [], M: it.vars.med || [], W: it.vars.mod || '', Y: it.vars.dv || '' } : null }; });
+      return hp.plan.map(p => { const it = hp.items[p.no - 1] || {}; return { no: p.no, text: p.text, result: p.result, type: it.type || null, v: it.vars ? { X: it.vars.iv || [], M: it.vars.med || [], W: it.vars.mod || '', Y: it.vars.dv || '', C: it.vars.ctl || [] } : null }; });
     const id = ladderResultId(); if (!id) return [];
     const h = (intent.hyps || []).find(x => norm(x.text));
     return [{ no: 1, text: h ? h.text : '', result: id, type: null, v: null }];
@@ -8985,7 +9043,8 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
     const roles = autoRoles(m); if (!p || !p.v) return roles;
     const vs = dataVars(), key = n => (vs.find(v => sameName(v.name, n)) || {}).key;
     const v = p.v, X = v.X.map(key).filter(Boolean), M = v.M.map(key).filter(Boolean), W = key(v.W), Y = key(v.Y);
-    const ctl = ctlKeys(vs);
+    const C = (v.C || []).map(key).filter(Boolean);
+    const ctl = [...new Set([...C, ...ctlKeys(vs)])].filter(c => !X.includes(c) && !M.includes(c) && c !== Y && c !== W);
     for (const sl of METHODS[m].slots) {
       const k = sl.k;
       if (k === 'x' && X[0]) roles.x = X[0];
@@ -8998,15 +9057,22 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
       else if (k === 'g' && X[0]) { const xv = vs.find(x => x.key === X[0]); if (xv && xv.type === 'cat' && (sl.type !== 'cat2' || xv.levels.length === 2)) roles.g = X[0]; else if (xv) roles.g = ''; }
       else if (k === 'ys' && Y) roles.ys = [Y];
       else if (k === 'vars' && X.length && Y) roles.vars = X.concat(Y);
+      else if (k === 'covs' && ctl.length) roles.covs = ctl;
+      else if (k === 'b1' && ctl.length && X.length) roles.b1 = ctl;
+      else if (k === 'b2' && ctl.length && X.length) roles.b2 = X;
     }
     return roles;
   }
   // 가설 확정 뒤 계산한 분석: 계획에 있던 기법이면 확증, 아니면 탐색적
-  function confOf(method) {
+  function confOf(method, roles) {
     if (lastScored && lastScored.pilot) return { k: 'pilot' };
     if (!md.lock) return null;
-    const hit = md.lock.plan.filter(p => p.method === method).map(p => p.no);
-    if (hit.length) return { k: 'confirm', hyps: hit, at: md.lock.at };
+    const cand = md.lock.plan.filter(p => p.method === method);
+    if (cand.length) {
+      const sig = r => JSON.stringify(Object.keys(r || {}).sort().map(k => [k, [].concat(r[k] ?? []).filter(x => x !== '' && x != null).map(String).sort()]).filter(([, v]) => v.length));
+      const items = planItems(), same = roles ? cand.filter(p => { const pi = items.find(x => x.no === p.no); return pi && pi.v && sig(rolesFor(pi, method)) === sig(roles); }) : [];
+      return { k: 'confirm', hyps: (same.length ? same : cand).map(p => p.no), at: md.lock.at };
+    }
     md.explore.push({ at: koNow(), method: METHODS[method]?.name || method }); saveMd();
     return { k: 'explore', at: md.lock.at };
   }
@@ -9204,30 +9270,35 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
   }
   function modelSvg(items) {
     const p = mainItem(items); if (!p) return '';
-    const v = itemVars(p), id = p.result, W = 540;
-    const X = v.X.length ? v.X : ['원인 (X)'], Y = v.Y || '결과 (Y)';
+    const v = itemVars(p), id = p.result, W = 540, u = 'mv' + (++modelSvg.n || (modelSvg.n = 1));
+    // 같은 매개모형을 원인(하위 차원)만 바꿔 여러 번 세웠으면 원인을 함께 그림
+    const sib = /med_|modmed/.test(id) ? items.filter(q => q.result === id && itemVars(q).Y === v.Y && JSON.stringify(itemVars(q).M) === JSON.stringify(v.M)) : [p];
+    const X0 = [...new Set(sib.flatMap(q => itemVars(q).X))];
+    const X = X0.length ? X0 : ['원인 (X)'], Y = v.Y || '결과 (Y)';
     const bw = 116, bh = 46;
     const box = (x, y, name, role, cls, w = bw) => { const L = wrapName(name, w < bw ? 6 : 8); return `<g class="bx ${cls}"><rect x="${x}" y="${y}" width="${w}" height="${bh}" rx="9"/>${L.map((t, i) => `<text x="${x + w / 2}" y="${y + bh / 2 + (L.length === 1 ? 4 : i * 15 - 3)}">${esc(t)}</text>`).join('')}<text class="role" x="${x + w - 6}" y="${y + 12}">${role}</text></g>`; };
-    const ar = (x1, y1, x2, y2, cls = '') => `<line class="ar ${cls}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" marker-end="url(#mv-ah${cls.includes('dash') ? '2' : ''})"/>`;
+    const ar = (x1, y1, x2, y2, cls = '') => `<line class="ar ${cls}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" marker-end="url(#${u}-ah${cls.includes('dash') ? '2' : ''})"/>`;
     const C = md.controls; let H = 250, g = '', yY = 170;
     const xL = 14, xR = W - bw - 14, xM = (W - bw) / 2;
     if (/med_|modmed/.test(id)) {
       const Ms = v.M.length ? v.M : ['매개 (M)'];
       const yB = 170;
-      g += box(xL, yB, X[0], 'X', 'x') + box(xR, yB, Y, 'Y', 'y');
-      g += ar(xL + bw, yB + bh / 2, xR - 4, yB + bh / 2);
+      const Xs = X.slice(0, 3), xys = Xs.length === 1 ? [yB] : Xs.length === 2 ? [yB - 30, yB + 30] : [yB - 56, yB, yB + 56];
+      Xs.forEach((x, i) => { g += box(xL, xys[i], x, Xs.length > 1 ? 'X' + (i + 1) : 'X', 'x') + ar(xL + bw, xys[i] + bh / 2, xR - 4, yB + bh / 2); });
+      g += box(xR, yB, Y, 'Y', 'y');
+      H = Math.max(H, xys[xys.length - 1] + bh + 24);
       if (id === 'r_med_serial' && Ms.length > 1) {
         const n = Math.min(Ms.length, 4), step = (xR - xL) / (n + 1), mw = Math.min(bw, step - 16);
         const xs = Ms.slice(0, n).map((_, i) => xL + bw / 2 + step * (i + 1) - mw / 2);
         Ms.slice(0, n).forEach((m, i) => { g += box(xs[i], 34, m, 'M' + (i + 1), 'm', mw); });
-        g += ar(xL + bw * 0.6, yB, xs[0] + mw * 0.3, 34 + bh + 3);
+        xys.forEach(y0 => { g += ar(xL + (xys.length > 1 ? bw - 4 : bw * 0.6), y0 + (xys.length > 1 ? 8 : 0), xs[0] + mw * 0.3, 34 + bh + 3); });
         for (let i = 0; i < n - 1; i++) g += ar(xs[i] + mw, 34 + bh / 2, xs[i + 1] - 4, 34 + bh / 2);
         g += ar(xs[n - 1] + mw * 0.7, 34 + bh, xR + bw * 0.4, yB - 3);
       } else {
         const n = Math.min(Ms.length, 3), ys = n === 1 ? [40] : n === 2 ? [18, 84] : [4, 56, 108];
         Ms.slice(0, 3).forEach((m, i) => {
           g += box(xM, ys[i], m, n > 1 ? 'M' + (i + 1) : 'M', 'm');
-          g += ar(xL + bw * 0.7, yB, xM - 3, ys[i] + bh / 2 + 4) + ar(xM + bw, ys[i] + bh / 2 + 4, xR + bw * 0.3, yB - 3);
+          g += xys.map(y0 => ar(xL + (xys.length > 1 ? bw - 4 : bw * 0.7), y0 + (xys.length > 1 ? 8 : 0), xM - 3, ys[i] + bh / 2 + 4)).join('') + ar(xM + bw, ys[i] + bh / 2 + 4, xR + bw * 0.3, yB - 3);
         });
         if (/modmed/.test(id)) {
           const wN = v.W || '조절 (W)';
@@ -9251,8 +9322,8 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
     }
     if (C.length) { g += `<g class="bx c"><rect x="${xM}" y="${H - 6}" width="${bw}" height="34" rx="9"/><text x="${xM + bw / 2}" y="${H + 15}">통제: ${esc(C.slice(0, 3).join('·'))}${C.length > 3 ? '…' : ''}</text></g>`; g += ar(xM + bw, H + 11, xR + bw / 2, yY + bh + 4, 'dash'); H += 34; }
     return `<svg class="mv-svg" viewBox="0 0 ${W} ${H + 10}" role="img" aria-label="연구 모형 그림"><defs>
-      <marker id="mv-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="ah"/></marker>
-      <marker id="mv-ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="ah2"/></marker></defs>${g}</svg>`;
+      <marker id="${u}-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="ah"/></marker>
+      <marker id="${u}-ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" class="ah2"/></marker></defs>${g}</svg>`;
   }
 
   // ---------- 모델 검토: 점검 목록 ----------
@@ -9299,7 +9370,7 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
     const medItems = items.filter(p => /med_|modmed/.test(p.result));
     if (medItems.length) {
       const p = medItems[0], v = itemVars(p), serial = p.result === 'r_med_serial' && v.M.length > 1;
-      const q = serial ? `순서를 바꾼 모형(${esc(v.M[1])} → ${esc(v.M[0])})도 말이 될까요?` : `거꾸로 된 모형(${esc(v.M[0] || 'M')} → ${esc(v.X[0] || 'X')})이나 ${esc(v.Y || 'Y')}가 매개인 모형도 말이 될까요?`;
+      const q = serial ? `순서를 바꾼 모형(${esc(v.M[1])} → ${esc(v.M[0])})도 말이 될까요?` : `거꾸로 된 모형(${esc(v.M[0] || 'M')} → ${esc(v.X[0] || 'X')})이나 ${esc(J(v.Y || 'Y', '이/가'))} 매개인 모형도 말이 될까요?`;
       L.push({ id: 'alt', title: '대안 모형', st: norm(md.altWhy).length >= 8 ? 'ok' : 'q', body: `${q} 심사에서 자주 묻습니다. 왜 이 순서인지 이론이나 선행연구로 한두 줄 적어 두세요.`,
         ctl: `<textarea data-mv-alt rows="2" placeholder="예: 사회비교이론(Festinger, 1954)에 따르면 비교가 먼저 일어나고 그 결과 외로움을 느낀다.">${esc(md.altWhy)}</textarea>` });
     }
