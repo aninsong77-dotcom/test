@@ -4,7 +4,7 @@
 // 검증: tests/README.md 참고 — R 기준값 비교, 화면에서 돌린 분석 전부를 통이 만든 R 코드와 비교, 경계 상황 테스트.
 // 들어 있는 분석 함수 23개: pearson, spearman, partial, pointbiserial, chisq, onesample, ind_t, paired_t, oneway, factorial, ancova, regression, hier, logistic, med_parallel, med_serial, moderation, modmed7, modmed14, rm_anova, mixed_anova, mcnemar, cochran
 
-// ##### 1. 응답 읽기 · 동의 판정 · 점수 만들기(역문항, 최소 응답, 중복) (stats-ladder.html 4065~4175줄) #####
+// ##### 1. 응답 읽기 · 동의 판정 · 점수 만들기(역문항, 최소 응답, 중복) (stats-ladder.html 4087~4197줄) #####
   function autoMap() {
     colMap = {}; mapAuto = {};
     const H = raw.headers.map(h => norm(h).toLowerCase());
@@ -117,7 +117,7 @@
     }
     const hOpts = sel => `<option value="-1" ${sel < 0 ? 'selected' : ''}>(연결 안 함)</option>` + raw.headers.map((h, i) => `<option value="${i}" ${i === sel ? 'selected' : ''}>${i + 1}. ${esc(h.length > 40 ? h.slice(0, 40) + '…' : h)}</option>`).join('');
 
-// ##### 2. 계산 도우미 · 분포 · 회귀(QR) · 부트스트랩 · 베이즈 인자 · 숫자 표기 (stats-ladder.html 4206~4716줄) #####
+// ##### 2. 계산 도우미 · 분포 · 회귀(QR) · 부트스트랩 · 베이즈 인자 · 숫자 표기 (stats-ladder.html 4228~4738줄) #####
   // ---------- 계산 도우미 ----------
   const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
   const sd = a => { if (a.length < 2) return NaN; const m = mean(a); return Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / (a.length - 1)); };
@@ -630,7 +630,7 @@
 
   // =================================================================
 
-// ##### 3. 분석 방법 (RUN): 상관·t·분산분석·회귀·로지스틱·매개·조절 (stats-ladder.html 4716~5762줄) #####
+// ##### 3. 분석 방법 (RUN): 상관·t·분산분석·회귀·로지스틱·매개·조절 (stats-ladder.html 4738~5789줄) #####
   // =================================================================
   // ⑤ 분석
   // =================================================================
@@ -675,7 +675,9 @@
     med_serial: { name: '순차매개분석 (PROCESS Model 6)', group: '매개·조절', slots: [{ k: 'x', label: '독립변인 (X)', type: 'numbin' }, { k: 'm1', label: '매개변인 1 (M1, 먼저)', type: 'num' }, { k: 'm2', label: '매개변인 2 (M2, 나중)', type: 'num' }, { k: 'y', label: '종속변인 (Y)', type: 'num' }, { k: 'covs', label: '통제변인 (선택)', type: 'any', multi: true, min: 0 }], opts: ['boot'] },
     moderation: { name: '조절효과 분석 (PROCESS Model 1)', group: '매개·조절', slots: [{ k: 'x', label: '독립변인 (X)', type: 'numbin' }, { k: 'w', label: '조절변인 (W)', type: 'numbin' }, { k: 'y', label: '종속변인 (Y)', type: 'num' }, { k: 'covs', label: '통제변인 (선택)', type: 'any', multi: true, min: 0 }], opts: ['center'] },
     modmed7: { name: '조절된 매개분석 · 앞쪽 경로 (PROCESS Model 7)', group: '매개·조절', slots: [{ k: 'x', label: '독립변인 (X)', type: 'numbin' }, { k: 'm', label: '매개변인 (M)', type: 'num' }, { k: 'w', label: '조절변인 (W, X→M을 조절)', type: 'numbin' }, { k: 'y', label: '종속변인 (Y)', type: 'num' }, { k: 'covs', label: '통제변인 (선택)', type: 'any', multi: true, min: 0 }], opts: ['boot', 'center'] },
-    modmed14: { name: '조절된 매개분석 · 뒤쪽 경로 (PROCESS Model 14)', group: '매개·조절', slots: [{ k: 'x', label: '독립변인 (X)', type: 'numbin' }, { k: 'm', label: '매개변인 (M)', type: 'num' }, { k: 'w', label: '조절변인 (W, M→Y를 조절)', type: 'numbin' }, { k: 'y', label: '종속변인 (Y)', type: 'num' }, { k: 'covs', label: '통제변인 (선택)', type: 'any', multi: true, min: 0 }], opts: ['boot', 'center'] }
+    modmed14: { name: '조절된 매개분석 · 뒤쪽 경로 (PROCESS Model 14)', group: '매개·조절', slots: [{ k: 'x', label: '독립변인 (X)', type: 'numbin' }, { k: 'm', label: '매개변인 (M)', type: 'num' }, { k: 'w', label: '조절변인 (W, M→Y를 조절)', type: 'numbin' }, { k: 'y', label: '종속변인 (Y)', type: 'num' }, { k: 'covs', label: '통제변인 (선택)', type: 'any', multi: true, min: 0 }], opts: ['boot', 'center'] },
+    sem: { name: '구조방정식 (SEM · 잠재변인 경로모형)', group: '구조방정식 (R lavaan)', slots: [{ k: 'xs', label: '원인 (X)', type: 'num', multi: true, min: 1 }, { k: 'ms', label: '매개변인 (M, 선택 · 여러 개면 나란히)', type: 'num', multi: true, min: 0 }, { k: 'y', label: '결과 (Y)', type: 'num' }, { k: 'covs', label: '통제변인 (선택)', type: 'numbin', multi: true, min: 0 }], opts: ['semBoot'] },
+    sem_serial: { name: '구조방정식 (SEM · 순차 경로)', group: '구조방정식 (R lavaan)', slots: [{ k: 'x', label: '원인 (X)', type: 'num' }, { k: 'm1', label: '매개변인 1 (M1, 먼저)', type: 'num' }, { k: 'm2', label: '매개변인 2 (M2, 나중)', type: 'num' }, { k: 'y', label: '결과 (Y)', type: 'num' }, { k: 'covs', label: '통제변인 (선택)', type: 'numbin', multi: true, min: 0 }], opts: ['semBoot'] }
   };
   // 사다리 도착점 → 계산 방법 (null: 이 사이트에서 계산하지 않음)
   const LADDER_TO_METHOD = {
@@ -683,7 +685,7 @@
     r_factorial_anova: 'factorial', r_chisq: 'chisq', r_logistic: 'logistic', r_pearson: 'pearson', r_spearman: 'spearman', r_partial: 'partial',
     r_pointbiserial: 'pointbiserial', r_simple_reg: 'regression', r_multiple_reg: 'regression', r_hier_reg: 'hier', r_med_simple: 'med_parallel',
     r_med_parallel: 'med_parallel', r_med_serial: 'med_serial', r_moderation: 'moderation', r_modmed_a: 'modmed7', r_modmed_b: 'modmed14',
-    r_rm_anova: 'rm_anova', r_mixed_anova: 'mixed_anova', r_rm_factorial: null, r_mcnemar: 'mcnemar', r_cochran: 'cochran', r_multilevel: null, r_multinom: null, r_ordinal: null
+    r_rm_anova: 'rm_anova', r_mixed_anova: 'mixed_anova', r_rm_factorial: null, r_mcnemar: 'mcnemar', r_cochran: 'cochran', r_sem: 'sem', r_sem_serial: 'sem_serial', r_multilevel: null, r_multinom: null, r_ordinal: null
   };
 
   const ladderResultId = () => { const w = walk(path); return w.cur.type === 'result' ? w.cur.id : null; };
@@ -1202,6 +1204,9 @@
       medNotes(R, X, P); return R;
     },
 
+    sem(r, o, onProg) { return runSem('par', r, o, onProg); },
+    sem_serial(r, o, onProg) { return runSem('serial', r, o, onProg); },
+
     async moderation(r, o) {
       const P = prep({ x: r.x, w: r.w, y: r.y, c: r.covs });
       const X = binCode(P, r.x), W = binCode(P, r.w), y = P.col(r.y), C = designCols(P, r.covs), n = P.n;
@@ -1679,7 +1684,7 @@
 
   // =================================================================
 
-// ##### 4. 분석 방법 (RUN 이어서): 반복측정·혼합설계 분산분석, 맥니마, 코크란 Q (stats-ladder.html 10985~11262줄) #####
+// ##### 4. 분석 방법 (RUN 이어서): 반복측정·혼합설계 분산분석, 맥니마, 코크란 Q (stats-ladder.html 11217~11494줄) #####
   // =================================================================
   // 반복측정 · 혼합설계 분산분석, 맥니마, 코크란 Q
   // =================================================================
@@ -1959,7 +1964,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
 
   // =================================================================
 
-// ##### 5. 결과 해석: 학생이 읽은 결과 점검(gistCheck), 가설↔효과 연결(autoLink), 결과 문단 틀 (stats-ladder.html 5816~6043줄) #####
+// ##### 5. 결과 해석: 학생이 읽은 결과 점검(gistCheck), 가설↔효과 연결(autoLink), 결과 문단 틀 (stats-ladder.html 5843~6070줄) #####
   // ---------- 결과의 줄기: 학생이 먼저 읽고, 코드가 판정과 맞는지 봄 ----------
   function readHint(e) {
     if (e.ciBased) return `신뢰구간 [${e.lo?.toFixed(3)}, ${e.hi?.toFixed(3)}]이 0을 포함하는지 보세요. 포함하지 않으면 간접효과가 있다고 읽습니다. 직접효과도 함께 보면 매개의 모양을 알 수 있어요.`;
@@ -2189,7 +2194,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
   }
 
 
-// ##### 6. 보고 체크리스트: 효과크기 신뢰구간, 정규성, 가정 점검 (stats-ladder.html 6865~7064줄) #####
+// ##### 6. 보고 체크리스트: 효과크기 신뢰구간, 정규성, 가정 점검 (stats-ladder.html 6920~7132줄) #####
   // =================================================================
   // 보고 체크리스트 (APA 7 결과 보고 항목을 코드가 점검)
   // =================================================================
@@ -2308,6 +2313,8 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
         assum: [vifCheck(vifs(D.cols)), { item: '로짓의 선형성', st: 'warn', note: '점수 예측변인과 로짓의 선형성(Box–Tidwell)은 이 사이트에서 점검하지 않습니다.' }], post: null };
     },
     med_parallel(r, R) { return medChecks(r.x, r.ms, r.y, r.covs, R); },
+    sem(r, R) { return semChecks(R); },
+    sem_serial(r, R) { return semChecks(R); },
     med_serial(r, R) { return medChecks(r.x, [r.m1, r.m2], r.y, r.covs, R, true); },
     moderation(r, R) {
       const P = prep({ x: r.x, w: r.w, y: r.y, c: r.covs }), X = binCode(P, r.x), W = binCode(P, r.w), y = P.col(r.y), C = designCols(P, r.covs).cols;
@@ -2339,6 +2346,17 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
     const P = prep({ y: yk, x: xs }), D = designCols(P, xs), fit = ols(P.col(yk), rowsOf(D.cols)), f2 = fit.R2 / (1 - fit.R2);
     return { desc: descOf(P, [yk, ...xs]), es: { text: `β(표준화 계수)와 R² = ${NZ(fit.R2)}, f² = ${F2(f2, 3)} (${sizeLabel('f2', f2)})${hier ? ', 단계별 ΔR²' : ''}를 보고했습니다.`, cut: 'f2' },
       ci: { st: 'ok', note: 'B의 95% CI를 보고했습니다. β의 CI가 필요하면 B의 CI에 SD(X)/SD(Y)를 곱한 근사값을 쓸 수 있습니다.' }, norm: normality([['잔차', fit.resid]]), assum: [vifCheck(vifs(D.cols)), residPlot], post: null };
+  }
+  function semChecks(R) {
+    const ft = R.tables.find(t => t.title === '모형 적합도'), bad = ft ? ft.rows.filter(r => r[3] === '미흡').map(r => r[0]) : [];
+    const ld = R.tables.find(t => /측정모형/.test(t.title)), low = ld ? ld.rows.filter(r => +r[2] < 0.5).map(r => r[1]) : [];
+    return { desc: { st: 'ok', note: '잠재변인은 문항으로 측정했습니다. 척도 점수의 평균·표준편차는 표본 확인과 사전 분석의 표를 쓰세요.' },
+      es: { text: '표준화 경로계수(β)와 설명된 분산(R²)을 보고했습니다.', cutText: '표준화 경로계수는 흔히 .10 작음, .30 중간, .50 큼으로 읽습니다. 간접효과에는 합의된 기준이 없어 크기만 적습니다.' },
+      ci: { st: 'ok', note: '경로는 95% CI, 간접효과와 총효과는 부트스트랩 95% 백분위 신뢰구간을 보고했습니다.' }, stat: { st: 'ok', note: '경로는 z·p를, 간접효과는 p 대신 부트스트랩 신뢰구간으로 판단했습니다.' },
+      norm: { na: '최대우도(ML)는 다변량 정규성을 가정합니다. 문항 분포가 크게 치우치면 R 코드에서 estimator = "MLR"로 바꿔 비교해 보세요' },
+      assum: [{ item: '모형 적합도', st: bad.length ? 'warn' : 'ok', note: bad.length ? `${bad.join(', ')}가 기준에 못 미칩니다. 측정모형(확인적 요인분석)부터 점검하세요. 수정지수만 보고 경로를 더하지 마세요.` : '적합도 지표가 흔히 쓰는 기준을 넘었습니다.' },
+        { item: '측정모형 부하량', st: low.length ? 'warn' : 'ok', note: low.length ? `표준화 부하량이 .50보다 낮은 문항: ${low.join(', ')}` : '모든 문항의 표준화 부하량이 .50 이상입니다.' },
+        { item: '표본 크기', st: R.n >= 200 ? 'ok' : 'warn', note: R.n >= 200 ? `N = ${R.n}` : `N = ${R.n}. 구조방정식은 흔히 200명 이상을 권합니다. 결과를 조심해서 해석하고 척도 점수로 한 매개·회귀분석과 비교하세요.` }], post: null };
   }
   function medChecks(xk, ms, yk, covs, R, serial) {
     const P = prep({ x: xk, m: ms, y: yk, c: covs }), X = binCode(P, xk), C = designCols(P, covs).cols, y = P.col(yk), M = ms.map(k => P.col(k));
@@ -2391,7 +2409,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
 
   // =================================================================
 
-// ##### 7. 분석 결정 (기본값) (stats-ladder.html 7176~7290줄) #####
+// ##### 7. 분석 결정 (기본값) (stats-ladder.html 7244~7361줄) #####
   // =================================================================
   // 분석 결정 (연구자가 정하고, 바꾼 것은 기록)
   // =================================================================
@@ -2399,7 +2417,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
   plan.elig = plan.elig || []; plan.recode = plan.recode || {}; plan.manual = plan.manual || {};
   const savePlan = () => store.set('ladder.plan', plan);
   const AO = () => { ensureSelLite(); return anSel.opts; };
-  function ensureSelLite() { if (!anSel) anSel = { method: null, roles: {}, opts: {} }; const o = anSel.opts; if (o.boot == null) o.boot = 5000; if (o.center == null) o.center = true; if (!o.welch) o.welch = 'always'; if (!o.posthoc) o.posthoc = 'scheffe'; if (o.testValue == null) o.testValue = 3; }
+  function ensureSelLite() { if (!anSel) anSel = { method: null, roles: {}, opts: {} }; const o = anSel.opts; if (o.boot == null) o.boot = 5000; if (o.semBoot == null) o.semBoot = 1000; if (o.center == null) o.center = true; if (!o.welch) o.welch = 'always'; if (!o.posthoc) o.posthoc = 'scheffe'; if (o.testValue == null) o.testValue = 3; }
 
   // scope: 'data'는 모든 분석에, 그 밖은 해당 방법에만
   const DECISIONS = [
@@ -2436,6 +2454,9 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
     { id: 'boot', scope: ['med_parallel', 'med_serial', 'modmed7', 'modmed14'], q: '간접효과의 신뢰구간을 구할 때 재표집을 몇 번 할까요?',
       opts: [['1000', '1,000번', '빠르지만 신뢰구간이 조금 흔들릴 수 있습니다.'], ['5000', '5,000번', 'PROCESS의 기본값이라 논문에서 가장 흔합니다.'], ['10000', '10,000번', '가장 안정적입니다. 계산이 조금 오래 걸립니다.']],
       get: () => String(AO().boot), set: v => { AO().boot = +v; } },
+    { id: 'semBoot', scope: ['sem', 'sem_serial'], q: '구조방정식의 간접효과 신뢰구간을 구할 때 재표집을 몇 번 할까요?',
+      opts: [['500', '500번', '빠르지만 신뢰구간이 조금 흔들릴 수 있습니다.'], ['1000', '1,000번', '구조방정식 논문에서 흔합니다. 브라우저에서 1분 안팎 걸립니다.'], ['2000', '2,000번', '더 안정적입니다. 시간이 두 배쯤 걸립니다.'], ['5000', '5,000번', '가장 안정적입니다. 몇 분 걸릴 수 있습니다.']],
+      get: () => String(AO().semBoot || 1000), set: v => { AO().semBoot = +v; } },
     { id: 'center', scope: ['moderation', 'modmed7', 'modmed14'], q: '상호작용항을 만들기 전에 점수 변인을 평균중심화할까요?',
       opts: [['on', '평균중심화함', '계수가 "상대 변인이 평균일 때의 효과"가 되어 해석하기 쉽습니다. 많이 권합니다.'], ['off', '원점수 그대로', '0점이 의미 있는 척도일 때 씁니다. 상호작용 계수와 검정 결과는 같습니다.']],
       get: () => (AO().center ? 'on' : 'off'), set: v => { AO().center = v === 'on'; } }
@@ -2508,7 +2529,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
 
   // =================================================================
 
-// ##### 8. R 코드 만들기 (재계산용) (stats-ladder.html 7290~7654줄) #####
+// ##### 8. R 코드 만들기 (재계산용) (stats-ladder.html 7361~7728줄) #####
   // =================================================================
   // R 코드 만들기 (분석 계획서 그대로, 기본 R만 사용)
   // =================================================================
@@ -2518,7 +2539,9 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
   function specOf(method, roles, opts) {
     const keys = [...new Set(Object.values(roles).flat().filter(Boolean))];
     const vars = Object.fromEntries(keys.map(k => { const v = varByKey(k); return [k, { code: v.code, name: v.name, type: v.type, levels: v.levels || null }]; }));
-    return { method, roles: JSON.parse(JSON.stringify(roles)), opts: { ...opts }, vars };
+    const spec = { method, roles: JSON.parse(JSON.stringify(roles)), opts: { ...opts }, vars };
+    if (/^sem/.test(method) && lastScored) { const S = semSpec(method === 'sem_serial' ? 'serial' : 'par', roles); spec.sem = { syntax: S.syntax, items: S.items.map(i => ({ nm: i.nm, code: i.code })), obs: S.obs.map(n => ({ id: n.id, k: n.k })), P: S.P, D: S.D }; }
+    return spec;
   }
 
   const R_HEAD = `options(warn = 1)
@@ -2562,6 +2585,7 @@ fitb <- function(y, X) as.numeric(lm.fit(cbind(1, X), y)$coefficients)
   const nm = (S, k) => S.vars[k].name;
 
   const RGEN = {
+    sem: S => rSem(S), sem_serial: S => rSem(S),
     pearson: S => rCorr(S, 'pearson'), spearman: S => rCorr(S, 'spearman'),
     partial: S => { const r = S.roles; return `${rComplete(S, [r.x, r.y, ...r.covs])}
 x <- ${rNum(S, r.x)}; y <- ${rNum(S, r.y)}; Z <- ${rDesign(S, r.covs)}
@@ -2737,7 +2761,7 @@ ${RGEN[a.spec.method](a.spec).split('\n').map(l => '  ' + l).join('\n')}
 })`);
     return `# =====================================================================
 # 통 R 분석 코드 — 만든 날 ${today()}
-# 연구자가 정한 분석 결정을 그대로 따르는 코드입니다. 기본 R만 씁니다 (추가 패키지 없음).
+# 연구자가 정한 분석 결정을 그대로 따르는 코드입니다. 기본 R만 씁니다 (추가 패키지 없음${ok.some(a => /^sem/.test(a.spec.method)) ? '. 구조방정식만 lavaan 패키지가 필요합니다' : ''}).
 # 결정을 바꾸려면 코드를 고치지 말고 통에서 바꾼 뒤 다시 받으세요.
 #
 # 분석 결정
@@ -2875,7 +2899,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
 
   // =================================================================
 
-// ##### 9. SPSS 명령문 만들기 · SPSS 출력과 대조 (stats-ladder.html 11262~11439줄) #####
+// ##### 9. SPSS 명령문 만들기 · SPSS 출력과 대조 (stats-ladder.html 11494~11671줄) #####
   // =================================================================
   // SPSS로 확인하기: 명령문(.sps) 만들기 + SPSS 출력의 숫자와 맞춰 보기 (AI 없이 규칙으로)
   // =================================================================
@@ -3055,7 +3079,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
   });
 
 
-// ##### 10. 표본 수 계산 (G*Power 방식): 분포 함수 (stats-ladder.html 9749~9846줄) #####
+// ##### 10. 표본 수 계산 (G*Power 방식): 분포 함수 (stats-ladder.html 9824~9921줄) #####
   // ---------- 표본 수 계산: 비중심 분포 (G*Power와 같은 방식) ----------
   const PW = (() => {
     const { pF, pChi, zInv } = ST;
@@ -3155,7 +3179,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
 
   // =================================================================
 
-// ##### 11. 표본 수 계산: 화면이 넘기는 자유도·비중심 모수 (stats-ladder.html 9921~10101줄) #####
+// ##### 11. 표본 수 계산: 화면이 넘기는 자유도·비중심 모수 (stats-ladder.html 9997~10177줄) #####
   // ---------- 표본 수 계산 ----------
   const ESZ = {
     d: { lab: 'd', v: [0.2, 0.5, 0.8] }, f: { lab: 'f', v: [0.1, 0.25, 0.4] }, f2: { lab: 'f²', v: [0.02, 0.15, 0.35] }, r: { lab: 'r', v: [0.1, 0.3, 0.5] },
@@ -3166,7 +3190,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
     r_onesample_t: 't1', r_paired_t: 't1', r_ind_t: 't2', r_pointbiserial: 't2', r_oneway: 'anova', r_rel_anova: 'anova', r_factorial_anova: 'factorial',
     r_ancova: 'ancova', r_rm_anova: 'rm', r_rm_factorial: 'rm', r_mixed_anova: 'mixed', r_chisq: 'chi', r_pearson: 'corr', r_spearman: 'corr', r_partial: 'corr',
     r_simple_reg: 'reg', r_multiple_reg: 'reg', r_hier_reg: 'hier', r_logistic: 'logit', r_multinom: 'epv', r_ordinal: 'epv', r_moderation: 'inter',
-    r_med_simple: 'med', r_med_parallel: 'med', r_med_serial: 'med3', r_modmed_a: 'modmed', r_modmed_b: 'modmed'
+    r_med_simple: 'med', r_med_parallel: 'med', r_med_serial: 'med3', r_modmed_a: 'modmed', r_modmed_b: 'modmed', r_sem: 'med', r_sem_serial: 'med3'
   };
   const FAM_ES = { t1: 'd', t2: 'd', anova: 'f', factorial: 'f', ancova: 'f', rm: 'f', mixed: 'f', chi: 'w', corr: 'r', reg: 'f2', hier: 'f2', inter: 'f2', logit: 'or', med: 'path', med3: 'path', modmed: 'path' };
   const levelsOf = name => { const iv = vars.ivs.find(x => sameName(x.name, name)); const n = iv && iv.levels ? iv.levels.split(/[,，]/).filter(s => norm(s)).length : 0; return n >= 2 ? n : 0; };
@@ -3338,7 +3362,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
   });
 
 
-// ##### 12. 탐색적 요인분석 (PAF·PCA, 베리맥스) · 확인적 요인분석 (webR lavaan, CR·AVE·HTMT) (stats-ladder.html 10354~10603줄) #####
+// ##### 12. 탐색적 요인분석 (PAF·PCA, 베리맥스) · 확인적 요인분석 (webR lavaan, CR·AVE·HTMT) (stats-ladder.html 10430~10835줄) #####
   // ---------- 탐색적 요인분석: 주축요인추출(PAF) 또는 주성분 추출 + 베리맥스 회전 ----------
   // PAF는 R psych::fa(fm = "pa")·SPSS '주축 요인 추출'과 같은 반복 방식, 주성분은 R의 eigen과 같음. 회전은 R의 varimax(정규화)와 같음
   function jacobiEig(A) {
@@ -3589,9 +3613,164 @@ as.character(jsonlite::toJSON(list(lavaan = as.character(packageVersion("lavaan"
   document.addEventListener('change', e => { const t = e.target; if (t.dataset && t.dataset.cfa === 'est') { cfaSt().est = t.value; savePlan(); renderCfa(); } });
 
   // =================================================================
-
-// ##### 13. 자료 점검: 이상치·결측·표본 확인·측정 점검·사전 분석 (stats-ladder.html 10603~10985줄) #####
   // =================================================================
+  // 구조방정식 (SEM): 문항이 2개 이상인 척도는 잠재변인(요인), 나머지는 관측변인. 브라우저 속 R lavaan으로 계산
+  // 간접효과·총효과는 부트스트랩 백분위 신뢰구간. 시작값을 정해 100번씩 나눠 돌리고(진행 표시), R 파일도 같은 순서로 돌려 같은 값이 나옴
+  // =================================================================
+  const SEM_SEED = 20261019, SEM_CHUNK = 100;
+  const cfaItemNames = () => { const its = lastScored.items.filter(d => d.kind === 'item'), ok = n => /^[A-Za-z][A-Za-z0-9_.]*$/.test(n), m = new Map(); its.forEach((d, k) => m.set(d.key, ok(d.code) && its.filter(x => x.code === d.code).length === 1 ? d.code : `v${k + 1}`)); return m; };
+  function semSpec(kind, r) {
+    const nmap = cfaItemNames();
+    const node = k => {
+      const v = varByKey(k); need(v, '변인을 찾지 못했습니다. 역할을 다시 골라 주세요.');
+      if (/^S\d+$/.test(k)) { const si = +k.slice(1), its = lastScored.items.filter(d => d.kind === 'item' && d.si === si);
+        if (its.length >= 2) return { k, name: v.name, id: `F${si + 1}`, items: its.map(d => ({ key: d.key, code: d.code, nm: nmap.get(d.key) })) }; }
+      need(v.type === 'num' || (v.type === 'cat' && v.levels.length === 2), `'${v.name}'은(는) 구조방정식에 넣을 수 없습니다. 점수나 두 집단 변인을 고르세요.`);
+      return { k, name: v.name, id: `o_${k}`, obs: true, v };
+    };
+    const ser = kind === 'serial';
+    const X = (ser ? [r.x] : r.xs).map(node), M = (ser ? [r.m1, r.m2] : (r.ms || [])).map(node), Y = node(r.y), C = (r.covs || []).map(node);
+    const all = [...X, ...M, Y, ...C]; need(new Set(all.map(n => n.k)).size === all.length, '같은 변인을 두 역할에 넣었습니다. 역할마다 다른 변인을 골라 주세요.');
+    const cv = C.map(n => n.id).join(' + '), plus = s => (s ? ' + ' + s : '');
+    const lines = all.filter(n => n.items).map(n => `${n.id} =~ ${n.items.map(i => i.nm).join(' + ')}`);
+    const P = [], D = [];   // P: 경로(회귀) 라벨, D: 정의한 효과(간접·총) 라벨
+    const nx = X.length, xi = i => (nx > 1 ? `${i + 1}` : '');
+    if (!M.length) {
+      lines.push(`${Y.id} ~ ${X.map((x, i) => `c${xi(i)}*${x.id}`).join(' + ')}${plus(cv)}`);
+      X.forEach((x, i) => P.push({ lab: `c${xi(i)}`, label: `경로: ${x.name} → ${Y.name}` }));
+    } else if (ser) {
+      const [x] = X, [m1, m2] = M;
+      lines.push(`${m1.id} ~ a1*${x.id}${plus(cv)}`, `${m2.id} ~ a2*${x.id} + d*${m1.id}${plus(cv)}`, `${Y.id} ~ cp*${x.id} + b1*${m1.id} + b2*${m2.id}${plus(cv)}`);
+      P.push({ lab: 'a1', label: `경로: ${x.name} → ${m1.name}` }, { lab: 'a2', label: `경로: ${x.name} → ${m2.name}` }, { lab: 'd', label: `경로: ${m1.name} → ${m2.name}` },
+        { lab: 'b1', label: `경로: ${m1.name} → ${Y.name}` }, { lab: 'b2', label: `경로: ${m2.name} → ${Y.name}` }, { lab: 'cp', label: `직접효과: ${x.name} → ${Y.name}` });
+      D.push({ lab: 'ind1', def: 'a1*b1', label: `간접효과: ${x.name} → ${m1.name} → ${Y.name}` }, { lab: 'ind2', def: 'a1*d*b2', label: `간접효과: ${x.name} → ${m1.name} → ${m2.name} → ${Y.name}` },
+        { lab: 'ind3', def: 'a2*b2', label: `간접효과: ${x.name} → ${m2.name} → ${Y.name}` }, { lab: 'tind', def: 'a1*b1 + a1*d*b2 + a2*b2', label: `총 간접효과: ${x.name} → ${Y.name}` },
+        { lab: 'tot', def: 'cp + a1*b1 + a1*d*b2 + a2*b2', label: `총효과: ${x.name} → ${Y.name}` });
+    } else {
+      M.forEach((m, j) => { lines.push(`${m.id} ~ ${X.map((x, i) => `a${i + 1}_${j + 1}*${x.id}`).join(' + ')}${plus(cv)}`); X.forEach((x, i) => P.push({ lab: `a${i + 1}_${j + 1}`, label: `경로: ${x.name} → ${m.name}` })); });
+      lines.push(`${Y.id} ~ ${X.map((x, i) => `cp${xi(i)}*${x.id}`).join(' + ')} + ${M.map((m, j) => `b${j + 1}*${m.id}`).join(' + ')}${plus(cv)}`);
+      M.forEach((m, j) => P.push({ lab: `b${j + 1}`, label: `경로: ${m.name} → ${Y.name}` }));
+      X.forEach((x, i) => P.push({ lab: `cp${xi(i)}`, label: `직접효과: ${x.name} → ${Y.name}` }));
+      for (let j = 0; j < M.length; j++) for (let k = j + 1; k < M.length; k++) lines.push(`${M[j].id} ~~ ${M[k].id}`);   // 병렬 매개변인의 잔차 공분산 (PROCESS처럼 서로 통제)
+      X.forEach((x, i) => {
+        const ind = M.map((m, j) => `a${i + 1}_${j + 1}*b${j + 1}`);
+        M.forEach((m, j) => D.push({ lab: `ind${i + 1}_${j + 1}`, def: ind[j], label: `간접효과: ${x.name} → ${m.name} → ${Y.name}` }));
+        if (M.length > 1) D.push({ lab: `tind${xi(i)}`, def: ind.join(' + '), label: `총 간접효과: ${x.name} → (${M.map(m => m.name).join(', ')}) → ${Y.name}` });
+        D.push({ lab: `tot${xi(i)}`, def: `cp${xi(i)} + ${ind.join(' + ')}`, label: `총효과: ${x.name} → ${Y.name}` });
+      });
+    }
+    D.forEach(d => lines.push(`${d.lab} := ${d.def}`));
+    const items = all.filter(n => n.items).flatMap(n => n.items), obs = all.filter(n => n.obs);
+    return { kind, X, M, Y, C, all, P, D, syntax: lines.join('\n'), items, obs };
+  }
+  // 분석에 쓸 자료 (모든 문항·변인에 답한 사람만, 목록별 제외). 두 집단 변인은 0/1
+  function semData(S) {
+    const val = (n, i) => { const x = n.v.vals[i]; if (x == null) return null; return n.v.type === 'cat' ? (x === n.v.levels[1] ? 1 : x === n.v.levels[0] ? 0 : null) : x; };
+    const rows = [];
+    lastScored.inc.forEach((p, i) => { const r = S.items.map(d => p.items[d.key]).concat(S.obs.map(n => val(n, i))); if (r.every(v => v != null && v !== '')) rows.push(r); });
+    return { head: S.items.map(d => d.nm).concat(S.obs.map(n => n.id)), rows };
+  }
+  async function runSem(kind, r, o, onProg) {
+    const S = semSpec(kind, r), dat = semData(S), B = +o.semBoot || 1000;
+    need(dat.rows.length >= 30, `모든 문항에 답한 사람이 ${dat.rows.length}명뿐이라 구조방정식을 계산할 수 없습니다.`);
+    const say = t => { const el = $('#an-prog'); if (el) el.textContent = t; };
+    let w; try { w = await getWebR(say); } catch (e) { throw new Error(`브라우저 안에서 R을 불러오지 못했습니다(${(e && e.message) || e}). 인터넷 연결을 확인하세요. claude.ai 화면에서는 보안 정책상 R을 불러올 수 없을 수 있으니 사이트(${TONG_URL})에서 계산하세요.`); }
+    say('구조방정식 계산 중…');
+    const csv = [dat.head.join(',')].concat(dat.rows.map(x => x.join(','))).join('\n');
+    const want = S.P.map(p => p.lab).concat(S.D.map(d => d.lab));
+    const res = JSON.parse(await w.evalRString(semR(S, 'fit'), { env: { csvtxt: csv } }));
+    need(res.converged, '계산이 수렴하지 않았습니다. 문항이 적거나 응답이 한쪽으로 몰린 척도가 있는지 확인하세요.');
+    // 부트스트랩: 100번씩
+    const draws = []; let ok = 0;
+    for (let c = 0; c * SEM_CHUNK < B; c++) {
+      const nb = Math.min(SEM_CHUNK, B - c * SEM_CHUNK);
+      const part = JSON.parse(await w.evalRString(`tong_boot(${c}, ${nb})`));
+      (part || []).forEach(row => { if (row.every(v => v != null && isFinite(v))) { draws.push(row); ok++; } });
+      onProg && onProg(Math.min(1, (c * SEM_CHUNK + nb) / B));
+    }
+    const bs = want.map((_, j) => { const col = draws.map(d => d[j]).sort((a, b) => a - b); return col.length ? { lo: pct(col, 0.025), hi: pct(col, 0.975), se: sd(col) } : { lo: NaN, hi: NaN, se: NaN }; });
+    bs.B = B; bs.ok = ok;
+    const pe = res.pe, row = lab => { const i = pe.label.indexOf(lab); return i < 0 ? null : { est: pe.est[i], se: pe.se[i], z: pe.z[i], p: pe.pvalue[i], lo: pe.lo[i], hi: pe.hi[i], std: pe.std[i] }; };
+    const X = S.X, Mn = S.M.map(m => m.name), Yn = S.Y.name, ser = kind === 'serial';
+    const R = newResult(ser ? 'sem_serial' : 'sem', `구조방정식: ${X.map(x => x.name).join(', ')}${Mn.length ? ` → ${Mn.join(ser ? ' → ' : ', ')}` : ''} → ${Yn}`); R.n = res.n; bootNote(R, bs);
+    const [chi, df, pv, cfi, tli, rmsea, rlo, rhi, srmr] = res.fit;
+    const judge = (v, good, ok2, lower) => !isFinite(v) ? '' : (lower ? v <= good : v >= good) ? '좋음' : (lower ? v <= ok2 : v >= ok2) ? '받아들일 만함' : '미흡';
+    R.tables.push({ title: '모형 적합도', head: ['지표', '값', '흔히 쓰는 기준', '판정'], num: [1],
+      rows: [['χ²', `${F2(chi)} (df = ${F2(df, 0)}), ${PS(pv)}`, '표본이 크면 거의 언제나 유의해 다른 지표와 함께 봄', ''], ['CFI', NZ(cfi, 3), '.90 이상 받아들일 만함, .95 이상 좋음', judge(cfi, 0.95, 0.9)], ['TLI', NZ(tli, 3), '.90 이상 받아들일 만함, .95 이상 좋음', judge(tli, 0.95, 0.9)],
+        ['RMSEA', `${NZ(rmsea, 3)} [${NZ(rlo, 3)}, ${NZ(rhi, 3)}]`, '.08 이하 받아들일 만함, .06 이하 좋음', judge(rmsea, 0.06, 0.08, true)], ['SRMR', NZ(srmr, 3), '.08 이하 받아들일 만함', judge(srmr, 0.08, 0.08, true)]] });
+    const lat = S.all.filter(n => n.items);
+    if (lat.length) R.tables.push({ title: '측정모형 (표준화 요인부하량)', head: ['요인', '문항', 'λ', 'p'], num: [2, 3],
+      rows: lat.flatMap(n => n.items.map((it, q) => { const i = pe.lhs.findIndex((l, ii) => l === n.id && pe.op[ii] === '=~' && pe.rhs[ii] === it.nm); return [q ? '' : n.name, it.code, NZ(pe.std[i], 3), q ? PV(pe.pvalue[i]) : '(고정)']; })),
+      foot: '각 요인의 첫 문항 부하량을 1로 고정해 척도를 정했습니다(비표준화). 표준화 부하량 .50 이상이면 좋다고 봅니다.' });
+    R.tables.push({ title: '구조모형 경로', head: ['경로', 'B', 'SE', 'β', 'z', 'p', '95% CI'], num: [1, 2, 3, 4, 5, 6],
+      rows: S.P.map(p => { const q = row(p.lab); return [p.label.replace(/^[^:]+: /, ''), F2(q.est, 3), F2(q.se, 3), NZ(q.std, 3), F2(q.z), PV(q.p), CI(q.lo, q.hi, 3)]; }) });
+    if (S.D.length) R.tables.push({ title: `간접효과와 총효과 (부트스트랩 ${B.toLocaleString()}번, 95% 백분위 신뢰구간)`, head: ['경로', '효과', 'Boot SE', '95% CI', 'β'], num: [1, 2, 3, 4],
+      rows: S.D.map((d, j) => { const q = row(d.lab), b = bs[S.P.length + j]; return [d.label.replace(/^간접효과: /, ''), F2(q.est, 3), F2(b.se, 3), CI(b.lo, b.hi, 3), NZ(q.std, 3)]; }) });
+    const r2 = (res.r2 || { names: [], v: [] });
+    const endo = [...S.M, S.Y];
+    R.notes.push(`설명된 분산 R²: ${endo.map(n => { const i = r2.names.indexOf(n.id); return `${n.name} ${i < 0 ? '-' : NZ(r2.v[i], 3)}`; }).join(', ')}`);
+    R.notes.push(`계산: R lavaan ${res.lavaan} (브라우저 안에서), 최대우도(ML), 모든 문항에 답한 ${res.n}명 (목록별 제외). 잠재변인: ${lat.map(n => `${n.name}(문항 ${n.items.length}개)`).join(', ') || '없음'}${S.obs.length ? `. 관측변인: ${S.obs.map(n => n.name).join(', ')}` : ''}.`);
+    if ((res.warn || []).length) R.notes.push(`⚠ lavaan 경고: ${res.warn.join(' / ')}`);
+    if (S.C.length) R.notes.push(`통제변인 ${S.C.map(n => n.name).join(', ')}은(는) 매개변인과 결과변인에 함께 넣었습니다.`);
+    // 효과 (가설과 이어짐)
+    S.P.forEach(p => { const q = row(p.lab); eff(R, { label: p.label, est: q.est, p: q.p, lo: q.lo, hi: q.hi, std: q.std, stat: `B = ${F2(q.est, 3)}, β = ${NZ(q.std, 3)}, z = ${F2(q.z)}, ${PS(q.p)}` }); });
+    S.D.forEach((d, j) => { const q = row(d.lab), b = bs[S.P.length + j]; eff(R, { label: d.label, est: q.est, lo: b.lo, hi: b.hi, ciBased: true, std: q.std, stat: `B = ${F2(q.est, 3)}, β = ${NZ(q.std, 3)}, 95% CI ${CI(b.lo, b.hi, 3)}` }); });
+    // 그림: 원인 하나·매개가 있을 때 (표준화 계수)
+    if (X.length === 1 && S.M.length && S.M.length <= 4) {
+      const k = lab => { const q = row(lab); return { est: q.std, p: q.p }; };
+      const a = ser ? [k('a1'), k('a2')] : S.M.map((_, j) => k(`a1_${j + 1}`)), b = S.M.map((_, j) => k(`b${j + 1}`));
+      addFig(R, { type: 'path', kind: ser ? 'serial' : 'med', title: '구조방정식 경로 결과 (표준화 계수)', X: X[0].name, Y: Yn, Ms: Mn, a, b, d: ser ? k('d') : null, cp: k('cp'), c: k('tot'),
+        note: '계수는 표준화 계수(β)입니다. 굵은 선은 p < .05인 경로, 점선은 유의하지 않은 직접효과입니다. 괄호 안 c는 총효과입니다. 측정모형(문항)은 그림에서 생략했습니다. 간접효과의 유의성은 표의 부트스트랩 신뢰구간으로 판단합니다. *p < .05, **p < .01, ***p < .001.' });
+    }
+    R.sem = { syntax: S.syntax, lavaan: res.lavaan };
+    return R;
+  }
+  // R 코드: mode 'fit' = 브라우저(JSON, 부트스트랩 함수 tong_boot 정의), 'file' = analysis.R 안에서 (EFFECT 줄)
+  function semR(S, mode) {
+    const want = S.P.map(p => p.lab).concat(S.D.map(d => d.lab)), q = s => `"${String(s).replace(/["\\]/g, '\\$&')}"`;
+    const fm = CFA_FM.ML.map(q).join(', ');
+    const model = `model <- '\n${S.syntax}\n'`;
+    // 재표집마다 표준오차·적합도·기저모형은 계산하지 않아 빠르게 (추정값은 같음). 경로는 coef에서, 간접·총효과는 그 곱·합으로
+    const boot = `fitb <- sem(model, data = ${mode === 'fit' ? 'd' : 'dd'}, estimator = "ML", missing = "listwise", se = "none", test = "none", baseline = FALSE, h1 = FALSE)
+PLAB <- c(${S.P.map(p => q(p.lab)).join(', ')})
+bootfun <- function(f) { cf <- coef(f); c(unname(cf[PLAB])${S.D.length ? `, with(as.list(cf), c(${S.D.map(d => d.def).join(', ')}))` : ''}) }
+tong_boot <- function(k, nb) { set.seed(${SEM_SEED} + k); b <- suppressWarnings(bootstrapLavaan(fitb, R = nb, FUN = bootfun)); b <- matrix(b, ncol = ${want.length}); b }`;
+    if (mode === 'fit') return `suppressPackageStartupMessages(library(lavaan))
+d <- read.csv(text = csvtxt)
+${model}
+warn <- character(0)
+fit <- withCallingHandlers(sem(model, data = d, estimator = "ML", missing = "listwise"), warning = function(w) { warn <<- c(warn, conditionMessage(w)); invokeRestart("muffleWarning") })
+${boot}
+assign("tong_boot", function(k, nb) as.character(jsonlite::toJSON(unname(tong_boot(k, nb)), digits = NA, na = "null")), envir = globalenv())   # 다음 호출(100번씩)에서 씀
+pe <- parameterEstimates(fit, standardized = TRUE)
+r2 <- lavInspect(fit, "r2")
+as.character(jsonlite::toJSON(list(lavaan = as.character(packageVersion("lavaan")), n = lavInspect(fit, "nobs"), converged = lavInspect(fit, "converged"),
+  fit = as.list(unname(fitMeasures(fit, c(${fm})))), pe = list(lhs = pe$lhs, op = pe$op, rhs = pe$rhs, label = pe$label, est = pe$est, se = pe$se, z = pe$z, pvalue = pe$pvalue, lo = pe$ci.lower, hi = pe$ci.upper, std = pe$std.all),
+  r2 = list(names = names(r2), v = unname(r2)), warn = warn), digits = NA, auto_unbox = TRUE, na = "null"))`;
+    return { model, boot, want };
+  }
+  // analysis.R 안의 구조방정식 (분석할 때 저장한 모형 S.sem으로)
+  function rSem(S) {
+    const m = S.sem; if (!m) return '# 이 분석은 통에서 다시 계산해야 R 코드를 만들 수 있습니다.';
+    const R0 = semR(m, 'file'), B = +S.opts.semBoot || 1000, cols = m.items.map(i => i.code).concat(m.obs.map(o => S.vars[o.k].code));
+    return `suppressPackageStartupMessages(library(lavaan))   # 구조방정식만 lavaan 패키지가 필요합니다. 없으면 install.packages("lavaan")
+u <- complete.cases(d[, ${rvec(cols)}, drop = FALSE])
+dd <- data.frame(${m.items.map(i => `${i.nm} = num(${rq(i.code)})[u]`).concat(m.obs.map(o => `${o.id} = ${rX(S, o.k)}`)).join(', ')})
+${R0.model}
+fit <- sem(model, data = dd, estimator = "ML", missing = "listwise")
+print(summary(fit, fit.measures = TRUE, standardized = TRUE))
+pe <- parameterEstimates(fit, standardized = TRUE)
+pr <- function(lab) pe[which(pe$label == lab)[1], ]
+${m.P.map(p => `q <- pr(${rq(p.lab)}); eff(${rq(p.label)}, q$est, q$ci.lower, q$ci.upper, q$pvalue)`).join('\n')}
+# 간접효과·총효과: 백분위 부트스트랩 (분석 결정: ${B.toLocaleString()}번). 통과 같은 시작값으로 ${SEM_CHUNK}번씩 돌려 같은 값이 나옴
+${R0.boot}
+bs <- do.call(rbind, lapply(0:${Math.ceil(B / SEM_CHUNK) - 1}, function(k) tong_boot(k, min(${SEM_CHUNK}, ${B} - k * ${SEM_CHUNK}))))
+bs <- bs[complete.cases(bs), , drop = FALSE]
+${m.D.map((d, j) => `q <- pr(${rq(d.lab)}); eff(${rq(d.label)}, q$est, pct(bs[, ${m.P.length + j + 1}], .025), pct(bs[, ${m.P.length + j + 1}], .975))`).join('\n')}`;
+  }
+
+
+// ##### 13. 자료 점검: 이상치·결측·표본 확인·측정 점검·사전 분석 (stats-ladder.html 10836~11217줄) #####
   // 자료 점검: 응답 정리(중복·이상치·결측) · 표본 확인 · 측정 점검 · 사전 분석
   // =================================================================
   const chiCrit = (a, df) => { let lo = 0, hi = 1000; for (let i = 0; i < 100; i++) { const m = (lo + hi) / 2; if (ST.pChi(m, df) > a) lo = m; else hi = m; } return (lo + hi) / 2; };
