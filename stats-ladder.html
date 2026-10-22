@@ -10766,9 +10766,11 @@ as.character(jsonlite::toJSON(list(lavaan = as.character(packageVersion("lavaan"
     const want = S.P.map(p => p.lab).concat(S.D.map(d => d.lab)), q = s => `"${String(s).replace(/["\\]/g, '\\$&')}"`;
     const fm = CFA_FM.ML.map(q).join(', ');
     const model = `model <- '\n${S.syntax}\n'`;
-    const boot = `WANT <- c(${want.map(q).join(', ')})
-bootfun <- function(f) { p <- parameterEstimates(f, se = FALSE, zstat = FALSE, pvalue = FALSE, ci = FALSE); p$est[match(WANT, p$label)] }
-tong_boot <- function(k, nb) { set.seed(${SEM_SEED} + k); b <- suppressWarnings(bootstrapLavaan(fit, R = nb, FUN = bootfun)); b <- matrix(b, ncol = length(WANT)); b }`;
+    // 재표집마다 표준오차·적합도·기저모형은 계산하지 않아 빠르게 (추정값은 같음). 경로는 coef에서, 간접·총효과는 그 곱·합으로
+    const boot = `fitb <- update(fit, se = "none", test = "none", baseline = FALSE, h1 = FALSE)
+PLAB <- c(${S.P.map(p => q(p.lab)).join(', ')})
+bootfun <- function(f) { cf <- coef(f); c(unname(cf[PLAB])${S.D.length ? `, with(as.list(cf), c(${S.D.map(d => d.def).join(', ')}))` : ''}) }
+tong_boot <- function(k, nb) { set.seed(${SEM_SEED} + k); b <- suppressWarnings(bootstrapLavaan(fitb, R = nb, FUN = bootfun)); b <- matrix(b, ncol = ${want.length}); b }`;
     if (mode === 'fit') return `suppressPackageStartupMessages(library(lavaan))
 d <- read.csv(text = csvtxt)
 ${model}
