@@ -171,6 +171,29 @@ writeLines(as.character(jsonlite::toJSON(list(fit = as.list(unname(fitMeasures(f
     const dF = Math.max(...cfa.fit.map((v, i) => Math.abs(v - rv.fit[i]))), dL = Math.max(...cfa.ld.std.map((v, i) => Math.abs(v - rv.std[i])));
     ok('확인적 요인분석: 웹알 lavaan = R lavaan (적합도 9개, 표준화 부하량)', dF < 1e-6 && dL < 1e-6 && cfa.ld.std.length === rv.std.length, `CFI ${(+cfa.fit[3]).toFixed(4)}, RMSEA ${(+cfa.fit[5]).toFixed(4)} · 최대 차이 ${Math.max(dF, dL).toExponential(1)} · lavaan ${cfa.lavaan}`);
     ok('확인적 요인분석 화면: 적합도·부하량·CR/AVE·HTMT·문장', await p.$eval('#cfa-card', e => ['CFI', 'RMSEA', 'AVE', 'HTMT', '확인적 요인분석을 실시하였다'].every(k => e.innerText.includes(k))));
+    // 구조방정식: 화면에서 두 모형(병렬·순차)을 계산 → 통이 만든 R 코드(lavaan)를 진짜 R로 → 효과(경로·간접·총효과) 비교
+    await p.click('[data-nav=analysis]'); await p.waitForTimeout(300);
+    const t0 = Date.now();
+    await run('sem', async () => { await chips('xs', ['능력주의 신념']); await chips('ms', ['사회비교경향성', '외로움']); await sel('y', '외집단 혐오'); await chips('covs', []); });
+    const t1 = Date.now();
+    await run('sem_serial', async () => { await sel('x', '능력주의 신념'); await sel('m1', '사회비교경향성'); await sel('m2', '외로움'); await sel('y', '외집단 혐오'); await chips('covs', []); });
+    console.log(`    구조방정식 계산 시간: 병렬 ${((t1 - t0) / 1000).toFixed(0)}초, 순차 ${((Date.now() - t1) / 1000).toFixed(0)}초 (부트스트랩 1,000번)`);
+    const an2 = (await p.evaluate(() => JSON.parse(localStorage.getItem('ladder.analyses')))).filter(a => /^sem/.test(a.method));
+    ok('구조방정식 두 모형 계산', an2.length === 2, an2.map(a => a.title).join(' | '));
+    for (const a of an2) {
+      const [d4] = await Promise.all([p.waitForEvent('download'), p.evaluate(id => document.querySelector(`#res-${id} [data-an-act=r-one]`).click(), a.id)]);
+      const sd = fs.mkdtempSync(path.join(os.tmpdir(), 'tong-sem-')); fs.copyFileSync(path.join(dir, 'analysis_data.csv'), path.join(sd, 'analysis_data.csv')); fs.copyFileSync(await d4.path(), path.join(sd, 'sem.R'));
+      try { execFileSync('Rscript', ['sem.R'], { cwd: sd, stdio: ['ignore', 'ignore', 'pipe'], env: { ...process.env, LANG: 'C.UTF-8' } }); } catch (e) { ok(`${a.title} R 실행`, false, String(e.stderr || e.message).slice(0, 400)); continue; }
+      const rr = fs.readFileSync(path.join(sd, 'R_results.csv'), 'utf8').replace(/^﻿/, '').trim().split('\n').slice(1).map(parse).map(([, label, est, lo, hi, pv]) => ({ label, est: +est, lo: +lo, hi: +hi, p: pv === 'NA' ? null : +pv }));
+      let good = true, n = 0, dE = 0, dC = 0; const why = [];
+      for (const e of a.effects) { const r = rr.find(x => x.label === e.label); if (!r) { good = false; why.push('R에 없음: ' + e.label); continue; } n++;
+        dE = Math.max(dE, Math.abs(e.est - r.est)); dC = Math.max(dC, Math.abs(e.lo - r.lo), Math.abs(e.hi - r.hi));
+        if (Math.abs(e.est - r.est) > 1e-6 || Math.abs(e.lo - r.lo) > (e.ciBased ? 0.02 : 1e-6) || Math.abs(e.hi - r.hi) > (e.ciBased ? 0.02 : 1e-6) || (e.p != null && r.p != null && Math.abs(e.p - r.p) > 1e-6)) { good = false; why.push(`${e.label}: ${e.est}/${r.est} [${e.lo}, ${e.hi}] vs [${r.lo}, ${r.hi}]`); } }
+      ok(`R과 일치: ${a.title}`, good && n === a.effects.length, `효과 ${n}개 · 최대 차이 추정값 ${dE.toExponential(1)}, 신뢰구간 ${dC.toExponential(1)}${why.length ? ' · ' + why.slice(0, 2).join(' / ') : ''}`);
+      fs.rmSync(sd, { recursive: true, force: true });
+    }
+    const card = await p.$eval(`#res-${an2[0].id}`, e => e.innerText);
+    ok('구조방정식 결과: 적합도·측정모형·경로·간접효과·그림', ['CFI', '측정모형', '구조모형 경로', '간접효과', '그림'].every(k => card.includes(k)));
   }
   ok('페이지 오류 없음', !errs.length, errs.join(' | '));
   fs.rmSync(dir, { recursive: true, force: true });
