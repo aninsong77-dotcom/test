@@ -174,9 +174,17 @@ writeLines(as.character(jsonlite::toJSON(list(fit = as.list(unname(fitMeasures(f
     // 구조방정식: 화면에서 두 모형(병렬·순차)을 계산 → 통이 만든 R 코드(lavaan)를 진짜 R로 → 효과(경로·간접·총효과) 비교
     await p.click('[data-nav=analysis]'); await p.waitForTimeout(300);
     const t0 = Date.now();
-    await run('sem', async () => { await chips('xs', ['능력주의 신념']); await chips('ms', ['사회비교경향성', '외로움']); await sel('y', '외집단 혐오'); await chips('covs', []); });
+    // 구조방정식은 R에서 오래 걸려 결과 카드가 생기거나 오류가 날 때까지 기다림
+    const semRun = async (m, fix) => {
+      await p.selectOption('#an-method', m); await p.waitForTimeout(200); await fix();
+      const n0 = await p.$$eval('.result-card', e => e.length); await p.click('[data-an-act=run]');
+      await p.waitForFunction(n => document.querySelectorAll('.result-card').length > n || document.querySelector('#an-prog .a-low'), n0, { timeout: 600000 });
+      const err = await p.$eval('#an-prog', e => e.querySelector('.a-low') ? e.textContent : '');
+      ok(`실행: ${m}`, !err, err);
+    };
+    await semRun('sem', async () => { await chips('xs', ['능력주의 신념']); await chips('ms', ['사회비교경향성', '외로움']); await sel('y', '외집단 혐오'); await chips('covs', []); });
     const t1 = Date.now();
-    await run('sem_serial', async () => { await sel('x', '능력주의 신념'); await sel('m1', '사회비교경향성'); await sel('m2', '외로움'); await sel('y', '외집단 혐오'); await chips('covs', []); });
+    await semRun('sem_serial', async () => { await sel('x', '능력주의 신념'); await sel('m1', '사회비교경향성'); await sel('m2', '외로움'); await sel('y', '외집단 혐오'); await chips('covs', []); });
     console.log(`    구조방정식 계산 시간: 병렬 ${((t1 - t0) / 1000).toFixed(0)}초, 순차 ${((Date.now() - t1) / 1000).toFixed(0)}초 (부트스트랩 1,000번)`);
     const an2 = (await p.evaluate(() => JSON.parse(localStorage.getItem('ladder.analyses')))).filter(a => /^sem/.test(a.method));
     ok('구조방정식 두 모형 계산', an2.length === 2, an2.map(a => a.title).join(' | '));
@@ -192,7 +200,7 @@ writeLines(as.character(jsonlite::toJSON(list(fit = as.list(unname(fitMeasures(f
       ok(`R과 일치: ${a.title}`, good && n === a.effects.length, `효과 ${n}개 · 최대 차이 추정값 ${dE.toExponential(1)}, 신뢰구간 ${dC.toExponential(1)}${why.length ? ' · ' + why.slice(0, 2).join(' / ') : ''}`);
       fs.rmSync(sd, { recursive: true, force: true });
     }
-    const card = await p.$eval(`#res-${an2[0].id}`, e => e.innerText);
+    const card = an2[0] ? await p.$eval(`#res-${an2[0].id}`, e => e.innerText) : '';
     ok('구조방정식 결과: 적합도·측정모형·경로·간접효과·그림', ['CFI', '측정모형', '구조모형 경로', '간접효과', '그림'].every(k => card.includes(k)));
   }
   ok('페이지 오류 없음', !errs.length, errs.join(' | '));
