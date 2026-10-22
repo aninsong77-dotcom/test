@@ -2130,7 +2130,8 @@ main#scroller .page-head p { font-size: 14px; }
 .tong.anim .t-bar:nth-child(1){animation-delay:1.2s}.tong.anim .t-bar:nth-child(2){animation-delay:1.3s}.tong.anim .t-bar:nth-child(3){animation-delay:1.4s}
 @keyframes t-grow{from{transform:scaleY(0)}to{transform:none}}
 @keyframes t-fade{from{opacity:0}to{opacity:1}}
-@media (max-width:640px){.hdr-logo .t-dots,.hdr-logo .t-bars{display:none}}
+@media (max-width:640px){.hdr-logo{height:26px}}
+@media (max-width:400px){.hdr-logo{height:22px}.hdr{gap:6px}.hdr-title{flex:none;overflow:visible}.proj-wrap{flex:1 1 auto}.proj-chip{max-width:100%;min-width:0}.proj-chip span{min-width:0}.hdr-sp{display:none}}   /* 좁은 휴대폰: 전체 로고와 이름 ㅌㅗㅇ이 다 보이고, 연구 이름 칸이 남는 만큼 줄어듦 */
 
 /* 연구 고르기 드롭다운 */
 .proj-wrap{position:relative;margin-left:10px;padding-left:14px;border-left:1px solid var(--line,#e2e5ee);min-width:0}
@@ -2722,12 +2723,6 @@ table.compact.sp-table{min-width:0;table-layout:auto;width:100%}.sp-table td{ver
   <span id="log-count" hidden></span><span id="ai-count" hidden></span>
 </header>
 <script>
-(function () {
-  var lg = document.querySelector('.hdr-logo.tong'); if (!lg) return;
-  var mq = matchMedia('(max-width: 640px)');
-  function fit() { lg.setAttribute('viewBox', mq.matches ? '40 6 48 52' : '0 0 146 64'); }
-  fit(); if (mq.addEventListener) mq.addEventListener('change', fit);
-})();
 (function () {
   // 로고 애니메이션은 휴대폰의 '동작 줄이기'·절전 모드와 상관없이 늘 같게 보여 줌 (사용자 결정)
   var still = false;
