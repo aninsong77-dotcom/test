@@ -202,6 +202,7 @@ writeLines(as.character(jsonlite::toJSON(list(fit = as.list(unname(fitMeasures(f
     }
     const card = an2[0] ? await p.$eval(`#res-${an2[0].id}`, e => e.innerText) : '';
     ok('구조방정식 결과: 적합도·측정모형·경로·간접효과·그림', ['CFI', '측정모형', '구조모형 경로', '간접효과', '그림'].every(k => card.includes(k)));
+    ok('구조방정식 논문 문장 (적합도·경로·간접효과)', ['논문에 쓸 문장', '구조방정식 모형을 분석하였다', 'SRMR = ', '경로계수를 보면', '95% CI'].every(k => card.includes(k)) && !/undefined|NaN/.test(an2[0]?.sent || 'x'), (an2[0]?.sent || '').slice(0, 200));
   }
   ok('페이지 오류 없음', !errs.length, errs.join(' | '));
   fs.rmSync(dir, { recursive: true, force: true });

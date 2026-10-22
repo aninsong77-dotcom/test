@@ -4940,6 +4940,7 @@ function createSurvey() {
     else if (act === 'del') { analyses = analyses.filter(a => a.id !== b.dataset.id); saveAnalyses(); renderAnalyses(); renderInterp(); }
     else if (act === 'csv') { const a = analyses.find(x => x.id === b.dataset.id); download(`분석결과_${a.title.replace(/[^\w가-힣]+/g, '_').slice(0, 40)}.csv`, toCsv(analysisCsvRows(a)), 'text/csv'); }
     else if (act === 'to-interp') switchView('interp');
+    else if (act === 'copy-sent') { const t = (analyses.find(x => x.id === b.dataset.id) || {}).sent || ''; try { navigator.clipboard.writeText(t).then(() => toast('문장을 복사했습니다.'), () => showSheet('논문에 쓸 문장', t)); } catch (err) { showSheet('논문에 쓸 문장', t); } }
     else if (act === 'lock-plan') { plan.locked = new Date().toLocaleString('ko-KR'); savePlan(); renderAnalysis(); addSys('analysis', '분석 결정을 확정했습니다.'); toast('분석 결정을 확정했습니다. 이후 바꾸면 기록에 남습니다.'); }
     else if (act === 'plan-dl') download('analysis_plan.md', planText());
     else if (act === 'r-data') download('analysis_data.csv', toCsv(analysisRows()), 'text/csv');
@@ -5800,6 +5801,7 @@ function createSurvey() {
         ${t.foot ? `<p class="hint">${esc(t.foot)}</p>` : ''}`).join('')}
       ${figsHtml(a, fnos)}
       ${a.notes.length ? `<ul class="notes">${a.notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
+      ${a.sent ? `<div class="dq-report"><h4>논문에 쓸 문장 (초안)</h4><p>${esc(a.sent)}</p><div class="actions tight"><button class="btn sm" data-an-act="copy-sent" data-id="${a.id}">문장 복사</button></div><p class="hint">숫자와 유의 여부만 적었습니다. 적합도가 괜찮은지, 가설이 지지되는지는 직접 판단해 쓰고, 학교 양식에 맞게 다듬으세요.</p></div>` : ''}
       ${a.decisions ? `<p class="hint" style="margin-top:12px">분석 결정: ${a.decisions.map(esc).join(' · ')}</p>` : ''}
       ${checksHtml(a)}
       ${beyondPHtml(a)}
@@ -9292,7 +9294,7 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
     return `<svg class="mb-ic" viewBox="0 0 72 40" aria-hidden="true"><defs><marker id="mb-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z"/></marker></defs>${g}</svg>`;
   }
   // 조사: 받침 있으면 앞, 없으면 뒤 ("은/는")
-  const jong = w => { const s = String(w || '').trim().replace(/[\s)\]}'"’”.,]+$/, ''), c = s.slice(-1).charCodeAt(0); if (c >= 0xAC00 && c <= 0xD7A3) return (c - 0xAC00) % 28; if (/[0-9]$/.test(s)) return '0136789'.includes(s.slice(-1)) ? 1 : 0; return -1; };
+  const jong = w => { const s = String(w || '').trim().replace(/\s*\([^()]*\)$/, '').replace(/[\s)\]}'"’”.,]+$/, ''), c = s.slice(-1).charCodeAt(0); if (c >= 0xAC00 && c <= 0xD7A3) return (c - 0xAC00) % 28; if (/[0-9]$/.test(s)) return { 0: 21, 1: 8, 3: 16, 6: 1, 7: 8, 8: 8 }[s.slice(-1)] || 0; return -1; };   // 숫자는 읽는 소리로 (1·7·8은 ㄹ받침)
   const J = (w, pair) => { const [a, b] = pair.split('/'); const j = jong(w); return w + (j < 0 ? `${a}(${b})` : j && !(pair === '으로/로' && j === 8) ? a : b); };
 
   function mbInit() {
@@ -10916,7 +10918,7 @@ as.character(jsonlite::toJSON(list(lavaan = as.character(packageVersion("lavaan"
   }
   function cfaSentence(r, M) {
     const [chi, df, pv, cfi, tli, rmsea, rlo, rhi, srmr] = r.fit, lo = Math.min(...r.ld.std), hi = Math.max(...r.ld.std);
-    return `측정모형의 타당성을 확인하기 위해 ${M.facs.length}개 요인(${M.facs.map(f => f.label).join(', ')})으로 확인적 요인분석을 실시하였다(${r.est === 'ML' ? '최대우도법' : r.est === 'MLR' ? '강건 최대우도법(MLR)' : 'WLSMV'}, R lavaan ${r.lavaan}). 그 결과 χ²(${F2(df, 0)}) = ${F2(chi)}, ${PS(pv)}, CFI = ${NZ(cfi)}, TLI = ${NZ(tli)}, RMSEA = ${NZ(rmsea, 3)} (90% CI [${NZ(rlo, 3)}, ${NZ(rhi, 3)}]), SRMR = ${NZ(srmr, 3)}으로 나타났다. 표준화 요인부하량은 ${NZ(lo)}~${NZ(hi)}였고, 합성신뢰도(CR)는 ${NZ(Math.min(...r.fac.map(f => f.CR)))}~${NZ(Math.max(...r.fac.map(f => f.CR)))}, 평균분산추출(AVE)은 ${NZ(Math.min(...r.fac.map(f => f.AVE)))}~${NZ(Math.max(...r.fac.map(f => f.AVE)))}였다.${M.covs.length ? ` 수정지수를 참고하되 이론적 근거가 있는 ${M.covs.length}개의 오차 공분산을 추가하였다(${M.covs.map(c => `${c.a}–${c.b}: ${c.why}`).join('; ')}).` : ''} [적합도와 타당도의 판단은 연구자가 기준과 함께 서술]`;
+    return `측정모형의 타당성을 확인하기 위해 ${M.facs.length}개 요인(${M.facs.map(f => f.label).join(', ')})으로 확인적 요인분석을 실시하였다(${r.est === 'ML' ? '최대우도법' : r.est === 'MLR' ? '강건 최대우도법(MLR)' : 'WLSMV'}, R lavaan ${r.lavaan}). 그 결과 χ²(${F2(df, 0)}) = ${F2(chi)}, ${PS(pv)}, CFI = ${NZ(cfi)}, TLI = ${NZ(tli)}, RMSEA = ${NZ(rmsea, 3)} (90% CI [${NZ(rlo, 3)}, ${NZ(rhi, 3)}]), ${J(`SRMR = ${NZ(srmr, 3)}`, '으로/로')} 나타났다. 표준화 요인부하량은 ${J(`${NZ(lo)}~${NZ(hi)}`, '이었/였')}고, 합성신뢰도(CR)는 ${NZ(Math.min(...r.fac.map(f => f.CR)))}~${NZ(Math.max(...r.fac.map(f => f.CR)))}, 평균분산추출(AVE)은 ${J(`${NZ(Math.min(...r.fac.map(f => f.AVE)))}~${NZ(Math.max(...r.fac.map(f => f.AVE)))}`, '이었/였')}다.${M.covs.length ? ` 수정지수를 참고하되 이론적 근거가 있는 ${M.covs.length}개의 오차 공분산을 추가하였다(${M.covs.map(c => `${c.a}–${c.b}: ${c.why}`).join('; ')}).` : ''} [적합도와 타당도의 판단은 연구자가 기준과 함께 서술]`;
   }
   document.addEventListener('click', async e => {
     const b = e.target.closest('[data-cfa]'); if (!b) return;
@@ -11048,7 +11050,32 @@ as.character(jsonlite::toJSON(list(lavaan = as.character(packageVersion("lavaan"
     let cfaOk = false; try { cfaOk = !!(cfaRes && cfaRes.dv === dataVersion); } catch (e) { }
     if (!cfaOk && S.all.some(n => n.items)) R.notes.unshift('⚠ 확인적 요인분석을 아직 하지 않았습니다. 구조방정식은 측정모형이 맞아야 구조모형을 믿을 수 있으니, ⑧ 측정 점검에서 확인적 요인분석을 먼저 하고 보고하세요.');
     R.sem = { syntax: S.syntax, lavaan: res.lavaan };
+    R.sent = semSentence(S, res, row, bs, B, lat, cfaOk);
     return R;
+  }
+  // 논문에 쓸 문장 (초안): 숫자와 유의 여부만 적고, 적합도 판단과 가설 지지는 연구자가 씀
+  function semSentence(S, res, row, bs, B, lat, cfaOk) {
+    const [chi, df, pv, cfi, tli, rmsea, rlo, rhi, srmr] = res.fit, Xn = S.X.map(x => x.name).join(', '), Yn = S.Y.name, ser = S.kind === 'serial';
+    const what = !S.M.length ? `${J(Xn, '이/가')} ${Yn}에 미치는 영향을 검증하기 위해`
+      : `${J(Xn, '과/와')} ${Yn}의 관계에서 ${ser ? `${J(S.M[0].name, '과/와')} ${S.M[1].name}의 이중` : `${S.M.map(m => m.name).join(', ')}의`} 매개효과를 검증하기 위해`;
+    const out = [`${what} 구조방정식 모형을 분석하였다(최대우도법, R lavaan ${res.lavaan}, N = ${res.n}).`];
+    if (lat.length) out.push(`${J(lat.map(n => `${n.name}(문항 ${n.items.length}개)`).join(', '), '은/는')} 잠재변인으로${S.obs.length ? `, ${J(S.obs.map(n => n.name).join(', '), '은/는')} 관측변인으로` : ''} 모형에 넣었다.${cfaOk ? '' : ' [측정모형의 확인적 요인분석 결과를 먼저 보고]'}`);
+    if (S.C.length) out.push(`${J(S.C.map(n => n.name).join(', '), '을/를')} 통제변인으로 포함하였다.`);
+    out.push(`모형 적합도는 χ²(${F2(df, 0)}) = ${F2(chi)}, ${PS(pv)}, CFI = ${NZ(cfi, 3)}, TLI = ${NZ(tli, 3)}, RMSEA = ${NZ(rmsea, 3)} (90% CI [${NZ(rlo, 3)}, ${NZ(rhi, 3)}]), ${J(`SRMR = ${NZ(srmr, 3)}`, '으로/로')} 나타났다.`);
+    const path = p => { const q = row(p.lab); return { t: p.label.replace(/^[^:]+: /, ''), s: `β = ${NZ(q.std, 3)}, ${PS(q.p)}`, sig: q.p < 0.05 }; };
+    const ps = S.P.map(path), sg = ps.filter(x => x.sig), ns = ps.filter(x => !x.sig);
+    const list = a => a.map(x => `${x.t} 경로(${x.s})`).join(', ');
+    if (sg.length) out.push(`경로계수를 보면 ${list(sg)}는 통계적으로 유의하였${ns.length ? '고,' : '다.'}`);
+    if (ns.length) out.push(`${sg.length ? '' : '경로계수를 보면 '}${list(ns)}는 유의하지 않았다.`);
+    const ind = S.D.map((d, j) => ({ d, q: row(d.lab), b: bs[S.P.length + j] })).filter(x => !/^tot/.test(x.d.lab));
+    if (ind.length) {
+      out.push(`간접효과는 부트스트랩(${B.toLocaleString()}번) 95% 백분위 신뢰구간으로 검증하였다.`);
+      ind.forEach(({ d, q, b }) => { const sig = b.lo > 0 || b.hi < 0; out.push(`${d.label.replace(/^간접효과: /, '').replace(/^총 간접효과: /, '총 간접효과(')}${/^총/.test(d.label) ? ')' : ' 간접효과'}는 B = ${F2(q.est, 3)}, β = ${NZ(q.std, 3)}, ${J(`95% CI ${CI(b.lo, b.hi, 3)}`, '으로/로')} ${sig ? '신뢰구간에 0이 포함되지 않아 유의하였다' : '신뢰구간에 0이 포함되어 유의하지 않았다'}.`); });
+    }
+    const r2 = res.r2 || { names: [], v: [] }, r2s = [...S.M, S.Y].map(n => { const i = r2.names.indexOf(n.id); return i < 0 ? null : `${n.name} ${NZ(r2.v[i], 3)}`; }).filter(Boolean);
+    if (r2s.length) out.push(`설명된 분산(R²)은 ${J(r2s.join(', '), '이었/였')}다.`);
+    out.push('[적합도 판단과 가설의 지지 여부는 연구자가 기준과 함께 서술]');
+    return out.join(' ');
   }
   // R 코드: mode 'fit' = 브라우저(JSON, 부트스트랩 함수 tong_boot 정의), 'file' = analysis.R 안에서 (EFFECT 줄)
   function semR(S, mode) {

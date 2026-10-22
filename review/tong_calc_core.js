@@ -630,7 +630,7 @@
 
   // =================================================================
 
-// ##### 3. 분석 방법 (RUN): 상관·t·분산분석·회귀·로지스틱·매개·조절 (stats-ladder.html 4766~5817줄) #####
+// ##### 3. 분석 방법 (RUN): 상관·t·분산분석·회귀·로지스틱·매개·조절 (stats-ladder.html 4766~5819줄) #####
   // =================================================================
   // ⑤ 분석
   // =================================================================
@@ -808,6 +808,7 @@
     else if (act === 'del') { analyses = analyses.filter(a => a.id !== b.dataset.id); saveAnalyses(); renderAnalyses(); renderInterp(); }
     else if (act === 'csv') { const a = analyses.find(x => x.id === b.dataset.id); download(`분석결과_${a.title.replace(/[^\w가-힣]+/g, '_').slice(0, 40)}.csv`, toCsv(analysisCsvRows(a)), 'text/csv'); }
     else if (act === 'to-interp') switchView('interp');
+    else if (act === 'copy-sent') { const t = (analyses.find(x => x.id === b.dataset.id) || {}).sent || ''; try { navigator.clipboard.writeText(t).then(() => toast('문장을 복사했습니다.'), () => showSheet('논문에 쓸 문장', t)); } catch (err) { showSheet('논문에 쓸 문장', t); } }
     else if (act === 'lock-plan') { plan.locked = new Date().toLocaleString('ko-KR'); savePlan(); renderAnalysis(); addSys('analysis', '분석 결정을 확정했습니다.'); toast('분석 결정을 확정했습니다. 이후 바꾸면 기록에 남습니다.'); }
     else if (act === 'plan-dl') download('analysis_plan.md', planText());
     else if (act === 'r-data') download('analysis_data.csv', toCsv(analysisRows()), 'text/csv');
@@ -1668,6 +1669,7 @@
         ${t.foot ? `<p class="hint">${esc(t.foot)}</p>` : ''}`).join('')}
       ${figsHtml(a, fnos)}
       ${a.notes.length ? `<ul class="notes">${a.notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
+      ${a.sent ? `<div class="dq-report"><h4>논문에 쓸 문장 (초안)</h4><p>${esc(a.sent)}</p><div class="actions tight"><button class="btn sm" data-an-act="copy-sent" data-id="${a.id}">문장 복사</button></div><p class="hint">숫자와 유의 여부만 적었습니다. 적합도가 괜찮은지, 가설이 지지되는지는 직접 판단해 쓰고, 학교 양식에 맞게 다듬으세요.</p></div>` : ''}
       ${a.decisions ? `<p class="hint" style="margin-top:12px">분석 결정: ${a.decisions.map(esc).join(' · ')}</p>` : ''}
       ${checksHtml(a)}
       ${beyondPHtml(a)}
@@ -1684,7 +1686,7 @@
 
   // =================================================================
 
-// ##### 4. 분석 방법 (RUN 이어서): 반복측정·혼합설계 분산분석, 맥니마, 코크란 Q (stats-ladder.html 11545~11822줄) #####
+// ##### 4. 분석 방법 (RUN 이어서): 반복측정·혼합설계 분산분석, 맥니마, 코크란 Q (stats-ladder.html 11572~11849줄) #####
   // =================================================================
   // 반복측정 · 혼합설계 분산분석, 맥니마, 코크란 Q
   // =================================================================
@@ -1964,7 +1966,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
 
   // =================================================================
 
-// ##### 5. 결과 해석: 학생이 읽은 결과 점검(gistCheck), 가설↔효과 연결(autoLink), 결과 문단 틀 (stats-ladder.html 5871~6098줄) #####
+// ##### 5. 결과 해석: 학생이 읽은 결과 점검(gistCheck), 가설↔효과 연결(autoLink), 결과 문단 틀 (stats-ladder.html 5873~6100줄) #####
   // ---------- 결과의 줄기: 학생이 먼저 읽고, 코드가 판정과 맞는지 봄 ----------
   function readHint(e) {
     if (e.ciBased) return `신뢰구간 [${e.lo?.toFixed(3)}, ${e.hi?.toFixed(3)}]이 0을 포함하는지 보세요. 포함하지 않으면 간접효과가 있다고 읽습니다. 직접효과도 함께 보면 매개의 모양을 알 수 있어요.`;
@@ -2194,7 +2196,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
   }
 
 
-// ##### 6. 보고 체크리스트: 효과크기 신뢰구간, 정규성, 가정 점검 (stats-ladder.html 6964~7176줄) #####
+// ##### 6. 보고 체크리스트: 효과크기 신뢰구간, 정규성, 가정 점검 (stats-ladder.html 6966~7178줄) #####
   // =================================================================
   // 보고 체크리스트 (APA 7 결과 보고 항목을 코드가 점검)
   // =================================================================
@@ -2409,7 +2411,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
 
   // =================================================================
 
-// ##### 7. 분석 결정 (기본값) (stats-ladder.html 7288~7405줄) #####
+// ##### 7. 분석 결정 (기본값) (stats-ladder.html 7290~7407줄) #####
   // =================================================================
   // 분석 결정 (연구자가 정하고, 바꾼 것은 기록)
   // =================================================================
@@ -2529,7 +2531,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
 
   // =================================================================
 
-// ##### 8. R 코드 만들기 (재계산용) (stats-ladder.html 7405~7772줄) #####
+// ##### 8. R 코드 만들기 (재계산용) (stats-ladder.html 7407~7774줄) #####
   // =================================================================
   // R 코드 만들기 (분석 계획서 그대로, 기본 R만 사용)
   // =================================================================
@@ -2899,7 +2901,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
 
   // =================================================================
 
-// ##### 9. SPSS 명령문 만들기 · SPSS 출력과 대조 (stats-ladder.html 11822~11999줄) #####
+// ##### 9. SPSS 명령문 만들기 · SPSS 출력과 대조 (stats-ladder.html 11849~12026줄) #####
   // =================================================================
   // SPSS로 확인하기: 명령문(.sps) 만들기 + SPSS 출력의 숫자와 맞춰 보기 (AI 없이 규칙으로)
   // =================================================================
@@ -3079,7 +3081,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
   });
 
 
-// ##### 10. 표본 수 계산 (G*Power 방식): 분포 함수 (stats-ladder.html 10082~10179줄) #####
+// ##### 10. 표본 수 계산 (G*Power 방식): 분포 함수 (stats-ladder.html 10084~10181줄) #####
   // ---------- 표본 수 계산: 비중심 분포 (G*Power와 같은 방식) ----------
   const PW = (() => {
     const { pF, pChi, zInv } = ST;
@@ -3179,7 +3181,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
 
   // =================================================================
 
-// ##### 11. 표본 수 계산: 화면이 넘기는 자유도·비중심 모수 (stats-ladder.html 10255~10436줄) #####
+// ##### 11. 표본 수 계산: 화면이 넘기는 자유도·비중심 모수 (stats-ladder.html 10257~10438줄) #####
   // ---------- 표본 수 계산 ----------
   const ESZ = {
     d: { lab: 'd', v: [0.2, 0.5, 0.8] }, f: { lab: 'f', v: [0.1, 0.25, 0.4] }, f2: { lab: 'f²', v: [0.02, 0.15, 0.35] }, r: { lab: 'r', v: [0.1, 0.3, 0.5] },
@@ -3363,7 +3365,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
   });
 
 
-// ##### 12. 탐색적 요인분석 (PAF·PCA, 베리맥스) · 확인적 요인분석 (webR lavaan, CR·AVE·HTMT) (stats-ladder.html 10689~11096줄) #####
+// ##### 12. 탐색적 요인분석 (PAF·PCA, 베리맥스) · 확인적 요인분석 (webR lavaan, CR·AVE·HTMT) (stats-ladder.html 10691~11123줄) #####
   // ---------- 탐색적 요인분석: 주축요인추출(PAF) 또는 주성분 추출 + 베리맥스 회전 ----------
   // PAF는 R psych::fa(fm = "pa")·SPSS '주축 요인 추출'과 같은 반복 방식, 주성분은 R의 eigen과 같음. 회전은 R의 varimax(정규화)와 같음
   function jacobiEig(A) {
@@ -3594,7 +3596,7 @@ as.character(jsonlite::toJSON(list(lavaan = as.character(packageVersion("lavaan"
   }
   function cfaSentence(r, M) {
     const [chi, df, pv, cfi, tli, rmsea, rlo, rhi, srmr] = r.fit, lo = Math.min(...r.ld.std), hi = Math.max(...r.ld.std);
-    return `측정모형의 타당성을 확인하기 위해 ${M.facs.length}개 요인(${M.facs.map(f => f.label).join(', ')})으로 확인적 요인분석을 실시하였다(${r.est === 'ML' ? '최대우도법' : r.est === 'MLR' ? '강건 최대우도법(MLR)' : 'WLSMV'}, R lavaan ${r.lavaan}). 그 결과 χ²(${F2(df, 0)}) = ${F2(chi)}, ${PS(pv)}, CFI = ${NZ(cfi)}, TLI = ${NZ(tli)}, RMSEA = ${NZ(rmsea, 3)} (90% CI [${NZ(rlo, 3)}, ${NZ(rhi, 3)}]), SRMR = ${NZ(srmr, 3)}으로 나타났다. 표준화 요인부하량은 ${NZ(lo)}~${NZ(hi)}였고, 합성신뢰도(CR)는 ${NZ(Math.min(...r.fac.map(f => f.CR)))}~${NZ(Math.max(...r.fac.map(f => f.CR)))}, 평균분산추출(AVE)은 ${NZ(Math.min(...r.fac.map(f => f.AVE)))}~${NZ(Math.max(...r.fac.map(f => f.AVE)))}였다.${M.covs.length ? ` 수정지수를 참고하되 이론적 근거가 있는 ${M.covs.length}개의 오차 공분산을 추가하였다(${M.covs.map(c => `${c.a}–${c.b}: ${c.why}`).join('; ')}).` : ''} [적합도와 타당도의 판단은 연구자가 기준과 함께 서술]`;
+    return `측정모형의 타당성을 확인하기 위해 ${M.facs.length}개 요인(${M.facs.map(f => f.label).join(', ')})으로 확인적 요인분석을 실시하였다(${r.est === 'ML' ? '최대우도법' : r.est === 'MLR' ? '강건 최대우도법(MLR)' : 'WLSMV'}, R lavaan ${r.lavaan}). 그 결과 χ²(${F2(df, 0)}) = ${F2(chi)}, ${PS(pv)}, CFI = ${NZ(cfi)}, TLI = ${NZ(tli)}, RMSEA = ${NZ(rmsea, 3)} (90% CI [${NZ(rlo, 3)}, ${NZ(rhi, 3)}]), ${J(`SRMR = ${NZ(srmr, 3)}`, '으로/로')} 나타났다. 표준화 요인부하량은 ${J(`${NZ(lo)}~${NZ(hi)}`, '이었/였')}고, 합성신뢰도(CR)는 ${NZ(Math.min(...r.fac.map(f => f.CR)))}~${NZ(Math.max(...r.fac.map(f => f.CR)))}, 평균분산추출(AVE)은 ${J(`${NZ(Math.min(...r.fac.map(f => f.AVE)))}~${NZ(Math.max(...r.fac.map(f => f.AVE)))}`, '이었/였')}다.${M.covs.length ? ` 수정지수를 참고하되 이론적 근거가 있는 ${M.covs.length}개의 오차 공분산을 추가하였다(${M.covs.map(c => `${c.a}–${c.b}: ${c.why}`).join('; ')}).` : ''} [적합도와 타당도의 판단은 연구자가 기준과 함께 서술]`;
   }
   document.addEventListener('click', async e => {
     const b = e.target.closest('[data-cfa]'); if (!b) return;
@@ -3726,7 +3728,32 @@ as.character(jsonlite::toJSON(list(lavaan = as.character(packageVersion("lavaan"
     let cfaOk = false; try { cfaOk = !!(cfaRes && cfaRes.dv === dataVersion); } catch (e) { }
     if (!cfaOk && S.all.some(n => n.items)) R.notes.unshift('⚠ 확인적 요인분석을 아직 하지 않았습니다. 구조방정식은 측정모형이 맞아야 구조모형을 믿을 수 있으니, ⑧ 측정 점검에서 확인적 요인분석을 먼저 하고 보고하세요.');
     R.sem = { syntax: S.syntax, lavaan: res.lavaan };
+    R.sent = semSentence(S, res, row, bs, B, lat, cfaOk);
     return R;
+  }
+  // 논문에 쓸 문장 (초안): 숫자와 유의 여부만 적고, 적합도 판단과 가설 지지는 연구자가 씀
+  function semSentence(S, res, row, bs, B, lat, cfaOk) {
+    const [chi, df, pv, cfi, tli, rmsea, rlo, rhi, srmr] = res.fit, Xn = S.X.map(x => x.name).join(', '), Yn = S.Y.name, ser = S.kind === 'serial';
+    const what = !S.M.length ? `${J(Xn, '이/가')} ${Yn}에 미치는 영향을 검증하기 위해`
+      : `${J(Xn, '과/와')} ${Yn}의 관계에서 ${ser ? `${J(S.M[0].name, '과/와')} ${S.M[1].name}의 이중` : `${S.M.map(m => m.name).join(', ')}의`} 매개효과를 검증하기 위해`;
+    const out = [`${what} 구조방정식 모형을 분석하였다(최대우도법, R lavaan ${res.lavaan}, N = ${res.n}).`];
+    if (lat.length) out.push(`${J(lat.map(n => `${n.name}(문항 ${n.items.length}개)`).join(', '), '은/는')} 잠재변인으로${S.obs.length ? `, ${J(S.obs.map(n => n.name).join(', '), '은/는')} 관측변인으로` : ''} 모형에 넣었다.${cfaOk ? '' : ' [측정모형의 확인적 요인분석 결과를 먼저 보고]'}`);
+    if (S.C.length) out.push(`${J(S.C.map(n => n.name).join(', '), '을/를')} 통제변인으로 포함하였다.`);
+    out.push(`모형 적합도는 χ²(${F2(df, 0)}) = ${F2(chi)}, ${PS(pv)}, CFI = ${NZ(cfi, 3)}, TLI = ${NZ(tli, 3)}, RMSEA = ${NZ(rmsea, 3)} (90% CI [${NZ(rlo, 3)}, ${NZ(rhi, 3)}]), ${J(`SRMR = ${NZ(srmr, 3)}`, '으로/로')} 나타났다.`);
+    const path = p => { const q = row(p.lab); return { t: p.label.replace(/^[^:]+: /, ''), s: `β = ${NZ(q.std, 3)}, ${PS(q.p)}`, sig: q.p < 0.05 }; };
+    const ps = S.P.map(path), sg = ps.filter(x => x.sig), ns = ps.filter(x => !x.sig);
+    const list = a => a.map(x => `${x.t} 경로(${x.s})`).join(', ');
+    if (sg.length) out.push(`경로계수를 보면 ${list(sg)}는 통계적으로 유의하였${ns.length ? '고,' : '다.'}`);
+    if (ns.length) out.push(`${sg.length ? '' : '경로계수를 보면 '}${list(ns)}는 유의하지 않았다.`);
+    const ind = S.D.map((d, j) => ({ d, q: row(d.lab), b: bs[S.P.length + j] })).filter(x => !/^tot/.test(x.d.lab));
+    if (ind.length) {
+      out.push(`간접효과는 부트스트랩(${B.toLocaleString()}번) 95% 백분위 신뢰구간으로 검증하였다.`);
+      ind.forEach(({ d, q, b }) => { const sig = b.lo > 0 || b.hi < 0; out.push(`${d.label.replace(/^간접효과: /, '').replace(/^총 간접효과: /, '총 간접효과(')}${/^총/.test(d.label) ? ')' : ' 간접효과'}는 B = ${F2(q.est, 3)}, β = ${NZ(q.std, 3)}, ${J(`95% CI ${CI(b.lo, b.hi, 3)}`, '으로/로')} ${sig ? '신뢰구간에 0이 포함되지 않아 유의하였다' : '신뢰구간에 0이 포함되어 유의하지 않았다'}.`); });
+    }
+    const r2 = res.r2 || { names: [], v: [] }, r2s = [...S.M, S.Y].map(n => { const i = r2.names.indexOf(n.id); return i < 0 ? null : `${n.name} ${NZ(r2.v[i], 3)}`; }).filter(Boolean);
+    if (r2s.length) out.push(`설명된 분산(R²)은 ${J(r2s.join(', '), '이었/였')}다.`);
+    out.push('[적합도 판단과 가설의 지지 여부는 연구자가 기준과 함께 서술]');
+    return out.join(' ');
   }
   // R 코드: mode 'fit' = 브라우저(JSON, 부트스트랩 함수 tong_boot 정의), 'file' = analysis.R 안에서 (EFFECT 줄)
   function semR(S, mode) {
@@ -3773,7 +3800,7 @@ ${m.D.map((d, j) => `q <- pr(${rq(d.lab)}); eff(${rq(d.label)}, q$est, pct(bs[, 
   }
 
 
-// ##### 13. 자료 점검: 이상치·결측·표본 확인·측정 점검·사전 분석 (stats-ladder.html 11097~11545줄) #####
+// ##### 13. 자료 점검: 이상치·결측·표본 확인·측정 점검·사전 분석 (stats-ladder.html 11124~11572줄) #####
   // 자료 점검: 응답 정리(중복·이상치·결측) · 표본 확인 · 측정 점검 · 사전 분석
   // =================================================================
   const chiCrit = (a, df) => { let lo = 0, hi = 1000; for (let i = 0; i < 100; i++) { const m = (lo + hi) / 2; if (ST.pChi(m, df) > a) lo = m; else hi = m; } return (lo + hi) / 2; };
