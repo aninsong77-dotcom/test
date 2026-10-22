@@ -259,8 +259,8 @@ console.log('\n3-2. 시작 화면 · 변인만 있어요');
   const sim = await p.$eval('.mb-sim-ctl ~ .mb-cmp', e => e.innerText).catch(() => '');
   ok('가상 자료로 미리 돌려 보기: 모형마다 결과 모양과 찾을 확률', /간접효과/.test(sim) && /상호작용/.test(sim) && /찾을 확률 약 \d+%/.test(sim), sim.split('\n').slice(0, 3).join(' / '));
   await p.click('[data-mb-act=ai-ask]'); await p.waitForTimeout(500);
-  const th = await p.$eval('#thread', e => e.innerText);
-  ok('AI와 상의하기: 가설·다른 모형을 묶어 대화창에 물음 (질문 고르기 선택지는 없음)', /다른 시각으로 검토해 주세요/.test(th) && !/질문 1 ·/.test(th));
+  ok('AI와 상의하기: AI를 정하기 전이면 [AI 함께 쓰기]를 엶', !!(await p.$('#welcome.setup')));
+  await p.keyboard.press('Escape'); await p.waitForTimeout(500);
   const n0 = await p.$$eval('.mb-card', e => e.length);
   await p.click('.mb-alt-body [data-mb-act=alt-add][data-k="1"]'); await p.waitForTimeout(400);
   const heads = await p.$$eval('.mb-card .mb-head b', e => e.map(x => x.textContent));
@@ -368,8 +368,9 @@ console.log('\n6. AI 연결: 기본은 AI 없이, 필요할 때 연결');
   await p.waitForTimeout(600); await p.click('#splash').catch(() => {}); await p.waitForTimeout(500);
   ok('처음에는 AI 방식을 묻지 않고 \'AI 정하기 전\'으로 시작', !(await p.$('#welcome.setup')) && /AI 정하기 전/.test(await p.$eval('#ai-dot', e => e.textContent)));
   await p.fill('#cmp-text', '표본은 몇 명이 필요해?'); await p.click('#cmp-send'); await p.waitForTimeout(400);
-  ok('대화창에서 물으면 사용 설명을 찾아 주고 [AI 함께 쓰기]를 권함', !!(await p.$('#thread [data-setup-open]')));
-  await p.click('#thread [data-setup-open]'); await p.waitForSelector('#welcome.setup'); await p.waitForTimeout(300);
+  ok('아래 칸은 [찾기]: 사용 설명에서 찾아 줌 (AI 답처럼 보이지 않음)', !!(await p.$('#thread .msg.find .links a')) && (await p.$eval('#cmp-send', e => e.textContent)) === '찾기');
+  ok('AI를 정하기 전이면 옆 버튼이 [AI 함께 쓰기]', /^AI( 함께 쓰기)?$/.test(await p.$eval('#ai-open', e => !e.hidden && e.textContent)));   // 휴대폰 폭이면 'AI'
+  await p.click('#ai-open'); await p.waitForSelector('#welcome.setup'); await p.waitForTimeout(300);
   const opts = await p.$$eval('#welcome input[name=su-mode]', es => es.map(e => e.value));
   ok('AI 함께 쓰기: 채팅 AI에 복사 · AI 도우미 · AI 없이 (claude.ai 링크 방식은 사이트에 안 보임)', opts.join(',') === 'copy,code,off', opts.join(','));
   ok('처음에는 무료인 [채팅 AI에 복사해 묻기]가 골라져 있음', await p.$eval('#welcome input[value=copy]', e => e.checked));
@@ -381,11 +382,11 @@ console.log('\n6. AI 연결: 기본은 AI 없이, 필요할 때 연결');
   await p.click('#welcome [data-su=done]'); await p.waitForTimeout(500);
   const st = await p.evaluate(() => ['ladder.aiMode', 'ladder.aiSite'].map(k => JSON.parse(localStorage.getItem(k))));
   ok('고른 방식과 AI가 저장되고 요약에 보임', st.join(',') === 'copy,claude' && /Claude/.test(sum), `${st} · ${sum.replace(/\s+/g, ' ')}`);
-  await p.fill('#cmp-text', '표본은 몇 명이 필요해?'); await p.click('#cmp-send'); await p.waitForTimeout(400);
-  const go = (await p.$$('#thread [data-ai-go]')).pop();
-  const [np] = go ? await Promise.all([ctx.waitForEvent('page', { timeout: 5000 }).catch(() => null), go.click()]) : [null];
+  ok('채팅 AI 방식이면 옆 버튼이 [Claude 열기]', /^Claude( 열기)?$/.test(await p.$eval('#ai-open', e => e.textContent)));
+  await p.fill('#cmp-text', '표본은 몇 명이 필요해?');
+  const [np] = await Promise.all([ctx.waitForEvent('page', { timeout: 5000 }).catch(() => null), p.click('#ai-open')]);
   const clip = await p.evaluate(() => navigator.clipboard.readText()).catch(() => '');
-  ok('[복사하고 Claude 열기]: 질문을 복사하고 Claude 창을 엶', !!np && /claude\.ai\/new/.test(np.url()) && clip.length > 100, `${np ? np.url().slice(0, 30) : '창 없음'} · 복사 ${clip.length}자`);
+  ok('[Claude 열기]: 연구 요약과 질문을 복사하고 Claude 창을 엶', !!np && /claude\.ai\/new/.test(np.url()) && clip.length > 100 && /표본은 몇 명이 필요해/.test(clip), `${np ? np.url().slice(0, 30) : '창 없음'} · 복사 ${clip.length}자`);
   if (np) await np.close();
   // 결과 해석에서 권하기 (새로 시작한 상태)
   await p.evaluate(() => { localStorage.removeItem('ladder.aiMode'); }); await p.reload(); await p.waitForTimeout(500); await p.click('#splash').catch(() => {});
@@ -401,7 +402,7 @@ console.log('\n6. AI 연결: 기본은 AI 없이, 필요할 때 연결');
   ok('페이지 오류 없음 (AI 연결)', !errs.length, errs.join(' | '));
   await ctx.close();
 }
-// AI 도우미와 대화창 잇기: 질문을 연구 폴더(5_chat/question.md)로 보내고, 도우미가 쓴 answer.md를 대화창에 보여 줌
+// AI 도우미: [Claude Code 열기]로 Claude 앱 Code 탭을 열고 거기서 대화 (통 아래 칸은 찾기만)
 {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   await ctx.addInitScript(() => { window.showDirectoryPicker = async () => (await navigator.storage.getDirectory()).getDirectoryHandle('내논문', { create: true }); });
@@ -409,20 +410,20 @@ console.log('\n6. AI 연결: 기본은 AI 없이, 필요할 때 연결');
   await p.goto(BASE); await p.evaluate(() => { localStorage.clear(); localStorage.setItem('ladder.noWelcome', 'true'); localStorage.setItem('ladder.aiMode', '"code"'); }); await p.reload();
   await p.waitForTimeout(600); await p.click('#splash').catch(() => {}); await p.waitForTimeout(400);
   ok('폴더를 연결하기 전에는 점에 "폴더 연결 전"이 보임', /폴더 연결 전/.test(await p.$eval('#ai-dot', e => e.textContent)));
-  await p.fill('#cmp-text', '관계와 영향은 무슨 차이야?'); await p.click('#cmp-send'); await p.waitForTimeout(400);
-  ok('폴더가 없으면 연결하라고 하고 [연구 폴더 연결] 버튼을 줌', !!(await p.$('#thread [data-th-fold]')));
-  await p.click('#thread [data-th-fold]'); await p.waitForTimeout(1500);
-  await p.fill('#cmp-text', '관계와 영향은 무슨 차이야?'); await p.click('#cmp-send'); await p.waitForTimeout(800);
+  ok('AI 도우미(Claude)면 옆 버튼이 [Claude Code 열기]', (await p.$eval('#ai-open', e => !e.hidden && e.textContent)) === 'Claude Code 열기');
+  await p.click('#fold-chip'); await p.waitForTimeout(300); await p.click('[data-fd=connect]'); await p.waitForTimeout(1500);
   const rd = rel => p.evaluate(async rel => { try { let d = await (await navigator.storage.getDirectory()).getDirectoryHandle('내논문'); const ps = rel.split('/'), n = ps.pop(); for (const x of ps) d = await d.getDirectoryHandle(x); return await (await (await d.getFileHandle(n)).getFile()).text(); } catch (e) { return ''; } }, rel);
-  const qmd = await rd('5_chat/question.md'), qid = (qmd.match(/<!-- q: (\w+) -->/) || [])[1];
-  ok('질문이 연구 폴더 5_chat/question.md로 감 (질문·규칙·현재 상태, 원자료 없음)', !!qid && /관계와 영향은 무슨 차이야/.test(qmd) && /현재 상태/.test(qmd), qmd.slice(0, 60));
-  ok('대화창에 "통 질문에 답해 줘"를 말하라는 안내와 복사 버튼', !!(await p.$('#thread .msg.pending [data-copy-phrase]')));
-  ok('안내 파일(CLAUDE.md)에 "통 질문에 답해 줘" 절이 있음', /통 질문에 답해 줘/.test(await rd('CLAUDE.md')));
-  await p.evaluate(async ({ qid }) => { const d = await (await (await navigator.storage.getDirectory()).getDirectoryHandle('내논문')).getDirectoryHandle('5_chat', { create: true }); const w = await (await d.getFileHandle('answer.md', { create: true })).createWritable(); await w.write(`<!-- q: ${qid} -->\n관계는 두 변인이 함께 움직이는지, 영향은 한 변인으로 다른 변인을 설명·예측하는지를 봅니다.`); await w.close(); }, { qid });
-  await p.evaluate(() => window.dispatchEvent(new Event('focus'))); await p.waitForTimeout(800);
-  const last = await p.$eval('#thread .msg.ai:last-of-type', e => e.innerText).catch(() => '');
-  ok('도우미가 폴더에 쓴 답이 통 대화창에 나옴', /관계는 두 변인이 함께 움직이는지/.test(last) && /Claude Code/.test(last) && !(await p.$('#thread .msg.pending')), last.slice(0, 60));
-  ok('페이지 오류 없음 (AI 도우미 대화)', !errs.length, errs.join(' | '));
+  const md = await rd('CLAUDE.md');
+  ok('안내 파일: 다른 도구는 써도 되지만 숫자·판정은 통 그대로', /다른 도구와 함께 쓸 때/.test(md) && /판정을 바꾸지 않는다/.test(md) && !/통 질문에 답해 줘/.test(md));
+  const url0 = p.url();
+  // 시험용 브라우저는 앱 링크(claude://)를 열 수 없어 '열기 시도'만 기록
+  await p.evaluate(() => { const c = HTMLAnchorElement.prototype.click; HTMLAnchorElement.prototype.click = function () { if (/^claude:/.test(this.href)) { window.__opened = this.href; return; } return c.call(this); }; });
+  await p.click('#ai-open'); await p.waitForTimeout(800);
+  const tst = await p.$eval('#toast', e => e.textContent).catch(() => '');
+  ok('[Claude Code 열기]: Claude 앱 Code 탭(claude://code/new)을 열고 폴더 고르는 법을 알려 줌', p.url() === url0 && (await p.evaluate(() => window.__opened)) === 'claude://code/new' && /Code 탭/.test(tst) && /내논문/.test(tst), tst.slice(0, 60));
+  await p.fill('#cmp-text', '관계와 영향은 무슨 차이야?'); await p.click('#cmp-send'); await p.waitForTimeout(500);
+  ok('AI 도우미 방식에서도 아래 칸은 사용 설명 찾기만 함', !!(await p.$('#thread .msg.find')) && !(await p.$('#thread .msg.pending')));
+  ok('페이지 오류 없음 (AI 도우미 열기)', !errs.length, errs.join(' | '));
   await ctx.close();
 }
 
