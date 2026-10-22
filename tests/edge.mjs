@@ -288,29 +288,38 @@ console.log('\n5. 가설 전부 계산하기');
   await ctx.close();
 }
 
-// ===================== 6. 처음 설정 · 내 AI 계정 =====================
-console.log('\n6. 처음 설정 · 내 AI 계정');
+// ===================== 6. AI 연결: 기본은 AI 없이, 필요할 때 연결 =====================
+console.log('\n6. AI 연결: 기본은 AI 없이, 필요할 때 연결');
 {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, permissions: ['clipboard-read', 'clipboard-write'] }); const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message));
-  await p.goto(BASE); await p.evaluate(() => { localStorage.clear(); localStorage.setItem('ladder.forceSetup', 'true'); }); await p.reload();
-  const shown = await p.waitForSelector('#welcome.setup', { timeout: 15000 }).then(() => true).catch(() => false);
-  ok('처음 들어오면 설정 화면(AI 방식 → 연구 폴더 → 완료)', shown);
+  await p.goto(BASE); await p.evaluate(() => { localStorage.clear(); localStorage.setItem('ladder.noWelcome', 'true'); }); await p.reload();
+  await p.waitForTimeout(600); await p.click('#splash').catch(() => {}); await p.waitForTimeout(500);
+  ok('처음에는 AI 방식을 묻지 않고 \'AI 연결 전\'으로 시작', !(await p.$('#welcome.setup')) && /AI 연결 전/.test(await p.$eval('#ai-dot', e => e.textContent)));
+  await p.fill('#cmp-text', '표본은 몇 명이 필요해?'); await p.click('#cmp-send'); await p.waitForTimeout(400);
+  ok('대화창에서 물으면 사용 설명을 찾아 주고 [AI 연결하기]를 권함', !!(await p.$('#thread [data-setup-open]')));
+  await p.click('#thread [data-setup-open]'); await p.waitForSelector('#welcome.setup'); await p.waitForTimeout(300);
   const opts = await p.$$eval('#welcome input[name=su-mode]', es => es.map(e => e.value));
-  ok('사이트에서는 내 AI 계정 · Claude Code · AI 없이 세 가지 (claude.ai 링크 방식은 안 보임)', opts.join(',') === 'copy,code,off', opts.join(','));
-  await p.click('#welcome [data-ai-site=claude]'); await p.click('#welcome [data-su=next]'); await p.click('#welcome .su-act [data-su=next]');
+  ok('AI 연결하기: 내 AI 계정 · Claude Code · AI 없이 (claude.ai 링크 방식은 사이트에 안 보임)', opts.join(',') === 'copy,code,off', opts.join(','));
+  const who = await p.$eval('#welcome', e => e.innerText);
+  ok('방식마다 누구에게 맞는지 보임', /대부분의 학생/.test(who) && /PC에 R을 설치할 수 있고/.test(who));
+  await p.click('#welcome [data-ai-site=claude]'); await p.click('#welcome [data-su=next]');
   const sum = await p.$eval('#welcome .su-sum', e => e.innerText);
   await p.click('#welcome [data-su=done]'); await p.waitForTimeout(500);
-  const st = await p.evaluate(() => ['ladder.aiMode', 'ladder.aiSite', 'ladder.setupDone'].map(k => JSON.parse(localStorage.getItem(k))));
-  ok('고른 방식과 AI가 저장되고 요약에 보임', st.join(',') === 'copy,claude,true' && /Claude/.test(sum), `${st} · ${sum.replace(/\s+/g, ' ')}`);
+  const st = await p.evaluate(() => ['ladder.aiMode', 'ladder.aiSite'].map(k => JSON.parse(localStorage.getItem(k))));
+  ok('고른 방식과 AI가 저장되고 요약에 보임', st.join(',') === 'copy,claude' && /Claude/.test(sum), `${st} · ${sum.replace(/\s+/g, ' ')}`);
   await p.fill('#cmp-text', '표본은 몇 명이 필요해?'); await p.click('#cmp-send'); await p.waitForTimeout(400);
-  const go = await p.$('#thread [data-ai-go]');
+  const go = (await p.$$('#thread [data-ai-go]')).pop();
   const [np] = go ? await Promise.all([ctx.waitForEvent('page', { timeout: 5000 }).catch(() => null), go.click()]) : [null];
   const clip = await p.evaluate(() => navigator.clipboard.readText()).catch(() => '');
-  ok('[복사하고 Claude 열기]: 질문을 복사하고 Claude 창을 엶', !!np && /claude\.ai\/new/.test(np.url()) && clip.length > 100, `${np ? np.url() : '창 없음'} · 복사 ${clip.length}자`);
+  ok('[복사하고 Claude 열기]: 질문을 복사하고 Claude 창을 엶', !!np && /claude\.ai\/new/.test(np.url()) && clip.length > 100, `${np ? np.url().slice(0, 30) : '창 없음'} · 복사 ${clip.length}자`);
   if (np) await np.close();
-  await p.reload(); await p.waitForTimeout(800);
-  ok('다시 들어오면 설정 화면이 또 나오지 않음', !(await p.$('#welcome.setup')));
-  ok('페이지 오류 없음 (처음 설정)', !errs.length, errs.join(' | '));
+  // 결과 해석에서 권하기 (새로 시작한 상태)
+  await p.evaluate(() => { localStorage.removeItem('ladder.aiMode'); }); await p.reload(); await p.waitForTimeout(500); await p.click('#splash').catch(() => {});
+  await p.evaluate(() => document.querySelector('[data-nav=interp]')?.click()); await p.waitForTimeout(400);
+  ok('결과 해석에 처음 오면 AI 연결을 권하는 카드', !!(await p.$('.ai-sug [data-setup-open]')));
+  await p.click('.ai-sug [data-ai-skip]'); await p.waitForTimeout(300);
+  ok('[AI 없이 계속]을 누르면 권하지 않음', !(await p.$('.ai-sug')) && JSON.parse(await p.evaluate(() => localStorage.getItem('ladder.aiMode'))) === 'off');
+  ok('페이지 오류 없음 (AI 연결)', !errs.length, errs.join(' | '));
   await ctx.close();
 }
 
