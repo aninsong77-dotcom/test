@@ -2374,6 +2374,7 @@ details.orig{margin-top:12px;border:1px solid var(--line);border-radius:10px;pad
 .mb-alt-row{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;padding:9px 0;border-top:1px solid var(--line)}.mb-alt-row>div{min-width:0}.mb-alt-row b{display:block;font-size:13.5px;margin:2px 0}.mb-alt-row small{display:block;font-size:12px;color:var(--ink-2);line-height:1.5}.mb-alt-row .btn{flex:none}
 .mb-alt-m{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:800;color:var(--ink-3)}.mb-alt-m svg{width:18px;height:18px}.mb-alt-chg{color:var(--orange-deep)!important;margin-top:2px}
 .mb-cmp{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--bg)}.mb-cmp-row{padding:9px 12px;border-top:1px solid var(--line)}.mb-cmp-row:first-child{border-top:0}.mb-cmp-row.on{background:var(--orange-soft)}
+.mb-sim-ctl{display:flex;gap:10px;align-items:center;margin:4px 0 8px;font-size:13px}.mb-sim-ctl label{display:flex;gap:6px;align-items:center}.mb-cmp-h svg{width:18px;height:18px;vertical-align:-4px;margin-right:4px}
 .mb-cmp-row small{display:block;font-size:12px;color:var(--ink-2);line-height:1.5;margin-top:2px}.mb-cmp-h{font-size:13.5px}.mb-cmp-k b{color:var(--ink)}
 .mb-chk-list{margin:10px 0 0}.mb-chk-list p{margin:4px 0;padding:7px 10px;border-radius:8px;font-size:12.5px;line-height:1.55}.mb-chk-warn{background:var(--orange-soft);color:var(--orange-deep)}.mb-chk-tip{background:var(--bg-2);color:var(--ink-2)}
 .mb-ev{margin-top:10px;border:1px solid var(--line);border-radius:10px;padding:8px 12px}.mb-ev summary{cursor:pointer;font-weight:700;font-size:13.5px}.mb-ev-row{margin-top:8px}.mb-ev-row span{font-size:12.5px;font-weight:700;color:var(--ink-2)}
@@ -6489,6 +6490,15 @@ ${REVIEW_RULES}
         <li>마음에 드는 것의 <b>[가설로]</b>를 누르면 아래 가설 카드가 됩니다. 여러 개 골라도 됩니다. 방향(정적·부적)과 빈칸을 다듬으세요.</li>
       </ol>
       <p class="hint">가설이 이미 있어도 변인을 적은 뒤 <b>[이 변인들로 세울 수 있는 다른 가설 보기]</b>로 다른 가능성을 살펴볼 수 있습니다.</p>
+      <h3>가설을 여러 가지로 생각해 보기</h3>
+      <p>가설 카드마다 <b>[다르게 생각해 보기]</b>를 열면:</p>
+      <ol>
+        <li><b>다른 모형으로 보기</b>: 같은 변인으로 질문을 바꾸면(영향 ↔ 관계, 매개 ↔ 조절, 조절된 매개 등) 어떤 질문이 되는지, 무엇이 바뀌는지(더해지는 변인, 필요 인원, 필요한 준비). [이 모형으로 가설 하나 더]로 카드를 하나 더 만들어 비교합니다.</li>
+        <li><b>기법 나란히 보기</b>: 이 모형을 분석할 수 있는 방법들(PROCESS, 구조방정식 등)의 답하는 질문, 필요 인원, 필요한 준비</li>
+        <li><b>가상 자료로 미리 돌려 보기</b>: 가설이 맞다고 가정한 가짜 자료로 모형마다 결과표 모양과, 정한 인원에서 효과를 찾을 확률(검정력)을 비교합니다.</li>
+        <li><b>AI와 상의하기</b>: 가설, 다른 모형, 근거를 묶어 AI에게 다른 시각을 묻습니다.</li>
+      </ol>
+      <p>카드 아래에는 <b>가설 문장 점검</b>(방향, 한 시점 설문의 인과 표현 등)과 <b>경로마다 근거</b> 칸이 있습니다. 근거는 분석 계획서에 들어가고, 심사에서 "왜 그렇게 보나요?"에 답할 준비가 됩니다.</p>
       <h3>도착하면</h3>
       <ul>
         <li>기법 이름, 고른 이유, 함께 확인할 것이 나옵니다.</li>
@@ -8195,7 +8205,8 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
     const node = w.cur.type === 'node' ? RULES.nodes[w.cur.id] : w.cur.type === 'gate' ? RULES.gate : null;
     return {
       지금_화면: VIEW_NAME[curView()] || curView(),
-      사다리: { 지나온_답: w.steps.map(s => `${s.node.question} → ${s.opt.label}`), 지금_질문: node ? { 질문: node.question, 선택지: node.options.map(o => `${o.label}${o.term ? ` (${o.term})` : ''}`), 설명: node.help?.text } : null, 고른_기법: lid ? RULES.results[lid].name : null },
+      가설_카드: (hp && hp.mode === 'hyp' ? hp.cards : []).filter(c => c.model && !mbMissing(c).length).map(c => ({ 모형: MB_NAME[c.model], 가설: cardSentence(c), 주_분석: ((mbOptions(c).find(o => o.id === mbMain(c)) || {}).name) || '' })),
+      고른_기법: lid ? RULES.results[lid].name : null,
       변인: { 독립: vars.ivs.filter(v => norm(v.name)).map(v => v.name + (v.levels ? `(${v.levels})` : '')), 종속: vars.dv, 그밖: vars.others.map(o => `${o.role}: ${o.name}`) },
       설문: sv.scales.map((s, si) => `${s.name || scaleCode(s, si)}(${s.role}, ${s.items.filter(i => norm(i.text)).length}문항)`),
       응답: lastScored ? `분석에 포함 ${lastScored.inc.length}명` : '아직 없음',
@@ -8230,6 +8241,7 @@ ${q}`;
   let helperBusy = false;
   // 지금 고를 차례인 사다리 질문 (채팅 답 아래에 선택지를 다시 보여 줌)
   function curChoices() {
+    return null;   // 질문으로 고르기(사다리)를 없애서 대화창에 질문 선택지를 붙이지 않음
     if (curView() !== 'ladder') return null;
     const w = walk(path), node = w.cur.type === 'node' ? RULES.nodes[w.cur.id] : w.cur.type === 'gate' ? RULES.gate : null;
     if (!node) return null;
@@ -8829,7 +8841,7 @@ ${q}`;
           ${R.sections.length > 1 && imp.target !== 'new' && !String(imp.target).startsWith('dims:') ? '<p class="hint" style="margin:0">변인 하나에 채울 때는 하위요인을 합쳐 그 변인 하나로 넣습니다.</p>' : ''}
           ${String(imp.target).startsWith('dims:') ? (() => { const g = dimGroups.find(([n]) => 'dims:' + n === imp.target); const secs = R.sections.filter(x => x.items.some(i => i.keep)); return g ? `<p class="hint" style="margin:0">하위요인을 차례로 나눠 채웁니다: ${secs.map((x, k) => `${esc(norm(x.name) || `하위요인 ${k + 1}`)} → ${g[1][k] ? esc(`${g[0]}(${g[1][k]})`) : '<b>남는 하위요인</b>'}`).join(' · ')}${secs.length !== g[1].length ? ` <b class="a-low">하위요인 ${secs.length}개, 하위 차원 ${g[1].length}개로 수가 다릅니다.</b>` : ''}</p>` : ''; })() : ''}
           ${R.sections.length > 1 && imp.target === 'new' ? `<label class="f">하위요인을<select data-sif="mode"><option value="split" ${imp.mode === 'split' ? 'selected' : ''}>각각 따로 변인으로 (하위요인 점수를 따로 분석)</option><option value="one" ${imp.mode === 'one' ? 'selected' : ''}>한 변인으로 합쳐서 (전체 점수로 분석)</option></select></label>` : ''}
-          <label class="f">어디에 넣을까요<select data-sif="target"><option value="new">새 변인으로 추가</option>${R.sections.length > 1 ? dimGroups.map(([n, ds]) => `<option value="dims:${esc(n)}" ${imp.target === 'dims:' + n ? 'selected' : ''}>'${esc(n)}'의 하위 차원 ${ds.length}개에 나눠 채우기</option>`).join('') : ''}${emptyTargets.map(([s, i]) => `<option value="${i}" ${String(imp.target) === String(i) ? 'selected' : ''}>사다리 변인 '${esc(s.name || '(이름 없음)')}'(${esc(s.role)})에 채우기</option>`).join('')}</select></label>
+          <label class="f">어디에 넣을까요<select data-sif="target"><option value="new">새 변인으로 추가</option>${R.sections.length > 1 ? dimGroups.map(([n, ds]) => `<option value="dims:${esc(n)}" ${imp.target === 'dims:' + n ? 'selected' : ''}>'${esc(n)}'의 하위 차원 ${ds.length}개에 나눠 채우기</option>`).join('') : ''}${emptyTargets.map(([s, i]) => `<option value="${i}" ${String(imp.target) === String(i) ? 'selected' : ''}>변인 '${esc(s.name || '(이름 없음)')}'(${esc(s.role)})에 채우기</option>`).join('')}</select></label>
         </div>
         <label class="si-ok"><input type="checkbox" data-sif="ok" ${imp.ok ? 'checked' : ''}> 이 척도를 써도 되는지(저자 허락 또는 공개 사용 조건) 확인했습니다. 논문에는 출처를 밝힙니다.</label>
         <div class="actions"><button class="btn primary" data-si="apply" ${nItems ? '' : 'disabled'}>설문에 넣기</button><button class="btn" data-si="reset">다시 하기</button></div>
@@ -9610,6 +9622,75 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
       const fresh = [...new Set(need.map(norm).filter(n => n && !used.has(n)))];
       return { ...a, t, main, blank: need.some(n => !norm(n)) ? 1 : 0, fresh }; });
   }
+  // ---------- 가상 자료로 미리 돌려 보기: 모형마다 '가설이 맞다면'(중간 크기 효과) 가짜 자료를 만들어 결과 모양과 찾을 확률을 봄 ----------
+  // 효과 가정: 경로 β = .30, 직접효과 .10, 상호작용 .15 (조절은 대개 작음). 결과 숫자는 의미가 없고 모양과 검정력만 봄
+  function simModel(model, nM, n, seed, reps) {
+    const r = rng(seed), g = () => Math.sqrt(-2 * Math.log(r() || 1e-12)) * Math.cos(2 * Math.PI * r());
+    const e = (bs) => Math.sqrt(Math.max(0.05, 1 - bs.reduce((s, b) => s + b * b, 0)));
+    const draw = () => {
+      const X = Array.from({ length: n }, g), W = Array.from({ length: n }, g), cols = { X, W };
+      if (model === 'rel' || model === 'pred') cols.Y = X.map(x => 0.3 * x + e([0.3]) * g());
+      else if (model === 'diff') { cols.X = X.map(() => (r() < 0.5 ? 0 : 1)); cols.Y = cols.X.map(x => 0.5 * x + g()); }
+      else if (model === 'mod') cols.Y = X.map((x, i) => 0.3 * x + 0.2 * W[i] + 0.15 * x * W[i] + e([0.3, 0.2, 0.15]) * g());
+      else if (model === 'modmed') { cols.M = [X.map((x, i) => 0.3 * x + 0.2 * W[i] + 0.15 * x * W[i] + e([0.3, 0.2, 0.15]) * g())]; cols.Y = X.map((x, i) => 0.1 * x + 0.3 * cols.M[0][i] + e([0.1, 0.3]) * g()); }
+      else if (model === 'serial') { const M1 = X.map(x => 0.3 * x + e([0.3]) * g()), M2 = X.map((x, i) => 0.15 * x + 0.3 * M1[i] + e([0.15, 0.3]) * g()); cols.M = [M1, M2]; cols.Y = X.map((x, i) => 0.1 * x + 0.15 * M1[i] + 0.3 * M2[i] + e([0.1, 0.15, 0.3]) * g()); }
+      else { cols.M = Array.from({ length: Math.max(1, nM) }, () => X.map(x => 0.3 * x + e([0.3]) * g())); cols.Y = X.map((x, i) => 0.1 * x + cols.M.reduce((s, m) => s + 0.3 / Math.sqrt(cols.M.length) * m[i], 0) + e([0.1, 0.3]) * g()); }
+      return cols;
+    };
+    // 한 번의 분석: 핵심 효과 값과 유의 여부
+    const fit = (D, boot) => {
+      const { X, W, Y, M } = D;
+      if (model === 'rel' || model === 'pred' || model === 'diff') { const f = ols(Y, rowsOf([X])); return { v: f.b[1], p: f.p[1], sig: f.p[1] < 0.05 }; }
+      if (model === 'mod') { const f = ols(Y, rowsOf([X, W, X.map((x, i) => x * W[i])])); return { v: f.b[3], p: f.p[3], sig: f.p[3] < 0.05 }; }
+      const ind = idx => { const pk = a => idx ? idx.map(i => a[i]) : a, x = pk(X), y = pk(Y), m = M.map(pk), w = pk(W);
+        if (model === 'modmed') { const fa = ols(m[0], rowsOf([x, w, x.map((v, i) => v * w[i])]), !!idx), fb = ols(y, rowsOf([x, m[0]]), !!idx); return fa && fb ? { v: fa.b[3] * fb.b[2], f: [fa, fb] } : null; }
+        if (model === 'serial') { const f1 = ols(m[0], rowsOf([x]), !!idx), f2 = ols(m[1], rowsOf([x, m[0]]), !!idx), fy = ols(y, rowsOf([x, ...m]), !!idx); return f1 && f2 && fy ? { v: f1.b[1] * f2.b[2] * fy.b[3], f: [f1, f2, fy] } : null; }
+        const fa = ols(m[0], rowsOf([x]), !!idx), fy = ols(y, rowsOf([x, ...m]), !!idx); return fa && fy ? { v: fa.b[1] * fy.b[2], f: [fa, fy] } : null; };
+      const o = ind(null); if (!o) return null;
+      // 유의: 반복에서는 관련 경로가 모두 유의(결합 유의성 검정), 한 번 결과에서는 부트스트랩 신뢰구간
+      const ps = model === 'modmed' ? [o.f[0].p[3], o.f[1].p[2]] : model === 'serial' ? [o.f[0].p[1], o.f[1].p[2], o.f[2].p[3]] : [o.f[0].p[1], o.f[1].p[2]];
+      if (!boot) return { v: o.v, sig: ps.every(p => p < 0.05) };
+      const rb = rng(seed + 7), B = 500, vs = [];
+      for (let b = 0; b < B; b++) { const idx = Array.from({ length: n }, () => Math.floor(rb() * n)); const q = ind(idx); if (q) vs.push(q.v); }
+      vs.sort((a, b) => a - b); const lo = pct(vs, 0.025), hi = pct(vs, 0.975);
+      return { v: o.v, lo, hi, sig: !(lo <= 0 && hi >= 0) };
+    };
+    const one = fit(draw(), true);
+    let hit = 0, ok = 0; for (let k = 0; k < reps; k++) { const q = fit(draw(), false); if (q) { ok++; if (q.sig) hit++; } }
+    return { one, power: ok ? hit / ok : NaN };
+  }
+  const SIM_WHAT = { rel: '관계 (β)', pred: '영향 (β)', diff: '집단 차이 (평균 차, SD 단위)', mod: '상호작용 (조절효과)', med: '간접효과', serial: '순차 간접효과', modmed: '조절된 매개 지수' };
+  function simLine(model, R) {
+    const o = R.one; if (!o) return '계산할 수 없음';
+    const v = F2(o.v, 3);
+    return o.lo != null ? `${SIM_WHAT[model]} ${v}, 95% CI [${F2(o.lo, 3)}, ${F2(o.hi, 3)}] → ${o.sig ? '유의' : '유의하지 않음'}` : `${SIM_WHAT[model]} ${v}, ${PS(o.p)} → ${o.sig ? '유의' : '유의하지 않음'}`;
+  }
+  async function runSimCompare(ci) {
+    const c = hp.cards[ci]; if (!c) return;
+    const n = Math.max(30, Math.min(2000, +hp.simN || 200)), list = [{ model: c.model, q: '지금 모형', nM: c.m.filter(x => norm(x)).length }].concat(mbAlts(c).map(a => ({ model: a.model, q: a.q, nM: (a.t.m || []).filter(x => norm(x)).length || 1 })));
+    const seen = new Set(), L = list.filter(x => { const k = x.model + x.nM; if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, 5);
+    c.sim = { n, rows: [], busy: true }; render();
+    for (const x of L) { await tick(); const R = simModel(x.model, x.nM, n, 20261022, 200); c.sim.rows.push({ model: x.model, q: x.q, line: simLine(x.model, R), power: R.power }); }
+    c.sim.busy = false; render();
+  }
+  function simHtml(c, ci) {
+    const S = c.sim;
+    return `<div class="mb-alt-h">③ 가상 자료로 미리 돌려 보기 <small>가설이 맞다면(중간 크기 효과) 결과가 어떻게 나오는지</small></div>
+      <div class="mb-sim-ctl"><label>인원 <input class="mb-in" data-mb="sim.n" inputmode="numeric" value="${esc(hp.simN || 200)}" style="width:80px">명</label><button class="btn sm primary" data-mb-act="sim-run" data-ci="${ci}" ${S && S.busy ? 'disabled' : ''}>${S && S.busy ? '돌리는 중…' : '돌려 보기'}</button></div>
+      ${S && S.rows.length ? `<div class="mb-cmp">${S.rows.map(r => `<div class="mb-cmp-row"><div class="mb-cmp-h">${mbIcon(r.model)}<b>${esc(MB_NAME[r.model])}</b> <small class="hint" style="display:inline">${esc(r.q)}</small></div>
+        <small>한 번 돌린 결과(가짜 자료 ${S.n}명): ${esc(r.line)}</small>
+        <small class="mb-cmp-k">${S.n}명이면 이 효과를 찾을 확률 약 <b class="${r.power >= 0.8 ? 'a-ok' : r.power >= 0.6 ? 'a-mid' : 'a-low'}">${isFinite(r.power) ? Math.round(r.power * 100) + '%' : '-'}</b>${r.power < 0.8 ? ' — 80%가 안 되면 인원을 늘리거나 모형을 단순하게' : ''}</small></div>`).join('')}</div>
+      <p class="hint">가짜 자료라 숫자 자체는 의미가 없어요. 결과표의 모양과, 같은 인원에서 모형마다 효과를 찾기가 얼마나 쉬운지(검정력, 200번 반복)를 비교해 보세요. 가정: 경로 β = .30, 직접효과 .10, 조절(상호작용) .15.</p>` : ''}`;
+  }
+  // AI와 상의: 이 가설 카드·다른 모형·기법 비교를 묶어 묻기 (AI 방식에 따라 화면 안에서 바로, 또는 복사해서)
+  function mbAiQuestion(c) {
+    const A = mbAlts(c), L = mbOptions(c), main = mbMain(c);
+    return [`다음 가설을 석사논문에 쓰려고 합니다. 이 가설과 연구모형을 다른 시각으로 검토해 주세요.`,
+      `- 가설: ${cardSentence(c)}`, `- 모형: ${MB_NAME[c.model]}, 주 분석: ${(L.find(o => o.id === main) || {}).name || '-'}`,
+      ...mbEvPaths(c).map(p => `- 근거 (${p.t}): ${(c.ev || {})[p.k] || '아직 없음'}`),
+      `- 같은 변인으로 생각해 본 다른 모형: ${A.map(a => `${MB_NAME[a.model]}(${a.q})`).join(' / ') || '없음'}`,
+      `물어볼 것: (1) 이 모형이 연구 질문에 맞는지, 다른 모형이 더 나은 경우가 있는지 (2) 빠졌을 수 있는 통제 변인이나 대안 설명 (3) 심사에서 나올 질문과 미리 준비할 근거. 판정이나 숫자는 지어내지 말고, 모르면 확인할 것으로 남겨 주세요.`].join('\n');
+  }
   function mbAltHtml(c, ci) {
     if (mbMissing(c).length) return '';
     const open = !!c.altOpen;
@@ -9630,6 +9711,9 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
         <small>${esc(o.q)}</small>
         ${o.info ? '' : `<small class="mb-cmp-k">필요 인원 <b>${/^r_sem/.test(o.id) ? '흔히 200명 이상' : esc(altN(o.id, d0) || '-')}</b> · 필요한 준비 ${esc(prepOf(o.id).map(k => PREP_LAB[k]).join(', ') || '-')}</small>`}</div>`).join('')}</div>
       <p class="hint">필요 인원은 대략입니다. 정확한 값은 ③ 표본 수 계산에서 효과크기를 정해 구하세요.</p>
+      ${simHtml(c, ci)}
+      <div class="mb-alt-h">④ AI와 상의하기 <small>이 가설·다른 모형·근거를 묶어 AI에게 다른 시각을 물어요</small></div>
+      <div class="actions tight"><button class="btn sm" data-mb-act="ai-ask" data-ci="${ci}">AI에게 이 가설 물어보기</button></div>
     </div></div>`;
   }
   // ---------- 가설 문장 점검 · 경로마다 근거 ----------
@@ -9872,6 +9956,8 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
     else if (act === 'pick-cancel') hp.picking = null;
     else if (act === 'repick') hp.picking = ci;
     else if (act === 'name-ok') { const c = hp.cards[ci]; if (c) c.nameOk = true; }
+    else if (act === 'sim-run') { runSimCompare(ci); return; }
+    else if (act === 'ai-ask') { const c = hp.cards[ci]; if (c) { askHelper(mbAiQuestion(c)); toast('아래 대화창에 물었습니다.'); setTimeout(() => { const sc = $('#scroller'); if (sc) sc.scrollTop = sc.scrollHeight; }, 300); } return; }
     else if (act === 'alt-toggle') { const c = hp.cards[ci]; if (c) c.altOpen = !c.altOpen; }
     else if (act === 'alt-add') { const c = hp.cards[ci], a = c && mbAlts(c)[+b.dataset.k]; if (a) { const t = mbFix(Object.assign({}, a.t, { src: '' })); hp.cards.splice(ci + 1, 0, t); toast(`${MB_NAME[a.model]} 카드를 하나 더 만들었습니다. 빈칸을 채우고 비교해 보세요.`); } }
     else if (act === 'sg-y') hp.sgY = b.dataset.v;
@@ -9906,6 +9992,7 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
     const t = e.target, key = t.dataset && t.dataset.mb; if (!key) return;
     mbInit();
     const [kind, idx, f, sub] = key.split('.'), i = +idx;
+    if (kind === 'sim') { hp.simN = Math.max(30, Math.min(2000, Math.round(+t.value) || 200)); saveHp(); return; }
     if (kind === 'v') {
       const x = hp.vlist[i]; if (!x) return;
       if (f === 'name') { const old = x.name, nn = norm(t.value); if (!nn) return; x.name = nn; hp.cards.forEach(c => { ['x', 'm', 'ctl'].forEach(k => { c[k] = c[k].map(n => norm(n) === old ? nn : n); }); ['w', 'y'].forEach(k => { if (norm(c[k]) === old) c[k] = nn; }); }); }
