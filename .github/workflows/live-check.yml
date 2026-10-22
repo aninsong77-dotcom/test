@@ -1,0 +1,21 @@
+# 실제 사이트(GitHub Pages)에서 브라우저 속 R이 도는지 크롬·사파리·파이어폭스 엔진으로 확인
+name: live-check
+on:
+  push:
+    paths: ['tests/live/**', '.github/workflows/live-check.yml']
+  workflow_dispatch:
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Playwright
+        working-directory: tests
+        run: npm install && npx playwright install --with-deps chromium webkit firefox
+      - name: CFA on the live site
+        working-directory: tests
+        run: node live/cfa-live.mjs
