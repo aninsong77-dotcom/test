@@ -1523,6 +1523,7 @@ main { max-width: 1240px; margin: 0 auto; padding: 32px 24px 64px; }
 /* ---------- 사다리 화면 ---------- */
 .ladder { display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 32px; align-items: start; }
 
+.map[hidden] { display: none; }
 .map {
   position: sticky; top: 16px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
   background: var(--bg); box-shadow: var(--shadow);
@@ -3028,7 +3029,7 @@ table.compact.sp-table{min-width:0;table-layout:auto;width:100%}.sp-table td{ver
   </div>
   <div class="rpane" id="rp-method" data-rp="method">
     <div id="rp-method-top"></div><div id="rp-cand"></div>
-    <aside class="map collapsed" id="map">
+    <aside class="map collapsed" id="map" hidden>
         <div class="map-head">
           <div>
             <h2>전체 갈림길 보기</h2>
@@ -8122,8 +8123,11 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
     const ivs = vars.ivs.filter(v => norm(v.name)), oth = vars.others.filter(o => norm(o.name));
     const varRows = ivs.map(v => `<span>독립</span><span>${esc(v.name)}${v.levels ? ` <small class="hint">(${esc(v.levels)})</small>` : ''}</span>`).join('')
       + oth.map(o => `<span>${esc(o.role)}</span><span>${esc(o.name)}</span>`).join('') + (norm(vars.dv) ? `<span>종속</span><span>${esc(vars.dv)}</span>` : '');
+    // 가설을 만드는 중이면 ①에 적은 변인을, 확정한 뒤에는 분석 역할(독립·종속 등)을 보여 줌
+    const draftRows = hp && hp.mode && !hp.applied ? (hp.vlist || []).filter(v => norm(v.name)).map(v => `<span>${v.kind === 'score' ? '점수' : '집단'}</span><span>${esc(v.name)}${v.kind !== 'score' && norm(v.levels) ? ` <small class="hint">(${esc(v.levels)})</small>` : ''}</span>`).join('') : '';
+    const rows = draftRows || varRows;
     $('#rp-method-bottom').innerHTML = `
-      <div class="card"><h4>변인 ${vars.locked ? '🔒 잠김' : ''}</h4>${varRows ? `<div class="rkv">${varRows}</div>` : '<p class="rempty">① 가설과 분석 정하기에서 변인을 적으면 여기에 보입니다.</p>'}</div>
+      <div class="card"><h4>변인 ${vars.locked ? '🔒 잠김' : ''}</h4>${rows ? `<div class="rkv">${rows}</div>` : '<p class="rempty">① 가설과 분석 정하기에서 변인을 적으면 여기에 보입니다.</p>'}</div>
       <div class="card"><h4>분석 결정 ${plan.locked ? `<span class="st auto">확정</span>` : '<span class="st missing">미확정</span>'} ${plan.log.some(l => l.after) ? `<span class="st manual">사후 변경 ${plan.log.filter(l => l.after).length}</span>` : ''}</h4>
         <div class="rkv">${liveDecisions().map(d => `<span>${esc({ scoring: '점수', minPct: '최소 응답', straight: '불성실 응답', longrun: '연속 같은 답', revcon: '역문항 모순', attn: '주의 확인', welch: '분산 다를 때', posthoc: '사후검정', boot: '부트스트랩', center: '평균중심화', dup: '중복 응답', outlier: '이상치', sph: '구형성 보정' }[d.id] || d.id)}</span><span>${esc(decLabel(d, d.get()))}</span>`).join('')}</div></div>`;
   }
