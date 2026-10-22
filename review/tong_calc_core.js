@@ -4,7 +4,7 @@
 // 검증: tests/README.md 참고 — R 기준값 비교, 화면에서 돌린 분석 전부를 통이 만든 R 코드와 비교, 경계 상황 테스트.
 // 들어 있는 분석 함수 23개: pearson, spearman, partial, pointbiserial, chisq, onesample, ind_t, paired_t, oneway, factorial, ancova, regression, hier, logistic, med_parallel, med_serial, moderation, modmed7, modmed14, rm_anova, mixed_anova, mcnemar, cochran
 
-// ##### 1. 응답 읽기 · 동의 판정 · 점수 만들기(역문항, 최소 응답, 중복) (stats-ladder.html 4087~4197줄) #####
+// ##### 1. 응답 읽기 · 동의 판정 · 점수 만들기(역문항, 최소 응답, 중복) (stats-ladder.html 4097~4207줄) #####
   function autoMap() {
     colMap = {}; mapAuto = {};
     const H = raw.headers.map(h => norm(h).toLowerCase());
@@ -117,7 +117,7 @@
     }
     const hOpts = sel => `<option value="-1" ${sel < 0 ? 'selected' : ''}>(연결 안 함)</option>` + raw.headers.map((h, i) => `<option value="${i}" ${i === sel ? 'selected' : ''}>${i + 1}. ${esc(h.length > 40 ? h.slice(0, 40) + '…' : h)}</option>`).join('');
 
-// ##### 2. 계산 도우미 · 분포 · 회귀(QR) · 부트스트랩 · 베이즈 인자 · 숫자 표기 (stats-ladder.html 4228~4738줄) #####
+// ##### 2. 계산 도우미 · 분포 · 회귀(QR) · 부트스트랩 · 베이즈 인자 · 숫자 표기 (stats-ladder.html 4238~4748줄) #####
   // ---------- 계산 도우미 ----------
   const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
   const sd = a => { if (a.length < 2) return NaN; const m = mean(a); return Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / (a.length - 1)); };
@@ -630,7 +630,7 @@
 
   // =================================================================
 
-// ##### 3. 분석 방법 (RUN): 상관·t·분산분석·회귀·로지스틱·매개·조절 (stats-ladder.html 4738~5789줄) #####
+// ##### 3. 분석 방법 (RUN): 상관·t·분산분석·회귀·로지스틱·매개·조절 (stats-ladder.html 4748~5799줄) #####
   // =================================================================
   // ⑤ 분석
   // =================================================================
@@ -760,7 +760,7 @@
       return `<label class="f slot">${esc(s.label)}<select data-slot="${s.k}"><option value="">(고르세요)</option>${cand.map(v => `<option value="${v.key}" ${anSel.roles[s.k] === v.key ? 'selected' : ''}>${esc(vlabel(v))}</option>`).join('')}</select></label>`;
     };
     const o = anSel.opts;
-    box.innerHTML = `${planItems().some(p => LADDER_TO_METHOD[p.result]) ? `<div class="card"><h3 class="card-title">확정한 가설 ${planItems().length}개</h3><p class="hint">미리 정한 통계 방법과 분석 결정 그대로 가설의 분석을 모두 계산합니다. 하나씩 하려면 아래에서 방법과 변인을 고르세요.</p>${runAllBtn()}</div>` : ''}${runAllHtml()}<div class="card">
+    box.innerHTML = `${prepCard('analysis')}${planItems().some(p => LADDER_TO_METHOD[p.result]) ? `<div class="card"><h3 class="card-title">확정한 가설 ${planItems().length}개</h3><p class="hint">미리 정한 통계 방법과 분석 결정 그대로 가설의 분석을 모두 계산합니다. 하나씩 하려면 아래에서 방법과 변인을 고르세요.</p>${runAllBtn()}</div>` : ''}${runAllHtml()}<div class="card">
       <div class="data-line"><span class="st auto">자료</span> 분석에 포함된 응답 ${lastScored.inc.length}명 · 변인 ${vs.length}개${lastScored.sample ? ' · <b>예시(가짜) 자료</b>' : ''}</div>
       <p class="hint">${ladderNote}</p>
       <label class="f" style="max-width:520px;margin-top:12px">분석 방법<select id="an-method">${groups.map(g => `<optgroup label="${esc(g)}">${Object.entries(METHODS).filter(([, m]) => m.group === g).map(([k, m]) => `<option value="${k}" ${k === anSel.method ? 'selected' : ''}>${esc(m.name)}${k === lm ? ' ← 사다리' : ''}</option>`).join('')}</optgroup>`).join('')}</select></label>
@@ -1684,7 +1684,7 @@
 
   // =================================================================
 
-// ##### 4. 분석 방법 (RUN 이어서): 반복측정·혼합설계 분산분석, 맥니마, 코크란 Q (stats-ladder.html 11217~11494줄) #####
+// ##### 4. 분석 방법 (RUN 이어서): 반복측정·혼합설계 분산분석, 맥니마, 코크란 Q (stats-ladder.html 11298~11575줄) #####
   // =================================================================
   // 반복측정 · 혼합설계 분산분석, 맥니마, 코크란 Q
   // =================================================================
@@ -1964,7 +1964,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
 
   // =================================================================
 
-// ##### 5. 결과 해석: 학생이 읽은 결과 점검(gistCheck), 가설↔효과 연결(autoLink), 결과 문단 틀 (stats-ladder.html 5843~6070줄) #####
+// ##### 5. 결과 해석: 학생이 읽은 결과 점검(gistCheck), 가설↔효과 연결(autoLink), 결과 문단 틀 (stats-ladder.html 5853~6080줄) #####
   // ---------- 결과의 줄기: 학생이 먼저 읽고, 코드가 판정과 맞는지 봄 ----------
   function readHint(e) {
     if (e.ciBased) return `신뢰구간 [${e.lo?.toFixed(3)}, ${e.hi?.toFixed(3)}]이 0을 포함하는지 보세요. 포함하지 않으면 간접효과가 있다고 읽습니다. 직접효과도 함께 보면 매개의 모양을 알 수 있어요.`;
@@ -2194,7 +2194,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
   }
 
 
-// ##### 6. 보고 체크리스트: 효과크기 신뢰구간, 정규성, 가정 점검 (stats-ladder.html 6920~7132줄) #####
+// ##### 6. 보고 체크리스트: 효과크기 신뢰구간, 정규성, 가정 점검 (stats-ladder.html 6932~7144줄) #####
   // =================================================================
   // 보고 체크리스트 (APA 7 결과 보고 항목을 코드가 점검)
   // =================================================================
@@ -2409,7 +2409,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
 
   // =================================================================
 
-// ##### 7. 분석 결정 (기본값) (stats-ladder.html 7244~7361줄) #####
+// ##### 7. 분석 결정 (기본값) (stats-ladder.html 7256~7373줄) #####
   // =================================================================
   // 분석 결정 (연구자가 정하고, 바꾼 것은 기록)
   // =================================================================
@@ -2529,7 +2529,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
 
   // =================================================================
 
-// ##### 8. R 코드 만들기 (재계산용) (stats-ladder.html 7361~7728줄) #####
+// ##### 8. R 코드 만들기 (재계산용) (stats-ladder.html 7373~7740줄) #####
   // =================================================================
   // R 코드 만들기 (분석 계획서 그대로, 기본 R만 사용)
   // =================================================================
@@ -2899,7 +2899,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
 
   // =================================================================
 
-// ##### 9. SPSS 명령문 만들기 · SPSS 출력과 대조 (stats-ladder.html 11494~11671줄) #####
+// ##### 9. SPSS 명령문 만들기 · SPSS 출력과 대조 (stats-ladder.html 11575~11752줄) #####
   // =================================================================
   // SPSS로 확인하기: 명령문(.sps) 만들기 + SPSS 출력의 숫자와 맞춰 보기 (AI 없이 규칙으로)
   // =================================================================
@@ -3079,7 +3079,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
   });
 
 
-// ##### 10. 표본 수 계산 (G*Power 방식): 분포 함수 (stats-ladder.html 9824~9921줄) #####
+// ##### 10. 표본 수 계산 (G*Power 방식): 분포 함수 (stats-ladder.html 9836~9933줄) #####
   // ---------- 표본 수 계산: 비중심 분포 (G*Power와 같은 방식) ----------
   const PW = (() => {
     const { pF, pChi, zInv } = ST;
@@ -3179,7 +3179,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
 
   // =================================================================
 
-// ##### 11. 표본 수 계산: 화면이 넘기는 자유도·비중심 모수 (stats-ladder.html 9997~10177줄) #####
+// ##### 11. 표본 수 계산: 화면이 넘기는 자유도·비중심 모수 (stats-ladder.html 10009~10189줄) #####
   // ---------- 표본 수 계산 ----------
   const ESZ = {
     d: { lab: 'd', v: [0.2, 0.5, 0.8] }, f: { lab: 'f', v: [0.1, 0.25, 0.4] }, f2: { lab: 'f²', v: [0.02, 0.15, 0.35] }, r: { lab: 'r', v: [0.1, 0.3, 0.5] },
@@ -3362,7 +3362,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
   });
 
 
-// ##### 12. 탐색적 요인분석 (PAF·PCA, 베리맥스) · 확인적 요인분석 (webR lavaan, CR·AVE·HTMT) (stats-ladder.html 10430~10835줄) #####
+// ##### 12. 탐색적 요인분석 (PAF·PCA, 베리맥스) · 확인적 요인분석 (webR lavaan, CR·AVE·HTMT) (stats-ladder.html 10442~10849줄) #####
   // ---------- 탐색적 요인분석: 주축요인추출(PAF) 또는 주성분 추출 + 베리맥스 회전 ----------
   // PAF는 R psych::fa(fm = "pa")·SPSS '주축 요인 추출'과 같은 반복 방식, 주성분은 R의 eigen과 같음. 회전은 R의 varimax(정규화)와 같음
   function jacobiEig(A) {
@@ -3533,7 +3533,7 @@ as.character(jsonlite::toJSON(list(lavaan = as.character(packageVersion("lavaan"
       r.fac = fac.map(({ f, label, CR, AVE, si }) => ({ f, label, CR, AVE, si }));
       cfaRes = r; window.tongCfaLast = r;
     } catch (e) { cfaErr = String((e && e.message) || e); }
-    cfaBusy = false; renderCfa();
+    cfaBusy = false; renderCfa(); renderMeasure();
   }
   const renderCfa = () => { const c = $('#cfa-card'); if (c) c.innerHTML = cfaHtml(); };
   function cfaHtml() {
@@ -3722,6 +3722,8 @@ as.character(jsonlite::toJSON(list(lavaan = as.character(packageVersion("lavaan"
       addFig(R, { type: 'path', kind: ser ? 'serial' : 'med', title: '구조방정식 경로 결과 (표준화 계수)', X: X[0].name, Y: Yn, Ms: Mn, a, b, d: ser ? k('d') : null, cp: k('cp'), c: k('tot'),
         note: '계수는 표준화 계수(β)입니다. 굵은 선은 p < .05인 경로, 점선은 유의하지 않은 직접효과입니다. 괄호 안 c는 총효과입니다. 측정모형(문항)은 그림에서 생략했습니다. 간접효과의 유의성은 표의 부트스트랩 신뢰구간으로 판단합니다. *p < .05, **p < .01, ***p < .001.' });
     }
+    let cfaOk = false; try { cfaOk = !!(cfaRes && cfaRes.dv === dataVersion); } catch (e) { }
+    if (!cfaOk && S.all.some(n => n.items)) R.notes.unshift('⚠ 확인적 요인분석을 아직 하지 않았습니다. 구조방정식은 측정모형이 맞아야 구조모형을 믿을 수 있으니, ⑧ 측정 점검에서 확인적 요인분석을 먼저 하고 보고하세요.');
     R.sem = { syntax: S.syntax, lavaan: res.lavaan };
     return R;
   }
@@ -3770,7 +3772,7 @@ ${m.D.map((d, j) => `q <- pr(${rq(d.lab)}); eff(${rq(d.label)}, q$est, pct(bs[, 
   }
 
 
-// ##### 13. 자료 점검: 이상치·결측·표본 확인·측정 점검·사전 분석 (stats-ladder.html 10836~11217줄) #####
+// ##### 13. 자료 점검: 이상치·결측·표본 확인·측정 점검·사전 분석 (stats-ladder.html 10850~11298줄) #####
   // 자료 점검: 응답 정리(중복·이상치·결측) · 표본 확인 · 측정 점검 · 사전 분석
   // =================================================================
   const chiCrit = (a, df) => { let lo = 0, hi = 1000; for (let i = 0; i < 100; i++) { const m = (lo + hi) / 2; if (ST.pChi(m, df) > a) lo = m; else hi = m; } return (lo + hi) / 2; };
@@ -4022,6 +4024,65 @@ ${m.D.map((d, j) => `q <- pr(${rq(d.lab)}); eff(${rq(d.label)}, q$est, pct(bs[, 
 
   // ---------- 측정 점검 ----------
   let efaOpt = { k: 'scales', ex: 'paf' };
+  // 원척도 α (설문 만들기에 적은 값, ".87"·"0.87" 모두)
+  function origAlphaOf(s) { const v = parseFloat(String(s.origAlpha || '').replace(/\s/g, '').replace(/^\./, '0.')); return isFinite(v) && v > 0 && v <= 1 ? v : null; }
+  // 논문 측정 도구 절 문장 (변인마다)
+  function measureSentences() {
+    const L = lastScored; if (!L) return [];
+    return L.scaleInfo.filter(x => x.its.length).map(x => {
+      const s = x.s, nm = s.name || scaleCode(s, x.si), oa = origAlphaOf(s), nRev = s.items.filter(i => norm(i.text) && i.reverse).length;
+      const src = norm(s.source) ? `${s.source}의 척도` : '[출처를 적어 주세요]의 척도';
+      const was = v => { const t = NZ(v); return t + ('013678'.includes(t.slice(-1)) ? '이었' : '였'); };   // 숫자 읽는 소리에 맞춘 '이었/였' (.91 → 구일 → 이었)
+      return `${J(nm, '은/는')} ${J(src, '을/를')} 사용하여 측정하였다. 총 ${x.its.length}문항${norm(s.subf) ? `(${s.subf})` : ''}이며, ${s.points}점 척도(1 = ${s.labels[0] || ''}, ${s.points} = ${s.labels[s.points - 1] || ''})로 응답하게 하였다. 점수는 문항 ${sv.scoring === 'sum' ? '합계' : '평균'}으로 구하였고 점수가 높을수록 ${J(nm, '이/가')} 높음을 의미한다.${nRev ? ` 역문항 ${nRev}개는 역채점하였다.` : ''} ${oa != null ? `신뢰도(Cronbach's α)는 원 연구${norm(s.origSample) ? `(${s.origSample})` : ''}에서 ${was(oa)}으며, 본 연구에서는 ${was(x.a)}다.` : `본 연구에서 신뢰도(Cronbach's α)는 ${was(x.a)}다.`}`;
+    });
+  }
+  // ---------- 고른 기법에 필요한 준비: 확정한 가설(없으면 지금 고른 분석)의 기법마다 ⑧ 측정 점검·⑨ 사전 분석에서 할 일 ----------
+  const PREP_FAM = {
+    sem: ['orig', 'rel', 'cfa', 'htmt', 'n200', 'corr'],
+    reg: ['orig', 'rel', 'efa', 'corr', 'vif', 'norm'],
+    corr: ['orig', 'rel', 'corr'],
+    group: ['orig', 'rel', 'norm', 'levene'],
+    cat: ['orig']
+  };
+  const famOf = m => /^sem/.test(m) ? 'sem' : ['regression', 'hier', 'partial', 'med_parallel', 'med_serial', 'moderation', 'modmed7', 'modmed14', 'logistic'].includes(m) ? 'reg'
+    : ['pearson', 'spearman', 'pointbiserial'].includes(m) ? 'corr' : ['onesample', 'ind_t', 'paired_t', 'oneway', 'factorial', 'ancova', 'rm_anova', 'mixed_anova'].includes(m) ? 'group' : 'cat';
+  function prepItems() {
+    let methods = [...new Set(planItems().map(p => LADDER_TO_METHOD[p.result]).filter(Boolean))];
+    if (!methods.length && anSel && anSel.method) methods = [anSel.method];
+    if (!methods.length) return null;
+    const L = lastScored, fams = [...new Set(methods.map(famOf))], keys = [...new Set(fams.flatMap(f => PREP_FAM[f]))];
+    const semNeed = fams.includes('sem'), multi = sv.scales.filter(x => x.items.filter(i => norm(i.text)).length >= 2);
+    let cfa = null; try { cfa = cfaRes && cfaRes.dv === dataVersion ? cfaRes : null; } catch (e) { cfa = null; }
+    const D = {
+      orig: () => { const miss = sv.scales.filter(x => x.items.some(i => norm(i.text)) && (!norm(x.source) || origAlphaOf(x) == null)); return { t: '원척도 정보 (출처·원 연구 신뢰도)', why: '척도를 고르기 전에 원 논문에서 신뢰도와 요인 구조를 확인하고 적습니다. 측정 도구 절에 씁니다.', go: 'survey', st: !sv.scales.length ? 'todo' : miss.length ? 'warn' : 'ok', note: miss.length ? `비어 있음: ${miss.map(x => x.name || '').join(', ')}` : '' }; },
+      rel: () => { const low = L ? L.scaleInfo.filter(x => x.its.length > 1 && isFinite(x.a) && x.a < 0.7) : []; return { t: '신뢰도 (크론바흐 α)', why: '모든 척도에 필요합니다. .70 이상이면 받아들일 만합니다.', go: 'measure', st: !L ? 'todo' : low.length ? 'warn' : 'ok', note: !L ? '응답을 넣으면 저절로 계산됩니다.' : low.length ? `.70 미만: ${low.map(x => x.s.name).join(', ')}` : '저절로 계산됨' }; },
+      efa: () => ({ t: '탐색적 요인분석', why: '문항이 원래 척도대로 묶이는지 봅니다. 회귀·매개·조절 논문에서 흔히 보고합니다.', go: 'measure', st: !L ? 'todo' : 'auto', note: !L ? '' : '저절로 계산됨 — 묶임을 확인하세요' }),
+      cfa: () => ({ t: '확인적 요인분석', why: '구조방정식은 측정모형이 맞아야 구조모형을 믿을 수 있어 꼭 먼저 합니다.', go: 'measure', req: true, st: !L ? 'todo' : !cfa ? 'todo' : cfa.fit[3] < 0.9 || cfa.fit[5] > 0.08 ? 'warn' : 'ok', note: !L ? '' : !cfa ? '[확인적 요인분석 하기]를 누르세요.' : `CFI ${NZ(cfa.fit[3], 3)}, RMSEA ${NZ(cfa.fit[5], 3)}` }),
+      htmt: () => { const bad = cfa ? cfa.htmt.flatMap((r, i) => r.map((v, j) => j > i && v >= 0.85 ? `${cfa.fac[i].label}–${cfa.fac[j].label}` : null)).filter(Boolean) : []; return { t: '판별타당도 (HTMT·Fornell–Larcker)', why: '잠재변인끼리 서로 다른 것을 재는지 봅니다. 확인적 요인분석에 함께 나옵니다.', go: 'measure', st: !cfa ? 'todo' : bad.length ? 'warn' : 'ok', note: !cfa ? '확인적 요인분석을 하면 나옵니다.' : bad.length ? `HTMT .85 이상: ${bad.join(', ')}` : 'HTMT 모두 .85 미만' }; },
+      n200: () => ({ t: '표본 200명 이상', why: '구조방정식은 흔히 200명 이상을 권합니다.', go: 'sample', st: !L ? 'todo' : L.inc.length >= 200 ? 'ok' : 'warn', note: L ? `지금 ${L.inc.length}명` : '' }),
+      corr: () => ({ t: '상관표 (표 2)', why: '주요 변인의 평균·표준편차·상관. 가설 검증 전에 관계를 먼저 봅니다.', go: 'prelim', st: !L ? 'todo' : 'auto', note: L ? '저절로 계산됨' : '' }),
+      vif: () => ({ t: '다중공선성 (VIF)', why: '예측변인끼리 너무 겹치면 계수가 불안정해집니다. 10 이상이면 심각.', go: 'prelim', st: !L ? 'todo' : 'auto', note: L ? '저절로 계산됨' : '' }),
+      norm: () => ({ t: '정규성 (왜도·첨도)', why: '모수 검정의 가정입니다. |왜도| < 2, |첨도| < 7이면 크게 벗어나지 않음.', go: 'prelim', st: !L ? 'todo' : 'auto', note: L ? '저절로 계산됨' : '' }),
+      levene: () => ({ t: '등분산성 (Levene)', why: '집단 비교의 가정입니다. 결과마다 보고 체크리스트에서 자동으로 점검합니다.', go: 'analysis', st: !L ? 'todo' : 'auto', note: '계산할 때 저절로 점검' })
+    };
+    return { methods, items: keys.map(k => ({ k, ...D[k]() })), semNeed, multi };
+  }
+  function prepCard(here) {
+    const P = prepItems(); if (!P) return '';
+    const ST = { ok: '<span class="st auto">했음</span>', auto: '<span class="st auto">저절로</span>', warn: '<span class="st manual">확인 필요</span>', todo: '<span class="st missing">아직</span>' };
+    const VN = { survey: '② 설문 만들기', sample: '⑦ 표본 확인', measure: '⑧ 측정 점검', prelim: '⑨ 사전 분석', analysis: '⑩ 분석' };
+    const todo = P.items.filter(i => i.st === 'todo' || i.st === 'warn').length;
+    return `<div class="card prep-card"><h3 class="card-title">고른 기법에 필요한 준비 <small class="hint">(${P.methods.map(m => METHODS[m] ? METHODS[m].name.replace(/ \(.*$/, '') : m).join(', ')})</small></h3>
+      <div class="prep-list">${P.items.map(i => `<div class="prep-row"><div class="prep-h"><b>${esc(i.t)}</b>${i.req ? ' <span class="st missing">필수</span>' : ''}</div>
+        <div class="prep-st">${ST[i.st]}${i.go === here ? '' : `<button class="btn sm" data-prep-go="${i.go}">${VN[i.go]}</button>`}</div>
+        <div class="prep-why">${esc(i.why)}${i.note ? ` <b>${esc(i.note)}</b>` : ''}</div></div>`).join('')}</div>
+      <p class="hint">${todo ? `확인할 것이 ${todo}개 있습니다. ` : '준비가 다 됐습니다. '}가설을 확정했으면 그 기법들, 아니면 지금 고른 분석 기준입니다.</p></div>`;
+  }
+  document.addEventListener('click', e => { const g = e.target.closest('[data-prep-go]'); if (g) gotoNav(g.dataset.prepGo); });
+  $('#dq-measure').addEventListener('click', e => {
+    const nt = e.target.closest('[data-nav-to]'); if (nt) { e.preventDefault(); gotoNav(nt.dataset.navTo); return; }
+    if (e.target.closest('[data-dq-act="copy-measure"]')) { const txt = measureSentences().join('\n\n'); try { navigator.clipboard.writeText(txt).then(() => toast('문장을 복사했습니다.'), () => showSheet('측정 도구 문장', txt)); } catch (err) { showSheet('측정 도구 문장', txt); } }
+  });
   function renderMeasure() {
     const box = $('#dq-measure'); if (!box) return;
     if (!lastScored) { box.innerHTML = needData('신뢰도와 타당도'); return; }
@@ -4057,11 +4118,19 @@ ${m.D.map((d, j) => `q <- pr(${rq(d.lab)}); eff(${rq(d.label)}, q$est, pct(bs[, 
         ${issues.length ? `<div class="dq-issue"><b>살펴볼 문항 ${issues.length}개</b><ul>${issues.map(x => `<li>${esc(x.d.code)}: ${!x.h.ok ? `원래 척도가 아닌 '${esc(facName[x.h.top])}' 요인에 가장 크게 묶임` : x.h.low ? '어느 요인에도 .40 이상으로 묶이지 않음' : '두 요인 이상에 걸침'}</li>`).join('')}</ul><p class="hint">문항을 빼는 것은 이론적 근거가 있을 때만 하고, 뺐다면 논문에 적어야 합니다. 원척도의 요인 구조를 확인하려면 확인적 요인분석(R의 lavaan)을 씁니다.</p></div>` : '<p><b class="a-ok">모든 문항이 원래 척도의 요인에 .40 이상으로 묶였습니다.</b></p>'}
         <div class="dq-harman"><b>공통방법편의 (Harman 단일요인 검정)</b> 회전하지 않은 첫 요인이 전체 분산의 <b>${E.first.toFixed(1)}%</b>를 설명합니다. ${E.first < 50 ? '<span class="a-ok">50%보다 작습니다.</span> 다만 이 검정은 민감도가 낮아, 이것만으로 공통방법편의가 없다고 단정할 수는 없습니다(Podsakoff et al., 2003). 한계로 함께 적으세요.' : '<span class="a-low">50%를 넘어 공통방법편의를 의심할 수 있습니다.</span>'}</div>`;
     }
-    box.innerHTML = `${pilotNote()}${sampleNote()}
-      <div class="card"><h3 class="card-title">신뢰도 (크론바흐 α)</h3>${tableHtml(['변인', '문항 수', '분석한 사람', 'α', '판정', '살펴볼 문항'], relRows, [1, 2, 3])}
+    const hasOrig = L.scaleInfo.some(x => origAlphaOf(x.s) != null);
+    if (hasOrig) relRows.forEach((r, i) => { const x = L.scaleInfo[i], oa = origAlphaOf(x.s); r.splice(4, 0, oa == null ? '<span class="hint">-</span>' : `${NZ(oa)}${isFinite(x.a) && x.a < oa - 0.1 ? ' <span class="a-mid" title="원 연구보다 .10 넘게 낮음">↓</span>' : ''}`); });
+    const ms = measureSentences(), noOrig = L.scaleInfo.filter(x => x.its.length && (!norm(x.s.source) || origAlphaOf(x.s) == null));
+    box.innerHTML = `${pilotNote()}${sampleNote()}${prepCard('measure')}
+      <div class="card"><h3 class="card-title">신뢰도 (크론바흐 α)</h3>${tableHtml(['변인', '문항 수', '분석한 사람', 'α', ...(hasOrig ? ['원척도 α'] : []), '판정', '살펴볼 문항'], relRows, hasOrig ? [1, 2, 3, 4] : [1, 2, 3])}
+        ${hasOrig ? '<p class="hint">원척도 α는 설문 만들기에 적은 원 연구의 값입니다. 내 자료가 원 연구보다 .10 넘게 낮으면 ↓로 표시합니다. 표본이나 번역의 차이일 수 있으니 문항을 살펴보세요.</p>' : ''}
         <p class="hint">.70 이상이면 받아들일 만하다고 봅니다(.60~.70은 탐색 연구에서 허용하기도 함). 살펴볼 문항은 문항-총점 상관이 .30보다 낮거나 지우면 α가 오르는 문항입니다. 문항별 자세한 값은 [응답 취합·정리]에 있습니다.</p></div>
       <div class="card"><h3 class="card-title">타당도 (탐색적 요인분석)</h3>${efaHtml}</div>
-      <div class="card" id="cfa-card">${cfaHtml()}</div>`;
+      <div class="card" id="cfa-card">${cfaHtml()}</div>
+      <div class="card"><h3 class="card-title">논문 측정 도구 절 문장 (초안)</h3>
+        ${noOrig.length ? `<p class="hint">원척도 정보가 비어 있는 변인: <b>${noOrig.map(x => esc(x.s.name || scaleCode(x.s, x.si))).join(', ')}</b>. <a href="#" data-nav-to="survey">설문 만들기</a>의 변인마다 [원척도 정보]에 출처와 원 연구 신뢰도를 적으면 문장에 들어갑니다.</p>` : ''}
+        <div class="dq-report" id="ms-sent">${ms.map(t => `<p>${esc(t)}</p>`).join('')}</div>
+        <div class="actions tight"><button class="btn sm" data-dq-act="copy-measure">문장 복사</button></div></div>`;
     markSeen('measure');
   }
 
@@ -4106,7 +4175,7 @@ ${m.D.map((d, j) => `q <- pr(${rq(d.lab)}); eff(${rq(d.label)}, q$est, pct(bs[, 
     });
     const C = corrTable(), V = vifInfo();
     const preLock = !md.lock && !L.pilot && !L.sample;
-    box.innerHTML = `${pilotNote()}${sampleNote()}
+    box.innerHTML = `${pilotNote()}${sampleNote()}${prepCard('prelim')}
       ${preLock ? '<p class="cf-note">아직 가설을 확정하지 않았습니다. 본조사 자료의 상관을 보고 모형을 바꾸면 결과를 보고 가설을 정한 셈이 됩니다. <button class="linkish" data-nav-to="model">모델 검토에서 먼저 확정하기</button></p>' : ''}
       <div class="card"><h3 class="card-title">기술통계와 정규성</h3>${tableHtml(['변인', 'N', 'M', 'SD', '최솟값', '최댓값', '왜도', '첨도', 'Shapiro-Wilk W', '정규성'], normRows, [1, 2, 3, 4, 5, 6, 7])}
         <p class="hint">왜도 절댓값 2, 첨도 절댓값 7보다 작으면 정규분포에서 크게 벗어나지 않았다고 봅니다(Curran, West, & Finch, 1996). Shapiro-Wilk는 표본이 크면 작은 차이에도 유의하게 나오므로 왜도·첨도와 함께 판단합니다.</p>

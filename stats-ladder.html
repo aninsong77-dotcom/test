@@ -2362,6 +2362,9 @@ input:focus::placeholder,textarea:focus::placeholder{opacity:.35}
 .su-tag{display:inline-block;font-size:11px;font-weight:800;color:var(--orange-deep);background:var(--orange-soft);border:1px solid var(--orange-line);border-radius:999px;padding:0 7px;margin-left:6px;vertical-align:1px}
 .su-box{margin-top:10px;padding:11px 13px;border-radius:12px;background:var(--bg-2,#f6f7fb);font-size:13px;line-height:1.6}
 .su-box .ap-sites{margin:6px 0 6px}
+details.orig{margin-top:12px;border:1px solid var(--line);border-radius:10px;padding:8px 12px}details.orig summary{cursor:pointer;font-weight:700;font-size:13.5px}details.orig .grid2{margin-top:8px}details.orig .st{margin-left:6px}
+.prep-list{border:1px solid var(--line);border-radius:12px;overflow:hidden}.prep-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;padding:10px 12px;border-top:1px solid var(--line)}.prep-row:first-child{border-top:0}
+.prep-h{font-size:14px}.prep-st{display:flex;gap:6px;align-items:center;justify-content:flex-end;flex-wrap:wrap}.prep-why{grid-column:1/-1;font-size:12.5px;color:var(--ink-2);line-height:1.55}.prep-why b{color:var(--ink)}
 .su-who{color:var(--orange-deep)!important;font-size:12.5px!important}.su-sum{margin:6px 0 4px;padding-left:18px;font-size:14px;line-height:1.75}
 .su-act{display:flex;gap:8px;margin-top:16px;align-items:center;position:sticky;bottom:-18px;background:var(--bg);padding:10px 0 4px}.su-act .su-later{margin-right:auto;border:0;background:none;font:inherit;font-size:12.5px;color:var(--ink-3);text-decoration:underline;cursor:pointer;padding:0}
 @media (prefers-reduced-motion: reduce){#welcome,.wc-card{transition:none}.wc-bar{display:none}}
@@ -3694,10 +3697,17 @@ table.compact.sp-table{min-width:0;table-layout:auto;width:100%}.sp-table td{ver
           <label class="f">응답 방식<select data-sc="${si}" data-f="points">${[2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(n => `<option value="${n}" ${n == s.points ? 'selected' : ''}>${n}점 척도</option>`).join('')}</select></label>
         </div>
         <label class="f" style="margin-top:12px">선택지 (1점부터 차례로, 쉼표로 구분)<input data-sc="${si}" data-f="labels" value="${esc(s.labels.join(', '))}"></label>
-        <div class="grid2" style="margin-top:12px">
-          <label class="f">척도 출처 (코드북에만 기록)<input data-sc="${si}" data-f="source" value="${esc(s.source)}" placeholder="예: Gibbons & Buunk (1999), 번안: ○○○ (2010)"></label>
-          <label class="f">폼의 구역 제목 (응답자에게 보임)<input data-sc="${si}" data-f="section" value="${esc(s.section)}" placeholder="${si + 1}부"></label>
-        </div>
+        <label class="f" style="margin-top:12px">폼의 구역 제목 (응답자에게 보임)<input data-sc="${si}" data-f="section" value="${esc(s.section)}" placeholder="${si + 1}부"></label>
+        <details class="orig" ${norm(s.source) || norm(s.origAlpha) ? '' : 'open'}>
+          <summary>원척도 정보 <small class="hint">(출처·원 연구 신뢰도 — 논문의 측정 도구 절에 쓰임)</small>${norm(s.source) && norm(s.origAlpha) ? ' <span class="st auto">적음</span>' : ' <span class="st missing">적어 주세요</span>'}</summary>
+          <p class="hint">척도를 고르기 전에 원 논문에서 <b>신뢰도</b>(보통 α .70 이상), <b>요인 구조</b>(하위 요인과 문항), <b>한국어 번안·타당화</b> 여부를 확인하세요. 여기 적은 값은 ⑧ 측정 점검에서 내 자료의 신뢰도와 나란히 보여 주고, 측정 도구 절 문장에 들어갑니다.</p>
+          <div class="grid2">
+            <label class="f">척도 출처 (원저자, 번안·타당화 연구)<input data-sc="${si}" data-f="source" value="${esc(s.source)}" placeholder="예: Gibbons & Buunk (1999), 번안: ○○○ (2010)"></label>
+            <label class="f">원 연구 대상 (선택)<input data-sc="${si}" data-f="origSample" value="${esc(s.origSample || '')}" placeholder="예: 대학생 312명"></label>
+            <label class="f">원 연구의 신뢰도 (Cronbach's α)<input data-sc="${si}" data-f="origAlpha" inputmode="decimal" value="${esc(s.origAlpha || '')}" placeholder="예: .87"></label>
+            <label class="f">하위 요인 (있으면)<input data-sc="${si}" data-f="subf" value="${esc(s.subf || '')}" placeholder="예: 능력 비교(1~6번), 의견 비교(7~11번)"></label>
+          </div>
+        </details>
         <div class="items">
           ${s.items.map((it, ii) => `
           <div class="it-row">
@@ -4864,7 +4874,7 @@ function createSurvey() {
       return `<label class="f slot">${esc(s.label)}<select data-slot="${s.k}"><option value="">(고르세요)</option>${cand.map(v => `<option value="${v.key}" ${anSel.roles[s.k] === v.key ? 'selected' : ''}>${esc(vlabel(v))}</option>`).join('')}</select></label>`;
     };
     const o = anSel.opts;
-    box.innerHTML = `${planItems().some(p => LADDER_TO_METHOD[p.result]) ? `<div class="card"><h3 class="card-title">확정한 가설 ${planItems().length}개</h3><p class="hint">미리 정한 통계 방법과 분석 결정 그대로 가설의 분석을 모두 계산합니다. 하나씩 하려면 아래에서 방법과 변인을 고르세요.</p>${runAllBtn()}</div>` : ''}${runAllHtml()}<div class="card">
+    box.innerHTML = `${prepCard('analysis')}${planItems().some(p => LADDER_TO_METHOD[p.result]) ? `<div class="card"><h3 class="card-title">확정한 가설 ${planItems().length}개</h3><p class="hint">미리 정한 통계 방법과 분석 결정 그대로 가설의 분석을 모두 계산합니다. 하나씩 하려면 아래에서 방법과 변인을 고르세요.</p>${runAllBtn()}</div>` : ''}${runAllHtml()}<div class="card">
       <div class="data-line"><span class="st auto">자료</span> 분석에 포함된 응답 ${lastScored.inc.length}명 · 변인 ${vs.length}개${lastScored.sample ? ' · <b>예시(가짜) 자료</b>' : ''}</div>
       <p class="hint">${ladderNote}</p>
       <label class="f" style="max-width:520px;margin-top:12px">분석 방법<select id="an-method">${groups.map(g => `<optgroup label="${esc(g)}">${Object.entries(METHODS).filter(([, m]) => m.group === g).map(([k, m]) => `<option value="${k}" ${k === anSel.method ? 'selected' : ''}>${esc(m.name)}${k === lm ? ' ← 사다리' : ''}</option>`).join('')}</optgroup>`).join('')}</select></label>
@@ -6478,6 +6488,8 @@ ${REVIEW_RULES}
 
     { id: 'survey', group: '단계별 사용법', title: '② 설문 만들기', kw: '설문지 문항 척도 원본 PDF 사진', tab: 'survey', body: `
       <p class="g-sum">변인마다 문항과 응답 선택지를 넣습니다. 척도 원본이 있으면 자동으로 채울 수 있습니다.</p>
+      <h3>척도를 고르기 전에: 원척도의 신뢰도·타당도</h3>
+      <p>석사논문은 대개 이미 검증된 척도를 씁니다. 고르기 전에 원 논문에서 <b>신뢰도</b>(보통 α .70 이상), <b>요인 구조</b>(하위 요인과 문항), <b>한국어 번안·타당화</b> 여부를 확인하세요. 변인마다 <b>[원척도 정보]</b>에 출처, 원 연구 대상, 원 연구의 α, 하위 요인을 적으면 ⑧ 측정 점검에서 내 자료의 α와 나란히 보여 주고, 논문 측정 도구 절 문장을 만들어 줍니다. 응답을 받은 뒤 내 자료에서 다시 확인하는 것은 ⑧ 측정 점검에서 합니다.</p>
       <h3>척도 원본으로 만들기</h3>
       <p>위쪽 <b>[📄 척도 원본으로 만들기]</b>를 누르고 원본을 넣습니다.</p>
       <table class="gtable"><thead><tr><th>원본</th><th>읽는 방법</th></tr></thead><tbody>
@@ -6587,7 +6599,7 @@ ${REVIEW_RULES}
       </ul>` },
 
     { id: 'measure', group: '단계별 사용법', title: '⑧ 측정 점검 (신뢰도·타당도)', kw: '신뢰도 타당도 크론바흐 알파 요인분석 확인적 CFA lavaan 적합도 CFI RMSEA CR AVE HTMT KMO 요인부하량 공통방법편의 Harman', tab: 'measure', body: `
-      <p class="g-sum">척도가 믿을 만한지(신뢰도), 재려는 것을 제대로 재는지(타당도)를 확인합니다.</p>
+      <p class="g-sum">척도가 믿을 만한지(신뢰도), 재려는 것을 제대로 재는지(타당도)를 <b>내 자료에서</b> 확인합니다. 화면 맨 위의 <b>고른 기법에 필요한 준비</b>에 내 분석 기법에 맞춰 해야 할 것이 나옵니다(예: 구조방정식이면 확인적 요인분석이 필수). 맨 아래에는 논문 <b>측정 도구 절 문장</b>(원척도 출처·원 연구 α·본 연구 α)이 있습니다.</p>
       <h3>신뢰도</h3>
       <p>변인마다 크론바흐 α. .70 이상이면 받아들일 만합니다. 문항-총점 상관이 .30보다 낮거나 지우면 α가 오르는 문항을 표시합니다.</p>
       <h3>타당도: 탐색적 요인분석</h3>
@@ -7789,7 +7801,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
     const L = [`# 설문 설계 — ${sv.title || '(제목 없음)'}`, '', sv.intro || '', ''];
     if (sv.consent.on) L.push('## 연구 참여 동의', '', sv.consent.text, '');
     sv.scales.forEach((s, si) => {
-      L.push(`## ${scaleCode(s, si)} ${s.name || ''} (${s.role}, ${s.points}점 척도)`, `선택지: ${s.labels.map((l, k) => `${k + 1}=${l}`).join(', ')}`, s.source ? `출처: ${s.source}` : '', '');
+      L.push(`## ${scaleCode(s, si)} ${s.name || ''} (${s.role}, ${s.points}점 척도)`, `선택지: ${s.labels.map((l, k) => `${k + 1}=${l}`).join(', ')}`, s.source ? `출처: ${s.source}` : '', origAlphaOf(s) != null ? `원 연구 신뢰도: α = ${NZ(origAlphaOf(s))}${norm(s.origSample) ? ` (${s.origSample})` : ''}` : '', norm(s.subf) ? `하위 요인: ${s.subf}` : '', '');
       s.items.forEach((it, ii) => norm(it.text) && L.push(`${ii + 1}. ${it.text}${it.reverse ? ' (역문항)' : ''}`)); L.push('');
     });
     if (attnItems().length) { L.push('## 주의 확인 문항 (점수에 쓰지 않음)'); attnItems().forEach(a => L.push(`- ATT${a.k + 1} ${a.text} (정답: ${a.labels[a.answer]}, ${scaleCode(sv.scales[a.si], a.si)} 문항 사이)`)); L.push(''); }
@@ -10289,9 +10301,9 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
         ctl: `<textarea data-mv-alt rows="2" placeholder="예: 사회비교이론(Festinger, 1954)에 따르면 비교가 먼저 일어나고 그 결과 외로움을 느낀다.">${esc(md.altWhy)}</textarea>` });
     }
     const names = modelVarNames(), noScale = names.filter(n => !sv.scales.some(s => sameName(s.name, n) && s.items.some(i => norm(i.text))) && !sv.demos.some(d => sameName(d.text, n)));
-    const noSrc = sv.scales.filter(s => s.items.some(i => norm(i.text)) && !norm(s.source));
+    const noSrc = sv.scales.filter(s => s.items.some(i => norm(i.text)) && (!norm(s.source) || origAlphaOf(s) == null));
     L.push({ id: 'measure', title: '측정 도구', st: !names.length || !sv.scales.length ? 'todo' : noScale.length ? 'warn' : 'ok',
-      body: !sv.scales.length ? '설문 만들기에서 변인마다 척도를 넣으면 확인됩니다.' : noScale.length ? `설문에 문항이 없는 변인: <b>${noScale.map(esc).join(', ')}</b>` : `모형의 변인 ${names.length}개 모두 설문에 문항이 있어요.${noSrc.length ? ` 척도 출처가 비어 있는 것: ${noSrc.map(s => esc(s.name || '')).join(', ')}` : ''}`,
+      body: !sv.scales.length ? '설문 만들기에서 변인마다 척도를 넣으면 확인됩니다.' : noScale.length ? `설문에 문항이 없는 변인: <b>${noScale.map(esc).join(', ')}</b>` : `모형의 변인 ${names.length}개 모두 설문에 문항이 있어요.${noSrc.length ? ` 원척도 정보(출처·원 연구 신뢰도)가 비어 있는 것: ${noSrc.map(s => esc(s.name || '')).join(', ')}. 척도를 고르기 전에 원 논문에서 신뢰도와 요인 구조를 확인하세요.` : ''}`,
       ctl: noScale.length || !sv.scales.length ? '<button class="btn sm b" data-nav-to="survey">설문 만들기로</button>' : '' });
     const pr = md.pwResult;
     L.push({ id: 'power', title: '표본 수', st: pr ? 'ok' : 'todo', body: pr ? `최소 <b>${pr.N}명</b>, 모집 목표 <b>${pr.recruit}명</b> (탈락 ${pr.attr}% 감안)` : '가설을 검증하려면 몇 명이 필요한지 아직 계산하지 않았어요.',
@@ -10597,7 +10609,7 @@ as.character(jsonlite::toJSON(list(lavaan = as.character(packageVersion("lavaan"
       r.fac = fac.map(({ f, label, CR, AVE, si }) => ({ f, label, CR, AVE, si }));
       cfaRes = r; window.tongCfaLast = r;
     } catch (e) { cfaErr = String((e && e.message) || e); }
-    cfaBusy = false; renderCfa();
+    cfaBusy = false; renderCfa(); renderMeasure();
   }
   const renderCfa = () => { const c = $('#cfa-card'); if (c) c.innerHTML = cfaHtml(); };
   function cfaHtml() {
@@ -10786,6 +10798,8 @@ as.character(jsonlite::toJSON(list(lavaan = as.character(packageVersion("lavaan"
       addFig(R, { type: 'path', kind: ser ? 'serial' : 'med', title: '구조방정식 경로 결과 (표준화 계수)', X: X[0].name, Y: Yn, Ms: Mn, a, b, d: ser ? k('d') : null, cp: k('cp'), c: k('tot'),
         note: '계수는 표준화 계수(β)입니다. 굵은 선은 p < .05인 경로, 점선은 유의하지 않은 직접효과입니다. 괄호 안 c는 총효과입니다. 측정모형(문항)은 그림에서 생략했습니다. 간접효과의 유의성은 표의 부트스트랩 신뢰구간으로 판단합니다. *p < .05, **p < .01, ***p < .001.' });
     }
+    let cfaOk = false; try { cfaOk = !!(cfaRes && cfaRes.dv === dataVersion); } catch (e) { }
+    if (!cfaOk && S.all.some(n => n.items)) R.notes.unshift('⚠ 확인적 요인분석을 아직 하지 않았습니다. 구조방정식은 측정모형이 맞아야 구조모형을 믿을 수 있으니, ⑧ 측정 점검에서 확인적 요인분석을 먼저 하고 보고하세요.');
     R.sem = { syntax: S.syntax, lavaan: res.lavaan };
     return R;
   }
@@ -11084,6 +11098,65 @@ ${m.D.map((d, j) => `q <- pr(${rq(d.lab)}); eff(${rq(d.label)}, q$est, pct(bs[, 
 
   // ---------- 측정 점검 ----------
   let efaOpt = { k: 'scales', ex: 'paf' };
+  // 원척도 α (설문 만들기에 적은 값, ".87"·"0.87" 모두)
+  function origAlphaOf(s) { const v = parseFloat(String(s.origAlpha || '').replace(/\s/g, '').replace(/^\./, '0.')); return isFinite(v) && v > 0 && v <= 1 ? v : null; }
+  // 논문 측정 도구 절 문장 (변인마다)
+  function measureSentences() {
+    const L = lastScored; if (!L) return [];
+    return L.scaleInfo.filter(x => x.its.length).map(x => {
+      const s = x.s, nm = s.name || scaleCode(s, x.si), oa = origAlphaOf(s), nRev = s.items.filter(i => norm(i.text) && i.reverse).length;
+      const src = norm(s.source) ? `${s.source}의 척도` : '[출처를 적어 주세요]의 척도';
+      const was = v => { const t = NZ(v); return t + ('013678'.includes(t.slice(-1)) ? '이었' : '였'); };   // 숫자 읽는 소리에 맞춘 '이었/였' (.91 → 구일 → 이었)
+      return `${J(nm, '은/는')} ${J(src, '을/를')} 사용하여 측정하였다. 총 ${x.its.length}문항${norm(s.subf) ? `(${s.subf})` : ''}이며, ${s.points}점 척도(1 = ${s.labels[0] || ''}, ${s.points} = ${s.labels[s.points - 1] || ''})로 응답하게 하였다. 점수는 문항 ${sv.scoring === 'sum' ? '합계' : '평균'}으로 구하였고 점수가 높을수록 ${J(nm, '이/가')} 높음을 의미한다.${nRev ? ` 역문항 ${nRev}개는 역채점하였다.` : ''} ${oa != null ? `신뢰도(Cronbach's α)는 원 연구${norm(s.origSample) ? `(${s.origSample})` : ''}에서 ${was(oa)}으며, 본 연구에서는 ${was(x.a)}다.` : `본 연구에서 신뢰도(Cronbach's α)는 ${was(x.a)}다.`}`;
+    });
+  }
+  // ---------- 고른 기법에 필요한 준비: 확정한 가설(없으면 지금 고른 분석)의 기법마다 ⑧ 측정 점검·⑨ 사전 분석에서 할 일 ----------
+  const PREP_FAM = {
+    sem: ['orig', 'rel', 'cfa', 'htmt', 'n200', 'corr'],
+    reg: ['orig', 'rel', 'efa', 'corr', 'vif', 'norm'],
+    corr: ['orig', 'rel', 'corr'],
+    group: ['orig', 'rel', 'norm', 'levene'],
+    cat: ['orig']
+  };
+  const famOf = m => /^sem/.test(m) ? 'sem' : ['regression', 'hier', 'partial', 'med_parallel', 'med_serial', 'moderation', 'modmed7', 'modmed14', 'logistic'].includes(m) ? 'reg'
+    : ['pearson', 'spearman', 'pointbiserial'].includes(m) ? 'corr' : ['onesample', 'ind_t', 'paired_t', 'oneway', 'factorial', 'ancova', 'rm_anova', 'mixed_anova'].includes(m) ? 'group' : 'cat';
+  function prepItems() {
+    let methods = [...new Set(planItems().map(p => LADDER_TO_METHOD[p.result]).filter(Boolean))];
+    if (!methods.length && anSel && anSel.method) methods = [anSel.method];
+    if (!methods.length) return null;
+    const L = lastScored, fams = [...new Set(methods.map(famOf))], keys = [...new Set(fams.flatMap(f => PREP_FAM[f]))];
+    const semNeed = fams.includes('sem'), multi = sv.scales.filter(x => x.items.filter(i => norm(i.text)).length >= 2);
+    let cfa = null; try { cfa = cfaRes && cfaRes.dv === dataVersion ? cfaRes : null; } catch (e) { cfa = null; }
+    const D = {
+      orig: () => { const miss = sv.scales.filter(x => x.items.some(i => norm(i.text)) && (!norm(x.source) || origAlphaOf(x) == null)); return { t: '원척도 정보 (출처·원 연구 신뢰도)', why: '척도를 고르기 전에 원 논문에서 신뢰도와 요인 구조를 확인하고 적습니다. 측정 도구 절에 씁니다.', go: 'survey', st: !sv.scales.length ? 'todo' : miss.length ? 'warn' : 'ok', note: miss.length ? `비어 있음: ${miss.map(x => x.name || '').join(', ')}` : '' }; },
+      rel: () => { const low = L ? L.scaleInfo.filter(x => x.its.length > 1 && isFinite(x.a) && x.a < 0.7) : []; return { t: '신뢰도 (크론바흐 α)', why: '모든 척도에 필요합니다. .70 이상이면 받아들일 만합니다.', go: 'measure', st: !L ? 'todo' : low.length ? 'warn' : 'ok', note: !L ? '응답을 넣으면 저절로 계산됩니다.' : low.length ? `.70 미만: ${low.map(x => x.s.name).join(', ')}` : '저절로 계산됨' }; },
+      efa: () => ({ t: '탐색적 요인분석', why: '문항이 원래 척도대로 묶이는지 봅니다. 회귀·매개·조절 논문에서 흔히 보고합니다.', go: 'measure', st: !L ? 'todo' : 'auto', note: !L ? '' : '저절로 계산됨 — 묶임을 확인하세요' }),
+      cfa: () => ({ t: '확인적 요인분석', why: '구조방정식은 측정모형이 맞아야 구조모형을 믿을 수 있어 꼭 먼저 합니다.', go: 'measure', req: true, st: !L ? 'todo' : !cfa ? 'todo' : cfa.fit[3] < 0.9 || cfa.fit[5] > 0.08 ? 'warn' : 'ok', note: !L ? '' : !cfa ? '[확인적 요인분석 하기]를 누르세요.' : `CFI ${NZ(cfa.fit[3], 3)}, RMSEA ${NZ(cfa.fit[5], 3)}` }),
+      htmt: () => { const bad = cfa ? cfa.htmt.flatMap((r, i) => r.map((v, j) => j > i && v >= 0.85 ? `${cfa.fac[i].label}–${cfa.fac[j].label}` : null)).filter(Boolean) : []; return { t: '판별타당도 (HTMT·Fornell–Larcker)', why: '잠재변인끼리 서로 다른 것을 재는지 봅니다. 확인적 요인분석에 함께 나옵니다.', go: 'measure', st: !cfa ? 'todo' : bad.length ? 'warn' : 'ok', note: !cfa ? '확인적 요인분석을 하면 나옵니다.' : bad.length ? `HTMT .85 이상: ${bad.join(', ')}` : 'HTMT 모두 .85 미만' }; },
+      n200: () => ({ t: '표본 200명 이상', why: '구조방정식은 흔히 200명 이상을 권합니다.', go: 'sample', st: !L ? 'todo' : L.inc.length >= 200 ? 'ok' : 'warn', note: L ? `지금 ${L.inc.length}명` : '' }),
+      corr: () => ({ t: '상관표 (표 2)', why: '주요 변인의 평균·표준편차·상관. 가설 검증 전에 관계를 먼저 봅니다.', go: 'prelim', st: !L ? 'todo' : 'auto', note: L ? '저절로 계산됨' : '' }),
+      vif: () => ({ t: '다중공선성 (VIF)', why: '예측변인끼리 너무 겹치면 계수가 불안정해집니다. 10 이상이면 심각.', go: 'prelim', st: !L ? 'todo' : 'auto', note: L ? '저절로 계산됨' : '' }),
+      norm: () => ({ t: '정규성 (왜도·첨도)', why: '모수 검정의 가정입니다. |왜도| < 2, |첨도| < 7이면 크게 벗어나지 않음.', go: 'prelim', st: !L ? 'todo' : 'auto', note: L ? '저절로 계산됨' : '' }),
+      levene: () => ({ t: '등분산성 (Levene)', why: '집단 비교의 가정입니다. 결과마다 보고 체크리스트에서 자동으로 점검합니다.', go: 'analysis', st: !L ? 'todo' : 'auto', note: '계산할 때 저절로 점검' })
+    };
+    return { methods, items: keys.map(k => ({ k, ...D[k]() })), semNeed, multi };
+  }
+  function prepCard(here) {
+    const P = prepItems(); if (!P) return '';
+    const ST = { ok: '<span class="st auto">했음</span>', auto: '<span class="st auto">저절로</span>', warn: '<span class="st manual">확인 필요</span>', todo: '<span class="st missing">아직</span>' };
+    const VN = { survey: '② 설문 만들기', sample: '⑦ 표본 확인', measure: '⑧ 측정 점검', prelim: '⑨ 사전 분석', analysis: '⑩ 분석' };
+    const todo = P.items.filter(i => i.st === 'todo' || i.st === 'warn').length;
+    return `<div class="card prep-card"><h3 class="card-title">고른 기법에 필요한 준비 <small class="hint">(${P.methods.map(m => METHODS[m] ? METHODS[m].name.replace(/ \(.*$/, '') : m).join(', ')})</small></h3>
+      <div class="prep-list">${P.items.map(i => `<div class="prep-row"><div class="prep-h"><b>${esc(i.t)}</b>${i.req ? ' <span class="st missing">필수</span>' : ''}</div>
+        <div class="prep-st">${ST[i.st]}${i.go === here ? '' : `<button class="btn sm" data-prep-go="${i.go}">${VN[i.go]}</button>`}</div>
+        <div class="prep-why">${esc(i.why)}${i.note ? ` <b>${esc(i.note)}</b>` : ''}</div></div>`).join('')}</div>
+      <p class="hint">${todo ? `확인할 것이 ${todo}개 있습니다. ` : '준비가 다 됐습니다. '}가설을 확정했으면 그 기법들, 아니면 지금 고른 분석 기준입니다.</p></div>`;
+  }
+  document.addEventListener('click', e => { const g = e.target.closest('[data-prep-go]'); if (g) gotoNav(g.dataset.prepGo); });
+  $('#dq-measure').addEventListener('click', e => {
+    const nt = e.target.closest('[data-nav-to]'); if (nt) { e.preventDefault(); gotoNav(nt.dataset.navTo); return; }
+    if (e.target.closest('[data-dq-act="copy-measure"]')) { const txt = measureSentences().join('\n\n'); try { navigator.clipboard.writeText(txt).then(() => toast('문장을 복사했습니다.'), () => showSheet('측정 도구 문장', txt)); } catch (err) { showSheet('측정 도구 문장', txt); } }
+  });
   function renderMeasure() {
     const box = $('#dq-measure'); if (!box) return;
     if (!lastScored) { box.innerHTML = needData('신뢰도와 타당도'); return; }
@@ -11119,11 +11192,19 @@ ${m.D.map((d, j) => `q <- pr(${rq(d.lab)}); eff(${rq(d.label)}, q$est, pct(bs[, 
         ${issues.length ? `<div class="dq-issue"><b>살펴볼 문항 ${issues.length}개</b><ul>${issues.map(x => `<li>${esc(x.d.code)}: ${!x.h.ok ? `원래 척도가 아닌 '${esc(facName[x.h.top])}' 요인에 가장 크게 묶임` : x.h.low ? '어느 요인에도 .40 이상으로 묶이지 않음' : '두 요인 이상에 걸침'}</li>`).join('')}</ul><p class="hint">문항을 빼는 것은 이론적 근거가 있을 때만 하고, 뺐다면 논문에 적어야 합니다. 원척도의 요인 구조를 확인하려면 확인적 요인분석(R의 lavaan)을 씁니다.</p></div>` : '<p><b class="a-ok">모든 문항이 원래 척도의 요인에 .40 이상으로 묶였습니다.</b></p>'}
         <div class="dq-harman"><b>공통방법편의 (Harman 단일요인 검정)</b> 회전하지 않은 첫 요인이 전체 분산의 <b>${E.first.toFixed(1)}%</b>를 설명합니다. ${E.first < 50 ? '<span class="a-ok">50%보다 작습니다.</span> 다만 이 검정은 민감도가 낮아, 이것만으로 공통방법편의가 없다고 단정할 수는 없습니다(Podsakoff et al., 2003). 한계로 함께 적으세요.' : '<span class="a-low">50%를 넘어 공통방법편의를 의심할 수 있습니다.</span>'}</div>`;
     }
-    box.innerHTML = `${pilotNote()}${sampleNote()}
-      <div class="card"><h3 class="card-title">신뢰도 (크론바흐 α)</h3>${tableHtml(['변인', '문항 수', '분석한 사람', 'α', '판정', '살펴볼 문항'], relRows, [1, 2, 3])}
+    const hasOrig = L.scaleInfo.some(x => origAlphaOf(x.s) != null);
+    if (hasOrig) relRows.forEach((r, i) => { const x = L.scaleInfo[i], oa = origAlphaOf(x.s); r.splice(4, 0, oa == null ? '<span class="hint">-</span>' : `${NZ(oa)}${isFinite(x.a) && x.a < oa - 0.1 ? ' <span class="a-mid" title="원 연구보다 .10 넘게 낮음">↓</span>' : ''}`); });
+    const ms = measureSentences(), noOrig = L.scaleInfo.filter(x => x.its.length && (!norm(x.s.source) || origAlphaOf(x.s) == null));
+    box.innerHTML = `${pilotNote()}${sampleNote()}${prepCard('measure')}
+      <div class="card"><h3 class="card-title">신뢰도 (크론바흐 α)</h3>${tableHtml(['변인', '문항 수', '분석한 사람', 'α', ...(hasOrig ? ['원척도 α'] : []), '판정', '살펴볼 문항'], relRows, hasOrig ? [1, 2, 3, 4] : [1, 2, 3])}
+        ${hasOrig ? '<p class="hint">원척도 α는 설문 만들기에 적은 원 연구의 값입니다. 내 자료가 원 연구보다 .10 넘게 낮으면 ↓로 표시합니다. 표본이나 번역의 차이일 수 있으니 문항을 살펴보세요.</p>' : ''}
         <p class="hint">.70 이상이면 받아들일 만하다고 봅니다(.60~.70은 탐색 연구에서 허용하기도 함). 살펴볼 문항은 문항-총점 상관이 .30보다 낮거나 지우면 α가 오르는 문항입니다. 문항별 자세한 값은 [응답 취합·정리]에 있습니다.</p></div>
       <div class="card"><h3 class="card-title">타당도 (탐색적 요인분석)</h3>${efaHtml}</div>
-      <div class="card" id="cfa-card">${cfaHtml()}</div>`;
+      <div class="card" id="cfa-card">${cfaHtml()}</div>
+      <div class="card"><h3 class="card-title">논문 측정 도구 절 문장 (초안)</h3>
+        ${noOrig.length ? `<p class="hint">원척도 정보가 비어 있는 변인: <b>${noOrig.map(x => esc(x.s.name || scaleCode(x.s, x.si))).join(', ')}</b>. <a href="#" data-nav-to="survey">설문 만들기</a>의 변인마다 [원척도 정보]에 출처와 원 연구 신뢰도를 적으면 문장에 들어갑니다.</p>` : ''}
+        <div class="dq-report" id="ms-sent">${ms.map(t => `<p>${esc(t)}</p>`).join('')}</div>
+        <div class="actions tight"><button class="btn sm" data-dq-act="copy-measure">문장 복사</button></div></div>`;
     markSeen('measure');
   }
 
@@ -11168,7 +11249,7 @@ ${m.D.map((d, j) => `q <- pr(${rq(d.lab)}); eff(${rq(d.label)}, q$est, pct(bs[, 
     });
     const C = corrTable(), V = vifInfo();
     const preLock = !md.lock && !L.pilot && !L.sample;
-    box.innerHTML = `${pilotNote()}${sampleNote()}
+    box.innerHTML = `${pilotNote()}${sampleNote()}${prepCard('prelim')}
       ${preLock ? '<p class="cf-note">아직 가설을 확정하지 않았습니다. 본조사 자료의 상관을 보고 모형을 바꾸면 결과를 보고 가설을 정한 셈이 됩니다. <button class="linkish" data-nav-to="model">모델 검토에서 먼저 확정하기</button></p>' : ''}
       <div class="card"><h3 class="card-title">기술통계와 정규성</h3>${tableHtml(['변인', 'N', 'M', 'SD', '최솟값', '최댓값', '왜도', '첨도', 'Shapiro-Wilk W', '정규성'], normRows, [1, 2, 3, 4, 5, 6, 7])}
         <p class="hint">왜도 절댓값 2, 첨도 절댓값 7보다 작으면 정규분포에서 크게 벗어나지 않았다고 봅니다(Curran, West, & Finch, 1996). Shapiro-Wilk는 표본이 크면 작은 차이에도 유의하게 나오므로 왜도·첨도와 함께 판단합니다.</p>

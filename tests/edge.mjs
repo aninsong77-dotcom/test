@@ -329,6 +329,30 @@ console.log('\n6. AI 연결: 기본은 AI 없이, 필요할 때 연결');
   await ctx.close();
 }
 
+// ===================== 7. 원척도 정보 · 기법별 필요한 준비 =====================
+console.log('\n7. 원척도 정보 · 기법별 필요한 준비');
+{
+  const ctx = await browser.newContext({ viewport: { width: 1366, height: 1000 } }); const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('dialog', d => d.accept());
+  await p.goto(BASE); await p.evaluate(() => { localStorage.clear(); localStorage.setItem('ladder.noWelcome', 'true'); }); await p.reload();
+  await p.waitForTimeout(300); await p.click('#splash').catch(() => {}); await p.waitForTimeout(300);
+  await p.click('[data-hp=mode-ladder]'); await p.click('[data-nav=survey]'); await p.click('[data-sv-act=example]'); await p.waitForTimeout(300);
+  await p.fill('[data-sc="0"][data-f="source"]', 'Son & Liu (2018)'); await p.fill('[data-sc="0"][data-f="origAlpha"]', '.91'); await p.fill('[data-sc="0"][data-f="origSample"]', '대학생 312명');
+  await p.click('[data-nav=analysis]'); await p.waitForTimeout(300); await p.click('[data-an-act=demo]'); await p.waitForTimeout(800);
+  await p.selectOption('#an-method', 'sem'); await p.waitForTimeout(300);
+  await p.click('[data-nav=measure]'); await p.waitForTimeout(600);
+  const rel = await p.$eval('#dq-measure .card:nth-of-type(2), #dq-measure', e => e.innerText);
+  ok('신뢰도 표에 원척도 α 열', /원척도 α/.test(rel) && /\.91/.test(rel));
+  const sent = await p.$eval('#ms-sent', e => e.innerText);
+  ok('측정 도구 절 문장: 출처·원 연구 α·본 연구 α', /Son & Liu \(2018\)의 척도를 사용하여 측정하였다/.test(sent) && /원 연구\(대학생 312명\)에서 \.91이었으며, 본 연구에서는 \.\d\d(이었|였)다/.test(sent), sent.split('\n')[0].slice(0, 160));
+  const prep = await p.$eval('#dq-measure .prep-card', e => e.innerText);
+  ok('구조방정식을 고르면 확인적 요인분석이 필수 준비로 보임', /확인적 요인분석/.test(prep) && /필수/.test(prep) && /판별타당도/.test(prep) && /200명/.test(prep));
+  await p.click('[data-nav=analysis]'); await p.waitForTimeout(300); await p.selectOption('#an-method', 'ind_t'); await p.waitForTimeout(300);
+  const prep2 = await p.$eval('#an-main .prep-card', e => e.innerText);
+  ok('t검정이면 정규성·등분산성이 준비로 보이고 확인적 요인분석은 없음', /정규성/.test(prep2) && /등분산성/.test(prep2) && !/확인적 요인분석/.test(prep2));
+  ok('페이지 오류 없음 (준비)', !errs.length, errs.join(' | '));
+  await ctx.close();
+}
+
 await browser.close(); server.close();
 console.log(`\n${fail ? '✗' : '✓'} 통과 ${pass}, 실패 ${fail}`);
 if (fail) { fails.forEach(f => console.log('  - ' + f)); process.exit(1); }
