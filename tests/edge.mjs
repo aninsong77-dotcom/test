@@ -217,6 +217,13 @@ console.log('\n3-2. 시작 화면 · 변인만 있어요');
   const cards = await p.evaluate(() => JSON.parse(localStorage.getItem('ladder.hyp') || 'null')?.cards || []);
   ok('[가설로]를 누르면 매개 모형 카드가 생김', cards.some(c => c.model === 'med' && c.m.includes('외로움') && c.y === '외집단 혐오'), cards.map(c => c.model).join(','));
   ok('만든 후보는 "카드로 만듦"으로 표시', /카드로 만듦/.test(await p.$eval('.mb-sg', e => e.innerText)));
+  // 가설 문장 점검 · 경로마다 근거
+  const chk = await p.$eval('.mb-card', e => e.innerText);
+  ok('가설 문장 점검: 방향 빠짐·횡단 자료 인과·근거 없음', /방향\(정적·부적\)이 정해지지 않았어요/.test(chk) && /횡단 자료/.test(chk) && /근거\(이론·선행연구\)를 한 줄씩/.test(chk));
+  await p.evaluate(() => { const d = document.querySelector('.mb-ev'); if (d) d.open = true; });
+  const evIn = await p.$('.mb-ev input'); if (evIn) { await evIn.fill('사회비교이론(Festinger, 1954)'); await evIn.dispatchEvent('change'); await p.waitForTimeout(300); }
+  const hp2 = await p.evaluate(() => JSON.parse(localStorage.getItem('ladder.hyp')));
+  ok('경로 근거가 저장됨', Object.values(hp2.cards[0].ev || {}).includes('사회비교이론(Festinger, 1954)'), JSON.stringify(hp2.cards[0].ev || {}));
   // 다르게 생각해 보기
   await p.click('[data-mb-act=sg-close]').catch(() => {}); await p.waitForTimeout(200);
   await p.click('[data-mb-act=alt-toggle][data-ci="0"]'); await p.waitForTimeout(2500);

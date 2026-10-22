@@ -2375,6 +2375,8 @@ details.orig{margin-top:12px;border:1px solid var(--line);border-radius:10px;pad
 .mb-alt-m{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:800;color:var(--ink-3)}.mb-alt-m svg{width:18px;height:18px}.mb-alt-chg{color:var(--orange-deep)!important;margin-top:2px}
 .mb-cmp{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--bg)}.mb-cmp-row{padding:9px 12px;border-top:1px solid var(--line)}.mb-cmp-row:first-child{border-top:0}.mb-cmp-row.on{background:var(--orange-soft)}
 .mb-cmp-row small{display:block;font-size:12px;color:var(--ink-2);line-height:1.5;margin-top:2px}.mb-cmp-h{font-size:13.5px}.mb-cmp-k b{color:var(--ink)}
+.mb-chk-list{margin:10px 0 0}.mb-chk-list p{margin:4px 0;padding:7px 10px;border-radius:8px;font-size:12.5px;line-height:1.55}.mb-chk-warn{background:var(--orange-soft);color:var(--orange-deep)}.mb-chk-tip{background:var(--bg-2);color:var(--ink-2)}
+.mb-ev{margin-top:10px;border:1px solid var(--line);border-radius:10px;padding:8px 12px}.mb-ev summary{cursor:pointer;font-weight:700;font-size:13.5px}.mb-ev-row{margin-top:8px}.mb-ev-row span{font-size:12.5px;font-weight:700;color:var(--ink-2)}
 .su-who{color:var(--orange-deep)!important;font-size:12.5px!important}.su-sum{margin:6px 0 4px;padding-left:18px;font-size:14px;line-height:1.75}
 .su-act{display:flex;gap:8px;margin-top:16px;align-items:center;position:sticky;bottom:-18px;background:var(--bg);padding:10px 0 4px}.su-act .su-later{margin-right:auto;border:0;background:none;font:inherit;font-size:12.5px;color:var(--ink-3);text-decoration:underline;cursor:pointer;padding:0}
 @media (prefers-reduced-motion: reduce){#welcome,.wc-card{transition:none}.wc-bar{display:none}}
@@ -9630,6 +9632,35 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
       <p class="hint">필요 인원은 대략입니다. 정확한 값은 ③ 표본 수 계산에서 효과크기를 정해 구하세요.</p>
     </div></div>`;
   }
+  // ---------- 가설 문장 점검 · 경로마다 근거 ----------
+  // 경로(가설이 말하는 관계)마다 근거를 적는 자리
+  function mbEvPaths(c) {
+    const X = c.x.filter(n => norm(n)).map(norm), Y = norm(c.y), W = norm(c.w), M = c.m.filter(n => norm(n)).map(norm); if (!X.length || !Y) return [];
+    if (c.model === 'med' || c.model === 'serial') return mbPaths(c).map(p => ({ k: p.k, t: `${p.a} → ${p.b}` }));
+    if (c.model === 'rel') return [{ k: 'r', t: `${X[0]} ↔ ${Y}` }];
+    if (c.model === 'mod') return [{ k: 'c', t: `${X[0]} → ${Y}` }, { k: 'w', t: `${W || '조절 변인'}이(가) 그 효과를 바꿈` }];
+    if (c.model === 'modmed') return [{ k: 'a', t: `${X[0]} → ${M[0] || '매개'}` }, { k: 'b', t: `${M[0] || '매개'} → ${Y}` }, { k: 'w', t: `${W || '조절 변인'}이(가) ${c.wpath === 'b' ? '뒤쪽' : '앞쪽'} 경로를 바꿈` }];
+    if (c.model === 'diff') return [{ k: 'g', t: `${X.join(', ') || '시점'}에 따른 ${Y}의 차이` }];
+    return X.map((x, i) => ({ k: 'x' + i, t: `${x} → ${Y}` }));
+  }
+  // 가설 문장 점검: 고칠 것(warn)과 알아 둘 것(tip)
+  function mbSentChecks(c) {
+    const L = [], causal = ['pred', 'med', 'serial', 'mod', 'modmed'].includes(c.model);
+    if (['pred', 'rel', 'med', 'serial'].includes(c.model) && c.dir === '≠') L.push({ k: 'warn', t: '방향(정적·부적)이 정해지지 않았어요. 이론이나 선행연구가 방향을 말해 주면 고르세요. 방향이 있으면 가설이 더 분명해지고 판정도 그 방향으로 합니다.' });
+    if (c.model === 'mod') L.push({ k: 'tip', t: '조절 가설은 어느 쪽으로 달라지는지(조절 변인이 높을수록 효과가 강해지는지·약해지는지) 이론이 있으면 문장에 넣으세요. 예: "사회적 지지가 높을수록 스트레스가 우울에 미치는 영향은 약해질 것이다."' });
+    if (causal) L.push({ k: 'tip', t: '한 시점에 한 번 받은 설문(횡단 자료)으로는 "영향"이 인과를 보장하지 않아요. 국내 논문은 "영향을 미칠 것이다"를 흔히 쓰지만, 연구의 한계에 "횡단 자료라 인과를 단정할 수 없다"고 적으세요. 인과를 말하지 않으려면 관계 모형으로 바꿀 수 있어요.' });
+    if (c.model === 'rel' && /영향/.test(cardSentence(c))) L.push({ k: 'warn', t: '관계 모형인데 문장에 "영향"이 들어 있어요. 관계(상관)는 방향을 말하지 않으니 "관련이 있을 것이다"로 쓰세요.' });
+    const ev = mbEvPaths(c), filled = ev.filter(p => norm((c.ev || {})[p.k])).length;
+    if (ev.length && !filled) L.push({ k: 'warn', t: '경로마다 근거(이론·선행연구)를 한 줄씩 적어 두세요. 심사에서 "왜 그렇게 보나요?"를 꼭 물어요. 아래 [경로마다 근거]에 적으면 분석 계획서에 들어갑니다.' });
+    return L;
+  }
+  function mbCheckHtml(c, ci) {
+    const L = mbSentChecks(c), ev = mbEvPaths(c), filled = ev.filter(p => norm((c.ev || {})[p.k])).length;
+    return `${L.length ? `<div class="mb-chk-list">${L.map(x => `<p class="mb-chk-${x.k}">${x.k === 'warn' ? '확인' : '참고'} · ${esc(x.t)}</p>`).join('')}</div>` : ''}
+      ${ev.length ? `<details class="mb-ev" ${c.evOpen || (filled && filled < ev.length) ? 'open' : ''}><summary>경로마다 근거 <span class="st ${filled === ev.length ? 'auto' : 'missing'}">${filled}/${ev.length}</span> <small class="hint">이론·선행연구 한 줄 — 분석 계획서에 들어갑니다</small></summary>
+        ${ev.map(p => `<label class="f mb-ev-row"><span>${esc(p.t)}</span><input data-mb="c.${ci}.ev.${p.k}" value="${esc((c.ev || {})[p.k] || '')}" placeholder="예: 사회비교이론(Festinger, 1954)에 따르면 … / 김○○(2021)은 …을 보고했다"></label>`).join('')}
+      </details>` : ''}`;
+  }
   function mbCardHtml(c, ci, no) {
     if (!c.model) return `<div class="mb-card mb-null" data-ci="${ci}"><p class="hint mb-src">붙여 넣은 문장: ${esc(c.src)}</p><p class="mb-miss">이 문장의 모형을 골라 주세요.</p><div class="actions tight"><button class="btn sm primary" data-mb-act="repick" data-ci="${ci}">모형 고르기</button><button class="btn sm" data-mb-act="del-card" data-ci="${ci}">지우기</button></div></div>`;
     const miss = mbMissing(c), main = mbMain(c);
@@ -9646,6 +9677,7 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
       ${mbBadNames(c).length && !c.nameOk ? `<p class="mb-miss mb-warn">이 문장을 제대로 읽었는지 확인해 주세요. 변인 이름에 문장 조각이 남아 있습니다: ${mbBadNames(c).map(n => `"${esc(n)}"`).join(', ')}. 위 칸에서 변인 이름만 남게 고치거나, 맞다면 <button class="linkish" data-mb-act="name-ok" data-ci="${ci}">이대로 맞아요</button></p>` : ''}
       ${mbG3Block(c) ? `<p class="mb-miss mb-warn">통의 매개·조절 분석은 원인 변인${['mod', 'modmed'].includes(c.model) ? '과 조절 변인' : ''}이 점수이거나 두 집단일 때만 계산합니다. 세 집단 이상이면 PROCESS의 다범주 옵션(mcx·mcw)이 필요하니 SPSS나 R로 하거나, 이론적으로 두 집단으로 묶을 수 있는지 지도교수님과 상의하세요. 변인 목록에서 그 변인의 종류(점수·두 집단·세 집단 이상)가 맞는지도 확인하세요.</p>` : ''}
       ${miss.length ? `<p class="mb-miss">빈칸: ${esc(miss.join(', '))}</p>` : `<div class="mb-sent"><span>가설 문장</span><p>${esc(cardSentence(c))}</p></div>${svg ? `<div class="mb-svg">${svg}</div>` : ''}${mbPathsHtml(c, ci)}${mbAnalysisHtml(c, ci)}`}
+      ${mbMissing(c).length ? '' : mbCheckHtml(c, ci)}
       ${mbAltHtml(c, ci)}
     </div>`;
   }
@@ -9884,6 +9916,7 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
     } else if (kind === 'c') {
       const c = hp.cards[i]; if (!c) return;
       if (f === 'why') { c.why = t.value; saveHp(); return; }
+      if (f === 'ev') { c.ev = c.ev || {}; c.ev[sub] = norm(t.value); c.evOpen = true; saveHp(); return; }
       if (['x', 'm', 'ctl'].includes(f) && sub != null) { const n = norm(t.value); c[f][+sub] = n; if (n) mbAddVar(n); }
       else if (['y', 'w'].includes(f)) { const n = norm(t.value); c[f] = n; if (n) mbAddVar(n); }
       else if (f === 'within') c[f] = t.checked;
@@ -9928,6 +9961,7 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
       const dimV = c.x.map(vFind).find(v => v && v.dims > 1);
       if (dimV) L.push(`  - ${dimV.name}의 하위 차원 ${dimV.dims}개: ${c.dimsMode === 'together' ? '한 차원을 볼 때 다른 차원은 통제변인으로' : '차원마다 따로 분석'}`);
       L.push(`  - 고른 이유: ${norm(c.why) || '(적지 않음)'}`);
+      const ev = mbEvPaths(c); if (ev.length) { L.push('  - 경로마다 근거:'); ev.forEach(p => L.push(`    - ${p.t}: ${(c.ev || {})[p.k] || '(적지 않음)'}`)); }
     });
     return L;
   }
