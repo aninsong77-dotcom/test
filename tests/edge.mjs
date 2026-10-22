@@ -6,6 +6,7 @@ import http from 'http';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { execFileSync } from 'child_process';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const server = http.createServer((q, s) => { const f = path.join(ROOT, decodeURIComponent(q.url.split('?')[0])); if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { s.writeHead(404); return s.end(); } s.writeHead(200, { 'Content-Type': { '.js': 'text/javascript', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.png': 'image/png' }[path.extname(f)] || 'text/html; charset=utf-8' }); fs.createReadStream(f).pipe(s); });
@@ -106,6 +107,8 @@ console.log('\n1-2. 클리닝: 주의 확인 · 불성실 기준 · 대상 조�
     const gc = head.indexOf(sv.demos[0].text), ac = head.indexOf(sv.demos[1].text);
     rows[2][gc] = '남'; rows[3][gc] = '여자'; rows[4][gc] = '모름';           // 선택지에 없는 값
     rows[5][ac] = '23세'; rows[6][ac] = '스물셋';                           // 숫자 정리
+    rows[7][ac] = '1999'; rows[8][ac] = '250'; rows[9][ac] = '20대';          // 출생연도 · 범위 밖 · 연령대
+    rows[11][gc] = '응답하지 않음';                                          // 답하지 않은 사람의 범주
     // 같은 번호 연속: 첫 15문항을 '보통이다'로 (나머지는 그대로)
     const it = sv.scales.flatMap((s0, si) => s0.items.map(x => ({ c: head.indexOf(x.text), lab: s0.labels }))).filter(x => x.c >= 0);
     it.slice(0, 15).forEach(x => { rows[10][x.c] = x.lab[2]; }); longId = 'R011';
@@ -118,7 +121,12 @@ console.log('\n1-2. 클리닝: 주의 확인 · 불성실 기준 · 대상 조�
   ok('같은 번호 연속 응답을 찾음', box.includes(longId), (box.match(/같은 번호 연속[^\n]*\n[^\n]*/) || [''])[0].replace(/\n/g, ' '));
   ok('정문항·역문항 모순 응답을 찾음', box.includes(revId));
   ok('선택지에 없는 성별 값: 같은 뜻은 자동으로 바꾸고, 모르는 값은 고르게 함', /"남" 1명[^\n]*자동/.test(box) && /"모름" 1명[^\n]*선택지에 없는 값/.test(box));
-  ok('나이 "23세", "스물셋"을 숫자로 바꿈', /"23세" → 23/.test(box) && /"스물셋" → 23/.test(box));
+  ok('나이 "23세", "스물셋"을 숫자로 바꿈', /"23세" 1명 → 23/.test(box) && /"스물셋" 1명 → 23/.test(box));
+  ok('나이: 출생연도·범위 밖 값·연령대는 빈 값으로 두고 알림', /"1999" 1명 → 출생연도 같아요/.test(box) && /"250" 1명 → 나이로 보기 어려운 값/.test(box) && /"20대" 1명 → 빈 값/.test(box), (box.match(/"1999"[^\n]*/) || [''])[0]);
+  ok('"응답하지 않음"은 인원과 상관없이 정하게 보여 줌', /"응답하지 않음" \d+명[^\n]*(답하지 않은 사람의 범주|선택지에 없는 값)/.test(box));
+  const age0 = String(new Date().getFullYear() - 1999);
+  await p.selectOption('select[data-dq-recode="1"][data-from="1999"]', age0); await p.waitForTimeout(400);
+  ok('출생연도를 나이로 바꾸면 기록에 남음', (await p.evaluate(() => JSON.parse(localStorage.getItem('ladder.plan')).recode['1']['1999'])) === age0);
   // 범주 합치기: '모름'을 빈 값으로
   await p.selectOption('select[data-dq-recode="0"][data-from="모름"]', '');
   await p.waitForTimeout(400);
@@ -137,7 +145,24 @@ console.log('\n1-2. 클리닝: 주의 확인 · 불성실 기준 · 대상 조�
   ok('응답 번호로 직접 빼고 이유를 남김', /직접 뺌 1/.test(st3) && (await p.evaluate(() => JSON.parse(localStorage.getItem('ladder.plan')).manual))[target] === '자유 응답에 장난 글');
   const rep = await p.$eval('.dq-report p', e => e.innerText);
   ok('연구 대상 절 문장에 제외 사유와 인원이 들어감', /연구 대상 조건에 맞지 않는 \d+명/.test(rep) && /부적절하다고 판단한 1명/.test(rep) && /주의 확인 문항 1개/.test(rep) && /최종 \d+명/.test(rep), rep.slice(0, 120));
+  // 분석 화면: 두 집단 칸에 못 들어가는 세 가지 범주(성별에 '응답하지 않음')는 이유를 알려 줌
+  await p.click('[data-nav=analysis]'); await p.waitForTimeout(250); await p.selectOption('#an-method', 'ind_t'); await p.waitForTimeout(300);
+  const why = await p.$$eval('.slot-why', e => e.map(x => x.innerText).join(' '));
+  ok('두 집단 칸에 없는 3가지 범주 변인은 이유와 고칠 곳을 알려 줌', /성별은\(는\) 3가지/.test(why) && /기본 정보 값 정리/.test(why), why.slice(0, 90));
   ok('페이지 오류 없음 (클리닝)', !errs.length, errs.join(' | '));
+}
+// 엑셀에서 다시 저장한 CSV (한글 윈도우 인코딩 CP949)
+{
+  const { p, errs } = await open();
+  const base = await loadRows(p);
+  const csv = await p.$eval('#co-paste', e => e.value);
+  const buf = execFileSync('python3', ['-c', 'import sys; sys.stdout.buffer.write(sys.stdin.buffer.read().decode("utf-8").encode("cp949", "replace"))'], { input: Buffer.from(csv, 'utf8') });
+  await p.setInputFiles('#co-file', { name: 'excel.csv', mimeType: 'text/csv', buffer: buf }); await p.waitForTimeout(400);
+  await p.click('#co-run').catch(() => {}); await p.waitForTimeout(500);
+  const st = (await p.$eval('#co-result .stats', e => e.innerText).catch(() => '')).replace(/\n/g, ' ');
+  ok('엑셀에서 다시 저장한 CSV(CP949)도 한글이 깨지지 않고 같은 결과', st && st === base.stats, `${st.slice(0, 60)} / ${base.stats.slice(0, 60)}`);
+  ok('페이지 오류 없음 (CP949)', !errs.length, errs.join(' | '));
+  await p.context().close();
 }
 
 // ===================== 2. 계산이 안 되는 자료 =====================
@@ -346,7 +371,8 @@ console.log('\n6. AI 연결: 기본은 AI 없이, 필요할 때 연결');
   ok('대화창에서 물으면 사용 설명을 찾아 주고 [AI 함께 쓰기]를 권함', !!(await p.$('#thread [data-setup-open]')));
   await p.click('#thread [data-setup-open]'); await p.waitForSelector('#welcome.setup'); await p.waitForTimeout(300);
   const opts = await p.$$eval('#welcome input[name=su-mode]', es => es.map(e => e.value));
-  ok('AI 함께 쓰기: AI 도우미 · 채팅 AI에 복사 · AI 없이 (claude.ai 링크 방식은 사이트에 안 보임)', opts.join(',') === 'code,copy,off', opts.join(','));
+  ok('AI 함께 쓰기: 채팅 AI에 복사 · AI 도우미 · AI 없이 (claude.ai 링크 방식은 사이트에 안 보임)', opts.join(',') === 'copy,code,off', opts.join(','));
+  ok('처음에는 무료인 [채팅 AI에 복사해 묻기]가 골라져 있음', await p.$eval('#welcome input[value=copy]', e => e.checked));
   const who = await p.$eval('#welcome', e => e.innerText);
   ok('방식마다 누구에게 맞는지와 도우미 세 가지가 보임', /구독이 없어도 됨/.test(who) && /연구 폴더로 관리하고 싶은 학생/.test(who) && ['Claude Code', 'Codex', 'Antigravity'].every(k => who.includes(k)), who.replace(/\s+/g, ' ').slice(0, 200));
   await p.click('#welcome input[value=copy]'); await p.waitForTimeout(100);

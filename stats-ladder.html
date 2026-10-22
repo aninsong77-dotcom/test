@@ -2447,7 +2447,7 @@ details.orig{margin-top:12px;border:1px solid var(--line);border-radius:10px;pad
 .ap-sites{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 2px}.ap-sites button{border:1.5px solid var(--line);background:var(--bg);border-radius:999px;padding:4px 11px;font:inherit;font-size:12.5px;font-weight:700;color:var(--ink-2);cursor:pointer}.ap-sites button small{font-weight:500;color:var(--ink-3)}.ap-sites button.on{border-color:var(--orange);background:var(--orange-soft);color:var(--orange-deep)}
 .ap-sub{margin:6px 0 2px 28px;font-size:12px;color:var(--ink-2);line-height:1.55}.ap-sub .btn{margin-top:6px}
 .ap-redo{border:0;background:none;padding:0;font:inherit;font-size:12px;color:var(--ink-3);text-decoration:underline;cursor:pointer;margin-left:6px}
-.ai-dot.off i{background:#c0392b}.ai-dot.off{color:#c0392b}
+.ai-dot.off i{background:#5b6275}.ai-dot.off{color:#5b6275}
 .ai-dot.none i{background:#b8bfcf}
 
 /* 오른쪽 보기 창의 사용 설명 */
@@ -3087,7 +3087,7 @@ table.compact.sp-table{min-width:0;table-layout:auto;width:100%}.sp-table td{ver
   const $ = (s, el = document) => el.querySelector(s);
   const $$ = (s, el = document) => [...el.querySelectorAll(s)];
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const toast = msg => { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2200); };
+  const toast = (msg, ms = 2200) => { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), ms); };
   // claude.ai 안에서는 뷰어의 저장 기능을 쓰고, 그 밖에서는 브라우저로 바로 저장.
   // 둘 다 안 되면 내용을 화면에 띄워 복사할 수 있게 함
   const hasClaude = !!(window.claude && typeof window.claude.use === 'function');
@@ -4155,9 +4155,17 @@ function createSurvey() {
     renderCollect();
   }
 
+  // CSV 읽기: UTF-8이 아니면(엑셀에서 다시 저장한 한글 윈도우 파일, CP949) 그 인코딩으로 다시 읽고 알려 줌
+  async function readCsvText(f) {
+    const buf = await f.arrayBuffer();
+    try { return { text: new TextDecoder('utf-8', { fatal: true }).decode(buf) }; }
+    catch (e) { try { return { text: new TextDecoder('euc-kr').decode(buf), cp949: true }; } catch (e2) { return { text: new TextDecoder().decode(buf) }; } }
+  }
   $('#co-file').addEventListener('change', async e => {
     const f = e.target.files[0]; e.target.value = '';
-    if (f) loadRaw(await f.text(), f.name);
+    if (!f) return;
+    const r = await readCsvText(f); loadRaw(r.text, f.name);
+    if (r.cp949) toast('엑셀에서 다시 저장한 파일(한글 윈도우 인코딩)이라 그 방식으로 읽었습니다. 글자가 깨져 보이면 엑셀을 거치지 말고 구글 폼(응답 시트)에서 바로 받은 CSV를 넣으세요.', 7000);
   });
   $('#co-read').addEventListener('click', () => {
     const t = $('#co-paste').value;
@@ -4294,6 +4302,26 @@ function createSurvey() {
     const k = t.replace(/\s/g, '').replace(/^만/, '').match(/^(열|스물|서른|마흔|쉰|예순|일흔|여든)?(하나|한|둘|두|셋|세|넷|네|다섯|여섯|일곱|여덟|아홉)?(?:살|세)?$/);
     return k && (k[1] || k[2]) ? String((KTEN[k[1]] || 0) + (KONE[k[2]] || 0)) : null;
   }
+  // 숫자 기본 정보 값 정리. 나이 문항은 출생연도(1999)와 범위 밖 값(250)을 빈 값으로 두고 연구자가 정하게 함. 연령대("20대")는 나이로 바꾸지 않음
+  const isAgeItem = dm => /나이|연령|age/i.test(norm(dm.text)) && !/연령대|나이대/.test(norm(dm.text));
+  const AGE_MIN = 10, AGE_MAX = 100;
+  function demoNumFix(dm, di, cell) {
+    if (!cell) return { v: '', how: '' };
+    const map = (plan.recode || {})[di] || {}, has = Object.prototype.hasOwnProperty.call(map, cell);
+    let r;
+    if (/^\d+\s*대(\s*(초반|중반|후반))?$/.test(cell)) r = { v: '', how: 'decade' };
+    else {
+      const x = demoNum(cell);
+      if (x == null) r = { v: '', how: 'bad' };
+      else if (isAgeItem(dm) && /^(19|20)\d\d$/.test(x) && +x <= new Date().getFullYear()) r = { v: '', how: 'year', alt: String(new Date().getFullYear() - +x) };
+      else if (isAgeItem(dm) && (+x < AGE_MIN || +x > AGE_MAX)) r = { v: '', how: 'range' };
+      else r = { v: x, how: x !== cell ? 'num' : '' };
+    }
+    if (has && r.how && r.how !== 'num') r = { ...r, v: map[cell], chosen: true };
+    return r;
+  }
+  // 응답하지 않은 사람의 범주 ('응답하지 않음', '모름' 등): 인원과 상관없이 연구자가 정하게 보여 줌
+  const NONRESP = /응답\s*(하지\s*)?않|무응답|모름|모르겠|밝히(고 싶지|지 않)|말하(고 싶지|지 않)|선택\s*안\s*함|해당\s*없음/;
   // 자주 쓰는 같은 뜻의 값 (선택지에 그 이름이 있을 때만 자동으로)
   const SYNO = [[/^(남|남자|남성|male|m)$/i, '남성'], [/^(여|여자|여성|female|f)$/i, '여성']];
   function demoCat(dm, di, cell) {
@@ -4327,7 +4355,7 @@ function createSurvey() {
         const cell = norm(colMap[d.key] >= 0 ? row[colMap[d.key]] : '');
         if (d.kind === 'demo') {
           const dm = sv.demos[d.di];
-          if (dm.type === 'number') { const x = demoNum(cell); p.items[d.key] = x == null ? '' : x; if (cell && x !== cell) { const k = `${d.di}|${cell}`, o = demoFix.get(k) || { di: d.di, from: cell, to: x, how: x == null ? 'bad' : 'num', n: 0 }; o.n++; demoFix.set(k, o); } }
+          if (dm.type === 'number') { const r = demoNumFix(dm, d.di, cell); p.items[d.key] = r.v; if (r.how) { const k = `${d.di}|${cell}`, o = demoFix.get(k) || { di: d.di, from: cell, to: r.v, how: r.how, alt: r.alt, chosen: !!r.chosen, n: 0 }; o.n++; demoFix.set(k, o); } }
           else if (dm.type === 'choice') { const c = demoCat(dm, d.di, cell); p.items[d.key] = c.v; if (c.how) { const k = `${d.di}|${cell}`, o = demoFix.get(k) || { di: d.di, from: cell, to: c.v, how: c.how, n: 0 }; o.n++; demoFix.set(k, o); } }
           else p.items[d.key] = cell;
           return;
@@ -4884,13 +4912,16 @@ function createSurvey() {
     const fits = (v, t) => t === 'any' ? true : t === 'num' ? v.type === 'num' : t === 'cat' ? v.type === 'cat' : t === 'cat2' ? v.type === 'cat' && v.levels.length === 2 : t === 'numbin' ? v.type === 'num' || (v.type === 'cat' && v.levels.length === 2) : false;
     const vlabel = v => `${v.name}${v.type === 'cat' ? ` (${v.levels.length}가지)` : ''}`;
     const groups = [...new Set(Object.values(METHODS).map(m => m.group))];
+    // 두 집단 칸에 못 들어가는 세 가지 이상 범주 변인: 왜 없는지 알려 줌
+    const why2 = (s, n) => (s.type === 'cat2' || s.type === 'numbin') ? vs.filter(v => v.type === 'cat' && v.levels.length > 2 && (!n || v.levels.some(l => NONRESP.test(l)))).map(v => `${v.name}은(는) ${v.levels.length}가지(${v.levels.join(', ')})라 이 칸에 넣을 수 없습니다.${v.levels.some(l => NONRESP.test(l)) ? ' 답하지 않은 사람의 범주가 있으면' : ' 두 집단으로 쓰려면'} ⑥ 응답 취합·정리의 [기본 정보 값 정리]에서 정리하세요.`) : [];
+    const whyHtml = (s, n) => { const w = why2(s, n); return w.length ? `<span class="hint slot-why">${w.map(esc).join(' ')}</span>` : ''; };
     const slotHtml = s => {
       const cand = vs.filter(v => fits(v, s.type));
       if (s.multi) {
         const cur = anSel.roles[s.k] || [];
-        return `<div class="slot"><div class="slot-l">${esc(s.label)}</div><div class="chips">${cand.map(v => `<label class="chip ${cur.includes(v.key) ? 'on' : ''}"><input type="checkbox" data-slot="${s.k}" value="${v.key}" ${cur.includes(v.key) ? 'checked' : ''}>${esc(vlabel(v))}</label>`).join('') || '<span class="hint">알맞은 변인이 없습니다.</span>'}</div></div>`;
+        return `<div class="slot"><div class="slot-l">${esc(s.label)}</div><div class="chips">${cand.map(v => `<label class="chip ${cur.includes(v.key) ? 'on' : ''}"><input type="checkbox" data-slot="${s.k}" value="${v.key}" ${cur.includes(v.key) ? 'checked' : ''}>${esc(vlabel(v))}</label>`).join('') || '<span class="hint">알맞은 변인이 없습니다.</span>'}</div>${whyHtml(s, cand.length)}</div>`;
       }
-      return `<label class="f slot">${esc(s.label)}<select data-slot="${s.k}"><option value="">(고르세요)</option>${cand.map(v => `<option value="${v.key}" ${anSel.roles[s.k] === v.key ? 'selected' : ''}>${esc(vlabel(v))}</option>`).join('')}</select></label>`;
+      return `<label class="f slot">${esc(s.label)}<select data-slot="${s.k}"><option value="">(고르세요)</option>${cand.map(v => `<option value="${v.key}" ${anSel.roles[s.k] === v.key ? 'selected' : ''}>${esc(vlabel(v))}</option>`).join('')}</select>${whyHtml(s, cand.length)}</label>`;
     };
     const o = anSel.opts;
     box.innerHTML = `${prepCard('analysis')}${planItems().some(p => LADDER_TO_METHOD[p.result]) ? `<div class="card"><h3 class="card-title">확정한 가설 ${planItems().length}개</h3><p class="hint">미리 정한 통계 방법과 분석 결정 그대로 가설의 분석을 모두 계산합니다. 하나씩 하려면 아래에서 방법과 변인을 고르세요.</p>${runAllBtn()}</div>` : ''}${runAllHtml()}<div class="card">
@@ -5357,6 +5388,9 @@ function createSurvey() {
       const sw = sd(wc), mw = mean(wc);
       const pts = W.bin ? [[`${nw} = ${P.V[r.w].levels[0]}`, 0], [`${nw} = ${P.V[r.w].levels[1]}`, 1]] : [['M − 1SD', mw - sw], ['M', mw], ['M + 1SD', mw + sw]];
       const tc = ST.tInv(0.05, fit.dfe), V = fit.cov;
+      // M ± 1SD가 관찰된 범위(예: 5점 척도의 5)를 넘으면 자료 밖 값에서 그린 선이라고 알림
+      [[W, nw], [X, nx]].forEach(([Z, nz]) => { if (Z.bin) return; const m0 = mean(Z.x), s0 = sd(Z.x), lo = Math.min(...Z.x), hi = Math.max(...Z.x), out = [m0 - s0 < lo && `M − 1SD(${F2(m0 - s0)})가 최솟값 ${F2(lo)}보다 작음`, m0 + s0 > hi && `M + 1SD(${F2(m0 + s0)})가 최댓값 ${F2(hi)}보다 큼`].filter(Boolean);
+        if (out.length) R.notes.push(`⚠ ${nz}: ${out.join(', ')}. 이 수준의 단순기울기와 그림의 선은 자료에 없는 값에서 계산한 것입니다. 해석할 때 밝히거나, 관찰 범위 안의 값(최솟값·최댓값 또는 16·50·84 백분위)으로 다시 보는 것을 검토하세요.`); });
       const ss = pts.map(([l, w]) => { const b = fit.b[1] + fit.b[3] * w, se = Math.sqrt(V[1][1] + w * w * V[3][3] + 2 * w * V[1][3]), t = b / se; return { l, w, b, se, t, p: ST.pT(Math.abs(t), fit.dfe), lo: b - tc * se, hi: b + tc * se }; });
       R.tables.push({ title: `단순기울기: ${nw} 수준별 ${nx}의 효과${o.center && !W.bin ? ' (W는 평균중심화 값)' : ''}`, head: [`${nw} 수준`, 'W 값', 'B', 'SE', 't', 'p', '95% CI'], num: [1, 2, 3, 4, 5, 6], rows: ss.map(q => [q.l, F2(q.w), F2(q.b), F2(q.se), F2(q.t), PV(q.p), CI(q.lo, q.hi)]) });
       { // 단순기울기 그림: X를 평균 ± 1SD(두 집단이면 0·1)에서, 공변인은 평균에서 예측
@@ -5727,7 +5761,7 @@ function createSurvey() {
       const H = ser ? 340 : k === 1 ? (f.W ? 380 : 330) : k === 2 ? 380 : 70 + k * 66 + 40;
       const nodes = {}, yB = ser || k === 1 ? H - 60 : (k === 2 ? H / 2 : (H - 40) / 2);
       nodes.X = [95, yB]; nodes.Y = [W - 95, yB];
-      if (ser) { nodes.M0 = [200, 80]; nodes.M1 = [W - 200, 80]; }
+      if (ser) { nodes.M0 = [165, 80]; nodes.M1 = [W - 165, 80]; }   // d 경로 라벨이 화살표를 가리지 않게 간격을 넓힘
       else if (k === 1) nodes.M0 = [W / 2, f.W ? 132 : 92];
       else if (k === 2) { nodes.M0 = [W / 2, 52]; nodes.M1 = [W / 2, H - 52]; }
       else f.Ms.forEach((_, j) => { nodes['M' + j] = [W / 2, 44 + j * 66]; });
@@ -5768,11 +5802,15 @@ function createSurvey() {
       <div class="actions tight"><button class="btn sm" data-fig-act="png" data-id="${a.id}" data-i="${i}">그림 받기 (PNG)</button><button class="btn sm" data-fig-act="png" data-id="${a.id}" data-i="${i}" data-mono="1">흑백으로 받기</button><button class="btn sm" data-fig-act="cap" data-id="${a.id}" data-i="${i}">그림 제목 복사</button></div></figure>`; }).join('')}</div>`;
   }
   // SVG → PNG (3배 크기, 흰 바탕). claude.ai 화면에서는 이미지를 띄워 저장하게 함
-  async function figPng(f, mono, name) {
+  async function figPng(f, mono, name, mark) {
     const svg = figRender(f, mono ? 'mono' : 'print'), m = svg.match(/viewBox="0 0 (\d+(?:\.\d+)?) (\d+(?:\.\d+)?)"/), W = +m[1], H = +m[2], sc = 3;
     const img = new Image(), url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
     await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
     const c = document.createElement('canvas'); c.width = W * sc; c.height = H * sc; const ctx = c.getContext('2d'); ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, c.width, c.height); ctx.drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+    if (mark) {   // 예시 자료·옛 자료로 그린 그림은 그림 안에도 표시 (논문에 그대로 들어가지 않게)
+      const fs = Math.round(c.width / 34); ctx.save(); ctx.font = `bold ${fs}px sans-serif`; ctx.textAlign = 'right'; ctx.fillStyle = 'rgba(192,40,40,.9)'; ctx.fillText(mark, c.width - fs, fs * 1.4);
+      ctx.translate(c.width / 2, c.height / 2); ctx.rotate(-0.35); ctx.textAlign = 'center'; ctx.font = `bold ${fs * 3}px sans-serif`; ctx.fillStyle = 'rgba(192,40,40,.10)'; ctx.fillText(mark.split(' — ')[0], 0, fs); ctx.restore();
+    }
     const dataUrl = c.toDataURL('image/png');
     if (hasClaude) { const ov = document.createElement('div'); ov.className = 'fig-ov'; ov.innerHTML = `<div class="fig-ov-card"><p><b>${esc(name)}</b> · 이미지를 길게 누르거나 오른쪽 버튼으로 눌러 [이미지 저장]을 고르세요.</p><img src="${dataUrl}" alt="${esc(f.title)}"><div class="actions tight"><button class="btn sm" data-fig-ov="close">닫기</button></div></div>`; ov.addEventListener('click', e => { if (e.target === ov || e.target.closest('[data-fig-ov]')) ov.remove(); }); document.body.appendChild(ov); return; }
     const a = document.createElement('a'); a.href = dataUrl; a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => a.remove(), 300);
@@ -5780,11 +5818,13 @@ function createSurvey() {
   let preFigs = [];   // 사전 분석의 점수 분포 그림 (결과에 저장하지 않음)
   document.addEventListener('click', async e => {
     const b = e.target.closest('[data-fig-act]'); if (!b) return;
-    if (b.dataset.src === 'pre') { const f = preFigs[+b.dataset.i]; if (f) { try { await figPng(f, b.dataset.mono === '1', `${f.title.replace(/[^\w가-힣]+/g, '_')}${b.dataset.mono === '1' ? '_흑백' : ''}.png`); } catch (err) { toast('그림을 만들지 못했습니다.'); } } return; }
+    if (b.dataset.src === 'pre') { const f = preFigs[+b.dataset.i]; if (f) { try { await figPng(f, b.dataset.mono === '1', `${f.title.replace(/[^\w가-힣]+/g, '_')}${b.dataset.mono === '1' ? '_흑백' : ''}.png`, lastScored && lastScored.sample ? '예시(가짜) 자료 — 논문에 쓰지 마세요' : ''); } catch (err) { toast('그림을 만들지 못했습니다.'); } } return; }
     const a = analyses.find(x => x.id === b.dataset.id), f = a && a.figs && a.figs[+b.dataset.i]; if (!f) return;
     const no = figNoMap().get(`${a.id}:${b.dataset.i}`) || 1;
     if (b.dataset.figAct === 'cap') { const t = `그림 ${no}. ${f.title}`; try { navigator.clipboard.writeText(t).then(() => toast('그림 제목을 복사했습니다.'), () => showSheet('그림 제목', t)); } catch (err) { showSheet('그림 제목', t); } return; }
-    try { await figPng(f, b.dataset.mono === '1', `그림${no}_${f.title.replace(/[^\w가-힣]+/g, '_').slice(0, 40)}${b.dataset.mono === '1' ? '_흑백' : ''}.png`); } catch (err) { toast('그림을 만들지 못했습니다.'); }
+    const stale = a.dv !== dataVersion, mark = a.sample ? '예시(가짜) 자료 — 논문에 쓰지 마세요' : stale ? '지금 자료와 다른 자료로 계산함 — 다시 계산하세요' : '';
+    if (stale && !a.sample) toast('응답 정리가 바뀌기 전 자료로 그린 그림입니다. 분석을 다시 계산한 뒤 그림을 받으세요.', 5000);
+    try { await figPng(f, b.dataset.mono === '1', `그림${no}_${f.title.replace(/[^\w가-힣]+/g, '_').slice(0, 40)}${b.dataset.mono === '1' ? '_흑백' : ''}.png`, mark); } catch (err) { toast('그림을 만들지 못했습니다.'); }
   });
 
   function renderAnalyses() {
@@ -5845,7 +5885,7 @@ function createSurvey() {
   const aiSuggest = (lead = 'AI와 상의하고 싶으면 방법을 고르세요.') => `<div class="ai-sug"><b>${lead}</b> Claude·ChatGPT 구독이나 구글 계정이 있으면 AI 도우미가 연구 폴더를 보고 함께 일하고, 구독이 없으면 채팅 AI에 복사해 물을 수 있습니다. 계산과 판정은 AI 없이도 그대로 됩니다.<div class="actions tight"><button class="btn sm primary" data-setup-open>AI 함께 쓰기</button><button class="btn sm" data-ai-skip>AI 없이 계속</button></div></div>`;
   const aiGo = attrs => AI_SITES[aiSite] ? `<button class="btn sm" ${attrs} data-ai-go>복사하고 ${AI_SITES[aiSite][0]} 열기</button>` : '';
   // 복사는 버튼마다의 처리기가 먼저 하고(같은 data-* 속성), 여기서는 그 뒤에 창만 엶
-  document.addEventListener('click', e => { if (e.target.closest('[data-ai-go]') && AI_SITES[aiSite]) window.open(AI_SITES[aiSite][1], '_blank', 'noopener'); });
+  document.addEventListener('click', e => { if (e.target.closest('[data-ai-go]') && AI_SITES[aiSite] && !e.tongNoGo) window.open(AI_SITES[aiSite][1], '_blank', 'noopener'); });
   // AI 도우미 (연구 폴더를 보고 일하는 AI): 각자 쓰는 구독에 맞게. 안내 파일은 CLAUDE.md · AGENTS.md · GEMINI.md에 같은 내용으로 넣음
   const AGENTS = {
     claude: { name: 'Claude Code', need: 'Claude 유료 요금제(Pro 이상)', file: 'CLAUDE.md', url: 'https://claude.ai/download' },
@@ -6079,7 +6119,7 @@ function createSurvey() {
             <div class="chat-step"><span class="n">4</span><div><b>AI가 쓴 초안을 아래 [초안 점검] 칸에 붙여 넣기</b></div></div>
           </div>` : ''}
         ${mode === 'code' ? `
-          <p class="hint">lazzzyResearch처럼 내 컴퓨터의 AI 도우미가 연구 폴더를 보고 대화하며 해석합니다. 쓰는 도우미: ${agentChips()} 처음이면 <a href="#guide-claude-code">처음부터 따라 하기</a>를 보세요.</p>
+          <p class="hint">내 컴퓨터의 AI 도우미가 연구 폴더를 직접 읽고 대화하며 해석하고, 결과를 폴더에 파일로 남깁니다. 쓰는 도우미: ${agentChips()} 처음이면 <a href="#guide-claude-code">처음부터 따라 하기</a>를 보세요.</p>
           <div class="chat-steps">
             <div class="chat-step"><span class="n">1</span><div><b>연구 폴더를 연결하기</b> (연결했으면 파일이 이미 들어 있습니다. 아니면 새 폴더에 아래 두 파일을 받아 넣기)
               <div class="actions tight"><button class="btn sm primary" data-in-act="dl-claude-md">${AGENTS[aiAgent].file} 받기</button><button class="btn sm primary" data-in-act="dl-json">interpretation.json 받기</button></div>
@@ -6394,7 +6434,7 @@ ${REVIEW_RULES}
     }
     else if (act === 'copy-prompt') {
       const w = b.dataset.which;
-      if (w === 'review' && !norm(reviewText())) { toast('점검할 글을 붙여 넣거나 초안을 먼저 써 주세요.'); return; }
+      if (w === 'review' && !norm(reviewText())) { e.tongNoGo = true; toast('점검할 글을 붙여 넣거나 초안을 먼저 써 주세요.'); return; }   // 복사할 것이 없으면 AI 창도 열지 않음
       const txt = w === 'check' ? checkPrompt('text') : w === 'review' ? reviewPrompt('text') : writePrompt('text'), name = w === 'check' ? '의도확인_지시문.txt' : w === 'review' ? '허점점검_지시문.txt' : '초안쓰기_지시문.txt';
       try { navigator.clipboard.writeText(txt).then(() => toast('지시문을 복사했습니다. AI 채팅에 붙여 넣으세요.'), () => showSheet(name, txt)); } catch (err) { showSheet(name, txt); }
     }
@@ -6812,7 +6852,7 @@ ${REVIEW_RULES}
         <tr><td><b>채팅 AI에 복사해 묻기</b><br><small>구독이 없을 때</small></td><td>통이 질문(지시문)을 만들어 주면 <b>[복사하고 ChatGPT 열기]</b>처럼 그 AI 창이 열립니다. 붙여 넣기(Ctrl+V)하고, 답을 다시 통에 붙여 넣습니다. 자동 연결은 아닙니다.</td><td>ChatGPT, Claude, Gemini 등 아무 AI 계정 (무료도 됨)</td></tr>
         <tr><td><b>AI 없이</b></td><td>아무것도 밖으로 보내지 않습니다. 계산, 판정, 표와 그래프, 결과 문단의 틀은 그대로 됩니다.</td><td>없음</td></tr>
       </tbody></table>
-      <p>점 색으로 지금 상태를 알 수 있습니다: <b style="color:#6a4cc4">● AI 도우미</b> · <b style="color:#e06f0b">● 채팅 AI (복사)</b> · <b style="color:#c0392b">● AI 없이</b></p>
+      <p>점 색으로 지금 상태를 알 수 있습니다: <b style="color:#e06f0b">● 채팅 AI (복사)</b> · <b style="color:#6a4cc4">● AI 도우미</b> · <b style="color:#5b6275">● AI 없이</b> · <b style="color:#8a91a5">● AI 정하기 전</b> (처음 상태. 아무것도 밖으로 보내지 않습니다)</p>
       <h3>대화를 AI 학습에 쓰지 않게 하기</h3>
       <p>무료든 유료든 채팅 서비스는 기본으로 대화를 AI 학습에 쓸 수 있습니다. 통은 응답 원자료를 보내지 않지만, 연구 내용이 걱정되면 설정에서 끄세요. (2026년 10월 기준, 메뉴 이름은 바뀔 수 있습니다)</p>
       <ul>
@@ -8455,10 +8495,10 @@ ${q}`;
     const opt = (k, t, d, dis) => `<label class="ap-opt ${sel(k) ? 'on' : ''} ${dis ? 'dis' : ''}"><input type="radio" name="ai-mode" value="${k}" ${sel(k) ? 'checked' : ''} ${dis ? 'disabled' : ''}><span><b>${t}</b><small>${d}</small></span></label>`;
     pop.innerHTML = `<div class="ap-h">AI 방식 고르기<button class="an-x" data-ap="close" title="닫기">×</button></div>
       ${aiState === 'on' || (aiMode === 'auto' && aiState !== 'off') ? opt('auto', 'Claude 바로 쓰기', can ? '이 화면 안에서 Claude가 바로 답합니다. 지금 로그인한 내 Claude 계정의 사용량을 씁니다.' : aiState === 'denied' ? '이 페이지의 Claude 사용이 허용되지 않았습니다. 화면 위쪽의 허용 안내에서 허용하면 바로 답합니다.' : '확인 중…', false) : ''}
-      ${opt('code', 'AI 도우미 (연구 폴더 맡기기)', 'Claude Code · Codex · Antigravity 중 쓰는 것. 내 컴퓨터의 AI가 연구 폴더를 보고 해석, R 점검, 문서 정리를 하고 결과가 통에 저절로 들어옵니다. PC 필요.')}
-      ${aiMode === 'code' ? aiCodeHtml() : ''}
       ${opt('copy', '채팅 AI에 복사해 묻기', '구독이 없어도 됩니다. 통이 질문을 만들어 복사하고 ChatGPT·Claude 창을 열어 주면, 붙여 넣어 묻고 답을 다시 붙여 넣습니다.')}
       ${aiMode === 'copy' ? aiCopyHtml() : ''}
+      ${opt('code', 'AI 도우미 (연구 폴더 맡기기)', 'Claude Code · Codex · Antigravity 중 쓰는 것. 내 컴퓨터의 AI가 연구 폴더를 보고 해석, R 점검, 문서 정리를 하고 결과가 통에 저절로 들어옵니다. PC 필요.')}
+      ${aiMode === 'code' ? aiCodeHtml() : ''}
       ${opt('off', 'AI 없이', '아무것도 밖으로 보내지 않습니다. 기법 고르기, 설문, 계산, 판정, 표와 그래프는 그대로 됩니다. 글은 직접 씁니다.')}
       <p class="ap-f">어느 방식이든 각자 자기 AI 계정으로 쓰고, 응답 원자료는 AI에 보내지 않습니다. <a href="#guide-ai">자세히</a></p>`;
   }
@@ -10073,10 +10113,23 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
       document.body.appendChild(d); d.querySelector('[data-c="1"]').focus();
     });
   }
+  function askText(title, body, placeholder = '', okLabel = '추가') {
+    return new Promise(res => {
+      const d = document.createElement('div'); d.className = 'cfm-wrap';
+      d.innerHTML = `<div class="cfm" role="dialog" aria-modal="true" aria-labelledby="cfm-t"><h3 id="cfm-t">${esc(title)}</h3><div class="cfm-b">${body}<textarea rows="3" class="cfm-in" placeholder="${esc(placeholder)}" style="width:100%;margin-top:8px"></textarea></div>
+        <div class="cfm-a"><button class="btn" data-c="0">취소</button><button class="btn primary" data-c="1">${esc(okLabel)}</button></div></div>`;
+      const ta = d.querySelector('textarea');
+      const done = v => { d.remove(); document.removeEventListener('keydown', key); res(v); };
+      const key = e => { if (e.key === 'Escape') done(null); };
+      d.addEventListener('click', e => { const b = e.target.closest('[data-c]'); if (b) done(b.dataset.c === '1' ? ta.value : null); else if (e.target === d) done(null); });
+      document.addEventListener('keydown', key);
+      document.body.appendChild(d); ta.focus();
+    });
+  }
   async function askRestart() {
     const hasHyp = hp && hp.items && hp.items.length;
     const ok = await askConfirm('처음으로 돌아갈까요?',
-      `<p>지금까지 고른 답${hasHyp ? '과 적은 가설' : ''}이 지워지고, <b>가설로 시작 / 질문으로 고르기</b>를 다시 고르는 첫 화면으로 갑니다.</p>
+      `<p>지금까지 고른 답${hasHyp ? '과 적은 가설' : ''}이 지워지고, <b>가설이 있어요 / 변인만 있어요</b>를 다시 고르는 첫 화면으로 갑니다.</p>
        <p class="hint">설문, 응답, 분석 결과, 결과 해석에 이미 들어간 내용은 그대로 남습니다.</p>`, '처음으로', '취소');
     if (!ok) return;
     hp = blankHyp(); saveHp();
@@ -10916,13 +10969,14 @@ as.character(jsonlite::toJSON(list(lavaan = as.character(packageVersion("lavaan"
     const mi = (r.mi && r.mi.lhs ? r.mi.lhs.map((_, i) => ({ lhs: r.mi.lhs[i], op: r.mi.op[i], rhs: r.mi.rhs[i], mi: r.mi.mi[i], epc: r.mi.epc[i] })) : []).filter(x => x.mi >= 10);
     if (!mi.length) return '<p class="hint">수정지수가 10을 넘는 곳이 없습니다.</p>';
     const lab = n => { const d = M.used.find(x => M.name.get(x.key) === n), f = M.facs.find(x => x.f === n); return d ? d.code : f ? f.label : n; };
+    const facOf = n => M.facs.find(f => f.items.some(d => M.name.get(d.key) === n)), cross = x => x.op === '~~' && facOf(x.lhs) && facOf(x.rhs) && facOf(x.lhs) !== facOf(x.rhs);
     return `<details class="item-detail"><summary>수정지수 (10 이상, ${mi.length}개)</summary><div style="padding:4px 14px 12px">
       <p class="a-mid">수정지수를 보고 모형을 고치면 적합도는 좋아지지만, 이 자료에만 맞춘 모형이 되기 쉽습니다(MacCallum 외, 1992). 같은 척도 안의 비슷한 문장처럼 <b>이론적 이유가 있을 때만</b> 오차 공분산을 추가하고, 그 이유를 논문에 적으세요. 추가하면 분석 결정 기록에 사후 수정으로 남습니다.</p>
-      <ul class="dq-out">${mi.map(x => `<li>${esc(lab(x.lhs))} ${x.op === '~~' ? '↔' : '→'} ${esc(lab(x.rhs))}: MI = ${F2(x.mi)}, 예상 변화량 ${F2(x.epc)}${x.op === '~~' ? ` <button class="linkish" data-cfa="cov-add" data-a="${esc(x.lhs)}" data-b="${esc(x.rhs)}">오차 공분산 추가…</button>` : ' <span class="hint">(교차부하: 문항이 다른 요인에도 걸림)</span>'}</li>`).join('')}</ul></div></details>`;
+      <ul class="dq-out">${mi.map(x => `<li>${esc(lab(x.lhs))} ${x.op === '~~' ? '↔' : '→'} ${esc(lab(x.rhs))}: MI = ${F2(x.mi)}, 예상 변화량 ${F2(x.epc)}${x.op === '~~' ? `${cross(x) ? ' <span class="a-low">(서로 다른 척도의 문항: 이론적 근거가 매우 드묾)</span>' : ' <span class="hint">(같은 척도 안)</span>'} <button class="linkish" data-cfa="cov-add" data-a="${esc(x.lhs)}" data-b="${esc(x.rhs)}" data-cross="${cross(x) ? 1 : 0}">오차 공분산 추가…</button>` : ' <span class="hint">(교차부하: 문항이 다른 요인에도 걸림)</span>'}</li>`).join('')}</ul></div></details>`;
   }
   function cfaSentence(r, M) {
     const [chi, df, pv, cfi, tli, rmsea, rlo, rhi, srmr] = r.fit, lo = Math.min(...r.ld.std), hi = Math.max(...r.ld.std);
-    return `측정모형의 타당성을 확인하기 위해 ${M.facs.length}개 요인(${M.facs.map(f => f.label).join(', ')})으로 확인적 요인분석을 실시하였다(${r.est === 'ML' ? '최대우도법' : r.est === 'MLR' ? '강건 최대우도법(MLR)' : 'WLSMV'}, R lavaan ${r.lavaan}). 그 결과 χ²(${F2(df, 0)}) = ${F2(chi)}, ${PS(pv)}, CFI = ${NZ(cfi)}, TLI = ${NZ(tli)}, RMSEA = ${NZ(rmsea, 3)} (90% CI [${NZ(rlo, 3)}, ${NZ(rhi, 3)}]), ${J(`SRMR = ${NZ(srmr, 3)}`, '으로/로')} 나타났다. 표준화 요인부하량은 ${J(`${NZ(lo)}~${NZ(hi)}`, '이었/였')}고, 합성신뢰도(CR)는 ${NZ(Math.min(...r.fac.map(f => f.CR)))}~${NZ(Math.max(...r.fac.map(f => f.CR)))}, 평균분산추출(AVE)은 ${J(`${NZ(Math.min(...r.fac.map(f => f.AVE)))}~${NZ(Math.max(...r.fac.map(f => f.AVE)))}`, '이었/였')}다.${M.covs.length ? ` 수정지수를 참고하되 이론적 근거가 있는 ${M.covs.length}개의 오차 공분산을 추가하였다(${M.covs.map(c => `${c.a}–${c.b}: ${c.why}`).join('; ')}).` : ''} [적합도와 타당도의 판단은 연구자가 기준과 함께 서술]`;
+    return `측정모형의 타당성을 확인하기 위해 ${M.facs.length}개 요인(${M.facs.map(f => f.label).join(', ')})으로 확인적 요인분석을 실시하였다(${r.est === 'ML' ? '최대우도법' : r.est === 'MLR' ? '강건 최대우도법(MLR)' : 'WLSMV'}, R lavaan ${r.lavaan}). 그 결과 χ²(${F2(df, 0)}) = ${F2(chi)}, ${PS(pv)}, CFI = ${NZ(cfi, 3)}, TLI = ${NZ(tli, 3)}, RMSEA = ${NZ(rmsea, 3)} (90% CI [${NZ(rlo, 3)}, ${NZ(rhi, 3)}]), ${J(`SRMR = ${NZ(srmr, 3)}`, '으로/로')} 나타났다. 표준화 요인부하량은 ${J(`${NZ(lo)}~${NZ(hi)}`, '이었/였')}고, 합성신뢰도(CR)는 ${NZ(Math.min(...r.fac.map(f => f.CR)))}~${NZ(Math.max(...r.fac.map(f => f.CR)))}, 평균분산추출(AVE)은 ${J(`${NZ(Math.min(...r.fac.map(f => f.AVE)))}~${NZ(Math.max(...r.fac.map(f => f.AVE)))}`, '이었/였')}다.${M.covs.length ? ` 수정지수를 참고하되 이론적 근거가 있는 ${M.covs.length}개의 오차 공분산을 추가하였다(${M.covs.map(c => `${c.a}–${c.b}: ${c.why}`).join('; ')}).` : ''} [적합도와 타당도의 판단은 연구자가 기준과 함께 서술]`;
   }
   document.addEventListener('click', async e => {
     const b = e.target.closest('[data-cfa]'); if (!b) return;
@@ -10931,7 +10985,8 @@ as.character(jsonlite::toJSON(list(lavaan = as.character(packageVersion("lavaan"
     else if (act === 'rcode') { const M = cfaModel(); if (M) download('cfa_lavaan.R', cfaR(M, true)); }
     else if (act === 'copy') { const t = $('#cfa-sent')?.textContent || ''; try { navigator.clipboard.writeText(t).then(() => toast('문장을 복사했습니다.'), () => showSheet('확인적 요인분석 문장', t)); } catch (err) { showSheet('확인적 요인분석 문장', t); } }
     else if (act === 'cov-add') {
-      const why = prompt(`${b.dataset.a} ↔ ${b.dataset.b} 오차 공분산을 추가하는 이론적 이유를 적어 주세요 (예: 두 문항이 거의 같은 내용을 반대로 물음). 이 이유는 기록과 논문 문장에 들어갑니다.`);
+      const cross = b.dataset.cross === '1';
+      const why = await askText(`${b.dataset.a} ↔ ${b.dataset.b} 오차 공분산 추가`, `${cross ? '<p class="a-low"><b>서로 다른 척도의 문항입니다.</b> 다른 척도 문항 사이의 오차 공분산은 이론적 근거가 매우 드물고, 측정모형을 이 자료에 억지로 맞춘 것으로 보여 심사에서 지적받기 쉽습니다. 문항을 빼거나 척도 구조를 다시 보는 것을 먼저 검토하세요.</p>' : ''}<p>추가하는 <b>이론적 이유</b>를 적어 주세요 (예: 두 문항이 거의 같은 내용을 반대로 물음). 이 이유는 분석 결정 기록과 논문 문장에 들어갑니다.</p>`, '이론적 이유', cross ? '그래도 추가' : '추가');
       if (!why || !norm(why)) { toast('이유를 적어야 추가할 수 있습니다.'); return; }
       cfaSt().covs = (cfaSt().covs || []).concat({ a: b.dataset.a, b: b.dataset.b, why: norm(why) });
       plan.log.push({ at: koNow(), id: 'cfa', q: '확인적 요인분석 모형 수정 (오차 공분산 추가)', from: '-', to: `${b.dataset.a} ~~ ${b.dataset.b} (이유: ${norm(why)})`, after: true, reason: norm(why) });
@@ -11268,12 +11323,21 @@ ${m.D.map((d, j) => `q <- pr(${rq(d.lab)}); eff(${rq(d.label)}, q$est, pct(bs[, 
     sv.demos.forEach((d, di) => {
       if (!norm(d.text) || d.type === 'text') return;
       const fx = L.demoFix.filter(f => f.di === di);
-      if (d.type === 'number') { fx.forEach(f => rows.push(`<li>${esc(d.text)}: "${esc(f.from)}" → ${f.how === 'bad' ? '<span class="a-low">숫자로 못 읽어 빈 값</span>' : `<b>${esc(f.to)}</b>`} (${f.n}명)</li>`)); return; }
+      if (d.type === 'number') {
+        const sel = (f, opts) => `<select data-dq-recode="${di}" data-from="${esc(f.from)}">${opts.map(([v, l]) => `<option value="${esc(v)}" ${(f.chosen ? f.to : '') === v || (v === '__keep' && f.chosen && f.to === f.from) ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>`;
+        fx.forEach(f => rows.push(`<li>${esc(d.text)}: "${esc(f.from)}" ${f.n}명 → ${f.how === 'bad' ? '<span class="a-low">숫자로 못 읽어 빈 값</span>'
+          : f.how === 'decade' ? '<span class="a-mid">빈 값</span> <span class="hint">(연령대는 나이로 바꾸지 않습니다. 구글 폼의 나이 칸에 숫자 검사를 켜 두세요)</span>'
+          : f.how === 'year' ? `<span class="a-mid">출생연도 같아요</span> ${sel(f, [['', '빈 값 (기본)'], [f.alt, `→ 나이 ${f.alt} (올해 기준, ±1살)`], ['__keep', `그대로 ${f.from}`]])}`
+          : f.how === 'range' ? `<span class="a-mid">나이로 보기 어려운 값(${AGE_MIN}~${AGE_MAX} 밖)</span> ${sel(f, [['', '빈 값 (기본)'], ['__keep', `그대로 ${f.from}`]])}`
+          : `<b>${esc(f.to)}</b>`}</li>`));
+        return;
+      }
       const info = L.demoInfo.find(x => x.di === di), small = info && info.kind === 'cat' ? info.freq.filter(([v, n]) => n < 5 && v !== '') : [];
       const targets = [...new Set([...(d.options || []), ...((info && info.freq) || []).map(([v]) => v)].filter(Boolean))];
       const pick = (from, cur) => `<select data-dq-recode="${di}" data-from="${esc(from)}"><option value="__keep" ${cur === from ? 'selected' : ''}>그대로 (${esc(from)})</option>${targets.filter(t => t !== from).map(t => `<option value="${esc(t)}" ${cur === t ? 'selected' : ''}>→ ${esc(t)}</option>`).join('')}<option value="" ${cur === '' ? 'selected' : ''}>→ 빈 값(결측)</option></select>`;
       fx.forEach(f => rows.push(`<li>${esc(d.text)}: "${esc(f.from)}" ${f.n}명 ${f.how === 'auto' ? '<span class="hint">(같은 뜻이라 자동으로 바꿈)</span>' : f.how === 'other' ? '<span class="a-mid">선택지에 없는 값</span>' : ''} ${pick(f.from, f.to)}</li>`));
-      small.filter(([v]) => !fx.some(f => f.to === v && f.from === v)).forEach(([v, n]) => rows.push(`<li>${esc(d.text)}: "${esc(v)}" <span class="a-mid">${n}명뿐</span> ${pick(v, v)}</li>`));
+      small.filter(([v]) => !fx.some(f => f.to === v && f.from === v) && !NONRESP.test(v)).forEach(([v, n]) => rows.push(`<li>${esc(d.text)}: "${esc(v)}" <span class="a-mid">${n}명뿐</span> ${pick(v, v)}</li>`));
+      ((info && info.freq) || []).filter(([v]) => v && NONRESP.test(v) && !fx.some(f => f.from === v)).forEach(([v, n]) => rows.push(`<li>${esc(d.text)}: "${esc(v)}" ${n}명 <span class="a-mid">답하지 않은 사람의 범주예요. 그대로 두면 집단이 하나 더 생겨 두 집단 비교(t검정 등)를 할 수 없습니다. 빈 값으로 볼지 정하세요</span> ${pick(v, v)}</li>`));
     });
     return `<div class="dq-box"><h4>기본 정보 값 정리</h4>${rows.length ? `<ul class="dq-out">${rows.join('')}</ul><p class="hint">인원이 5명보다 적은 범주는 집단 비교에서 막히기 쉬워, 이론적으로 가까운 범주와 합치는 것을 검토하세요(예: 대학원생 → 대학생). 합친 기준은 논문에 적습니다.</p>` : '<p><b class="a-ok">정리할 값이 없습니다.</b></p><p class="hint">숫자 문항의 "23세", "스물셋" 같은 값은 숫자로 바꾸고, 선택지에 없는 값과 인원이 적은 범주를 여기에 보여 줍니다.</p>'}</div>`;
   }
@@ -12052,7 +12116,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
   function openSetup() {
     if ($('#welcome')) $('#welcome').remove();
     const pop = $('#ai-pop'); if (pop) pop.hidden = true;
-    let step = 0, mode = aiUnset() ? (FS_OK ? 'code' : 'copy') : aiMode === 'auto' ? (aiState === 'on' ? 'auto' : 'copy') : aiMode;
+    let step = 0, mode = aiUnset() ? 'copy' : aiMode === 'auto' ? (aiState === 'on' ? 'auto' : 'copy') : aiMode;
     const w = document.createElement('div'); w.id = 'welcome'; w.className = 'setup'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-labelledby', 'su-h');
     const opt = (k, t, who, d, tag) => `<label class="su-opt ${mode === k ? 'on' : ''}"><input type="radio" name="su-mode" value="${k}" ${mode === k ? 'checked' : ''}><span><b>${t}${tag ? `<span class="su-tag">${tag}</span>` : ''}</b>${who ? `<small><b class="su-who">${who}</b></small>` : ''}<small>${d}</small></span></label>`;
     const sites = () => `<div class="ap-sites">${[...Object.entries(AI_SITES).map(([k, v]) => [k, v[0]]), ['other', '그 밖의 AI']].map(([k, n]) => `<button type="button" data-ai-site="${k}" class="${aiSite === k ? 'on' : ''}">${n}</button>`).join('')}</div>`;
@@ -12069,10 +12133,10 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
       if (step === 0) body = `<h3 id="su-h">AI 함께 쓰기</h3>
         <p class="wc-sub">통계 계산과 판정은 AI 없이 통이 합니다. AI는 결과를 두고 상의하고 글을 다듬을 때 씁니다. 어느 방식이든 <b>각자 자기 계정</b>으로 쓰고, <b>응답 원자료는 AI에 보내지 않습니다</b>.</p>
         ${aiState === 'on' ? opt('auto', 'Claude 바로 쓰기', '', '이 화면 안에서 Claude가 바로 답합니다. 지금 로그인한 내 Claude 계정을 씁니다.', '지금 화면') : ''}
-        ${opt('code', 'AI 도우미 (연구 폴더 맡기기)', 'Claude·ChatGPT 구독이나 구글 계정이 있고, PC에서 연구 폴더로 관리하고 싶은 학생', '내 컴퓨터의 AI 도우미(Claude Code · Codex · Antigravity)가 연구 폴더를 보고 해석, R 점검, 문서 정리를 하고, 결과가 통에 저절로 들어옵니다. 교수님의 lazzzyResearch와 같은 방식. R 점검을 시키려면 PC에 R도 설치합니다.')}
-        ${mode === 'code' ? `<div class="su-box">쓰는 도우미${agentChips()}필요한 것: <b>${AGENTS[aiAgent].need}</b></div>` : ''}
         ${opt('copy', '채팅 AI에 복사해 묻기', '구독이 없어도 됨', '통이 질문을 만들어 복사하고 ChatGPT·Claude 창을 열어 주면, 붙여 넣어 묻고 답을 다시 붙여 넣습니다. 자동 연결은 아닙니다.')}
-        ${mode === 'copy' ? `<div class="su-box">주로 쓰는 AI${sites()}${AI_TRAIN_OFF[aiSite] ? `대화를 AI 학습에 쓰지 않게 하려면 ${AI_TRAIN_OFF[aiSite]}. 유료 요금제도 기본은 켜져 있을 수 있습니다.` : '쓰시는 AI의 설정에서 대화를 학습에 쓰지 않게 끌 수 있는지 확인하세요.'}</div>` : ''}
+        ${mode === 'copy' ? `<div class="su-box">주로 쓰는 AI${sites()}${AI_TRAIN_OFF[aiSite] ? `대화를 AI 학습에 쓰지 않게 하려면 ${AI_TRAIN_OFF[aiSite]}. 유료 요금제도 기본은 켜져 있을 수 있습니다.` : '쓰시는 AI의 설정에서 대화를 학습에 쓰지 않게 끌 수 있는지 확인하세요.'} 학교·기관이 계약한 계정은 처음부터 학습에 쓰지 않는 경우가 많으니 학교 안내를 확인해 보세요.</div>` : ''}
+        ${opt('code', 'AI 도우미 (연구 폴더 맡기기)', 'Claude·ChatGPT 구독이나 구글 계정이 있고, PC에서 연구 폴더로 관리하고 싶은 학생', '내 컴퓨터의 AI 도우미(Claude Code · Codex · Antigravity)가 연구 폴더를 보고 해석, R 점검, 문서 정리를 하고, 결과가 통에 저절로 들어옵니다. R 점검을 시키려면 PC에 R도 설치합니다.')}
+        ${mode === 'code' ? `<div class="su-box">쓰는 도우미${agentChips()}필요한 것: <b>${AGENTS[aiAgent].need}</b></div>` : ''}
         ${opt('off', 'AI 없이 계속', '', '아무것도 밖으로 보내지 않습니다. 계산, 판정, 표와 그래프, 결과 문단의 틀은 그대로 되고, 글은 직접 씁니다.')}
         <div class="su-act"><button class="su-later" data-su="later">나중에</button><button class="btn primary" data-su="next">다음</button></div>`;
       else if (step < last()) body = `<h3 id="su-h">연구 폴더 연결</h3>

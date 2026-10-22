@@ -4,7 +4,7 @@
 // 검증: tests/README.md 참고 — R 기준값 비교, 화면에서 돌린 분석 전부를 통이 만든 R 코드와 비교, 경계 상황 테스트.
 // 들어 있는 분석 함수 23개: pearson, spearman, partial, pointbiserial, chisq, onesample, ind_t, paired_t, oneway, factorial, ancova, regression, hier, logistic, med_parallel, med_serial, moderation, modmed7, modmed14, rm_anova, mixed_anova, mcnemar, cochran
 
-// ##### 1. 응답 읽기 · 동의 판정 · 점수 만들기(역문항, 최소 응답, 중복) (stats-ladder.html 4115~4225줄) #####
+// ##### 1. 응답 읽기 · 동의 판정 · 점수 만들기(역문항, 최소 응답, 중복) (stats-ladder.html 4116~4234줄) #####
   function autoMap() {
     colMap = {}; mapAuto = {};
     const H = raw.headers.map(h => norm(h).toLowerCase());
@@ -47,9 +47,17 @@
     renderCollect();
   }
 
+  // CSV 읽기: UTF-8이 아니면(엑셀에서 다시 저장한 한글 윈도우 파일, CP949) 그 인코딩으로 다시 읽고 알려 줌
+  async function readCsvText(f) {
+    const buf = await f.arrayBuffer();
+    try { return { text: new TextDecoder('utf-8', { fatal: true }).decode(buf) }; }
+    catch (e) { try { return { text: new TextDecoder('euc-kr').decode(buf), cp949: true }; } catch (e2) { return { text: new TextDecoder().decode(buf) }; } }
+  }
   $('#co-file').addEventListener('change', async e => {
     const f = e.target.files[0]; e.target.value = '';
-    if (f) loadRaw(await f.text(), f.name);
+    if (!f) return;
+    const r = await readCsvText(f); loadRaw(r.text, f.name);
+    if (r.cp949) toast('엑셀에서 다시 저장한 파일(한글 윈도우 인코딩)이라 그 방식으로 읽었습니다. 글자가 깨져 보이면 엑셀을 거치지 말고 구글 폼(응답 시트)에서 바로 받은 CSV를 넣으세요.', 7000);
   });
   $('#co-read').addEventListener('click', () => {
     const t = $('#co-paste').value;
@@ -117,7 +125,7 @@
     }
     const hOpts = sel => `<option value="-1" ${sel < 0 ? 'selected' : ''}>(연결 안 함)</option>` + raw.headers.map((h, i) => `<option value="${i}" ${i === sel ? 'selected' : ''}>${i + 1}. ${esc(h.length > 40 ? h.slice(0, 40) + '…' : h)}</option>`).join('');
 
-// ##### 2. 계산 도우미 · 분포 · 회귀(QR) · 부트스트랩 · 베이즈 인자 · 숫자 표기 (stats-ladder.html 4256~4766줄) #####
+// ##### 2. 계산 도우미 · 분포 · 회귀(QR) · 부트스트랩 · 베이즈 인자 · 숫자 표기 (stats-ladder.html 4265~4795줄) #####
   // ---------- 계산 도우미 ----------
   const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
   const sd = a => { if (a.length < 2) return NaN; const m = mean(a); return Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / (a.length - 1)); };
@@ -158,6 +166,26 @@
     const k = t.replace(/\s/g, '').replace(/^만/, '').match(/^(열|스물|서른|마흔|쉰|예순|일흔|여든)?(하나|한|둘|두|셋|세|넷|네|다섯|여섯|일곱|여덟|아홉)?(?:살|세)?$/);
     return k && (k[1] || k[2]) ? String((KTEN[k[1]] || 0) + (KONE[k[2]] || 0)) : null;
   }
+  // 숫자 기본 정보 값 정리. 나이 문항은 출생연도(1999)와 범위 밖 값(250)을 빈 값으로 두고 연구자가 정하게 함. 연령대("20대")는 나이로 바꾸지 않음
+  const isAgeItem = dm => /나이|연령|age/i.test(norm(dm.text)) && !/연령대|나이대/.test(norm(dm.text));
+  const AGE_MIN = 10, AGE_MAX = 100;
+  function demoNumFix(dm, di, cell) {
+    if (!cell) return { v: '', how: '' };
+    const map = (plan.recode || {})[di] || {}, has = Object.prototype.hasOwnProperty.call(map, cell);
+    let r;
+    if (/^\d+\s*대(\s*(초반|중반|후반))?$/.test(cell)) r = { v: '', how: 'decade' };
+    else {
+      const x = demoNum(cell);
+      if (x == null) r = { v: '', how: 'bad' };
+      else if (isAgeItem(dm) && /^(19|20)\d\d$/.test(x) && +x <= new Date().getFullYear()) r = { v: '', how: 'year', alt: String(new Date().getFullYear() - +x) };
+      else if (isAgeItem(dm) && (+x < AGE_MIN || +x > AGE_MAX)) r = { v: '', how: 'range' };
+      else r = { v: x, how: x !== cell ? 'num' : '' };
+    }
+    if (has && r.how && r.how !== 'num') r = { ...r, v: map[cell], chosen: true };
+    return r;
+  }
+  // 응답하지 않은 사람의 범주 ('응답하지 않음', '모름' 등): 인원과 상관없이 연구자가 정하게 보여 줌
+  const NONRESP = /응답\s*(하지\s*)?않|무응답|모름|모르겠|밝히(고 싶지|지 않)|말하(고 싶지|지 않)|선택\s*안\s*함|해당\s*없음/;
   // 자주 쓰는 같은 뜻의 값 (선택지에 그 이름이 있을 때만 자동으로)
   const SYNO = [[/^(남|남자|남성|male|m)$/i, '남성'], [/^(여|여자|여성|female|f)$/i, '여성']];
   function demoCat(dm, di, cell) {
@@ -191,7 +219,7 @@
         const cell = norm(colMap[d.key] >= 0 ? row[colMap[d.key]] : '');
         if (d.kind === 'demo') {
           const dm = sv.demos[d.di];
-          if (dm.type === 'number') { const x = demoNum(cell); p.items[d.key] = x == null ? '' : x; if (cell && x !== cell) { const k = `${d.di}|${cell}`, o = demoFix.get(k) || { di: d.di, from: cell, to: x, how: x == null ? 'bad' : 'num', n: 0 }; o.n++; demoFix.set(k, o); } }
+          if (dm.type === 'number') { const r = demoNumFix(dm, d.di, cell); p.items[d.key] = r.v; if (r.how) { const k = `${d.di}|${cell}`, o = demoFix.get(k) || { di: d.di, from: cell, to: r.v, how: r.how, alt: r.alt, chosen: !!r.chosen, n: 0 }; o.n++; demoFix.set(k, o); } }
           else if (dm.type === 'choice') { const c = demoCat(dm, d.di, cell); p.items[d.key] = c.v; if (c.how) { const k = `${d.di}|${cell}`, o = demoFix.get(k) || { di: d.di, from: cell, to: c.v, how: c.how, n: 0 }; o.n++; demoFix.set(k, o); } }
           else p.items[d.key] = cell;
           return;
@@ -630,7 +658,7 @@
 
   // =================================================================
 
-// ##### 3. 분석 방법 (RUN): 상관·t·분산분석·회귀·로지스틱·매개·조절 (stats-ladder.html 4766~5819줄) #####
+// ##### 3. 분석 방법 (RUN): 상관·t·분산분석·회귀·로지스틱·매개·조절 (stats-ladder.html 4795~5860줄) #####
   // =================================================================
   // ⑤ 분석
   // =================================================================
@@ -751,13 +779,16 @@
     const fits = (v, t) => t === 'any' ? true : t === 'num' ? v.type === 'num' : t === 'cat' ? v.type === 'cat' : t === 'cat2' ? v.type === 'cat' && v.levels.length === 2 : t === 'numbin' ? v.type === 'num' || (v.type === 'cat' && v.levels.length === 2) : false;
     const vlabel = v => `${v.name}${v.type === 'cat' ? ` (${v.levels.length}가지)` : ''}`;
     const groups = [...new Set(Object.values(METHODS).map(m => m.group))];
+    // 두 집단 칸에 못 들어가는 세 가지 이상 범주 변인: 왜 없는지 알려 줌
+    const why2 = (s, n) => (s.type === 'cat2' || s.type === 'numbin') ? vs.filter(v => v.type === 'cat' && v.levels.length > 2 && (!n || v.levels.some(l => NONRESP.test(l)))).map(v => `${v.name}은(는) ${v.levels.length}가지(${v.levels.join(', ')})라 이 칸에 넣을 수 없습니다.${v.levels.some(l => NONRESP.test(l)) ? ' 답하지 않은 사람의 범주가 있으면' : ' 두 집단으로 쓰려면'} ⑥ 응답 취합·정리의 [기본 정보 값 정리]에서 정리하세요.`) : [];
+    const whyHtml = (s, n) => { const w = why2(s, n); return w.length ? `<span class="hint slot-why">${w.map(esc).join(' ')}</span>` : ''; };
     const slotHtml = s => {
       const cand = vs.filter(v => fits(v, s.type));
       if (s.multi) {
         const cur = anSel.roles[s.k] || [];
-        return `<div class="slot"><div class="slot-l">${esc(s.label)}</div><div class="chips">${cand.map(v => `<label class="chip ${cur.includes(v.key) ? 'on' : ''}"><input type="checkbox" data-slot="${s.k}" value="${v.key}" ${cur.includes(v.key) ? 'checked' : ''}>${esc(vlabel(v))}</label>`).join('') || '<span class="hint">알맞은 변인이 없습니다.</span>'}</div></div>`;
+        return `<div class="slot"><div class="slot-l">${esc(s.label)}</div><div class="chips">${cand.map(v => `<label class="chip ${cur.includes(v.key) ? 'on' : ''}"><input type="checkbox" data-slot="${s.k}" value="${v.key}" ${cur.includes(v.key) ? 'checked' : ''}>${esc(vlabel(v))}</label>`).join('') || '<span class="hint">알맞은 변인이 없습니다.</span>'}</div>${whyHtml(s, cand.length)}</div>`;
       }
-      return `<label class="f slot">${esc(s.label)}<select data-slot="${s.k}"><option value="">(고르세요)</option>${cand.map(v => `<option value="${v.key}" ${anSel.roles[s.k] === v.key ? 'selected' : ''}>${esc(vlabel(v))}</option>`).join('')}</select></label>`;
+      return `<label class="f slot">${esc(s.label)}<select data-slot="${s.k}"><option value="">(고르세요)</option>${cand.map(v => `<option value="${v.key}" ${anSel.roles[s.k] === v.key ? 'selected' : ''}>${esc(vlabel(v))}</option>`).join('')}</select>${whyHtml(s, cand.length)}</label>`;
     };
     const o = anSel.opts;
     box.innerHTML = `${prepCard('analysis')}${planItems().some(p => LADDER_TO_METHOD[p.result]) ? `<div class="card"><h3 class="card-title">확정한 가설 ${planItems().length}개</h3><p class="hint">미리 정한 통계 방법과 분석 결정 그대로 가설의 분석을 모두 계산합니다. 하나씩 하려면 아래에서 방법과 변인을 고르세요.</p>${runAllBtn()}</div>` : ''}${runAllHtml()}<div class="card">
@@ -1224,6 +1255,9 @@
       const sw = sd(wc), mw = mean(wc);
       const pts = W.bin ? [[`${nw} = ${P.V[r.w].levels[0]}`, 0], [`${nw} = ${P.V[r.w].levels[1]}`, 1]] : [['M − 1SD', mw - sw], ['M', mw], ['M + 1SD', mw + sw]];
       const tc = ST.tInv(0.05, fit.dfe), V = fit.cov;
+      // M ± 1SD가 관찰된 범위(예: 5점 척도의 5)를 넘으면 자료 밖 값에서 그린 선이라고 알림
+      [[W, nw], [X, nx]].forEach(([Z, nz]) => { if (Z.bin) return; const m0 = mean(Z.x), s0 = sd(Z.x), lo = Math.min(...Z.x), hi = Math.max(...Z.x), out = [m0 - s0 < lo && `M − 1SD(${F2(m0 - s0)})가 최솟값 ${F2(lo)}보다 작음`, m0 + s0 > hi && `M + 1SD(${F2(m0 + s0)})가 최댓값 ${F2(hi)}보다 큼`].filter(Boolean);
+        if (out.length) R.notes.push(`⚠ ${nz}: ${out.join(', ')}. 이 수준의 단순기울기와 그림의 선은 자료에 없는 값에서 계산한 것입니다. 해석할 때 밝히거나, 관찰 범위 안의 값(최솟값·최댓값 또는 16·50·84 백분위)으로 다시 보는 것을 검토하세요.`); });
       const ss = pts.map(([l, w]) => { const b = fit.b[1] + fit.b[3] * w, se = Math.sqrt(V[1][1] + w * w * V[3][3] + 2 * w * V[1][3]), t = b / se; return { l, w, b, se, t, p: ST.pT(Math.abs(t), fit.dfe), lo: b - tc * se, hi: b + tc * se }; });
       R.tables.push({ title: `단순기울기: ${nw} 수준별 ${nx}의 효과${o.center && !W.bin ? ' (W는 평균중심화 값)' : ''}`, head: [`${nw} 수준`, 'W 값', 'B', 'SE', 't', 'p', '95% CI'], num: [1, 2, 3, 4, 5, 6], rows: ss.map(q => [q.l, F2(q.w), F2(q.b), F2(q.se), F2(q.t), PV(q.p), CI(q.lo, q.hi)]) });
       { // 단순기울기 그림: X를 평균 ± 1SD(두 집단이면 0·1)에서, 공변인은 평균에서 예측
@@ -1594,7 +1628,7 @@
       const H = ser ? 340 : k === 1 ? (f.W ? 380 : 330) : k === 2 ? 380 : 70 + k * 66 + 40;
       const nodes = {}, yB = ser || k === 1 ? H - 60 : (k === 2 ? H / 2 : (H - 40) / 2);
       nodes.X = [95, yB]; nodes.Y = [W - 95, yB];
-      if (ser) { nodes.M0 = [200, 80]; nodes.M1 = [W - 200, 80]; }
+      if (ser) { nodes.M0 = [165, 80]; nodes.M1 = [W - 165, 80]; }   // d 경로 라벨이 화살표를 가리지 않게 간격을 넓힘
       else if (k === 1) nodes.M0 = [W / 2, f.W ? 132 : 92];
       else if (k === 2) { nodes.M0 = [W / 2, 52]; nodes.M1 = [W / 2, H - 52]; }
       else f.Ms.forEach((_, j) => { nodes['M' + j] = [W / 2, 44 + j * 66]; });
@@ -1635,11 +1669,15 @@
       <div class="actions tight"><button class="btn sm" data-fig-act="png" data-id="${a.id}" data-i="${i}">그림 받기 (PNG)</button><button class="btn sm" data-fig-act="png" data-id="${a.id}" data-i="${i}" data-mono="1">흑백으로 받기</button><button class="btn sm" data-fig-act="cap" data-id="${a.id}" data-i="${i}">그림 제목 복사</button></div></figure>`; }).join('')}</div>`;
   }
   // SVG → PNG (3배 크기, 흰 바탕). claude.ai 화면에서는 이미지를 띄워 저장하게 함
-  async function figPng(f, mono, name) {
+  async function figPng(f, mono, name, mark) {
     const svg = figRender(f, mono ? 'mono' : 'print'), m = svg.match(/viewBox="0 0 (\d+(?:\.\d+)?) (\d+(?:\.\d+)?)"/), W = +m[1], H = +m[2], sc = 3;
     const img = new Image(), url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
     await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
     const c = document.createElement('canvas'); c.width = W * sc; c.height = H * sc; const ctx = c.getContext('2d'); ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, c.width, c.height); ctx.drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+    if (mark) {   // 예시 자료·옛 자료로 그린 그림은 그림 안에도 표시 (논문에 그대로 들어가지 않게)
+      const fs = Math.round(c.width / 34); ctx.save(); ctx.font = `bold ${fs}px sans-serif`; ctx.textAlign = 'right'; ctx.fillStyle = 'rgba(192,40,40,.9)'; ctx.fillText(mark, c.width - fs, fs * 1.4);
+      ctx.translate(c.width / 2, c.height / 2); ctx.rotate(-0.35); ctx.textAlign = 'center'; ctx.font = `bold ${fs * 3}px sans-serif`; ctx.fillStyle = 'rgba(192,40,40,.10)'; ctx.fillText(mark.split(' — ')[0], 0, fs); ctx.restore();
+    }
     const dataUrl = c.toDataURL('image/png');
     if (hasClaude) { const ov = document.createElement('div'); ov.className = 'fig-ov'; ov.innerHTML = `<div class="fig-ov-card"><p><b>${esc(name)}</b> · 이미지를 길게 누르거나 오른쪽 버튼으로 눌러 [이미지 저장]을 고르세요.</p><img src="${dataUrl}" alt="${esc(f.title)}"><div class="actions tight"><button class="btn sm" data-fig-ov="close">닫기</button></div></div>`; ov.addEventListener('click', e => { if (e.target === ov || e.target.closest('[data-fig-ov]')) ov.remove(); }); document.body.appendChild(ov); return; }
     const a = document.createElement('a'); a.href = dataUrl; a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => a.remove(), 300);
@@ -1647,11 +1685,13 @@
   let preFigs = [];   // 사전 분석의 점수 분포 그림 (결과에 저장하지 않음)
   document.addEventListener('click', async e => {
     const b = e.target.closest('[data-fig-act]'); if (!b) return;
-    if (b.dataset.src === 'pre') { const f = preFigs[+b.dataset.i]; if (f) { try { await figPng(f, b.dataset.mono === '1', `${f.title.replace(/[^\w가-힣]+/g, '_')}${b.dataset.mono === '1' ? '_흑백' : ''}.png`); } catch (err) { toast('그림을 만들지 못했습니다.'); } } return; }
+    if (b.dataset.src === 'pre') { const f = preFigs[+b.dataset.i]; if (f) { try { await figPng(f, b.dataset.mono === '1', `${f.title.replace(/[^\w가-힣]+/g, '_')}${b.dataset.mono === '1' ? '_흑백' : ''}.png`, lastScored && lastScored.sample ? '예시(가짜) 자료 — 논문에 쓰지 마세요' : ''); } catch (err) { toast('그림을 만들지 못했습니다.'); } } return; }
     const a = analyses.find(x => x.id === b.dataset.id), f = a && a.figs && a.figs[+b.dataset.i]; if (!f) return;
     const no = figNoMap().get(`${a.id}:${b.dataset.i}`) || 1;
     if (b.dataset.figAct === 'cap') { const t = `그림 ${no}. ${f.title}`; try { navigator.clipboard.writeText(t).then(() => toast('그림 제목을 복사했습니다.'), () => showSheet('그림 제목', t)); } catch (err) { showSheet('그림 제목', t); } return; }
-    try { await figPng(f, b.dataset.mono === '1', `그림${no}_${f.title.replace(/[^\w가-힣]+/g, '_').slice(0, 40)}${b.dataset.mono === '1' ? '_흑백' : ''}.png`); } catch (err) { toast('그림을 만들지 못했습니다.'); }
+    const stale = a.dv !== dataVersion, mark = a.sample ? '예시(가짜) 자료 — 논문에 쓰지 마세요' : stale ? '지금 자료와 다른 자료로 계산함 — 다시 계산하세요' : '';
+    if (stale && !a.sample) toast('응답 정리가 바뀌기 전 자료로 그린 그림입니다. 분석을 다시 계산한 뒤 그림을 받으세요.', 5000);
+    try { await figPng(f, b.dataset.mono === '1', `그림${no}_${f.title.replace(/[^\w가-힣]+/g, '_').slice(0, 40)}${b.dataset.mono === '1' ? '_흑백' : ''}.png`, mark); } catch (err) { toast('그림을 만들지 못했습니다.'); }
   });
 
   function renderAnalyses() {
@@ -1686,7 +1726,7 @@
 
   // =================================================================
 
-// ##### 4. 분석 방법 (RUN 이어서): 반복측정·혼합설계 분산분석, 맥니마, 코크란 Q (stats-ladder.html 11572~11849줄) #####
+// ##### 4. 분석 방법 (RUN 이어서): 반복측정·혼합설계 분산분석, 맥니마, 코크란 Q (stats-ladder.html 11640~11917줄) #####
   // =================================================================
   // 반복측정 · 혼합설계 분산분석, 맥니마, 코크란 Q
   // =================================================================
@@ -1966,7 +2006,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
 
   // =================================================================
 
-// ##### 5. 결과 해석: 학생이 읽은 결과 점검(gistCheck), 가설↔효과 연결(autoLink), 결과 문단 틀 (stats-ladder.html 5873~6100줄) #####
+// ##### 5. 결과 해석: 학생이 읽은 결과 점검(gistCheck), 가설↔효과 연결(autoLink), 결과 문단 틀 (stats-ladder.html 5914~6141줄) #####
   // ---------- 결과의 줄기: 학생이 먼저 읽고, 코드가 판정과 맞는지 봄 ----------
   function readHint(e) {
     if (e.ciBased) return `신뢰구간 [${e.lo?.toFixed(3)}, ${e.hi?.toFixed(3)}]이 0을 포함하는지 보세요. 포함하지 않으면 간접효과가 있다고 읽습니다. 직접효과도 함께 보면 매개의 모양을 알 수 있어요.`;
@@ -2175,7 +2215,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
             <div class="chat-step"><span class="n">4</span><div><b>AI가 쓴 초안을 아래 [초안 점검] 칸에 붙여 넣기</b></div></div>
           </div>` : ''}
         ${mode === 'code' ? `
-          <p class="hint">lazzzyResearch처럼 내 컴퓨터의 AI 도우미가 연구 폴더를 보고 대화하며 해석합니다. 쓰는 도우미: ${agentChips()} 처음이면 <a href="#guide-claude-code">처음부터 따라 하기</a>를 보세요.</p>
+          <p class="hint">내 컴퓨터의 AI 도우미가 연구 폴더를 직접 읽고 대화하며 해석하고, 결과를 폴더에 파일로 남깁니다. 쓰는 도우미: ${agentChips()} 처음이면 <a href="#guide-claude-code">처음부터 따라 하기</a>를 보세요.</p>
           <div class="chat-steps">
             <div class="chat-step"><span class="n">1</span><div><b>연구 폴더를 연결하기</b> (연결했으면 파일이 이미 들어 있습니다. 아니면 새 폴더에 아래 두 파일을 받아 넣기)
               <div class="actions tight"><button class="btn sm primary" data-in-act="dl-claude-md">${AGENTS[aiAgent].file} 받기</button><button class="btn sm primary" data-in-act="dl-json">interpretation.json 받기</button></div>
@@ -2196,7 +2236,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
   }
 
 
-// ##### 6. 보고 체크리스트: 효과크기 신뢰구간, 정규성, 가정 점검 (stats-ladder.html 6966~7178줄) #####
+// ##### 6. 보고 체크리스트: 효과크기 신뢰구간, 정규성, 가정 점검 (stats-ladder.html 7007~7219줄) #####
   // =================================================================
   // 보고 체크리스트 (APA 7 결과 보고 항목을 코드가 점검)
   // =================================================================
@@ -2411,7 +2451,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
 
   // =================================================================
 
-// ##### 7. 분석 결정 (기본값) (stats-ladder.html 7290~7407줄) #####
+// ##### 7. 분석 결정 (기본값) (stats-ladder.html 7331~7448줄) #####
   // =================================================================
   // 분석 결정 (연구자가 정하고, 바꾼 것은 기록)
   // =================================================================
@@ -2531,7 +2571,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
 
   // =================================================================
 
-// ##### 8. R 코드 만들기 (재계산용) (stats-ladder.html 7407~7774줄) #####
+// ##### 8. R 코드 만들기 (재계산용) (stats-ladder.html 7448~7815줄) #####
   // =================================================================
   // R 코드 만들기 (분석 계획서 그대로, 기본 R만 사용)
   // =================================================================
@@ -2901,7 +2941,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
 
   // =================================================================
 
-// ##### 9. SPSS 명령문 만들기 · SPSS 출력과 대조 (stats-ladder.html 11849~12026줄) #####
+// ##### 9. SPSS 명령문 만들기 · SPSS 출력과 대조 (stats-ladder.html 11917~12094줄) #####
   // =================================================================
   // SPSS로 확인하기: 명령문(.sps) 만들기 + SPSS 출력의 숫자와 맞춰 보기 (AI 없이 규칙으로)
   // =================================================================
@@ -3081,7 +3121,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
   });
 
 
-// ##### 10. 표본 수 계산 (G*Power 방식): 분포 함수 (stats-ladder.html 10084~10181줄) #####
+// ##### 10. 표본 수 계산 (G*Power 방식): 분포 함수 (stats-ladder.html 10141~10238줄) #####
   // ---------- 표본 수 계산: 비중심 분포 (G*Power와 같은 방식) ----------
   const PW = (() => {
     const { pF, pChi, zInv } = ST;
@@ -3181,7 +3221,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
 
   // =================================================================
 
-// ##### 11. 표본 수 계산: 화면이 넘기는 자유도·비중심 모수 (stats-ladder.html 10257~10438줄) #####
+// ##### 11. 표본 수 계산: 화면이 넘기는 자유도·비중심 모수 (stats-ladder.html 10314~10495줄) #####
   // ---------- 표본 수 계산 ----------
   const ESZ = {
     d: { lab: 'd', v: [0.2, 0.5, 0.8] }, f: { lab: 'f', v: [0.1, 0.25, 0.4] }, f2: { lab: 'f²', v: [0.02, 0.15, 0.35] }, r: { lab: 'r', v: [0.1, 0.3, 0.5] },
@@ -3365,7 +3405,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
   });
 
 
-// ##### 12. 탐색적 요인분석 (PAF·PCA, 베리맥스) · 확인적 요인분석 (webR lavaan, CR·AVE·HTMT) (stats-ladder.html 10691~11123줄) #####
+// ##### 12. 탐색적 요인분석 (PAF·PCA, 베리맥스) · 확인적 요인분석 (webR lavaan, CR·AVE·HTMT) (stats-ladder.html 10748~11182줄) #####
   // ---------- 탐색적 요인분석: 주축요인추출(PAF) 또는 주성분 추출 + 베리맥스 회전 ----------
   // PAF는 R psych::fa(fm = "pa")·SPSS '주축 요인 추출'과 같은 반복 방식, 주성분은 R의 eigen과 같음. 회전은 R의 varimax(정규화)와 같음
   function jacobiEig(A) {
@@ -3590,13 +3630,14 @@ as.character(jsonlite::toJSON(list(lavaan = as.character(packageVersion("lavaan"
     const mi = (r.mi && r.mi.lhs ? r.mi.lhs.map((_, i) => ({ lhs: r.mi.lhs[i], op: r.mi.op[i], rhs: r.mi.rhs[i], mi: r.mi.mi[i], epc: r.mi.epc[i] })) : []).filter(x => x.mi >= 10);
     if (!mi.length) return '<p class="hint">수정지수가 10을 넘는 곳이 없습니다.</p>';
     const lab = n => { const d = M.used.find(x => M.name.get(x.key) === n), f = M.facs.find(x => x.f === n); return d ? d.code : f ? f.label : n; };
+    const facOf = n => M.facs.find(f => f.items.some(d => M.name.get(d.key) === n)), cross = x => x.op === '~~' && facOf(x.lhs) && facOf(x.rhs) && facOf(x.lhs) !== facOf(x.rhs);
     return `<details class="item-detail"><summary>수정지수 (10 이상, ${mi.length}개)</summary><div style="padding:4px 14px 12px">
       <p class="a-mid">수정지수를 보고 모형을 고치면 적합도는 좋아지지만, 이 자료에만 맞춘 모형이 되기 쉽습니다(MacCallum 외, 1992). 같은 척도 안의 비슷한 문장처럼 <b>이론적 이유가 있을 때만</b> 오차 공분산을 추가하고, 그 이유를 논문에 적으세요. 추가하면 분석 결정 기록에 사후 수정으로 남습니다.</p>
-      <ul class="dq-out">${mi.map(x => `<li>${esc(lab(x.lhs))} ${x.op === '~~' ? '↔' : '→'} ${esc(lab(x.rhs))}: MI = ${F2(x.mi)}, 예상 변화량 ${F2(x.epc)}${x.op === '~~' ? ` <button class="linkish" data-cfa="cov-add" data-a="${esc(x.lhs)}" data-b="${esc(x.rhs)}">오차 공분산 추가…</button>` : ' <span class="hint">(교차부하: 문항이 다른 요인에도 걸림)</span>'}</li>`).join('')}</ul></div></details>`;
+      <ul class="dq-out">${mi.map(x => `<li>${esc(lab(x.lhs))} ${x.op === '~~' ? '↔' : '→'} ${esc(lab(x.rhs))}: MI = ${F2(x.mi)}, 예상 변화량 ${F2(x.epc)}${x.op === '~~' ? `${cross(x) ? ' <span class="a-low">(서로 다른 척도의 문항: 이론적 근거가 매우 드묾)</span>' : ' <span class="hint">(같은 척도 안)</span>'} <button class="linkish" data-cfa="cov-add" data-a="${esc(x.lhs)}" data-b="${esc(x.rhs)}" data-cross="${cross(x) ? 1 : 0}">오차 공분산 추가…</button>` : ' <span class="hint">(교차부하: 문항이 다른 요인에도 걸림)</span>'}</li>`).join('')}</ul></div></details>`;
   }
   function cfaSentence(r, M) {
     const [chi, df, pv, cfi, tli, rmsea, rlo, rhi, srmr] = r.fit, lo = Math.min(...r.ld.std), hi = Math.max(...r.ld.std);
-    return `측정모형의 타당성을 확인하기 위해 ${M.facs.length}개 요인(${M.facs.map(f => f.label).join(', ')})으로 확인적 요인분석을 실시하였다(${r.est === 'ML' ? '최대우도법' : r.est === 'MLR' ? '강건 최대우도법(MLR)' : 'WLSMV'}, R lavaan ${r.lavaan}). 그 결과 χ²(${F2(df, 0)}) = ${F2(chi)}, ${PS(pv)}, CFI = ${NZ(cfi)}, TLI = ${NZ(tli)}, RMSEA = ${NZ(rmsea, 3)} (90% CI [${NZ(rlo, 3)}, ${NZ(rhi, 3)}]), ${J(`SRMR = ${NZ(srmr, 3)}`, '으로/로')} 나타났다. 표준화 요인부하량은 ${J(`${NZ(lo)}~${NZ(hi)}`, '이었/였')}고, 합성신뢰도(CR)는 ${NZ(Math.min(...r.fac.map(f => f.CR)))}~${NZ(Math.max(...r.fac.map(f => f.CR)))}, 평균분산추출(AVE)은 ${J(`${NZ(Math.min(...r.fac.map(f => f.AVE)))}~${NZ(Math.max(...r.fac.map(f => f.AVE)))}`, '이었/였')}다.${M.covs.length ? ` 수정지수를 참고하되 이론적 근거가 있는 ${M.covs.length}개의 오차 공분산을 추가하였다(${M.covs.map(c => `${c.a}–${c.b}: ${c.why}`).join('; ')}).` : ''} [적합도와 타당도의 판단은 연구자가 기준과 함께 서술]`;
+    return `측정모형의 타당성을 확인하기 위해 ${M.facs.length}개 요인(${M.facs.map(f => f.label).join(', ')})으로 확인적 요인분석을 실시하였다(${r.est === 'ML' ? '최대우도법' : r.est === 'MLR' ? '강건 최대우도법(MLR)' : 'WLSMV'}, R lavaan ${r.lavaan}). 그 결과 χ²(${F2(df, 0)}) = ${F2(chi)}, ${PS(pv)}, CFI = ${NZ(cfi, 3)}, TLI = ${NZ(tli, 3)}, RMSEA = ${NZ(rmsea, 3)} (90% CI [${NZ(rlo, 3)}, ${NZ(rhi, 3)}]), ${J(`SRMR = ${NZ(srmr, 3)}`, '으로/로')} 나타났다. 표준화 요인부하량은 ${J(`${NZ(lo)}~${NZ(hi)}`, '이었/였')}고, 합성신뢰도(CR)는 ${NZ(Math.min(...r.fac.map(f => f.CR)))}~${NZ(Math.max(...r.fac.map(f => f.CR)))}, 평균분산추출(AVE)은 ${J(`${NZ(Math.min(...r.fac.map(f => f.AVE)))}~${NZ(Math.max(...r.fac.map(f => f.AVE)))}`, '이었/였')}다.${M.covs.length ? ` 수정지수를 참고하되 이론적 근거가 있는 ${M.covs.length}개의 오차 공분산을 추가하였다(${M.covs.map(c => `${c.a}–${c.b}: ${c.why}`).join('; ')}).` : ''} [적합도와 타당도의 판단은 연구자가 기준과 함께 서술]`;
   }
   document.addEventListener('click', async e => {
     const b = e.target.closest('[data-cfa]'); if (!b) return;
@@ -3605,7 +3646,8 @@ as.character(jsonlite::toJSON(list(lavaan = as.character(packageVersion("lavaan"
     else if (act === 'rcode') { const M = cfaModel(); if (M) download('cfa_lavaan.R', cfaR(M, true)); }
     else if (act === 'copy') { const t = $('#cfa-sent')?.textContent || ''; try { navigator.clipboard.writeText(t).then(() => toast('문장을 복사했습니다.'), () => showSheet('확인적 요인분석 문장', t)); } catch (err) { showSheet('확인적 요인분석 문장', t); } }
     else if (act === 'cov-add') {
-      const why = prompt(`${b.dataset.a} ↔ ${b.dataset.b} 오차 공분산을 추가하는 이론적 이유를 적어 주세요 (예: 두 문항이 거의 같은 내용을 반대로 물음). 이 이유는 기록과 논문 문장에 들어갑니다.`);
+      const cross = b.dataset.cross === '1';
+      const why = await askText(`${b.dataset.a} ↔ ${b.dataset.b} 오차 공분산 추가`, `${cross ? '<p class="a-low"><b>서로 다른 척도의 문항입니다.</b> 다른 척도 문항 사이의 오차 공분산은 이론적 근거가 매우 드물고, 측정모형을 이 자료에 억지로 맞춘 것으로 보여 심사에서 지적받기 쉽습니다. 문항을 빼거나 척도 구조를 다시 보는 것을 먼저 검토하세요.</p>' : ''}<p>추가하는 <b>이론적 이유</b>를 적어 주세요 (예: 두 문항이 거의 같은 내용을 반대로 물음). 이 이유는 분석 결정 기록과 논문 문장에 들어갑니다.</p>`, '이론적 이유', cross ? '그래도 추가' : '추가');
       if (!why || !norm(why)) { toast('이유를 적어야 추가할 수 있습니다.'); return; }
       cfaSt().covs = (cfaSt().covs || []).concat({ a: b.dataset.a, b: b.dataset.b, why: norm(why) });
       plan.log.push({ at: koNow(), id: 'cfa', q: '확인적 요인분석 모형 수정 (오차 공분산 추가)', from: '-', to: `${b.dataset.a} ~~ ${b.dataset.b} (이유: ${norm(why)})`, after: true, reason: norm(why) });
@@ -3800,7 +3842,7 @@ ${m.D.map((d, j) => `q <- pr(${rq(d.lab)}); eff(${rq(d.label)}, q$est, pct(bs[, 
   }
 
 
-// ##### 13. 자료 점검: 이상치·결측·표본 확인·측정 점검·사전 분석 (stats-ladder.html 11124~11572줄) #####
+// ##### 13. 자료 점검: 이상치·결측·표본 확인·측정 점검·사전 분석 (stats-ladder.html 11183~11640줄) #####
   // 자료 점검: 응답 정리(중복·이상치·결측) · 표본 확인 · 측정 점검 · 사전 분석
   // =================================================================
   const chiCrit = (a, df) => { let lo = 0, hi = 1000; for (let i = 0; i < 100; i++) { const m = (lo + hi) / 2; if (ST.pChi(m, df) > a) lo = m; else hi = m; } return (lo + hi) / 2; };
@@ -3944,12 +3986,21 @@ ${m.D.map((d, j) => `q <- pr(${rq(d.lab)}); eff(${rq(d.label)}, q$est, pct(bs[, 
     sv.demos.forEach((d, di) => {
       if (!norm(d.text) || d.type === 'text') return;
       const fx = L.demoFix.filter(f => f.di === di);
-      if (d.type === 'number') { fx.forEach(f => rows.push(`<li>${esc(d.text)}: "${esc(f.from)}" → ${f.how === 'bad' ? '<span class="a-low">숫자로 못 읽어 빈 값</span>' : `<b>${esc(f.to)}</b>`} (${f.n}명)</li>`)); return; }
+      if (d.type === 'number') {
+        const sel = (f, opts) => `<select data-dq-recode="${di}" data-from="${esc(f.from)}">${opts.map(([v, l]) => `<option value="${esc(v)}" ${(f.chosen ? f.to : '') === v || (v === '__keep' && f.chosen && f.to === f.from) ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>`;
+        fx.forEach(f => rows.push(`<li>${esc(d.text)}: "${esc(f.from)}" ${f.n}명 → ${f.how === 'bad' ? '<span class="a-low">숫자로 못 읽어 빈 값</span>'
+          : f.how === 'decade' ? '<span class="a-mid">빈 값</span> <span class="hint">(연령대는 나이로 바꾸지 않습니다. 구글 폼의 나이 칸에 숫자 검사를 켜 두세요)</span>'
+          : f.how === 'year' ? `<span class="a-mid">출생연도 같아요</span> ${sel(f, [['', '빈 값 (기본)'], [f.alt, `→ 나이 ${f.alt} (올해 기준, ±1살)`], ['__keep', `그대로 ${f.from}`]])}`
+          : f.how === 'range' ? `<span class="a-mid">나이로 보기 어려운 값(${AGE_MIN}~${AGE_MAX} 밖)</span> ${sel(f, [['', '빈 값 (기본)'], ['__keep', `그대로 ${f.from}`]])}`
+          : `<b>${esc(f.to)}</b>`}</li>`));
+        return;
+      }
       const info = L.demoInfo.find(x => x.di === di), small = info && info.kind === 'cat' ? info.freq.filter(([v, n]) => n < 5 && v !== '') : [];
       const targets = [...new Set([...(d.options || []), ...((info && info.freq) || []).map(([v]) => v)].filter(Boolean))];
       const pick = (from, cur) => `<select data-dq-recode="${di}" data-from="${esc(from)}"><option value="__keep" ${cur === from ? 'selected' : ''}>그대로 (${esc(from)})</option>${targets.filter(t => t !== from).map(t => `<option value="${esc(t)}" ${cur === t ? 'selected' : ''}>→ ${esc(t)}</option>`).join('')}<option value="" ${cur === '' ? 'selected' : ''}>→ 빈 값(결측)</option></select>`;
       fx.forEach(f => rows.push(`<li>${esc(d.text)}: "${esc(f.from)}" ${f.n}명 ${f.how === 'auto' ? '<span class="hint">(같은 뜻이라 자동으로 바꿈)</span>' : f.how === 'other' ? '<span class="a-mid">선택지에 없는 값</span>' : ''} ${pick(f.from, f.to)}</li>`));
-      small.filter(([v]) => !fx.some(f => f.to === v && f.from === v)).forEach(([v, n]) => rows.push(`<li>${esc(d.text)}: "${esc(v)}" <span class="a-mid">${n}명뿐</span> ${pick(v, v)}</li>`));
+      small.filter(([v]) => !fx.some(f => f.to === v && f.from === v) && !NONRESP.test(v)).forEach(([v, n]) => rows.push(`<li>${esc(d.text)}: "${esc(v)}" <span class="a-mid">${n}명뿐</span> ${pick(v, v)}</li>`));
+      ((info && info.freq) || []).filter(([v]) => v && NONRESP.test(v) && !fx.some(f => f.from === v)).forEach(([v, n]) => rows.push(`<li>${esc(d.text)}: "${esc(v)}" ${n}명 <span class="a-mid">답하지 않은 사람의 범주예요. 그대로 두면 집단이 하나 더 생겨 두 집단 비교(t검정 등)를 할 수 없습니다. 빈 값으로 볼지 정하세요</span> ${pick(v, v)}</li>`));
     });
     return `<div class="dq-box"><h4>기본 정보 값 정리</h4>${rows.length ? `<ul class="dq-out">${rows.join('')}</ul><p class="hint">인원이 5명보다 적은 범주는 집단 비교에서 막히기 쉬워, 이론적으로 가까운 범주와 합치는 것을 검토하세요(예: 대학원생 → 대학생). 합친 기준은 논문에 적습니다.</p>` : '<p><b class="a-ok">정리할 값이 없습니다.</b></p><p class="hint">숫자 문항의 "23세", "스물셋" 같은 값은 숫자로 바꾸고, 선택지에 없는 값과 인원이 적은 범주를 여기에 보여 줍니다.</p>'}</div>`;
   }
