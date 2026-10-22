@@ -84,7 +84,7 @@ else {
   const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('dialog', d => d.accept());
   await p.goto(BASE); await p.evaluate(() => { localStorage.clear(); localStorage.setItem('ladder.noWelcome', 'true'); }); await p.reload();
   await p.waitForTimeout(300); await p.click('#splash').catch(() => {}); await p.waitForTimeout(300);
-  await p.click('[data-hp=mode-ladder]'); await p.click('[data-nav=survey]'); await p.click('[data-sv-act=example]'); await p.waitForTimeout(200);
+  await p.click('[data-hp=mode-hyp]'); await p.click('[data-nav=survey]'); await p.click('[data-sv-act=example]'); await p.waitForTimeout(200);
   await p.evaluate(() => { const sv = JSON.parse(localStorage.getItem('ladder.survey')); sv.demos[0].options = ['남성', '여성']; ['상담 경험 1차', '상담 경험 2차', '상담 경험 3차'].forEach((t, i) => sv.demos.push({ text: t, code: 'C' + (i + 1), type: 'choice', options: ['예', '아니오'] })); localStorage.setItem('ladder.survey', JSON.stringify(sv)); });
   await p.reload(); await p.waitForTimeout(400); await p.click('#splash').catch(() => {});
   await p.click('[data-nav=analysis]'); await p.waitForTimeout(300); await p.click('[data-an-act=demo]'); await p.waitForTimeout(800);

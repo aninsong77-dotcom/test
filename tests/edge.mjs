@@ -24,7 +24,7 @@ async function open(editSurvey, q = '') {
   const p = await ctx.newPage(); const errs = [];
   p.on('pageerror', e => errs.push(e.message)); p.on('dialog', d => d.accept());
   await p.goto(BASE + q); await p.evaluate(() => { localStorage.clear(); localStorage.setItem('ladder.noWelcome', 'true'); }); await p.reload(); await p.waitForTimeout(700);
-  await p.click('#splash').catch(() => {}); await p.click('[data-hp=mode-ladder]').catch(() => {});
+  await p.click('#splash').catch(() => {}); await p.click('[data-hp=mode-hyp]').catch(() => {});
   await p.click('[data-nav=survey]'); await p.click('[data-sv-act=example]'); await p.waitForTimeout(250);
   if (editSurvey) {
     await p.evaluate(src => { const sv = JSON.parse(localStorage.getItem('ladder.survey')); (new Function('sv', src))(sv); localStorage.setItem('ladder.survey', JSON.stringify(sv)); }, editSurvey);
@@ -172,8 +172,8 @@ console.log('\n2. 계산이 안 되는 자료 → 한국어 안내');
   ok('매개 · X가 점수 → 완전표준화 효과', r2.ok && /완전표준화 효과/.test(r2.text));
 }
 
-// ===================== 3. 통계 기법 고르기 (사다리) =====================
-console.log('\n3. 사다리: 매개·조절 질문은 맞는 기법에서만');
+// ===================== 3. 기법 규칙 (화면의 질문 고르기는 없앴지만, 가설에서 기법을 정할 때 안에서 씀) =====================
+console.log('\n3. 기법 규칙: 매개·조절은 맞는 기법에서만');
 {
   const ctx = await browser.newContext(); const p = await ctx.newPage();
   await p.goto(BASE + '?selftest'); await p.waitForFunction(() => window.tongCore);
@@ -194,6 +194,30 @@ console.log('\n3. 사다리: 매개·조절 질문은 맞는 기법에서만');
   ok('어떤 경로로도 단일표본·대응·반복측정·분류 결과 기법 뒤에 매개·조절이 붙지 않음', !res.bad.length, res.bad.slice(0, 5).join(', '));
   ok('그 기법들에는 질문 없이 바로 도착', res.noGate.length >= 6, res.noGate.join(', '));
   ok('회귀·상관·독립 t 뒤에서는 여전히 매개·조절을 물음', ['r_multiple_reg', 'r_pearson', 'r_ind_t'].every(b => res.gatedBases.includes(b)), `경로 ${res.n}개`);
+  await ctx.close();
+}
+
+// ===================== 3-2. 시작 화면 · 변인만 있어요 =====================
+console.log('\n3-2. 시작 화면 · 변인만 있어요');
+{
+  const ctx = await browser.newContext({ viewport: { width: 1366, height: 1000 } }); const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message));
+  await p.goto(BASE); await p.evaluate(() => { localStorage.clear(); localStorage.setItem('ladder.noWelcome', 'true'); }); await p.reload();
+  await p.waitForTimeout(300); await p.click('#splash').catch(() => {}); await p.waitForTimeout(300);
+  const opts = await p.$$eval('.start-opt', e => e.map(x => x.querySelector('b').textContent));
+  ok('시작 화면: [가설이 있어요]·[변인만 있어요] (막연해요 없음)', opts.join(',') === '가설이 있어요,변인만 있어요', opts.join(','));
+  ok('왼쪽 메뉴에 갈림길 규칙 없음, ①은 가설과 분석 정하기', await p.evaluate(() => !document.body.innerText.includes('갈림길 규칙') && /가설과 분석 정하기/.test(document.querySelector('nav, #nav, .nav')?.innerText || document.body.innerText)));
+  await p.click('[data-hp=mode-vars]'); await p.waitForTimeout(300);
+  for (const n of ['능력주의 신념', '외로움', '사회비교경향성', '외집단 혐오']) { await p.fill('#mb-newvar', n); await p.keyboard.press('Enter'); await p.waitForTimeout(150); }
+  const sg = await p.$eval('.mb-sg', e => e.innerText);
+  ok('변인 4개 → 결과 변인과 가설 후보 묶음(관계·매개·조절·순차)', /결과\(Y\)/.test(sg) && ['관계·영향', '매개', '조절', '순차 매개'].every(k => sg.includes(k)), sg.split('\n').slice(0, 4).join(' / '));
+  await p.click('.mb-sg [data-mb-act=sg-y][data-v="외집단 혐오"]'); await p.waitForTimeout(200);
+  const medBtn = await p.$('.mb-sg [data-mb-act=sg-add][data-t*="외로움은 능력주의 신념과 외집단 혐오의 관계를 매개"]');
+  ok('매개 후보: "외로움은 능력주의 신념과 외집단 혐오의 관계를 매개할 것이다"', !!medBtn);
+  if (medBtn) { await medBtn.click(); await p.waitForTimeout(300); }
+  const cards = await p.evaluate(() => JSON.parse(localStorage.getItem('ladder.hyp') || 'null')?.cards || []);
+  ok('[가설로]를 누르면 매개 모형 카드가 생김', cards.some(c => c.model === 'med' && c.m.includes('외로움') && c.y === '외집단 혐오'), cards.map(c => c.model).join(','));
+  ok('만든 후보는 "카드로 만듦"으로 표시', /카드로 만듦/.test(await p.$eval('.mb-sg', e => e.innerText)));
+  ok('페이지 오류 없음 (시작 화면)', !errs.length, errs.join(' | '));
   await ctx.close();
 }
 
@@ -335,7 +359,7 @@ console.log('\n7. 원척도 정보 · 기법별 필요한 준비');
   const ctx = await browser.newContext({ viewport: { width: 1366, height: 1000 } }); const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('dialog', d => d.accept());
   await p.goto(BASE); await p.evaluate(() => { localStorage.clear(); localStorage.setItem('ladder.noWelcome', 'true'); }); await p.reload();
   await p.waitForTimeout(300); await p.click('#splash').catch(() => {}); await p.waitForTimeout(300);
-  await p.click('[data-hp=mode-ladder]'); await p.click('[data-nav=survey]'); await p.click('[data-sv-act=example]'); await p.waitForTimeout(300);
+  await p.click('[data-hp=mode-hyp]'); await p.click('[data-nav=survey]'); await p.click('[data-sv-act=example]'); await p.waitForTimeout(300);
   await p.fill('[data-sc="0"][data-f="source"]', 'Son & Liu (2018)'); await p.fill('[data-sc="0"][data-f="origAlpha"]', '.91'); await p.fill('[data-sc="0"][data-f="origSample"]', '대학생 312명');
   await p.click('[data-nav=analysis]'); await p.waitForTimeout(300); await p.click('[data-an-act=demo]'); await p.waitForTimeout(800);
   await p.selectOption('#an-method', 'sem'); await p.waitForTimeout(300);

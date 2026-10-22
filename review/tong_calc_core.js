@@ -4,7 +4,7 @@
 // 검증: tests/README.md 참고 — R 기준값 비교, 화면에서 돌린 분석 전부를 통이 만든 R 코드와 비교, 경계 상황 테스트.
 // 들어 있는 분석 함수 23개: pearson, spearman, partial, pointbiserial, chisq, onesample, ind_t, paired_t, oneway, factorial, ancova, regression, hier, logistic, med_parallel, med_serial, moderation, modmed7, modmed14, rm_anova, mixed_anova, mcnemar, cochran
 
-// ##### 1. 응답 읽기 · 동의 판정 · 점수 만들기(역문항, 최소 응답, 중복) (stats-ladder.html 4097~4207줄) #####
+// ##### 1. 응답 읽기 · 동의 판정 · 점수 만들기(역문항, 최소 응답, 중복) (stats-ladder.html 4104~4214줄) #####
   function autoMap() {
     colMap = {}; mapAuto = {};
     const H = raw.headers.map(h => norm(h).toLowerCase());
@@ -117,7 +117,7 @@
     }
     const hOpts = sel => `<option value="-1" ${sel < 0 ? 'selected' : ''}>(연결 안 함)</option>` + raw.headers.map((h, i) => `<option value="${i}" ${i === sel ? 'selected' : ''}>${i + 1}. ${esc(h.length > 40 ? h.slice(0, 40) + '…' : h)}</option>`).join('');
 
-// ##### 2. 계산 도우미 · 분포 · 회귀(QR) · 부트스트랩 · 베이즈 인자 · 숫자 표기 (stats-ladder.html 4238~4748줄) #####
+// ##### 2. 계산 도우미 · 분포 · 회귀(QR) · 부트스트랩 · 베이즈 인자 · 숫자 표기 (stats-ladder.html 4245~4755줄) #####
   // ---------- 계산 도우미 ----------
   const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
   const sd = a => { if (a.length < 2) return NaN; const m = mean(a); return Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / (a.length - 1)); };
@@ -630,7 +630,7 @@
 
   // =================================================================
 
-// ##### 3. 분석 방법 (RUN): 상관·t·분산분석·회귀·로지스틱·매개·조절 (stats-ladder.html 4748~5799줄) #####
+// ##### 3. 분석 방법 (RUN): 상관·t·분산분석·회귀·로지스틱·매개·조절 (stats-ladder.html 4755~5806줄) #####
   // =================================================================
   // ⑤ 분석
   // =================================================================
@@ -735,8 +735,8 @@
   function renderAnalysis() {
     const box = $('#an-main');
     const lid = ladderResultId(), lm = lid ? LADDER_TO_METHOD[lid] : undefined;
-    const ladderNote = lid ? (lm ? `사다리가 고른 기법: <b>${esc(RULES.results[lid].name)}</b> → 아래에서 <b>${esc(METHODS[lm].name)}</b>으로 계산합니다.`
-      : `사다리가 고른 기법 <b>${esc(RULES.results[lid].name)}</b>은 이 사이트에서 아직 계산하지 않습니다. jamovi(무료)나 SPSS에서 계산하고, 결과 해석 메뉴에 그 결과를 직접 적어 쓸 수 있습니다.`) : '사다리에서 기법을 고르면 그 기법이 먼저 선택됩니다.';
+    const ladderNote = lid ? (lm ? `가설로 정한 기법: <b>${esc(RULES.results[lid].name)}</b> → 아래에서 <b>${esc(METHODS[lm].name)}</b>으로 계산합니다.`
+      : `가설로 정한 기법 <b>${esc(RULES.results[lid].name)}</b>은 이 사이트에서 아직 계산하지 않습니다. jamovi(무료)나 SPSS에서 계산하고, 결과 해석 메뉴에 그 결과를 직접 적어 쓸 수 있습니다.`) : '①에서 가설을 정하면 그 기법이 먼저 선택됩니다.';
     if (!lastScored) {
       box.innerHTML = `<div class="card">
         <h3 class="card-title">분석할 자료가 아직 없습니다</h3>
@@ -763,7 +763,7 @@
     box.innerHTML = `${prepCard('analysis')}${planItems().some(p => LADDER_TO_METHOD[p.result]) ? `<div class="card"><h3 class="card-title">확정한 가설 ${planItems().length}개</h3><p class="hint">미리 정한 통계 방법과 분석 결정 그대로 가설의 분석을 모두 계산합니다. 하나씩 하려면 아래에서 방법과 변인을 고르세요.</p>${runAllBtn()}</div>` : ''}${runAllHtml()}<div class="card">
       <div class="data-line"><span class="st auto">자료</span> 분석에 포함된 응답 ${lastScored.inc.length}명 · 변인 ${vs.length}개${lastScored.sample ? ' · <b>예시(가짜) 자료</b>' : ''}</div>
       <p class="hint">${ladderNote}</p>
-      <label class="f" style="max-width:520px;margin-top:12px">분석 방법<select id="an-method">${groups.map(g => `<optgroup label="${esc(g)}">${Object.entries(METHODS).filter(([, m]) => m.group === g).map(([k, m]) => `<option value="${k}" ${k === anSel.method ? 'selected' : ''}>${esc(m.name)}${k === lm ? ' ← 사다리' : ''}</option>`).join('')}</optgroup>`).join('')}</select></label>
+      <label class="f" style="max-width:520px;margin-top:12px">분석 방법<select id="an-method">${groups.map(g => `<optgroup label="${esc(g)}">${Object.entries(METHODS).filter(([, m]) => m.group === g).map(([k, m]) => `<option value="${k}" ${k === anSel.method ? 'selected' : ''}>${esc(m.name)}${k === lm ? ' ← 가설' : ''}</option>`).join('')}</optgroup>`).join('')}</select></label>
       <div class="slots">${M.slots.map(slotHtml).join('')}</div>
       ${(M.opts || []).includes('testValue') ? `<div class="opts-row">
         ${M.opts.includes('testValue') ? `<label class="f">비교할 기준값<input data-opt="testValue" inputmode="decimal" value="${esc(o.testValue)}"></label>` : ''}
@@ -1684,7 +1684,7 @@
 
   // =================================================================
 
-// ##### 4. 분석 방법 (RUN 이어서): 반복측정·혼합설계 분산분석, 맥니마, 코크란 Q (stats-ladder.html 11298~11575줄) #####
+// ##### 4. 분석 방법 (RUN 이어서): 반복측정·혼합설계 분산분석, 맥니마, 코크란 Q (stats-ladder.html 11336~11613줄) #####
   // =================================================================
   // 반복측정 · 혼합설계 분산분석, 맥니마, 코크란 Q
   // =================================================================
@@ -1964,7 +1964,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
 
   // =================================================================
 
-// ##### 5. 결과 해석: 학생이 읽은 결과 점검(gistCheck), 가설↔효과 연결(autoLink), 결과 문단 틀 (stats-ladder.html 5853~6080줄) #####
+// ##### 5. 결과 해석: 학생이 읽은 결과 점검(gistCheck), 가설↔효과 연결(autoLink), 결과 문단 틀 (stats-ladder.html 5860~6087줄) #####
   // ---------- 결과의 줄기: 학생이 먼저 읽고, 코드가 판정과 맞는지 봄 ----------
   function readHint(e) {
     if (e.ciBased) return `신뢰구간 [${e.lo?.toFixed(3)}, ${e.hi?.toFixed(3)}]이 0을 포함하는지 보세요. 포함하지 않으면 간접효과가 있다고 읽습니다. 직접효과도 함께 보면 매개의 모양을 알 수 있어요.`;
@@ -2194,7 +2194,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
   }
 
 
-// ##### 6. 보고 체크리스트: 효과크기 신뢰구간, 정규성, 가정 점검 (stats-ladder.html 6932~7144줄) #####
+// ##### 6. 보고 체크리스트: 효과크기 신뢰구간, 정규성, 가정 점검 (stats-ladder.html 6933~7145줄) #####
   // =================================================================
   // 보고 체크리스트 (APA 7 결과 보고 항목을 코드가 점검)
   // =================================================================
@@ -2409,7 +2409,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
 
   // =================================================================
 
-// ##### 7. 분석 결정 (기본값) (stats-ladder.html 7256~7373줄) #####
+// ##### 7. 분석 결정 (기본값) (stats-ladder.html 7257~7374줄) #####
   // =================================================================
   // 분석 결정 (연구자가 정하고, 바꾼 것은 기록)
   // =================================================================
@@ -2529,7 +2529,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
 
   // =================================================================
 
-// ##### 8. R 코드 만들기 (재계산용) (stats-ladder.html 7373~7740줄) #####
+// ##### 8. R 코드 만들기 (재계산용) (stats-ladder.html 7374~7741줄) #####
   // =================================================================
   // R 코드 만들기 (분석 계획서 그대로, 기본 R만 사용)
   // =================================================================
@@ -2899,7 +2899,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
 
   // =================================================================
 
-// ##### 9. SPSS 명령문 만들기 · SPSS 출력과 대조 (stats-ladder.html 11575~11752줄) #####
+// ##### 9. SPSS 명령문 만들기 · SPSS 출력과 대조 (stats-ladder.html 11613~11790줄) #####
   // =================================================================
   // SPSS로 확인하기: 명령문(.sps) 만들기 + SPSS 출력의 숫자와 맞춰 보기 (AI 없이 규칙으로)
   // =================================================================
@@ -3079,7 +3079,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
   });
 
 
-// ##### 10. 표본 수 계산 (G*Power 방식): 분포 함수 (stats-ladder.html 9836~9933줄) #####
+// ##### 10. 표본 수 계산 (G*Power 방식): 분포 함수 (stats-ladder.html 9874~9971줄) #####
   // ---------- 표본 수 계산: 비중심 분포 (G*Power와 같은 방식) ----------
   const PW = (() => {
     const { pF, pChi, zInv } = ST;
@@ -3179,7 +3179,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
 
   // =================================================================
 
-// ##### 11. 표본 수 계산: 화면이 넘기는 자유도·비중심 모수 (stats-ladder.html 10009~10189줄) #####
+// ##### 11. 표본 수 계산: 화면이 넘기는 자유도·비중심 모수 (stats-ladder.html 10047~10227줄) #####
   // ---------- 표본 수 계산 ----------
   const ESZ = {
     d: { lab: 'd', v: [0.2, 0.5, 0.8] }, f: { lab: 'f', v: [0.1, 0.25, 0.4] }, f2: { lab: 'f²', v: [0.02, 0.15, 0.35] }, r: { lab: 'r', v: [0.1, 0.3, 0.5] },
@@ -3362,7 +3362,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
   });
 
 
-// ##### 12. 탐색적 요인분석 (PAF·PCA, 베리맥스) · 확인적 요인분석 (webR lavaan, CR·AVE·HTMT) (stats-ladder.html 10442~10849줄) #####
+// ##### 12. 탐색적 요인분석 (PAF·PCA, 베리맥스) · 확인적 요인분석 (webR lavaan, CR·AVE·HTMT) (stats-ladder.html 10480~10887줄) #####
   // ---------- 탐색적 요인분석: 주축요인추출(PAF) 또는 주성분 추출 + 베리맥스 회전 ----------
   // PAF는 R psych::fa(fm = "pa")·SPSS '주축 요인 추출'과 같은 반복 방식, 주성분은 R의 eigen과 같음. 회전은 R의 varimax(정규화)와 같음
   function jacobiEig(A) {
@@ -3772,7 +3772,7 @@ ${m.D.map((d, j) => `q <- pr(${rq(d.lab)}); eff(${rq(d.label)}, q$est, pct(bs[, 
   }
 
 
-// ##### 13. 자료 점검: 이상치·결측·표본 확인·측정 점검·사전 분석 (stats-ladder.html 10850~11298줄) #####
+// ##### 13. 자료 점검: 이상치·결측·표본 확인·측정 점검·사전 분석 (stats-ladder.html 10888~11336줄) #####
   // 자료 점검: 응답 정리(중복·이상치·결측) · 표본 확인 · 측정 점검 · 사전 분석
   // =================================================================
   const chiCrit = (a, df) => { let lo = 0, hi = 1000; for (let i = 0; i < 100; i++) { const m = (lo + hi) / 2; if (ST.pChi(m, df) > a) lo = m; else hi = m; } return (lo + hi) / 2; };

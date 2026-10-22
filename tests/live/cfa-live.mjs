@@ -10,7 +10,7 @@ for (const [name, type, dev] of [['크롬 (갤럭시·PC)', chromium, { viewport
   try {
     await p.goto(URL); await p.evaluate(() => { localStorage.clear(); localStorage.setItem('ladder.noWelcome', 'true'); }); await p.reload();
     await p.waitForTimeout(500); await p.click('#splash').catch(() => {}); await p.waitForTimeout(500);
-    await p.evaluate(() => { document.querySelector('[data-hp=mode-ladder]')?.click(); document.querySelector('[data-nav=survey]')?.click(); });
+    await p.evaluate(() => { document.querySelector('[data-hp=mode-hyp]')?.click(); document.querySelector('[data-nav=survey]')?.click(); });
     await p.waitForTimeout(300); await p.evaluate(() => document.querySelector('[data-sv-act=example]')?.click()); await p.waitForTimeout(300);
     await p.evaluate(() => document.querySelector('[data-nav=analysis]')?.click()); await p.waitForTimeout(300);
     await p.evaluate(() => document.querySelector('[data-an-act=demo]')?.click()); await p.waitForTimeout(800);

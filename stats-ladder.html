@@ -2365,6 +2365,9 @@ input:focus::placeholder,textarea:focus::placeholder{opacity:.35}
 details.orig{margin-top:12px;border:1px solid var(--line);border-radius:10px;padding:8px 12px}details.orig summary{cursor:pointer;font-weight:700;font-size:13.5px}details.orig .grid2{margin-top:8px}details.orig .st{margin-left:6px}
 .prep-list{border:1px solid var(--line);border-radius:12px;overflow:hidden}.prep-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;padding:10px 12px;border-top:1px solid var(--line)}.prep-row:first-child{border-top:0}
 .prep-h{font-size:14px}.prep-st{display:flex;gap:6px;align-items:center;justify-content:flex-end;flex-wrap:wrap}.prep-why{grid-column:1/-1;font-size:12.5px;color:var(--ink-2);line-height:1.55}.prep-why b{color:var(--ink)}
+.mb-sg{margin:14px 0;padding:14px 16px;border:1.5px dashed var(--line);border-radius:14px;background:var(--bg-2)}.mb-sg-h{display:flex;justify-content:space-between;align-items:center}
+.mb-sg-y{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0;font-size:13px;font-weight:700}.chip-b{border:1.5px solid var(--line);background:var(--bg);border-radius:999px;padding:4px 11px;font:inherit;font-size:12.5px;cursor:pointer}.chip-b.on{border-color:var(--orange);background:var(--orange-soft);color:var(--orange-deep);font-weight:700}
+.mb-sg-g{margin-top:8px}.mb-sg-g summary{cursor:pointer;font-weight:700;font-size:13.5px}.mb-sg-row{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line);font-size:13.5px}.mb-sg-row .btn{flex:none}
 .su-who{color:var(--orange-deep)!important;font-size:12.5px!important}.su-sum{margin:6px 0 4px;padding-left:18px;font-size:14px;line-height:1.75}
 .su-act{display:flex;gap:8px;margin-top:16px;align-items:center;position:sticky;bottom:-18px;background:var(--bg);padding:10px 0 4px}.su-act .su-later{margin-right:auto;border:0;background:none;font:inherit;font-size:12.5px;color:var(--ink-3);text-decoration:underline;cursor:pointer;padding:0}
 @media (prefers-reduced-motion: reduce){#welcome,.wc-card{transition:none}.wc-bar{display:none}}
@@ -2799,7 +2802,7 @@ table.compact.sp-table{min-width:0;table-layout:auto;width:100%}.sp-table td{ver
       </div>
       <div class="head-btns">
         <button class="btn primary" data-sv-act="scale-src">📄 척도 원본으로 만들기</button>
-        <button class="btn" data-sv-act="import">사다리 변인 가져오기</button>
+        <button class="btn" data-sv-act="import">① 변인 가져오기</button>
         <button class="btn" data-sv-act="example">예시 설문 불러오기</button>
         <button class="btn" data-sv-act="clear">모두 지우기</button>
       </div>
@@ -2898,7 +2901,7 @@ table.compact.sp-table{min-width:0;table-layout:auto;width:100%}.sp-table td{ver
     <div class="page-head">
       <div>
         <h2>분석 <a class="guide-link" href="#guide-analysis">사용 설명</a></h2>
-        <p>응답 취합에서 만든 변인 점수로 사다리가 고른 기법을 계산합니다. 계산은 모두 이 브라우저 안에서 합니다.</p>
+        <p>응답 취합에서 만든 변인 점수로 가설로 정한 기법을 계산합니다. 계산은 모두 이 브라우저 안에서 합니다.</p>
       </div>
     </div>
     <div id="an-main"></div>
@@ -2932,7 +2935,7 @@ table.compact.sp-table{min-width:0;table-layout:auto;width:100%}.sp-table td{ver
     <div class="page-head">
       <div>
         <h2>검증 기록</h2>
-        <p>실제 논문의 설계를 사다리에 넣어 보고, 나온 기법이 논문의 기법과 같은지 적어 두세요.</p>
+        <p>실제 논문의 가설을 ① 가설과 분석 정하기에 넣어 보고, 통이 추천한 기법이 논문의 기법과 같은지 적어 두세요.</p>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn" id="log-csv">CSV로 내려받기</button>
@@ -2944,9 +2947,9 @@ table.compact.sp-table{min-width:0;table-layout:auto;width:100%}.sp-table td{ver
           <input name="paper" required placeholder="예: 권슬기·김민정 (2026) 사회비교경향성과 외로움">
         </label>
         <label class="f wide">고른 경로
-          <input name="path" placeholder="사다리에서 결과까지 가면 [지금 결과 가져오기]로 채워집니다">
+          <input name="path" placeholder="①에서 가설 카드를 만들면 [지금 결과 가져오기]로 채워집니다">
         </label>
-        <label class="f">사다리가 고른 기법
+        <label class="f">통이 추천한 기법
           <input name="method" placeholder="예: 독립표본 t검정">
         </label>
         <label class="f">논문이 쓴 기법
@@ -3411,13 +3414,11 @@ table.compact.sp-table{min-width:0;table-layout:auto;width:100%}.sp-table td{ver
   function render() {
     const w = walk(path);
     let html;
+    // '질문으로 고르기'(사다리)는 없앰: 가설(또는 변인)에서 출발. 예전에 사다리로 고른 기록은 안내만
     if (hp && hp.mode === 'hyp') html = hypHtml();
-    else if (hp && !hp.mode && !path.length) html = startChooserHtml();
-    else if (w.cur.type === 'node') html = renderQuestion(RULES.nodes[w.cur.id], false);
-    else if (w.cur.type === 'gate') html = renderQuestion(RULES.gate, true);
-    else if (w.cur.type === 'result') html = renderResult(w);
-    else html = renderOut(w);
-    $('#stage').innerHTML = (hp && hp.mode === 'ladder' && !path.length ? '<div class="hp-switch">가설이 이미 있으면 <button class="linkish" data-hp="mode-hyp">가설로 시작하기</button>가 더 빠릅니다.</div>' : '') + html;
+    else { const lid = w.cur.type === 'result' ? w.cur.id : null;
+      html = (path.length ? `<div class="hp-switch">예전 방식(질문으로 고르기)으로 ${lid ? `<b>${esc(RULES.results[lid].name)}</b>을(를) 고른 기록이 있습니다. 분석 화면에서는 그대로 쓰입니다.` : '고르던 기록이 있습니다.'} 이제는 가설로 정합니다.</div>` : '') + startChooserHtml(); }
+    $('#stage').innerHTML = html;
     renderTree();
     if (curView() === 'ladder' && path.length) { const c = $('#stage > .card'); if (c) $('#scroller').scrollTop = Math.max(0, c.offsetTop - 70); }
   }
@@ -3486,8 +3487,14 @@ table.compact.sp-table{min-width:0;table-layout:auto;width:100%}.sp-table td{ver
   const form = $('#log-form');
 
   function fillLogFromCurrent() {
+    if (hp && hp.mode === 'hyp' && hp.cards && hp.cards.some(c => c.main)) {
+      const cs = hp.cards.filter(c => c.main);
+      form.path.value = cs.map(c => norm(c.src) || (MB_NAME[c.model] || '')).join(' / ');
+      form.method.value = cs.map(c => (RULES.results[c.main] || {}).name || c.main).join(', ');
+      toast('지금 가설과 추천 기법을 가져왔습니다.'); return;
+    }
     const w = walk(path);
-    if (w.cur.type !== 'result' && w.cur.type !== 'out') { toast('먼저 사다리에서 결과까지 내려가 주세요.'); return; }
+    if (w.cur.type !== 'result' && w.cur.type !== 'out') { toast('먼저 ①에서 가설 카드를 만들어 주세요.'); return; }
     const r = RULES.results[w.cur.id];
     form.path.value = pathText(w.steps);
     form.method.value = w.cur.type === 'out' ? `범위 밖 (기본: ${r.name})` : r.name;
@@ -4029,7 +4036,7 @@ function createSurvey() {
     else if (act === 'attn-del') sv.attn.splice(i, 1);
     else if (act === 'demo-del') sv.demos.splice(i, 1);
     else if (act === 'scale-src') { openImport(); return; }
-    else if (act === 'import') { const n = importFromLadder(vars); toast(n ? `사다리 변인 ${n}개를 넣었습니다.` : '가져올 새 변인이 없습니다. 사다리 도착 화면의 변인 고정칸을 채워 주세요.'); return; }
+    else if (act === 'import') { const n = importFromLadder(vars); toast(n ? `① 변인 ${n}개를 넣었습니다.` : '가져올 새 변인이 없습니다. ① 가설과 분석 정하기에서 변인을 적어 주세요.'); return; }
     else if (act === 'example') { if (sv.scales.length && !twice(b, '한 번 더 누르면 지금 설문을 바꿉니다')) return; sv = exampleSurvey(); toast('예시 설문을 불러왔습니다.'); }
     else if (act === 'clear') { if (!twice(b, '한 번 더 눌러 모두 지우기')) return; sv = blankSurvey(); $('#sv-script').innerHTML = ''; }
     else if (act === 'script') { renderScript(); return; }
@@ -4849,8 +4856,8 @@ function createSurvey() {
   function renderAnalysis() {
     const box = $('#an-main');
     const lid = ladderResultId(), lm = lid ? LADDER_TO_METHOD[lid] : undefined;
-    const ladderNote = lid ? (lm ? `사다리가 고른 기법: <b>${esc(RULES.results[lid].name)}</b> → 아래에서 <b>${esc(METHODS[lm].name)}</b>으로 계산합니다.`
-      : `사다리가 고른 기법 <b>${esc(RULES.results[lid].name)}</b>은 이 사이트에서 아직 계산하지 않습니다. jamovi(무료)나 SPSS에서 계산하고, 결과 해석 메뉴에 그 결과를 직접 적어 쓸 수 있습니다.`) : '사다리에서 기법을 고르면 그 기법이 먼저 선택됩니다.';
+    const ladderNote = lid ? (lm ? `가설로 정한 기법: <b>${esc(RULES.results[lid].name)}</b> → 아래에서 <b>${esc(METHODS[lm].name)}</b>으로 계산합니다.`
+      : `가설로 정한 기법 <b>${esc(RULES.results[lid].name)}</b>은 이 사이트에서 아직 계산하지 않습니다. jamovi(무료)나 SPSS에서 계산하고, 결과 해석 메뉴에 그 결과를 직접 적어 쓸 수 있습니다.`) : '①에서 가설을 정하면 그 기법이 먼저 선택됩니다.';
     if (!lastScored) {
       box.innerHTML = `<div class="card">
         <h3 class="card-title">분석할 자료가 아직 없습니다</h3>
@@ -4877,7 +4884,7 @@ function createSurvey() {
     box.innerHTML = `${prepCard('analysis')}${planItems().some(p => LADDER_TO_METHOD[p.result]) ? `<div class="card"><h3 class="card-title">확정한 가설 ${planItems().length}개</h3><p class="hint">미리 정한 통계 방법과 분석 결정 그대로 가설의 분석을 모두 계산합니다. 하나씩 하려면 아래에서 방법과 변인을 고르세요.</p>${runAllBtn()}</div>` : ''}${runAllHtml()}<div class="card">
       <div class="data-line"><span class="st auto">자료</span> 분석에 포함된 응답 ${lastScored.inc.length}명 · 변인 ${vs.length}개${lastScored.sample ? ' · <b>예시(가짜) 자료</b>' : ''}</div>
       <p class="hint">${ladderNote}</p>
-      <label class="f" style="max-width:520px;margin-top:12px">분석 방법<select id="an-method">${groups.map(g => `<optgroup label="${esc(g)}">${Object.entries(METHODS).filter(([, m]) => m.group === g).map(([k, m]) => `<option value="${k}" ${k === anSel.method ? 'selected' : ''}>${esc(m.name)}${k === lm ? ' ← 사다리' : ''}</option>`).join('')}</optgroup>`).join('')}</select></label>
+      <label class="f" style="max-width:520px;margin-top:12px">분석 방법<select id="an-method">${groups.map(g => `<optgroup label="${esc(g)}">${Object.entries(METHODS).filter(([, m]) => m.group === g).map(([k, m]) => `<option value="${k}" ${k === anSel.method ? 'selected' : ''}>${esc(m.name)}${k === lm ? ' ← 가설' : ''}</option>`).join('')}</optgroup>`).join('')}</select></label>
       <div class="slots">${M.slots.map(slotHtml).join('')}</div>
       ${(M.opts || []).includes('testValue') ? `<div class="opts-row">
         ${M.opts.includes('testValue') ? `<label class="f">비교할 기준값<input data-opt="testValue" inputmode="decimal" value="${esc(o.testValue)}"></label>` : ''}
@@ -6393,7 +6400,7 @@ ${REVIEW_RULES}
       <p class="g-sum">통은 <b>통계 기법 고르기 → 설문 만들기 → 설계 점검 → 응답 모으기 → 자료 점검 → 계산 → 해석</b>을 한곳에서 돕습니다. 통계 용어를 몰라도 됩니다.</p>
       <h3>순서</h3>
       <ol class="flow">
-        <li><a href="#guide-ladder">통계 기법 고르기</a> — 변인을 적고 모형 카드를 골라 빈칸을 채우면 가설 문장과 그 모형으로 할 수 있는 분석이 나옵니다. 가설이 아직 막연하면 질문에 답하며 고릅니다.</li>
+        <li><a href="#guide-ladder">가설과 분석 정하기</a> — 변인을 적고 모형 카드를 골라 빈칸을 채우면 가설 문장과 그 모형으로 할 수 있는 분석이 나옵니다. 변인만 있으면 그 변인들로 세울 수 있는 가설을 보여 줍니다.</li>
         <li><a href="#guide-survey">설문 만들기</a> — 변인마다 문항을 넣습니다. 척도 PDF·사진에서 자동으로도 됩니다.</li>
         <li><a href="#guide-power">표본 수 계산</a> — 몇 명이 필요한지 계산합니다.</li>
         <li><a href="#guide-model">모델 검토</a> — 응답을 받기 전에 모형을 따져 보고 가설을 확정합니다.</li>
@@ -6431,7 +6438,7 @@ ${REVIEW_RULES}
         <li><b>[복제]</b>: 지금 연구를 그대로 복사합니다. 다른 아이디어를 원래 연구를 건드리지 않고 시험할 때 씁니다.</li>
         <li><b>[이름 바꾸기]</b>, <b>[지우기]</b>(두 번 눌러야 지워짐)</li>
       </ul>
-      <p>연구마다 사다리 답, 설문, 분석, 해석, 대화가 따로 저장됩니다. 연구 폴더도 연구마다 따로 연결합니다. 검증 기록과 갈림길 규칙은 모든 연구가 함께 씁니다.</p>` },
+      <p>연구마다 가설, 설문, 분석, 해석, 대화가 따로 저장됩니다. 연구 폴더도 연구마다 따로 연결합니다. 검증 기록과 갈림길 규칙은 모든 연구가 함께 씁니다.</p>` },
 
     { id: 'folder', group: '시작하기', title: '연구 폴더 (PC)', kw: '폴더 저장 백업', body: `
       <p class="g-sum">내 컴퓨터 폴더를 연결하면 작업이 그 폴더에 <b>파일로 자동 저장</b>됩니다. 연구 하나에 폴더 하나입니다.</p>
@@ -6454,8 +6461,8 @@ ${REVIEW_RULES}
       <div class="gstep"><b>STEP 4. 다음에 이어 하기</b><p>같은 브라우저로 다시 열고 <b>[다시 연결]</b>을 누릅니다.</p></div>
       <div class="gnote"><b>응답 원자료 저장</b>은 기본으로 꺼져 있습니다. 켜면 다시 열 때 응답을 다시 넣지 않아도 됩니다. 폴더가 구글 드라이브처럼 동기화되는 곳이면 개인정보 규정을 먼저 확인하세요.</div>` },
 
-    { id: 'ladder', group: '단계별 사용법', title: '① 통계 기법 고르기', tab: 'ladder', kw: '가설 모형 카드 빈칸 매개 조절 경로 남은 후보 사다리 질문', body: `
-      <p class="g-sum">두 가지 방법이 있습니다. <b>가설이 있으면</b> 가설을 적고, <b>아직 막연하면</b> 질문에 답하며 후보를 좁힙니다.</p>
+    { id: 'ladder', group: '단계별 사용법', title: '① 가설과 분석 정하기', tab: 'ladder', kw: '가설 모형 카드 빈칸 매개 조절 경로 변인 제안 기법 고르기', body: `
+      <p class="g-sum">두 가지 방법이 있습니다. <b>가설이 있으면</b> 가설을 적거나 붙여 넣고, <b>변인만 있으면</b> 통이 그 변인들로 세울 수 있는 가설을 보여 줍니다.</p>
       <h3>가설이 있어요</h3>
       <ol>
         <li><b>변인</b>: 연구에 쓰는 변인을 적습니다. 점수(척도)인지, 집단으로 나뉘는지(성별 등) 고르고, 하위 차원이 있으면 개수를 고릅니다. 논문 제목을 적으면 제목에서 모형을 짐작해 줍니다.</li>
@@ -6465,19 +6472,13 @@ ${REVIEW_RULES}
         <li>이미 써 둔 가설이 있으면 [붙여 넣기]로 카드를 만들 수 있습니다. 못 읽은 문장은 모형만 고르면 됩니다.</li>
         <li>빈칸이 다 차면 <b>[가설 확정하고 설문 만들기로 →]</b>. 변인은 설문에, 가설은 결과 해석에 채워집니다.</li>
       </ol>
-      <h3>아직 막연해요</h3>
+      <h3>변인만 있어요</h3>
       <ol>
-        <li><b>알고 싶은 것</b>: 집단 차이 / 같이 움직이는지 / 무엇으로 무엇을 예측하는지</li>
-        <li><b>결과로 잰 것</b>: 점수 같은 숫자 / 예·아니오나 유형 같은 분류</li>
-        <li><b>원인 쪽</b>: 몇 개인지, 집단이면 몇 집단인지</li>
-        <li><b>여러 번 측정</b>: 같은 사람을 여러 번 쟀는지</li>
-        <li><b>다른 변인</b>: 사이를 거쳐 가는 변인(매개), 효과를 바꾸는 변인(조절)</li>
+        <li>시작 화면에서 <b>[변인만 있어요]</b>를 누르고, 관심 있는 변인을 두 개 이상 적습니다.</li>
+        <li><b>결과(Y)</b>로 알고 싶은 변인을 고르면, 나머지 변인으로 세울 수 있는 가설이 묶음별로 나옵니다: 관계·영향, 매개(왜·어떻게?), 조절(누구에게·언제?), 순차 매개.</li>
+        <li>마음에 드는 것의 <b>[가설로]</b>를 누르면 아래 가설 카드가 됩니다. 여러 개 골라도 됩니다. 방향(정적·부적)과 빈칸을 다듬으세요.</li>
       </ol>
-      <ul>
-        <li>모르는 질문은 <b>[설명 보기]</b>를 누르세요. 쉬운 설명과 예시가 있습니다.</li>
-        <li>답한 질문은 위에 쌓입니다. 누르면 그 질문으로 돌아갑니다.</li>
-        <li>오른쪽 <b>[통계 방법]</b> 탭의 <b>남은 후보</b>에서 답할 때마다 후보가 줄어드는 것을 봅니다. 빠진 후보는 왜 빠졌는지도 나옵니다.</li>
-      </ul>
+      <p class="hint">가설이 이미 있어도 변인을 적은 뒤 <b>[이 변인들로 세울 수 있는 다른 가설 보기]</b>로 다른 가능성을 살펴볼 수 있습니다.</p>
       <h3>도착하면</h3>
       <ul>
         <li>기법 이름, 고른 이유, 함께 확인할 것이 나옵니다.</li>
@@ -8001,7 +8002,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
   // =================================================================
   const NAV = [
     { grp: '설계 · 응답 받기 전' },
-    { id: 'ladder', n: '1', label: '통계 기법 고르기', view: 'ladder', sum: () => { const id = ladderResultId(); return id ? RULES.results[id].name.replace(/\s*\(.*\)$/, '') : path.length ? `질문 ${Math.min(path.length + 1, 5)}` : ''; }, done: () => !!ladderResultId() },
+    { id: 'ladder', n: '1', label: '가설과 분석 정하기', view: 'ladder', sum: () => { const id = ladderResultId(); return id ? RULES.results[id].name.replace(/\s*\(.*\)$/, '') : path.length ? `질문 ${Math.min(path.length + 1, 5)}` : ''; }, done: () => !!ladderResultId() },
     { id: 'survey', n: '2', label: '설문 만들기', view: 'survey', sum: () => { const n = sv.scales.reduce((a, s) => a + s.items.filter(i => norm(i.text)).length, 0); return n ? `${n}문항` : ''; }, done: () => sv.scales.some(s => s.items.some(i => norm(i.text))) },
     { id: 'power', n: '3', label: '표본 수 계산', view: 'power', sum: () => (typeof md !== 'undefined' && md && md.pwResult ? `${md.pwResult.N}명` : ''), done: () => !!(typeof md !== 'undefined' && md && md.pwResult) },
     { id: 'model', n: '4', label: '모델 검토', view: 'model', sum: () => { if (typeof md === 'undefined' || !md) return ''; const L = checks(); return `${doneCount(L)}/${L.length}`; }, done: () => !!(typeof md !== 'undefined' && md && md.lock && !lockChanged()) },
@@ -8019,12 +8020,11 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
     { grp: '도구' },
     { id: 'rcheck', n: 'R', label: 'R·SPSS로 확인하기', view: 'analysis', right: 'results', after: () => { openRight(); $('#an-results')?.scrollIntoView({ block: 'start' }); }, done: () => analyses.some(a => a.rcheck) },
     { id: 'log', n: '✓', label: '검증 기록', view: 'log', sum: () => (log.length ? `${log.length}건` : '') },
-    { id: 'rules', n: '≡', label: '갈림길 규칙', view: 'rules' },
     { id: 'guide', n: '?', label: '사용 설명', view: 'guide' }
   ];
   let navCur = store.get('ladder.navCur', 'ladder');
   let rtab = 'method', rtabManual = false;
-  const VIEW_NAME = { ladder: '통계 기법 고르기', survey: '설문 만들기', power: '표본 수 계산', model: '모델 검토', sample: '표본 확인', measure: '측정 점검', prelim: '사전 분석', collect: '응답 취합·정리', analysis: '분석 결정·계산', interp: '결과 해석', log: '검증 기록', rules: '갈림길 규칙', guide: '사용 설명' };
+  const VIEW_NAME = { ladder: '가설과 분석 정하기', survey: '설문 만들기', power: '표본 수 계산', model: '모델 검토', sample: '표본 확인', measure: '측정 점검', prelim: '사전 분석', collect: '응답 취합·정리', analysis: '분석 결정·계산', interp: '결과 해석', log: '검증 기록', rules: '갈림길 규칙', guide: '사용 설명' };
 
   function renderNav() {
     $('#side').innerHTML = `<div class="side-items">` + NAV.map(x => {
@@ -8078,19 +8078,19 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
       const r = RULES.results[lid], base = w.cur.base && w.cur.base !== lid ? RULES.results[w.cur.base] : null;
       top = `<div class="card"><h4>고른 통계 방법</h4><div class="rmethod">${esc(r.name)}<small>${esc(r.en)}</small></div>${base ? `<p class="hint" style="margin:8px 0 0">기본이 되는 기법: ${esc(base.name)}</p>` : ''}</div>`;
     } else if (w.cur.type === 'out') top = `<div class="card"><h4>고른 통계 방법</h4><p class="rempty">이번 버전의 범위 밖으로 안내되었습니다.</p></div>`;
-    else top = `<div class="card"><h4>고른 통계 방법</h4><p class="rempty">아직 고르는 중입니다 · 질문 ${Math.min(w.steps.length + 1, 5)}단계${w.steps.length ? ` (${w.steps.length}개 답함)` : ''}</p></div>`;
+    else top = `<div class="card"><h4>고른 통계 방법</h4><p class="rempty">아직 가설을 정하지 않았습니다. 왼쪽 ①에서 가설을 만들면 분석 방법이 여기에 나옵니다.</p></div>`;
     if (hp && hp.mode === 'hyp' && !hp.applied) {
       mbInit();
       top = `<div class="card"><h4>가설 만드는 중</h4><p class="rempty">${hp.cards.length ? `모형 ${hp.cards.length}개에서 가설 <b>${hp.items.length}개</b>가 만들어졌습니다.${hp.cards.some(c => mbMissing(c).length) ? ' 빈칸이 남은 모형이 있어요.' : ''}` : '변인을 적고 가설의 모형을 고르세요.'}</p></div>`;
     }
     $('#rp-method-top').innerHTML = top;
     if (hp && hp.mode === 'hyp' && !hp.applied) $('#rp-cand').innerHTML = mbPlanHtml();
-    else $('#rp-cand').innerHTML = candHtml(path) + hypPlanHtml();
+    else $('#rp-cand').innerHTML = hp && hp.mode === 'hyp' ? hypPlanHtml() : '';
     const ivs = vars.ivs.filter(v => norm(v.name)), oth = vars.others.filter(o => norm(o.name));
     const varRows = ivs.map(v => `<span>독립</span><span>${esc(v.name)}${v.levels ? ` <small class="hint">(${esc(v.levels)})</small>` : ''}</span>`).join('')
       + oth.map(o => `<span>${esc(o.role)}</span><span>${esc(o.name)}</span>`).join('') + (norm(vars.dv) ? `<span>종속</span><span>${esc(vars.dv)}</span>` : '');
     $('#rp-method-bottom').innerHTML = `
-      <div class="card"><h4>변인 ${vars.locked ? '🔒 잠김' : ''}</h4>${varRows ? `<div class="rkv">${varRows}</div>` : '<p class="rempty">사다리 도착 화면의 변인 고정칸에 적으면 여기에 보입니다.</p>'}</div>
+      <div class="card"><h4>변인 ${vars.locked ? '🔒 잠김' : ''}</h4>${varRows ? `<div class="rkv">${varRows}</div>` : '<p class="rempty">① 가설과 분석 정하기에서 변인을 적으면 여기에 보입니다.</p>'}</div>
       <div class="card"><h4>분석 결정 ${plan.locked ? `<span class="st auto">확정</span>` : '<span class="st missing">미확정</span>'} ${plan.log.some(l => l.after) ? `<span class="st manual">사후 변경 ${plan.log.filter(l => l.after).length}</span>` : ''}</h4>
         <div class="rkv">${liveDecisions().map(d => `<span>${esc({ scoring: '점수', minPct: '최소 응답', straight: '불성실 응답', longrun: '연속 같은 답', revcon: '역문항 모순', attn: '주의 확인', welch: '분산 다를 때', posthoc: '사후검정', boot: '부트스트랩', center: '평균중심화', dup: '중복 응답', outlier: '이상치', sph: '구형성 보정' }[d.id] || d.id)}</span><span>${esc(decLabel(d, d.get()))}</span>`).join('')}</div></div>`;
   }
@@ -8327,7 +8327,7 @@ ${q}`;
       <div class="pj-name"><input id="pj-name" value="${esc(c.name)}" maxlength="40" aria-label="지금 연구 이름"><button class="btn sm" data-pj-act="rename">이름 바꾸기</button></div>
       <div class="pj-acts"><button class="btn sm" data-pj-act="dup">복제</button>
         <button class="btn sm ${projDel ? 'danger' : ''}" data-pj-act="del" ${projReg.list.length < 2 ? 'disabled' : ''}>${projDel ? '한 번 더 누르면 지웁니다' : '지우기'}</button></div>
-      <p class="pj-hint">연구마다 사다리 답, 설문, 분석, 해석, 대화가 따로 저장됩니다. PC 연구 폴더도 연구마다 따로 연결합니다. 검증 기록과 갈림길 규칙은 함께 씁니다.</p>`;
+      <p class="pj-hint">연구마다 가설, 설문, 분석, 해석, 대화가 따로 저장됩니다. PC 연구 폴더도 연구마다 따로 연결합니다. 검증 기록과 갈림길 규칙은 함께 씁니다.</p>`;
   }
   $('#proj-chip').addEventListener('click', e => { e.stopPropagation(); projDel = ''; renderProj(); $('#proj-pop').hidden = !$('#proj-pop').hidden; $('#fold-pop').hidden = true; });
   document.addEventListener('click', e => { if (!$('#proj-pop').hidden && !e.target.closest('.proj-wrap')) $('#proj-pop').hidden = true; });
@@ -8805,7 +8805,7 @@ ${q}`;
             <label class="si-rev"><input type="checkbox" data-sii="${si}.${ii}" data-k="reverse" ${it.reverse ? 'checked' : ''}>역</label>
           </div>`).join('')}</div>`).join('')}
         <div class="si-opts">
-          ${R.sections.length > 1 && imp.target !== 'new' && !String(imp.target).startsWith('dims:') ? '<p class="hint" style="margin:0">사다리 변인 하나에 채울 때는 하위요인을 합쳐 그 변인 하나로 넣습니다.</p>' : ''}
+          ${R.sections.length > 1 && imp.target !== 'new' && !String(imp.target).startsWith('dims:') ? '<p class="hint" style="margin:0">변인 하나에 채울 때는 하위요인을 합쳐 그 변인 하나로 넣습니다.</p>' : ''}
           ${String(imp.target).startsWith('dims:') ? (() => { const g = dimGroups.find(([n]) => 'dims:' + n === imp.target); const secs = R.sections.filter(x => x.items.some(i => i.keep)); return g ? `<p class="hint" style="margin:0">하위요인을 차례로 나눠 채웁니다: ${secs.map((x, k) => `${esc(norm(x.name) || `하위요인 ${k + 1}`)} → ${g[1][k] ? esc(`${g[0]}(${g[1][k]})`) : '<b>남는 하위요인</b>'}`).join(' · ')}${secs.length !== g[1].length ? ` <b class="a-low">하위요인 ${secs.length}개, 하위 차원 ${g[1].length}개로 수가 다릅니다.</b>` : ''}</p>` : ''; })() : ''}
           ${R.sections.length > 1 && imp.target === 'new' ? `<label class="f">하위요인을<select data-sif="mode"><option value="split" ${imp.mode === 'split' ? 'selected' : ''}>각각 따로 변인으로 (하위요인 점수를 따로 분석)</option><option value="one" ${imp.mode === 'one' ? 'selected' : ''}>한 변인으로 합쳐서 (전체 점수로 분석)</option></select></label>` : ''}
           <label class="f">어디에 넣을까요<select data-sif="target"><option value="new">새 변인으로 추가</option>${R.sections.length > 1 ? dimGroups.map(([n, ds]) => `<option value="dims:${esc(n)}" ${imp.target === 'dims:' + n ? 'selected' : ''}>'${esc(n)}'의 하위 차원 ${ds.length}개에 나눠 채우기</option>`).join('') : ''}${emptyTargets.map(([s, i]) => `<option value="${i}" ${String(imp.target) === String(i) ? 'selected' : ''}>사다리 변인 '${esc(s.name || '(이름 없음)')}'(${esc(s.role)})에 채우기</option>`).join('')}</select></label>
@@ -9225,7 +9225,7 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
       <h2 class="q">어떻게 시작할까요?</h2>
       <div class="start-opts">
         <button class="start-opt" data-hp="mode-hyp"><span class="so-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/><path d="M15.5 16.5l1.5 1.5 3-3"/></svg></span><b>가설이 있어요</b><span>변인을 적고 모형 그림을 골라 빈칸을 채우면, 가설 문장과 그 모형으로 할 수 있는 분석을 모두 보여 드려요.</span></button>
-        <button class="start-opt" data-hp="mode-ladder"><span class="so-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h18l-7 8.5V19l-4 2v-8.5z"/></svg></span><b>아직 막연해요</b><span>쉬운 질문 5개에 답하며 후보를 좁혀 기법을 고릅니다. 왜 그 기법인지 배우면서 갈 수 있어요.</span></button>
+        <button class="start-opt" data-hp="mode-vars"><span class="so-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.3 11l7.4-3.8M8.3 13l7.4 3.8"/></svg></span><b>변인만 있어요</b><span>관심 있는 변인만 적으면, 그 변인들로 세울 수 있는 가설(관계·영향·매개·조절)을 보여 드려요. 골라서 다듬으면 됩니다.</span></button>
       </div>
     </div>`;
   }
@@ -9572,12 +9572,45 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
     const tg = titleGuess(hp.title);
     return tg && !hp.cards.length ? `<div class="mb-tg">제목으로 보면 <b>${esc(MB_NAME[tg.model])}</b> 모형 같아요: ${esc([...tg.x, ...tg.m, tg.w, tg.y].filter(Boolean).join(' · '))} <button class="btn sm primary" data-mb-act="from-title">이 모형으로 시작</button></div>` : '';
   }
+  // 변인만 있을 때: 그 변인들로 세울 수 있는 가설 후보 (결과 변인 Y를 고르면 관계·영향·매개·조절·순차매개)
+  function mbSuggest() {
+    const V = hp.vlist.filter(v => norm(v.name)); if (V.length < 2) return null;
+    const scoreV = V.filter(v => v.kind === 'score');
+    const Y = V.find(v => v.name === hp.sgY) || (scoreV.length ? scoreV[scoreV.length - 1] : V[V.length - 1]);
+    const O = V.filter(v => v !== Y), sc = O.filter(v => v.kind === 'score'), ok = v => v.kind !== 'g3';   // 세 집단 이상은 매개·조절 원인으로 계산하지 않음
+    const y = Y.name, G = [];
+    const add = (g, q, t) => { let grp = G.find(x => x.g === g); if (!grp) G.push(grp = { g, list: [] }); grp.list.push({ q, t }); };
+    O.forEach(x => {
+      if (x.kind === 'score') { add('관계·영향', `${J(x.name, '이/가')} 높을수록 ${J(y, '이/가')} 높은가(또는 낮은가)?`, `${J(x.name, '은/는')} ${y}에 영향을 미칠 것이다.`);
+        add('관계·영향', `${J(x.name, '과/와')} ${J(y, '은/는')} 함께 움직이는가? (인과를 말하지 않을 때)`, `${J(x.name, '과/와')} ${J(y, '은/는')} 관련이 있을 것이다.`); }
+      else add('관계·영향', `${x.name}에 따라 ${J(y, '이/가')} 다른가?`, `${J(y, '은/는')} ${x.name}에 따라 차이가 있을 것이다.`);
+    });
+    const and = L => L.slice(0, -1).map(n => J(n, '과/와')).concat(L.slice(-1)).join(' ');
+    if (sc.length >= 2) add('관계·영향', `${J(sc.map(v => v.name).join(', '), '을/를')} 함께 넣었을 때 각각 ${J(y, '을/를')} 설명하는가?`, `${J(and(sc.map(v => v.name)), '은/는')} ${y}에 영향을 미칠 것이다.`);
+    O.filter(ok).forEach(x => sc.filter(m => m !== x).forEach(m => add('매개 (왜·어떻게?)', `${J(x.name, '이/가')} ${J(m.name, '을/를')} 거쳐 ${y}에 이어지는가?`, `${J(m.name, '은/는')} ${J(x.name, '과/와')} ${y}의 관계를 매개할 것이다.`)));
+    O.filter(ok).forEach(x => O.filter(w => w !== x && ok(w)).forEach(w => add('조절 (누구에게·언제?)', `${w.name}에 따라 ${J(x.name, '이/가')} ${y}에 미치는 영향이 달라지는가?`, `${w.name}에 따라 ${J(x.name, '이/가')} ${y}에 미치는 영향이 다를 것이다.`)));
+    O.filter(ok).forEach(x => sc.filter(a => a !== x).forEach(a => sc.filter(b => b !== x && b !== a).forEach(b => add('순차 매개 (여러 단계를 거쳐)', `${J(x.name, '이/가')} ${a.name} → ${J(b.name, '을/를')} 차례로 거쳐 ${y}에 이어지는가?`, `${J(x.name, '은/는')} ${J(a.name, '과/와')} ${J(b.name, '을/를')} 순차적으로 거쳐 ${y}에 영향을 미칠 것이다.`))));
+    return { V, Y, G };
+  }
+  function mbSuggestHtml() {
+    const S = mbSuggest();
+    if (!S) return hp.suggest ? '<div class="mb-sg"><b>변인으로 세울 수 있는 가설</b><p class="hint">위에 관심 있는 변인을 두 개 이상 적으면 그 변인들로 세울 수 있는 가설을 보여 드려요.</p></div>' : '';
+    if (!hp.suggest && hp.cards.length) return `<p class="hint mb-sg-open"><button class="linkish" data-mb-act="sg-open">이 변인들로 세울 수 있는 다른 가설 보기</button></p>`;
+    const have = new Set(hp.cards.map(c => norm(c.src)));
+    return `<div class="mb-sg"><div class="mb-sg-h"><b>변인으로 세울 수 있는 가설</b>${hp.cards.length ? '<button class="linkish" data-mb-act="sg-close">접기</button>' : ''}</div>
+      <p class="hint">결과로 알고 싶은 변인을 고르면, 나머지 변인으로 세울 수 있는 가설을 보여 드려요. 마음에 드는 것을 [가설로]를 눌러 아래 카드로 만들고, 방향(정적·부적)과 빈칸을 다듬으세요. 여러 개를 골라도 됩니다.</p>
+      <div class="mb-sg-y">결과(Y): ${S.V.map(v => `<button class="chip-b ${v === S.Y ? 'on' : ''}" data-mb-act="sg-y" data-v="${esc(v.name)}">${esc(v.name)}</button>`).join('')}</div>
+      ${S.G.map((g, gi) => `<details class="mb-sg-g" ${gi < 2 ? 'open' : ''}><summary>${esc(g.g)} <small class="hint">${g.list.length}개</small></summary>
+        ${g.list.slice(0, 12).map(o => `<div class="mb-sg-row"><span>${esc(o.q)}</span>${have.has(norm(o.t)) ? '<span class="st auto">카드로 만듦</span>' : `<button class="btn sm" data-mb-act="sg-add" data-t="${esc(o.t)}">가설로</button>`}</div>`).join('')}
+        ${g.list.length > 12 ? `<p class="hint">이 밖에 ${g.list.length - 12}개 더 있어요. 결과 변인을 바꾸거나 변인을 줄여 보세요.</p>` : ''}</details>`).join('')}
+    </div>`;
+  }
   function hypHtml() {
     mbInit();
     const ready = hp.cards.length && hp.cards.every(c => !mbMissing(c).length);
     const v = hp.vlist;
     return `<div class="card hyp-card mb">${mbDL()}
-      <div class="kicker">가설로 시작하기 <button class="linkish" data-hp="mode-ladder">질문으로 고르기로 바꾸기</button><button class="linkish" data-act="restart">처음으로</button></div>
+      <div class="kicker">가설로 시작하기 <button class="linkish" data-act="restart">처음으로</button></div>
       <h2 class="q">연구모형을 만들어 주세요</h2>
       <p class="hint">변인을 적고, 가설마다 모형 그림을 골라 빈칸을 채우면 가설 문장과 분석 방법이 정해집니다. 문장은 어떻게 써도 괜찮아요.</p>
       <label class="f">논문 제목<input id="hp-title" value="${esc(hp.title)}" placeholder="예: 능력주의 신념이 외집단 혐오에 미치는 영향: 사회비교경향성과 외로움의 순차적 매개효과"></label>
@@ -9592,6 +9625,7 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
         <div class="mb-var mb-newvar"><input class="mb-in" id="mb-newvar" placeholder="변인 이름 (예: 능력주의 신념) 적고 Enter"><button class="btn sm" data-mb-act="add-var">추가</button></div>
       </div>
 
+      ${mbSuggestHtml()}
       <h3 class="mb-h"><span class="mb-n">2</span>가설과 모형</h3>
       ${hp.cards.map((c, ci) => hp.picking === ci ? mbPickerHtml(ci) : mbCardHtml(c, ci, ci + 1)).join('')}
       ${hp.picking === 'new' || !hp.cards.length ? mbPickerHtml(null) : `<button class="btn mb-add" data-mb-act="add-card">+ 가설 추가</button>`}
@@ -9710,7 +9744,7 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
     const b = e.target.closest('[data-hp],[data-mb-act]'); if (!b) return;
     e.stopPropagation();
     if (b.dataset.hp === 'mode-hyp') { hp.mode = 'hyp'; saveHp(); render(); return; }
-    if (b.dataset.hp === 'mode-ladder') { hp.mode = 'ladder'; saveHp(); render(); return; }
+    if (b.dataset.hp === 'mode-vars') { hp.mode = 'hyp'; hp.suggest = true; saveHp(); render(); setTimeout(() => $('#mb-newvar')?.focus(), 50); return; }
     if (b.dataset.hp === 'apply') { applyHyps(); return; }
     const act = b.dataset.mbAct; if (!act) return;
     mbInit();
@@ -9721,6 +9755,10 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
     else if (act === 'pick-cancel') hp.picking = null;
     else if (act === 'repick') hp.picking = ci;
     else if (act === 'name-ok') { const c = hp.cards[ci]; if (c) c.nameOk = true; }
+    else if (act === 'sg-y') hp.sgY = b.dataset.v;
+    else if (act === 'sg-open') hp.suggest = true;
+    else if (act === 'sg-close') hp.suggest = false;
+    else if (act === 'sg-add') { const t = b.dataset.t, it = parseHyp(t); if (it.type && it.type !== 'unknown') { mbFromParsed({ ...it, text: t }); mbMerge(); hp.cards.forEach(mbFix); toast('가설 카드로 만들었습니다. 아래에서 방향(정적·부적)과 빈칸을 확인하세요.'); } else toast('이 가설은 직접 모형을 골라 주세요.'); }
     else if (act === 'unmerge') {
       // 합쳐 둔 가설을 원래 문장으로 다시 읽어 따로 카드로
       const c = hp.cards[ci], g = c && (c.merged || [])[+b.dataset.gi];
