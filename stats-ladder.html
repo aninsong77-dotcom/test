@@ -10767,7 +10767,7 @@ as.character(jsonlite::toJSON(list(lavaan = as.character(packageVersion("lavaan"
     const fm = CFA_FM.ML.map(q).join(', ');
     const model = `model <- '\n${S.syntax}\n'`;
     // 재표집마다 표준오차·적합도·기저모형은 계산하지 않아 빠르게 (추정값은 같음). 경로는 coef에서, 간접·총효과는 그 곱·합으로
-    const boot = `fitb <- update(fit, se = "none", test = "none", baseline = FALSE, h1 = FALSE)
+    const boot = `fitb <- sem(model, data = ${mode === 'fit' ? 'd' : 'dd'}, estimator = "ML", missing = "listwise", se = "none", test = "none", baseline = FALSE, h1 = FALSE)
 PLAB <- c(${S.P.map(p => q(p.lab)).join(', ')})
 bootfun <- function(f) { cf <- coef(f); c(unname(cf[PLAB])${S.D.length ? `, with(as.list(cf), c(${S.D.map(d => d.def).join(', ')}))` : ''}) }
 tong_boot <- function(k, nb) { set.seed(${SEM_SEED} + k); b <- suppressWarnings(bootstrapLavaan(fitb, R = nb, FUN = bootfun)); b <- matrix(b, ncol = ${want.length}); b }`;
