@@ -25,6 +25,20 @@ for (const [name, type, dev] of [['크롬 (갤럭시·PC)', chromium, { viewport
     const t1 = Date.now(); await p.evaluate(() => { window.tongCfaLast = null; document.querySelector('[data-cfa=run]').click(); });
     await p.waitForFunction(() => window.tongCfaLast || document.querySelector('#cfa-card .errbox'), null, { timeout: 120000 });
     console.log(`    다시 계산: ${((Date.now() - t1) / 1000).toFixed(1)}초`);
+    // 구조방정식 (크롬에서만): 실제 사이트에서 계산하고 결과를 JSON으로 남김 (화면 사진용)
+    if (type === chromium) {
+      const t2 = Date.now();
+      await p.evaluate(() => document.querySelector('[data-nav=analysis]')?.click()); await p.waitForTimeout(400);
+      await p.selectOption('#an-method', 'sem'); await p.waitForTimeout(300);
+      const chips = async (slot, names) => { for (const c of await p.$$(`[data-slot=${slot}]`)) { const lab = await c.evaluate(x => x.parentElement.innerText); if (names.some(n => lab.startsWith(n)) !== await c.isChecked()) await c.evaluate(x => x.click()); } };
+      await chips('xs', ['능력주의 신념']); await chips('ms', ['사회비교경향성', '외로움']); await p.selectOption('[data-slot=y]', { label: '외집단 혐오' }); await chips('covs', []);
+      const n0 = await p.$$eval('.result-card', e => e.length);
+      await p.evaluate(() => document.querySelector('[data-an-act=run]').click());
+      await p.waitForFunction(n => document.querySelectorAll('.result-card').length > n || document.querySelector('#an-prog .a-low'), n0, { timeout: 600000 });
+      const a = await p.evaluate(() => JSON.parse(localStorage.getItem('ladder.analyses')).find(x => x.method === 'sem') || null);
+      if (!a) { fail++; console.log(`✗ ${name} 구조방정식: ${await p.$eval('#an-prog', e => e.textContent)}`); }
+      else { console.log(`✓ ${name} 구조방정식: ${a.title} · ${((Date.now() - t2) / 1000).toFixed(0)}초`); console.log('SEMJSON ' + JSON.stringify(a)); }
+    }
   } catch (e) { fail++; console.log(`✗ ${name}: ${e.message.split('\n')[0]}`); }
   if (errs.length) { fail++; console.log(`✗ ${name} 페이지 오류: ${errs.slice(0, 3).join(' / ')}`); }
   await b.close();
