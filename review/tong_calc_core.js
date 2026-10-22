@@ -2069,7 +2069,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
     const box = $('#in-main'); if (!box) return;
     autoLink();
     const effs = allEffects();
-    const aiChip = aiUnset() ? '<span class="st missing">AI 정하기 전</span>' : aiMode === 'off' ? '<span class="st missing">AI 쓰지 않음</span>' : aiMode === 'copy' ? '<span class="st manual">내 AI 계정 방식</span>' : aiMode === 'code' ? `<span class="st manual">AI 도우미 (${agentName()})</span>` : aiState === 'on' ? '<span class="st auto">AI 연결됨</span>' : aiState === 'checking' ? '<span class="st manual">AI 확인 중…</span>'
+    const aiChip = aiUnset() ? '<span class="st missing">AI 정하기 전</span>' : aiMode === 'off' ? '<span class="st missing">AI 쓰지 않음</span>' : aiMode === 'copy' ? '<span class="st manual">채팅 AI에 복사해 묻기</span>' : aiMode === 'code' ? `<span class="st manual">AI 도우미 (${agentName()})</span>` : aiState === 'on' ? '<span class="st auto">AI 연결됨</span>' : aiState === 'checking' ? '<span class="st manual">AI 확인 중…</span>'
       : aiState === 'denied' ? '<span class="st missing">AI 사용이 허용되지 않음</span>' : '<span class="st missing">AI 없음 · claude.ai 링크에서 열면 됩니다</span>';
     const effOpts = cur => `<option value="">(효과 고르기)</option>` + analyses.map(a => `<optgroup label="${esc(a.title)}">${a.effects.map(e => `<option value="${e.id}" ${e.id === cur ? 'selected' : ''}>${esc(e.label)}</option>`).join('')}</optgroup>`).join('');
     const hyps = intent.hyps.map((h, i) => {
@@ -2146,10 +2146,10 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
         <div class="tmpl-box"><b>AI 없이</b> 판정과 숫자로 결과 문단의 틀을 만들고, 내가 읽은 결과를 논의 자리에 모아 둡니다. <button class="btn sm" data-in-act="tmpl">결과 문단 틀 만들기</button></div>
         ${mode === 'off' && aiUnset() ? aiSuggest('결과를 두고 AI와 상의하고 싶으면 방법을 고르세요.') : mode === 'off' ? `<div class="notice">AI를 쓰지 않도록 설정했습니다. 아무것도 밖으로 보내지 않습니다. 가설 판정과 결과표는 그대로 쓸 수 있으니, 해석 글은 직접 쓰고 아래 [초안 점검] 칸에 붙여 넣으면 숫자·판정을 점검합니다. <button class="btn sm" data-ai-mode-open>AI 방식 바꾸기</button></div>` : ''}
         <div class="mode-tabs" role="tablist" ${mode === 'off' ? 'hidden' : ''}>
-          ${[['auto', 'Claude 바로 쓰기', '이 화면에서'], ['chat', '내 AI 계정', 'ChatGPT·Claude 등'], ['code', 'AI 도우미', `${agentName()} · 연구 폴더`]].filter(([k]) => k !== 'auto' || (aiMode === 'auto' && aiState !== 'off')).map(([k, l, sub]) => `<button class="mode-tab" role="tab" data-in-mode="${k}" aria-selected="${mode === k}"><b>${l}</b><span>${sub}</span></button>`).join('')}
+          ${[['auto', 'Claude 바로 쓰기', '이 화면에서'], ['chat', '채팅 AI에 복사', 'ChatGPT·Claude 등'], ['code', 'AI 도우미', `${agentName()} · 연구 폴더`]].filter(([k]) => k !== 'auto' || (aiMode === 'auto' && aiState !== 'off')).map(([k, l, sub]) => `<button class="mode-tab" role="tab" data-in-mode="${k}" aria-selected="${mode === k}"><b>${l}</b><span>${sub}</span></button>`).join('')}
         </div>
         ${mode === 'auto' ? `
-          ${aiOn() ? '' : `<div class="notice">이 화면에서는 Claude 바로 쓰기를 할 수 없습니다. ${aiState === 'denied' ? 'AI 사용이 허용되지 않았거나 이 계정에서 쓸 수 없습니다.' : '잠시 뒤 다시 보세요.'} 다른 방법은 위의 [내 AI 계정]나 [Claude Code]를 고르세요.</div>`}
+          ${aiOn() ? '' : `<div class="notice">이 화면에서는 Claude 바로 쓰기를 할 수 없습니다. ${aiState === 'denied' ? 'AI 사용이 허용되지 않았거나 이 계정에서 쓸 수 없습니다.' : '잠시 뒤 다시 보세요.'} 다른 방법은 위의 [채팅 AI에 복사]나 [AI 도우미]를 고르세요.</div>`}
           <ol class="steps">
             <li><b>의도 확인</b>: AI가 연구 목적과 가설을 다시 말해 보고, 효과 연결이 맞는지 보고, 빠진 정보를 묻습니다.</li>
             <li><b>풀어 쓰기</b>: 2번에 적은 <b>내가 읽은 결과</b>를 뼈대로, 판정과 숫자를 그대로 써서 결과·논의를 논문 문체로 풀어 씁니다. 내 해석에 없는 주장은 덧붙이지 않고 [연구자 보완] 자리로 남깁니다. 쓴 뒤 코드가 다시 점검합니다.</li>
