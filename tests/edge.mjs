@@ -401,6 +401,30 @@ console.log('\n6. AI 연결: 기본은 AI 없이, 필요할 때 연결');
   ok('페이지 오류 없음 (AI 연결)', !errs.length, errs.join(' | '));
   await ctx.close();
 }
+// AI 도우미와 대화창 잇기: 질문을 연구 폴더(5_chat/question.md)로 보내고, 도우미가 쓴 answer.md를 대화창에 보여 줌
+{
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  await ctx.addInitScript(() => { window.showDirectoryPicker = async () => (await navigator.storage.getDirectory()).getDirectoryHandle('내논문', { create: true }); });
+  const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message));
+  await p.goto(BASE); await p.evaluate(() => { localStorage.clear(); localStorage.setItem('ladder.noWelcome', 'true'); localStorage.setItem('ladder.aiMode', '"code"'); }); await p.reload();
+  await p.waitForTimeout(600); await p.click('#splash').catch(() => {}); await p.waitForTimeout(400);
+  ok('폴더를 연결하기 전에는 점에 "폴더 연결 전"이 보임', /폴더 연결 전/.test(await p.$eval('#ai-dot', e => e.textContent)));
+  await p.fill('#cmp-text', '관계와 영향은 무슨 차이야?'); await p.click('#cmp-send'); await p.waitForTimeout(400);
+  ok('폴더가 없으면 연결하라고 하고 [연구 폴더 연결] 버튼을 줌', !!(await p.$('#thread [data-th-fold]')));
+  await p.click('#thread [data-th-fold]'); await p.waitForTimeout(1500);
+  await p.fill('#cmp-text', '관계와 영향은 무슨 차이야?'); await p.click('#cmp-send'); await p.waitForTimeout(800);
+  const rd = rel => p.evaluate(async rel => { try { let d = await (await navigator.storage.getDirectory()).getDirectoryHandle('내논문'); const ps = rel.split('/'), n = ps.pop(); for (const x of ps) d = await d.getDirectoryHandle(x); return await (await (await d.getFileHandle(n)).getFile()).text(); } catch (e) { return ''; } }, rel);
+  const qmd = await rd('5_chat/question.md'), qid = (qmd.match(/<!-- q: (\w+) -->/) || [])[1];
+  ok('질문이 연구 폴더 5_chat/question.md로 감 (질문·규칙·현재 상태, 원자료 없음)', !!qid && /관계와 영향은 무슨 차이야/.test(qmd) && /현재 상태/.test(qmd), qmd.slice(0, 60));
+  ok('대화창에 "통 질문에 답해 줘"를 말하라는 안내와 복사 버튼', !!(await p.$('#thread .msg.pending [data-copy-phrase]')));
+  ok('안내 파일(CLAUDE.md)에 "통 질문에 답해 줘" 절이 있음', /통 질문에 답해 줘/.test(await rd('CLAUDE.md')));
+  await p.evaluate(async ({ qid }) => { const d = await (await (await navigator.storage.getDirectory()).getDirectoryHandle('내논문')).getDirectoryHandle('5_chat', { create: true }); const w = await (await d.getFileHandle('answer.md', { create: true })).createWritable(); await w.write(`<!-- q: ${qid} -->\n관계는 두 변인이 함께 움직이는지, 영향은 한 변인으로 다른 변인을 설명·예측하는지를 봅니다.`); await w.close(); }, { qid });
+  await p.evaluate(() => window.dispatchEvent(new Event('focus'))); await p.waitForTimeout(800);
+  const last = await p.$eval('#thread .msg.ai:last-of-type', e => e.innerText).catch(() => '');
+  ok('도우미가 폴더에 쓴 답이 통 대화창에 나옴', /관계는 두 변인이 함께 움직이는지/.test(last) && /Claude Code/.test(last) && !(await p.$('#thread .msg.pending')), last.slice(0, 60));
+  ok('페이지 오류 없음 (AI 도우미 대화)', !errs.length, errs.join(' | '));
+  await ctx.close();
+}
 
 // ===================== 7. 원척도 정보 · 기법별 필요한 준비 =====================
 console.log('\n7. 원척도 정보 · 기법별 필요한 준비');

@@ -2048,6 +2048,7 @@ main#scroller .page-head p { font-size: 14px; }
 .th-head button { background: none; border: 0; color: var(--orange-deep); font-weight: 700; font-size: 12px; }
 .msg { max-width: 88%; padding: 10px 14px; border-radius: 14px; font-size: 14.5px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
 .msg.ai { background: var(--bg-2); border: 1px solid var(--line); border-top-left-radius: 4px; justify-self: start; }
+.msg.ai.pending { border-style: dashed; }
 .msg.me { background: var(--navy); color: var(--on-accent); justify-self: end; border-top-right-radius: 4px; }
 .msg.sys { justify-self: center; max-width: 100%; background: none; padding: 2px 10px; font-size: 12.5px; color: var(--ink-3); }
 .msg .who { display: block; font-size: 12px; font-weight: 800; color: var(--orange-deep); margin-bottom: 2px; }
@@ -6232,7 +6233,7 @@ ${writingRules()}
 - \`project.json\`, \`README.md\`, \`1_survey\`의 파일은 통이 관리하니 고치지 않는다.
 
 ## 시작할 때
-첫 답에서 "통 해석 모드입니다."라고 말하고, 같은 폴더의 \`interpretation.json\`을 읽은 뒤 다음 순서로 진행한다.
+첫 답에서 "통 해석 모드입니다."라고 말한다. 연구자가 원하는 일(해석, R 분석, 허점 점검, 통 질문 답하기)에 따라 아래 절을 따른다. "해석해 줘"라고 하면 같은 폴더의 \`interpretation.json\`을 읽은 뒤 다음 순서로 진행한다.
 파일이 없으면 통의 결과 해석 메뉴 → [AI 도우미] → [interpretation.json 받기]로 받아 이 폴더에 넣으라고 안내한다.
 
 ## 진행 순서
@@ -6260,6 +6261,12 @@ ${TEXT_FORMAT}
 5. \`analysis_data.csv\`의 내용을 화면에 출력하거나 대화에 옮기지 않는다. 열 이름 확인만 한다.
 6. R 출력에 계획에 없던 문제(경고, 수렴 실패, 가정이 크게 어긋남 등)가 보이면 멈추고, 선택지와 각 선택의 결과를 쉬운 말로 설명해 연구자에게 묻는다. 연구자가 고른 것과 이유를 \`decision_log.md\`에 "결과를 본 뒤의 결정"으로 적는다. 더 유의하게 나오는 쪽을 권하지 않는다.
 7. 끝나면 주요 결과를 짧은 표로 보여 주고, "R_output.txt 내용을 통 분석 결정·계산 화면의 [R 결과와 맞춰 보기]에 붙여 넣으면 숫자를 대조합니다."라고 알린다.
+
+## "통 질문에 답해 줘"라고 하면
+연구자가 통 화면의 대화창에서 물은 질문이 \`5_chat/question.md\`에 있다 (이 폴더 맨 위에 파일을 하나씩 받아 넣었다면 그 위치를 찾는다).
+1. 그 파일을 읽고, 안에 적힌 도우미 규칙과 현재 상태를 지켜 답한다. 연구자의 결정을 대신 내리지 않고, 숫자는 현재 상태에 있는 것만 쓴다.
+2. 답을 \`5_chat/answer.md\`에 쓴다. 첫 줄에는 question.md 맨 위의 \`<!-- q: … -->\` 줄을 그대로 적고, 그 아래에 답만 쓴다. 이 대화창에도 같은 답을 보여 준다.
+3. 끝나면 "통 창으로 돌아가면 답이 대화창에 나옵니다."라고 알린다.
 
 ## "허점 점검해줘"라고 하면
 \`draft.md\`(연구자가 다른 파일을 말하면 그 파일)를 읽고 깐깐한 동료로서 점검한다. 글을 고치지 않고 \`review.md\` 파일에 아래 형식으로 쓴다.
@@ -6885,6 +6892,7 @@ ${REVIEW_RULES}
       <div class="gstep"><b>STEP 2. AI 도우미로 그 폴더 열기</b><p>아래 도우미별 방법을 따르세요.</p></div>
       <div class="gstep"><b>STEP 3. 말로 시키기</b><p><b>"해석해 줘"</b>, <b>"R로 분석해줘"</b>, <b>"허점 점검해줘"</b>. 첫 답에 "통 해석 모드입니다."가 나오면 성공입니다. 허락을 물으면 확인하고 허용하세요. R 분석은 컴퓨터에 <a href="https://cran.r-project.org/" target="_blank" rel="noopener">R</a>이 있어야 합니다.</p></div>
       <div class="gstep"><b>STEP 4. 결과 보기</b><p>AI가 만든 초안, R 결과, 허점 점검은 통 창을 다시 누르면 저절로 들어옵니다.</p></div>
+      <div class="gstep"><b>통 대화창에서 묻기</b><p>통 화면 아래 대화창에 물으면 통이 그 질문을 연구 폴더로 보냅니다. AI 도우미 창에 <b>"통 질문에 답해 줘"</b>라고 한마디 하면, 도우미가 답을 폴더에 쓰고 통 창으로 돌아올 때 대화창에 답이 나옵니다. 묻고 답 받기는 통 화면에서, 도우미에게는 한마디만 하면 됩니다.</p></div>
       <h3>Claude Code (Claude 구독)</h3>
       <div class="gstep"><b>데스크톱 앱 (추천 · 터미널 없음)</b><p><a href="https://claude.ai/download" target="_blank" rel="noopener">Claude 데스크톱 앱</a>을 설치하고 로그인 → 앱 위쪽 <b>Code</b> 탭 → <b>Local</b> → <b>Select folder</b> → 연구 폴더. 메뉴 이름이 다르면 <a href="https://code.claude.com/docs/en/desktop-quickstart" target="_blank" rel="noopener">공식 안내</a>를 보세요.</p></div>
       <div class="gstep"><b>터미널 (익숙한 분)</b>
@@ -7972,6 +7980,8 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
       intent.chat.draft = draft.text; const o = parseDraft(draft.text); Object.assign(o, postCheck(o)); o.sample = analyses.some(a => a.sample); o.src = agentName() + ' (폴더)';
       intent.out = o; saveIntent(); msgs.push('draft.md를 읽어 점검했습니다');
     }
+    const ans = await fresh(['5_chat/answer.md']);
+    if (ans && takeAgentAnswer(ans.text)) msgs.push(`${agentName()}의 답을 대화창에 넣었습니다`);
     const rv = await fresh(['4_interpretation/review.md', 'review.md']);
     if (rv) { intent.review.paste = rv.text; intent.review.result = parseReview(rv.text); intent.review.done = []; saveIntent(); msgs.push('review.md를 읽었습니다'); }
     _set('ladder.folderSeen', seen);
@@ -8029,6 +8039,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
 
   // ---------- 화면 ----------
   function renderFolderBar() {
+    try { renderAiNote(); } catch (e) { }
     const bar = $('#folder-bar'); if (!bar) return;
     const zipBtns = `<button class="btn sm" data-fd="zip">연구 폴더 zip 받기</button><label class="btn sm" style="cursor:pointer">불러오기<input type="file" id="fd-import" accept=".json,.zip" hidden></label>`;
     let h;
@@ -8223,7 +8234,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
   const curView = () => store.get('ladder.view', 'ladder');
   function msgHtml(m, i) {
     if (m.role === 'sys') return `<div class="msg sys">${esc(m.text)}</div>`;
-    return `<div class="msg ${m.role}" data-mi="${i}">${m.role === 'ai' ? '<span class="who">도우미</span>' : ''}${esc(m.text)}${m.links?.length ? `<div class="links">${m.links.map(l => `<a href="${esc(l.href)}">${esc(l.title)}</a>`).join('')}</div>` : ''}${m.prompt ? '<div class="tools"><button class="btn sm" data-copy-prompt="' + i + '">AI에게 물을 지시문 복사</button>' + aiGo('data-copy-prompt="' + i + '"') + '</div>' : ''}${m.setup && aiUnset() ? '<div class="tools"><button class="btn sm primary" data-setup-open>AI 함께 쓰기</button></div>' : ''}${choicesHtml(m, i)}</div>`;
+    return `<div class="msg ${m.role}${m.pending ? ' pending' : ''}" data-mi="${i}">${m.role === 'ai' ? `<span class="who">${esc(m.who || '도우미')}</span>` : ''}${esc(m.text)}${m.phrase && m.pending ? `<div class="tools"><button class="btn sm primary" data-copy-phrase="${i}">"${esc(m.phrase)}" 복사</button></div>` : ''}${m.fold && folderState !== 'on' ? `<div class="tools"><button class="btn sm primary" data-th-fold>${folderState === 'need-permission' ? '연구 폴더 다시 연결' : '연구 폴더 연결'}</button></div>` : ''}${m.links?.length ? `<div class="links">${m.links.map(l => `<a href="${esc(l.href)}">${esc(l.title)}</a>`).join('')}</div>` : ''}${m.prompt ? '<div class="tools"><button class="btn sm" data-copy-prompt="' + i + '">AI에게 물을 지시문 복사</button>' + aiGo('data-copy-prompt="' + i + '"') + '</div>' : ''}${m.setup && aiUnset() ? '<div class="tools"><button class="btn sm primary" data-setup-open>AI 함께 쓰기</button></div>' : ''}${choicesHtml(m, i)}</div>`;
   }
   function choicesHtml(m, i) {
     const c = m.choices; if (!c || m.role !== 'ai') return '';
@@ -8241,6 +8252,9 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
     if (e.target.closest('[data-th]')) { threadAll = !threadAll; renderThread(); return; }
     const mp = e.target.closest('[data-mpick]');
     if (mp) { const m = thread[+mp.closest('[data-mi]').dataset.mi]; if (m?.choices && m.choices.key === path.join(',')) go(path.concat(+mp.dataset.mpick)); return; }
+    const ph = e.target.closest('[data-copy-phrase]');
+    if (ph) { const m = thread[+ph.dataset.copyPhrase]; try { navigator.clipboard.writeText(m.phrase).then(() => toast(`복사했습니다. ${m.who || 'AI 도우미'} 창에 붙여 넣으세요.`), () => showSheet('말할 문장', m.phrase)); } catch (err) { showSheet('말할 문장', m.phrase); } return; }
+    if (e.target.closest('[data-th-fold]')) { (folderState === 'need-permission' ? reconnect() : connectFolder()).then(() => renderThread()); return; }
     const c = e.target.closest('[data-copy-prompt]');
     if (c) { const m = thread[+c.dataset.copyPrompt]; try { navigator.clipboard.writeText(m.prompt).then(() => toast('지시문을 복사했습니다. AI 채팅에 붙여 넣으세요.'), () => showSheet('지시문.txt', m.prompt)); } catch (err) { showSheet('지시문.txt', m.prompt); } }
   });
@@ -8260,6 +8274,27 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
       분석_결과: analyses.slice(0, 4).map(a => ({ 분석: a.title, N: a.n, 효과: a.effects.slice(0, 12).map(e => `${e.label}: ${e.stat}`), 확인_필요: (a.checks || []).filter(c => c.st === 'warn').map(c => c.item) })),
       가설: intent.hyps.filter(h => norm(h.text)).map((h, i) => { const v = verdict(h); return `가설 ${i + 1}: ${h.text}${v ? ` → 판정 ${v.v}` : ''}`; })
     };
+  }
+  // AI 도우미(Claude Code·Codex·Antigravity)와 대화창 잇기: 질문을 연구 폴더의 5_chat/question.md로 보내고,
+  // 도우미가 5_chat/answer.md에 쓴 답을 통 창으로 돌아올 때 읽어 대화창에 보여 줌 (응답 원자료는 넣지 않음)
+  const AGENT_PHRASE = '통 질문에 답해 줘';
+  async function askAgent(v, q) {
+    if (!FS_OK) { addMsg(v, 'ai', `이 브라우저(휴대폰·사파리·파이어폭스)에서는 연구 폴더를 연결할 수 없어 ${agentName()}와 대화창을 이을 수 없습니다. PC의 크롬·엣지·웨일에서 통을 열어 주세요. 지금은 아래 버튼으로 질문을 복사해 AI 채팅에 물을 수 있습니다.`, { links: guideSearch(q), prompt: helperPrompt(q) }); return; }
+    if (folderState !== 'on') { addMsg(v, 'ai', `${agentName()}와 대화하려면 먼저 연구 폴더를 연결해야 합니다. 통은 질문을 그 폴더로 보내고, ${agentName()}가 폴더에 쓴 답을 여기에 보여 줍니다. 연결한 뒤 다시 물어 주세요.`, { fold: true, links: guideSearch(q) }); return; }
+    const qid = 'Q' + Date.now().toString(36);
+    const body = `<!-- q: ${qid} -->\n# 통 대화창 질문 (${new Date().toLocaleString('ko-KR')})\n\n## 연구자의 질문\n${q}\n\n## 답하는 방법\n아래 [도우미 규칙]을 지켜 답을 \`5_chat/answer.md\`에 쓴다. 파일 첫 줄에 \`<!-- q: ${qid} -->\`를 그대로 적고, 그 아래에 답만 쓴다. 대화창(터미널)에도 같은 답을 보여 준다.\n\n## 도우미 규칙과 현재 상태\n${helperPrompt(q)}\n`;
+    try { await fwrite('5_chat/question.md', body); }
+    catch (e) { addMsg(v, 'ai', `연구 폴더에 질문을 쓰지 못했습니다(${(e && e.message) || e}). 폴더 연결을 확인해 주세요.`, { fold: true }); return; }
+    addMsg(v, 'ai', `연구 폴더로 질문을 보냈습니다. ${agentName()} 창(연구 폴더를 연 곳)에 "${AGENT_PHRASE}"라고 말하세요. ${agentName()}가 답을 폴더에 쓰면, 통 창으로 돌아올 때 여기에 저절로 나옵니다.`, { who: agentName(), pending: true, qid, phrase: AGENT_PHRASE });
+  }
+  function takeAgentAnswer(text) {
+    const id = (String(text).match(/<!--\s*q:\s*(\w+)\s*-->/) || [])[1], ans = String(text).replace(/<!--[\s\S]*?-->/g, '').trim();
+    if (!ans) return false;
+    const m = thread.find(x => x.pending && (!id || x.qid === id));
+    if (m) { m.text = ans; m.pending = false; m.phrase = ''; saveThread(); renderThread(true); }
+    else if (!id || !thread.some(x => x.qid === id)) addMsg(curView(), 'ai', ans, { who: agentName() });
+    else return false;
+    return true;
   }
   function helperPrompt(q) {
     const recent = thread.filter(m => m.role !== 'sys').slice(-8).map(m => `${m.role === 'me' ? '연구자' : '도우미'}: ${m.text}`).join('\n');
@@ -8302,6 +8337,7 @@ ${q}`;
       addMsg(v, 'ai', aiUnset() ? `사용 설명에서 관련된 곳을 찾았습니다.${links.length ? '' : ' 맞는 쪽을 찾지 못했습니다.'} 지금 상황에 맞춰 AI와 상의하고 싶으면 아래 [AI 함께 쓰기]를 누르세요.` : `AI를 쓰지 않도록 설정되어 있어 사용 설명에서 관련된 곳을 찾았습니다.${links.length ? '' : ' 맞는 쪽을 찾지 못했습니다.'}`, { links, choices: curChoices(), setup: aiUnset() });
       return;
     }
+    if (aiMode === 'code') { await askAgent(v, q); return; }
     if (!sample || aiState === 'denied') {
       const links = guideSearch(q);
       addMsg(v, 'ai', aiMode !== 'auto' ? `사용 설명에서 관련된 곳을 찾았습니다.${links.length ? '' : ' 맞는 쪽을 찾지 못했습니다.'} 아래 버튼으로 질문을 복사해 쓰시는 AI 채팅에 붙여 넣으면 지금 상황에 맞는 답을 받을 수 있습니다.` : `지금 화면에서는 AI가 연결되어 있지 않아 사용 설명에서 관련된 곳을 찾았습니다.${links.length ? '' : ' 맞는 쪽을 찾지 못했습니다.'} 아래 버튼으로 같은 질문을 쓰시는 AI 채팅에 물을 수 있습니다.`, { links, prompt: helperPrompt(q), choices: curChoices() });
@@ -8474,10 +8510,10 @@ ${q}`;
     const st = aiState, checking = aiMode === 'auto' && st === 'checking', on = aiOn();
     const eff = aiUnset() ? 'unset' : aiMode === 'off' ? 'off' : on ? 'on' : checking ? 'wait' : aiMode === 'code' ? 'code' : aiMode === 'copy' ? 'copy' : 'none';
     const dot = $('#ai-dot'); dot.className = 'ai-dot ' + eff;
-    dot.querySelector('span').textContent = { on: 'Claude 연결됨', wait: '확인 중', copy: AI_SITES[aiSite] ? AI_SITES[aiSite][0] : '내 AI', code: agentName(), off: 'AI 없이', unset: 'AI 정하기 전', none: 'AI 없음' }[eff];
+    dot.querySelector('span').textContent = { on: 'Claude 연결됨', wait: '확인 중', copy: AI_SITES[aiSite] ? AI_SITES[aiSite][0] : '내 AI', code: folderState === 'on' || !FS_OK ? agentName() : `${agentName()} · 폴더 연결 전`, off: 'AI 없이', unset: 'AI 정하기 전', none: 'AI 없음' }[eff];
     dot.title = 'AI 방식 고르기';
     $('#cmp-text').placeholder = eff === 'off' ? '궁금한 것을 물어보세요 (사용 설명에서 찾아 드려요)' : on || checking ? '궁금한 것을 물어보세요 (예: 이 결정은 어떤 걸 고르는 게 좋아?)'
-      : '궁금한 것을 물어보세요 (내 AI에 물을 질문으로 만들어 드려요)';
+      : eff === 'code' ? `${agentName()}에게 물어보세요 (연구 폴더로 보내고, 답이 오면 여기에 보여 드려요)` : '궁금한 것을 물어보세요 (내 AI에 물을 질문으로 만들어 드려요)';
     // 안내 띠는 처음 한 번만: 보여 준 순간 '봤음'으로 저장해 다음에 열 때는 띄우지 않고, 이번에도 20초 뒤 저절로 닫음
     // (AI 상태는 위 띠의 점으로 늘 보임)
     if (eff === 'none' && !store.get('ladder.aiNoteClosed', false) && !renderAiNote.t) { store.set('ladder.aiNoteClosed', true); renderAiNote.live = true; renderAiNote.t = setTimeout(() => { renderAiNote.live = false; $('#ai-note').hidden = true; }, 20000); }
@@ -12144,7 +12180,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
         <div class="su-act"><button class="btn" data-su="back">이전</button><span style="flex:1"></span><button class="btn primary" data-su="next">${folderState === 'on' || !FS_OK ? '다음' : '나중에 연결하고 다음'}</button></div>`;
       else body = `<h3 id="su-h">${mode === 'off' ? 'AI 없이 계속합니다' : '준비됐어요!'}</h3>
         <ul class="su-sum"><li>AI: <b>${name()}</b></li>${mode === 'code' ? `<li>연구 폴더: <b>${FS_OK && folderState === 'on' ? esc(dirHandle?.name || '') + ' (자동 저장)' : '아직 연결 안 됨'}</b></li>` : ''}</ul>
-        ${mode === 'code' ? `<p class="wc-how">${agentName()}를 처음 쓰면 <a href="#guide-claude-code" data-su="done">설치·사용 안내</a>를 먼저 보세요. ${agentName()}로 연구 폴더를 열고 "해석해 줘", "R로 분석해줘"라고 말하면 됩니다. 결과는 통 창으로 돌아오면 저절로 들어옵니다.</p>` : ''}
+        ${mode === 'code' ? `<p class="wc-how">${agentName()}를 처음 쓰면 <a href="#guide-claude-code" data-su="done">설치·사용 안내</a>를 먼저 보세요. ${agentName()}로 연구 폴더를 열고 "해석해 줘", "R로 분석해줘"라고 말하면 됩니다. 통 대화창에 물은 것은 "통 질문에 답해 줘"라고 하면 됩니다. 결과와 답은 통 창으로 돌아오면 저절로 들어옵니다.</p>` : ''}
         ${mode === 'copy' ? `<p class="wc-how">AI에 물을 일이 생기면 통이 질문을 만들어 <b>[복사하고 ${AI_SITES[aiSite] ? AI_SITES[aiSite][0] : 'AI'} 열기]</b> 버튼을 보여 줍니다. 열린 창에 붙여 넣기(Ctrl+V)만 하세요.</p>` : ''}
         <p class="wc-how">바꾸려면 대화창 왼쪽 아래의 <b>● 점</b>을 누르세요.</p>
         <div class="su-act"><button class="btn" data-su="back">이전</button><span style="flex:1"></span><button class="btn primary" data-su="done">확인</button></div>`;
