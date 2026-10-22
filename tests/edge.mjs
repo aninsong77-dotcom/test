@@ -8,7 +8,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const server = http.createServer((q, s) => { const f = path.join(ROOT, decodeURIComponent(q.url.split('?')[0])); if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { s.writeHead(404); return s.end(); } s.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); fs.createReadStream(f).pipe(s); });
+const server = http.createServer((q, s) => { const f = path.join(ROOT, decodeURIComponent(q.url.split('?')[0])); if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { s.writeHead(404); return s.end(); } s.writeHead(200, { 'Content-Type': { '.js': 'text/javascript', '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.png': 'image/png' }[path.extname(f)] || 'text/html; charset=utf-8' }); fs.createReadStream(f).pipe(s); });
 await new Promise(r => server.listen(0, '127.0.0.1', r));
 const APP = ['stats-ladder.html', 'index.html'].find(f => fs.existsSync(path.join(ROOT, f)) && fs.statSync(path.join(ROOT, f)).size > 100000);   // tong 저장소에서는 index.html이 본체
 const BASE = `http://127.0.0.1:${server.address().port}/${APP}`;
@@ -217,6 +217,16 @@ console.log('\n3-2. 시작 화면 · 변인만 있어요');
   const cards = await p.evaluate(() => JSON.parse(localStorage.getItem('ladder.hyp') || 'null')?.cards || []);
   ok('[가설로]를 누르면 매개 모형 카드가 생김', cards.some(c => c.model === 'med' && c.m.includes('외로움') && c.y === '외집단 혐오'), cards.map(c => c.model).join(','));
   ok('만든 후보는 "카드로 만듦"으로 표시', /카드로 만듦/.test(await p.$eval('.mb-sg', e => e.innerText)));
+  // 다르게 생각해 보기
+  await p.click('[data-mb-act=sg-close]').catch(() => {}); await p.waitForTimeout(200);
+  await p.click('[data-mb-act=alt-toggle][data-ci="0"]'); await p.waitForTimeout(2500);
+  const alt = await p.$eval('.mb-alt-body', e => e.innerText).catch(() => '');
+  ok('[다르게 생각해 보기]: 다른 모형(영향·조절·조절된 매개)과 바뀌는 것', /다른 모형으로 보기/.test(alt) && /거쳐 가는 길 없이/.test(alt) && /조절로 보기/.test(alt) && /필요 인원 약/.test(alt), alt.split('\n').slice(0, 3).join(' / '));
+  ok('기법 나란히 보기: 주 분석·구조방정식과 필요 인원·준비', /기법 나란히 보기/.test(alt) && /구조방정식/.test(alt) && /흔히 200명 이상/.test(alt) && /확인적 요인분석/.test(alt));
+  const n0 = await p.$$eval('.mb-card', e => e.length);
+  await p.click('.mb-alt-body [data-mb-act=alt-add][data-k="1"]'); await p.waitForTimeout(400);
+  const heads = await p.$$eval('.mb-card .mb-head b', e => e.map(x => x.textContent));
+  ok('[이 모형으로 가설 하나 더]: 지금 카드를 두고 새 카드를 만듦', heads.length === n0 + 1 && heads.includes('조절'), heads.join(','));
   ok('페이지 오류 없음 (시작 화면)', !errs.length, errs.join(' | '));
   await ctx.close();
 }
@@ -375,6 +385,28 @@ console.log('\n7. 원척도 정보 · 기법별 필요한 준비');
   ok('t검정이면 정규성·등분산성이 준비로 보이고 확인적 요인분석은 없음', /정규성/.test(prep2) && /등분산성/.test(prep2) && !/확인적 요인분석/.test(prep2));
   ok('페이지 오류 없음 (준비)', !errs.length, errs.join(' | '));
   await ctx.close();
+}
+
+// ===================== 8. 앱처럼 설치 (서비스 워커 · 인터넷 없이 열기) =====================
+console.log('\n8. 앱처럼 설치');
+{
+  const race = (pr, ms, v) => Promise.race([pr, new Promise(r => setTimeout(() => r(v), ms))]);
+  const ctx = await browser.newContext(); const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message));
+  await p.goto(BASE); await p.evaluate(() => { localStorage.setItem('ladder.noWelcome', 'true'); });
+  const reg = await race(p.evaluate(() => navigator.serviceWorker.ready.then(r => !!r.active).catch(() => false)), 15000, false);
+  ok('서비스 워커가 등록됨', reg);
+  await p.reload(); await p.waitForTimeout(800);
+  ok('다시 열면 서비스 워커가 화면을 맡음', await race(p.evaluate(() => !!navigator.serviceWorker.controller), 5000, false));
+  await ctx.setOffline(true);
+  let offOk = false; try { await p.reload({ timeout: 15000 }); await p.waitForTimeout(800); offOk = await race(p.evaluate(() => !!document.querySelector('.hdr') && document.body.innerText.length > 100), 5000, false); } catch (e) { offOk = false; }
+  ok('인터넷이 끊겨도 통이 열림', offOk);
+  await ctx.setOffline(false);
+  ok('페이지 오류 없음 (설치)', !errs.length, errs.join(' | '));
+  await ctx.close();
+  const ctx2 = await browser.newContext(); const p2 = await ctx2.newPage();
+  await p2.goto(BASE + '#guide-install'); await p2.waitForTimeout(600);
+  ok('사용 설명에 "앱처럼 설치하기"', /앱처럼 설치/.test(await race(p2.$eval('#gd-body', e => e.innerText).catch(() => ''), 5000, '')));
+  await ctx2.close();
 }
 
 await browser.close(); server.close();
