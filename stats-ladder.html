@@ -2331,6 +2331,17 @@ input:focus::placeholder,textarea:focus::placeholder{opacity:.35}
 .wc-never{margin-left:auto;border:0;background:none;padding:2px 0;font:inherit;font-size:12px;color:var(--ink-3);text-decoration:underline;cursor:pointer}.wc-never:hover{color:var(--ink)}.wc-note .wc-held{display:none}
 #welcome.hold .wc-note .wc-run{display:none}#welcome.hold .wc-note .wc-held{display:inline}
 @keyframes wc-bar{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+/* 처음 설정 (AI 방식 · 연구 폴더) */
+#welcome.setup .wc-card{width:min(520px,100%);max-height:calc(100vh - 32px);overflow:auto}
+.su-steps{display:flex;gap:6px;margin:0 0 12px;font-size:12px;font-weight:700;color:var(--ink-3)}.su-steps span{flex:1;padding-top:6px;border-top:3px solid var(--line)}.su-steps span.on{color:var(--orange-deep);border-color:var(--orange)}.su-steps span.done{border-color:var(--orange-line)}
+.su-opt{display:flex;gap:10px;align-items:flex-start;padding:11px 12px;border:1.5px solid var(--line);border-radius:12px;margin-top:8px;cursor:pointer}
+.su-opt input{margin-top:3px;accent-color:var(--orange)}.su-opt b{display:block;font-size:14.5px}.su-opt small{display:block;font-size:12.5px;color:var(--ink-2);line-height:1.55;margin-top:2px}
+.su-opt.on{border-color:var(--orange);background:var(--orange-soft)}
+.su-tag{display:inline-block;font-size:11px;font-weight:800;color:var(--orange-deep);background:var(--orange-soft);border:1px solid var(--orange-line);border-radius:999px;padding:0 7px;margin-left:6px;vertical-align:1px}
+.su-box{margin-top:10px;padding:11px 13px;border-radius:12px;background:var(--bg-2,#f6f7fb);font-size:13px;line-height:1.6}
+.su-box .ap-sites{margin:6px 0 6px}
+.su-sum{margin:6px 0 4px;padding-left:18px;font-size:14px;line-height:1.75}
+.su-act{display:flex;gap:8px;margin-top:16px;align-items:center;position:sticky;bottom:-18px;background:var(--bg);padding:10px 0 4px}.su-act .su-later{margin-right:auto;border:0;background:none;font:inherit;font-size:12.5px;color:var(--ink-3);text-decoration:underline;cursor:pointer;padding:0}
 @media (prefers-reduced-motion: reduce){#welcome,.wc-card{transition:none}.wc-bar{display:none}}
 /* ㅌㅗㅇ → 통 → ㅌㅗㅇ */
 .hdr-title .wm{overflow:visible}
@@ -2392,7 +2403,10 @@ input:focus::placeholder,textarea:focus::placeholder{opacity:.35}
 .ap-opt.dis{opacity:.5;cursor:default}
 .ap-f{margin:10px 2px 0;font-size:12px;color:var(--ink-3)}
 .ap-go{margin:8px 0 2px;padding:10px 12px;border-radius:10px;background:var(--warn-soft);border:1px solid var(--warn-line);font-size:12.5px;line-height:1.5}.ap-go .btn{margin-top:6px;display:inline-block;text-decoration:none}
-.ai-dot.copy i{background:var(--orange)}.ai-dot.copy{color:var(--orange-deep)}
+.ai-dot.copy i{background:var(--orange)}.ai-dot.copy{color:var(--orange-deep)}.ai-dot.code i{background:#7c5cd6}.ai-dot.code{color:#6a4cc4}
+.ap-sites{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 2px}.ap-sites button{border:1.5px solid var(--line);background:var(--bg);border-radius:999px;padding:4px 11px;font:inherit;font-size:12.5px;font-weight:700;color:var(--ink-2);cursor:pointer}.ap-sites button.on{border-color:var(--orange);background:var(--orange-soft);color:var(--orange-deep)}
+.ap-sub{margin:6px 0 2px 28px;font-size:12px;color:var(--ink-2);line-height:1.55}.ap-sub .btn{margin-top:6px}
+.ap-redo{border:0;background:none;padding:0;font:inherit;font-size:12px;color:var(--ink-3);text-decoration:underline;cursor:pointer;margin-left:6px}
 .ai-dot.off i{background:#c0392b}.ai-dot.off{color:#c0392b}
 .ai-dot.none i{background:#b8bfcf}
 
@@ -5757,11 +5771,21 @@ function createSurvey() {
 
   const sampleRawP = (window.claude && typeof window.claude.use === 'function') ? window.claude.use('sample').catch(() => null) : Promise.resolve(null);
   let aiState = 'checking';   // 이 화면에서 Claude를 바로 쓸 수 있는지: checking | on | off | denied
-  // AI 방식 (사용자가 고름): auto = Claude 바로 쓰기(가능할 때) · copy = 다른 AI에 복사해서 · off = AI 쓰지 않기
+  // AI 방식 (사용자가 고름): copy = 내 AI 계정(질문을 복사해 쓰던 AI 채팅에) · code = Claude Code(연구 폴더) · off = AI 없이
+  //   auto = Claude 바로 쓰기: claude.ai 안에서 열었을 때만 보이고, 사이트에서는 copy처럼 동작
   let aiMode = store.get('ladder.aiMode', 'auto');
   const sampleP = { then: (ok, bad) => sampleRawP.then(s => (aiMode === 'auto' ? s : null)).then(ok, bad) };
   const aiOn = () => aiMode === 'auto' && aiState === 'on';
-  sampleRawP.then(s => { aiState = s ? 'on' : 'off'; renderInterp(); });
+  const aiCopyish = () => aiMode === 'copy' || aiMode === 'code';
+  sampleRawP.then(s => { aiState = s ? 'on' : 'off'; if (!s && aiMode === 'auto') aiMode = 'copy'; renderInterp(); });
+  // 내 AI 계정: 질문을 복사하고, 고른 AI 채팅을 새 창으로 엶 (주소에 질문을 싣는 방법은 공식 기능이 아니라 쓰지 않음)
+  const AI_SITES = { chatgpt: ['ChatGPT', 'https://chatgpt.com/'], claude: ['Claude', 'https://claude.ai/new'], gemini: ['Gemini', 'https://gemini.google.com/app'] };
+  let aiSite = store.get('ladder.aiSite', 'chatgpt');
+  const aiGo = attrs => AI_SITES[aiSite] ? `<button class="btn sm" ${attrs} data-ai-go>복사하고 ${AI_SITES[aiSite][0]} 열기</button>` : '';
+  // 복사는 버튼마다의 처리기가 먼저 하고(같은 data-* 속성), 여기서는 그 뒤에 창만 엶
+  document.addEventListener('click', e => { if (e.target.closest('[data-ai-go]') && AI_SITES[aiSite]) window.open(AI_SITES[aiSite][1], '_blank', 'noopener'); });
+  // AI 학습에 쓰지 않게 하는 설정 (2026년 10월 기준, 메뉴 이름은 바뀔 수 있음)
+  const AI_TRAIN_OFF = { chatgpt: 'ChatGPT: 설정 → 데이터 제어 → <b>모두를 위한 모델 개선</b> 끄기', claude: 'Claude: 설정 → 개인정보 보호 → <b>Claude 개선에 도움</b> 끄기', gemini: 'Gemini: <b>Gemini 앱 활동</b>(활동 기록 보관) 끄기' };
 
   const allEffects = () => analyses.flatMap(a => a.effects.map(e => ({ ...e, analysis: a })));
   const effById = id => allEffects().find(e => e.id === id);
@@ -5878,7 +5902,7 @@ function createSurvey() {
     const box = $('#in-main'); if (!box) return;
     autoLink();
     const effs = allEffects();
-    const aiChip = aiMode === 'off' ? '<span class="st missing">AI 쓰지 않음</span>' : aiMode === 'copy' ? '<span class="st manual">다른 AI (복사) 방식</span>' : aiState === 'on' ? '<span class="st auto">AI 연결됨</span>' : aiState === 'checking' ? '<span class="st manual">AI 확인 중…</span>'
+    const aiChip = aiMode === 'off' ? '<span class="st missing">AI 쓰지 않음</span>' : aiMode === 'copy' ? '<span class="st manual">내 AI 계정 방식</span>' : aiMode === 'code' ? '<span class="st manual">Claude Code 방식</span>' : aiState === 'on' ? '<span class="st auto">AI 연결됨</span>' : aiState === 'checking' ? '<span class="st manual">AI 확인 중…</span>'
       : aiState === 'denied' ? '<span class="st missing">AI 사용이 허용되지 않음</span>' : '<span class="st missing">AI 없음 · claude.ai 링크에서 열면 됩니다</span>';
     const effOpts = cur => `<option value="">(효과 고르기)</option>` + analyses.map(a => `<optgroup label="${esc(a.title)}">${a.effects.map(e => `<option value="${e.id}" ${e.id === cur ? 'selected' : ''}>${esc(e.label)}</option>`).join('')}</optgroup>`).join('');
     const hyps = intent.hyps.map((h, i) => {
@@ -5902,8 +5926,8 @@ function createSurvey() {
     }).join('');
 
     const ck = intent.check;
-    let mode = intent.mode || (aiOn() || (aiMode === 'auto' && aiState === 'checking') ? 'auto' : 'chat');
-    if (aiMode !== 'auto' && mode === 'auto') mode = 'chat';
+    let mode = intent.mode || (aiOn() || (aiMode === 'auto' && aiState === 'checking') ? 'auto' : aiMode === 'code' ? 'code' : 'chat');
+    if (mode === 'auto' && !(aiMode === 'auto' && aiState !== 'off')) mode = aiMode === 'code' ? 'code' : 'chat';
     if (aiMode === 'off') mode = 'off';
     const checkHtml = ck ? `<div class="ai-box">
       <div class="ai-label">AI가 이해한 연구 의도</div>
@@ -5955,10 +5979,10 @@ function createSurvey() {
         <div class="tmpl-box"><b>AI 없이</b> 판정과 숫자로 결과 문단의 틀을 만들고, 내가 읽은 결과를 논의 자리에 모아 둡니다. <button class="btn sm" data-in-act="tmpl">결과 문단 틀 만들기</button></div>
         ${mode === 'off' ? `<div class="notice">AI를 쓰지 않도록 설정했습니다. 아무것도 밖으로 보내지 않습니다. 가설 판정과 결과표는 그대로 쓸 수 있으니, 해석 글은 직접 쓰고 아래 [초안 점검] 칸에 붙여 넣으면 숫자·판정을 점검합니다. <button class="btn sm" data-ai-mode-open>AI 방식 바꾸기</button></div>` : ''}
         <div class="mode-tabs" role="tablist" ${mode === 'off' ? 'hidden' : ''}>
-          ${[['auto', 'Claude 바로 쓰기', 'claude.ai 링크'], ['chat', '다른 AI (복사)', 'ChatGPT·Gemini 등'], ['code', 'Claude Code', '연구 폴더 · 유료']].filter(([k]) => k !== 'auto' || aiMode === 'auto').map(([k, l, sub]) => `<button class="mode-tab" role="tab" data-in-mode="${k}" aria-selected="${mode === k}"><b>${l}</b><span>${sub}</span></button>`).join('')}
+          ${[['auto', 'Claude 바로 쓰기', '이 화면에서'], ['chat', '내 AI 계정', 'ChatGPT·Claude 등'], ['code', 'Claude Code', '연구 폴더 · 유료']].filter(([k]) => k !== 'auto' || (aiMode === 'auto' && aiState !== 'off')).map(([k, l, sub]) => `<button class="mode-tab" role="tab" data-in-mode="${k}" aria-selected="${mode === k}"><b>${l}</b><span>${sub}</span></button>`).join('')}
         </div>
         ${mode === 'auto' ? `
-          ${aiOn() ? '' : `<div class="notice">이 화면에서는 Claude 바로 쓰기를 할 수 없습니다. ${aiState === 'denied' ? 'AI 사용이 허용되지 않았거나 이 계정에서 쓸 수 없습니다.' : 'claude.ai 링크에서 열면 됩니다.'} 다른 방법은 위의 [다른 AI (복사)]나 [Claude Code]를 고르세요.</div>`}
+          ${aiOn() ? '' : `<div class="notice">이 화면에서는 Claude 바로 쓰기를 할 수 없습니다. ${aiState === 'denied' ? 'AI 사용이 허용되지 않았거나 이 계정에서 쓸 수 없습니다.' : '잠시 뒤 다시 보세요.'} 다른 방법은 위의 [내 AI 계정]나 [Claude Code]를 고르세요.</div>`}
           <ol class="steps">
             <li><b>의도 확인</b>: AI가 연구 목적과 가설을 다시 말해 보고, 효과 연결이 맞는지 보고, 빠진 정보를 묻습니다.</li>
             <li><b>풀어 쓰기</b>: 2번에 적은 <b>내가 읽은 결과</b>를 뼈대로, 판정과 숫자를 그대로 써서 결과·논의를 논문 문체로 풀어 씁니다. 내 해석에 없는 주장은 덧붙이지 않고 [연구자 보완] 자리로 남깁니다. 쓴 뒤 코드가 다시 점검합니다.</li>
@@ -5971,15 +5995,15 @@ function createSurvey() {
             <span class="hint" id="in-prog"></span>
           </div>` : ''}
         ${mode === 'chat' ? `
-          <p class="hint">ChatGPT, Gemini, Claude 등 어떤 AI 채팅이든 됩니다. 무료 계정도 됩니다. 지시문을 복사해 붙여 넣고, AI의 답을 다시 여기에 붙여 넣으세요.</p>
+          <p class="hint">내가 쓰는 AI 채팅(ChatGPT, Claude, Gemini 등)이면 됩니다. 무료 계정도 됩니다. 지시문을 복사해 붙여 넣고, AI의 답을 다시 여기에 붙여 넣으세요. <a href="#" data-ai-mode-open>쓰는 AI 바꾸기</a></p>
           <div class="chat-steps">
             <div class="chat-step"><span class="n">1</span><div><b>의도 확인 지시문을 AI 채팅에 붙여 넣기</b>
-              <div class="actions tight"><button class="btn sm primary" data-in-act="copy-prompt" data-which="check">① 의도 확인 지시문 복사</button></div></div></div>
+              <div class="actions tight"><button class="btn sm primary" data-in-act="copy-prompt" data-which="check">① 의도 확인 지시문 복사</button>${aiGo('data-in-act="copy-prompt" data-which="check"')}</div></div></div>
             <div class="chat-step"><span class="n">2</span><div><b>AI의 답을 붙여 넣고, AI가 물은 것에 답하기</b>
               <label class="f">AI의 답<textarea rows="4" data-in-chat="aiText" placeholder="AI가 이해한 연구 목적, 가설별 확인, 질문을 붙여 넣으세요">${esc(intent.chat.aiText)}</textarea></label>
               <label class="f" style="margin-top:8px">AI의 질문에 대한 내 답<textarea rows="3" data-in-chat="myAnswers" placeholder="예: 1. 외집단은 이주민과 성소수자를 말함 2. 대학 커뮤니티에서 모집함">${esc(intent.chat.myAnswers)}</textarea></label>
               <p class="hint">AI가 '확인 필요'라고 한 가설은 위의 2번에서 효과 연결을 먼저 고치세요.</p></div></div>
-            <div class="chat-step"><span class="n">3</span><div><b>초안 쓰기 지시문을 같은 채팅에 붙여 넣기</b>
+            <div class="chat-step"><span class="n">3</span><div><b>초안 쓰기 지시문을 ①과 같은 대화창에 붙여 넣기</b>
               <div class="actions tight"><button class="btn sm primary" data-in-act="copy-prompt" data-which="write">② 초안 쓰기 지시문 복사</button></div></div></div>
             <div class="chat-step"><span class="n">4</span><div><b>AI가 쓴 초안을 아래 [초안 점검] 칸에 붙여 넣기</b></div></div>
           </div>` : ''}
@@ -6311,7 +6335,6 @@ ${REVIEW_RULES}
   // =================================================================
   // 사용 설명 (위키)
   // =================================================================
-  const ARTIFACT_URL = 'https://claude.ai/artifact/Gaiius2CkfmCTb1pJWx2kd';
   const TONG_URL = 'https://aninsong77-dotcom.github.io/tong/';
   const GUIDE = [
     { id: 'start', group: '시작하기', title: '처음 오셨나요', body: `
@@ -6675,27 +6698,33 @@ ${REVIEW_RULES}
       <ul><li>인과 해석, 반대 방향, 제3의 변인</li><li>작은 효과를 크게 쓴 곳, 지나친 일반화</li><li>측정 문제, 체크리스트의 '확인 필요'를 넘어간 곳</li></ul>
       <p>질문마다 [검토함]에 체크하며 정리하세요.</p>` },
 
-    { id: 'ai', group: 'AI 연결', title: 'AI 방식', kw: 'AI 연결 ChatGPT 챗GPT Gemini 복사', tab: 'interp', body: `
+    { id: 'ai', group: 'AI 연결', title: 'AI 방식', kw: 'AI 연결 ChatGPT 챗GPT Claude 클로드 Gemini 복사 학습 끄기 개인정보 Claude Code', tab: 'interp', body: `
       <p class="hint">영상으로 보기: <a href="https://aninsong77-dotcom.github.io/tong/video/tong_ai_connect.mp4" target="_blank" rel="noopener">AI 연결하기 (약 7분)</a></p>
-      <p class="g-sum">어느 방식이든 <b>각자 자기 AI 계정</b>으로 연결됩니다. 만든 사람이나 다른 사람의 계정을 쓰지 않습니다. 대화창 왼쪽 아래 <b>점</b>을 누르면 AI 방식을 고릅니다. 대화창, 결과 해석, 허점 점검, 척도 사진 읽기에 모두 적용됩니다.</p>
+      <p class="g-sum">통계 계산과 판정은 AI 없이 통이 합니다. AI는 결과를 두고 상의하고 글을 다듬을 때 씁니다. 어느 방식이든 <b>각자 자기 AI 계정</b>으로 쓰고, <b>응답 원자료는 AI에 보내지 않습니다</b>. 처음 들어올 때 고르고, 대화창 왼쪽 아래 <b>점</b>을 누르면 언제든 바꿉니다.</p>
       <table class="gtable"><thead><tr><th>방식</th><th>쓰는 법</th><th>필요한 것</th></tr></thead><tbody>
-        <tr><td><b>Claude 바로 쓰기</b></td><td>화면 안에서 바로 답합니다.</td><td>claude.ai 링크로 열기. 여는 사람 <b>자기 claude.ai 계정</b>으로 로그인해 자기 사용량으로 씁니다 (무료도 됨, 만든 사람 계정을 쓰지 않음)</td></tr>
-        <tr><td><b>다른 AI 쓰기</b></td><td>[지시문 복사] → ChatGPT·Gemini 등에 붙여 넣기 → 답을 다시 붙여 넣기</td><td>아무 AI 계정 (무료도 됨)</td></tr>
-        <tr><td><b>Claude Code</b></td><td>내 컴퓨터의 Claude Code에게 연구 폴더를 맡깁니다.</td><td>자기 Claude 유료 요금제 (Pro 이상)</td></tr>
-        <tr><td><b>AI 쓰지 않기</b></td><td>AI 기능을 끄고 아무것도 밖으로 보내지 않습니다.</td><td>없음</td></tr>
+        <tr><td><b>내 AI 계정</b></td><td>통이 질문(지시문)을 만들어 주면 <b>[복사하고 ChatGPT 열기]</b>처럼 쓰는 AI 창이 열립니다. 붙여 넣기(Ctrl+V)하고, AI의 답을 다시 통에 붙여 넣습니다.</td><td>ChatGPT, Claude, Gemini 등 쓰던 AI 계정 (무료도 됨)</td></tr>
+        <tr><td><b>Claude Code</b></td><td>내 컴퓨터의 Claude Code에게 연구 폴더를 맡깁니다. 해석, R 점검, 문서 정리까지 합니다.</td><td>Claude 유료 요금제(Pro 이상), PC의 크롬·엣지·웨일</td></tr>
+        <tr><td><b>AI 없이</b></td><td>아무것도 밖으로 보내지 않습니다. 계산, 판정, 표와 그래프, 결과 문단의 틀은 그대로 됩니다.</td><td>없음</td></tr>
       </tbody></table>
-      <p>점 색으로 지금 상태를 알 수 있습니다: <b style="color:#1f8a5b">● Claude 연결됨</b> · <b style="color:#e06f0b">● 다른 AI (복사)</b> · <b style="color:#8a90a3">● AI 없음</b> · <b style="color:#c0392b">● AI 끔</b></p>
-      <p>Claude에게 연구 폴더를 통째로 맡기는 방법도 있습니다(유료 요금제). <a href="#guide-claude-code">Claude Code로 맡기기</a></p>
-      <h3>다른 AI로 해석하기</h3>
+      <p>점 색으로 지금 상태를 알 수 있습니다: <b style="color:#e06f0b">● 내 AI 계정</b> · <b style="color:#6a4cc4">● Claude Code</b> · <b style="color:#c0392b">● AI 없이</b></p>
+      <h3>대화를 AI 학습에 쓰지 않게 하기</h3>
+      <p>무료든 유료든 채팅 서비스는 기본으로 대화를 AI 학습에 쓸 수 있습니다. 통은 응답 원자료를 보내지 않지만, 연구 내용이 걱정되면 설정에서 끄세요. (2026년 10월 기준, 메뉴 이름은 바뀔 수 있습니다)</p>
+      <ul>
+        <li>ChatGPT: 설정 → 데이터 제어 → <b>모두를 위한 모델 개선</b> 끄기</li>
+        <li>Claude: 설정 → 개인정보 보호 → <b>Claude 개선에 도움</b> 끄기</li>
+        <li>Gemini: <b>Gemini 앱 활동</b>(활동 기록 보관) 끄기</li>
+      </ul>
+      <p class="hint">소속 기관이나 IRB에 외부 AI 사용 규정이 있으면 따르세요. 규정상 쓸 수 없으면 <b>AI 없이</b>를 고르면 됩니다.</p>
+      <p>처음 설정을 다시 하려면 <a href="#" data-setup-open>처음 설정 다시 하기</a>.</p>
+      <h3>내 AI 계정으로 해석하기</h3>
       <ol>
         <li>결과 해석 2번에서 가설마다 <b>내가 읽은 결과</b>를 한두 줄 적기 (AI가 이것을 뼈대로 씁니다)</li>
-        <li>결과 해석 → <b>[다른 AI (복사)]</b> → <b>[① 의도 확인 지시문 복사]</b> → AI 채팅에 붙여 넣기</li>
+        <li>결과 해석 → <b>[내 AI 계정]</b> → <b>[복사하고 ChatGPT 열기]</b>(또는 [① 의도 확인 지시문 복사]) → 열린 AI 채팅에 붙여 넣기</li>
         <li>AI의 답과 AI가 물은 것에 대한 내 답을 칸에 넣기</li>
-        <li><b>[② 초안 쓰기 지시문 복사]</b> → 같은 채팅에 붙여 넣기</li>
+        <li><b>[② 초안 쓰기 지시문 복사]</b> → ①과 같은 대화창에 붙여 넣기</li>
         <li>AI의 초안을 <b>[초안 점검]</b> 칸에 붙여 넣고 [초안 점검하기]</li>
       </ol>
-      <div class="gnote">어느 방식이든 <b>판정은 코드가 정하고, 초안의 숫자와 판정은 통이 다시 점검</b>합니다. AI는 연구자가 읽은 결과를 풀어 쓸 뿐 새 주장을 지어내지 않고, 더 쓸 곳은 [연구자 보완] 자리로 남깁니다. AI에게는 연구 의도와 집계된 결과표만 갑니다. 응답 원자료는 가지 않습니다.</div>
-      <p class="hint">Claude 바로 쓰기 링크: <a href="${ARTIFACT_URL}" target="_blank" rel="noopener">${ARTIFACT_URL}</a> (만든 사람이 공유를 켜야 다른 사람이 열 수 있습니다)</p>` },
+      <div class="gnote">어느 방식이든 <b>판정은 코드가 정하고, 초안의 숫자와 판정은 통이 다시 점검</b>합니다. AI는 연구자가 읽은 결과를 풀어 쓸 뿐 새 주장을 지어내지 않고, 더 쓸 곳은 [연구자 보완] 자리로 남깁니다. AI에게는 연구 의도와 집계된 결과표만 갑니다. 응답 원자료는 가지 않습니다.</div>` },
 
     { id: 'claude-code', group: 'AI 연결', title: 'Claude Code로 맡기기', kw: 'Claude Code 클로드 데스크톱 터미널 폴더 방식', tab: 'interp', body: `
       <p class="g-sum">내 컴퓨터의 <b>Claude Code</b>에게 연구 폴더를 맡겨 해석, R 분석, 허점 점검을 시킵니다. Claude <b>Pro 이상</b> 요금제가 필요합니다.</p>
@@ -7096,7 +7125,7 @@ ${reviewText()}
       ${mode === 'off' ? '<p class="hint">AI를 쓰지 않도록 설정되어 있어 허점 점검은 쉬어 갑니다. 보고 체크리스트의 확인 필요 항목을 직접 살펴보세요.</p>' : ''}
       ${mode === 'auto' ? `<div class="actions"><button class="btn primary" data-in-act="rv-run" ${aiOn() ? '' : 'disabled'}>허점 점검 받기</button><span class="hint" id="rv-prog"></span></div>` : ''}
       ${mode === 'chat' ? `<div class="chat-steps" style="margin-top:12px">
-          <div class="chat-step"><span class="n">1</span><div><b>지시문을 AI 채팅에 붙여 넣기</b><div class="actions tight"><button class="btn sm primary" data-in-act="copy-prompt" data-which="review">허점 점검 지시문 복사</button></div></div></div>
+          <div class="chat-step"><span class="n">1</span><div><b>지시문을 AI 채팅에 붙여 넣기</b><div class="actions tight"><button class="btn sm primary" data-in-act="copy-prompt" data-which="review">허점 점검 지시문 복사</button>${aiGo('data-in-act="copy-prompt" data-which="review"')}</div></div></div>
           <div class="chat-step"><span class="n">2</span><div><b>AI의 답을 붙여 넣기</b><label class="f"><textarea rows="5" id="rv-paste" placeholder="[잘한 점] [질문] 형식의 답을 붙여 넣으세요">${esc(rv.paste)}</textarea></label>
             <div class="actions tight"><button class="btn sm primary" data-in-act="rv-show">정리해서 보기</button></div></div></div></div>` : ''}
       ${mode === 'code' ? `<div class="chat-steps" style="margin-top:12px">
@@ -7703,7 +7732,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
     saving = false; renderFolderBar();
   }
   // 저장소에 쓸 때마다 폴더 저장 예약
-  const _set = store.set; store.set = (k, v) => { _set(k, v); if (k !== 'ladder.folderSeen' && k !== 'ladder.view' && k !== 'ladder.lastWork' && k !== 'ladder.welcomed' && k !== 'ladder.noWelcome') scheduleSave(); };
+  const _set = store.set; store.set = (k, v) => { _set(k, v); if (k !== 'ladder.folderSeen' && k !== 'ladder.view' && k !== 'ladder.lastWork' && k !== 'ladder.welcomed' && k !== 'ladder.noWelcome' && k !== 'ladder.setupDone') scheduleSave(); };
 
   // ---------- 연결 ----------
   async function connectFolder() {
@@ -8006,7 +8035,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
   const curView = () => store.get('ladder.view', 'ladder');
   function msgHtml(m, i) {
     if (m.role === 'sys') return `<div class="msg sys">${esc(m.text)}</div>`;
-    return `<div class="msg ${m.role}" data-mi="${i}">${m.role === 'ai' ? '<span class="who">도우미</span>' : ''}${esc(m.text)}${m.links?.length ? `<div class="links">${m.links.map(l => `<a href="${esc(l.href)}">${esc(l.title)}</a>`).join('')}</div>` : ''}${m.prompt ? '<div class="tools"><button class="btn sm" data-copy-prompt="' + i + '">AI에게 물을 지시문 복사</button></div>' : ''}${choicesHtml(m, i)}</div>`;
+    return `<div class="msg ${m.role}" data-mi="${i}">${m.role === 'ai' ? '<span class="who">도우미</span>' : ''}${esc(m.text)}${m.links?.length ? `<div class="links">${m.links.map(l => `<a href="${esc(l.href)}">${esc(l.title)}</a>`).join('')}</div>` : ''}${m.prompt ? '<div class="tools"><button class="btn sm" data-copy-prompt="' + i + '">AI에게 물을 지시문 복사</button>' + aiGo('data-copy-prompt="' + i + '"') + '</div>' : ''}${choicesHtml(m, i)}</div>`;
   }
   function choicesHtml(m, i) {
     const c = m.choices; if (!c || m.role !== 'ai') return '';
@@ -8085,7 +8114,7 @@ ${q}`;
     }
     if (!sample || aiState === 'denied') {
       const links = guideSearch(q);
-      addMsg(v, 'ai', aiMode === 'copy' ? `사용 설명에서 관련된 곳을 찾았습니다.${links.length ? '' : ' 맞는 쪽을 찾지 못했습니다.'} 아래 버튼으로 질문을 복사해 쓰시는 AI 채팅에 붙여 넣으면 지금 상황에 맞는 답을 받을 수 있습니다.` : `지금 화면에서는 AI가 연결되어 있지 않아 사용 설명에서 관련된 곳을 찾았습니다.${links.length ? '' : ' 맞는 쪽을 찾지 못했습니다.'} claude.ai 링크로 열면 바로 답하고, 아래 버튼으로 같은 질문을 다른 AI 채팅에 물을 수도 있습니다.`, { links, prompt: helperPrompt(q), choices: curChoices() });
+      addMsg(v, 'ai', aiMode !== 'auto' ? `사용 설명에서 관련된 곳을 찾았습니다.${links.length ? '' : ' 맞는 쪽을 찾지 못했습니다.'} 아래 버튼으로 질문을 복사해 쓰시는 AI 채팅에 붙여 넣으면 지금 상황에 맞는 답을 받을 수 있습니다.` : `지금 화면에서는 AI가 연결되어 있지 않아 사용 설명에서 관련된 곳을 찾았습니다.${links.length ? '' : ' 맞는 쪽을 찾지 못했습니다.'} 아래 버튼으로 같은 질문을 쓰시는 AI 채팅에 물을 수 있습니다.`, { links, prompt: helperPrompt(q), choices: curChoices() });
       return;
     }
     helperBusy = true; $('#cmp-send').disabled = true;
@@ -8253,12 +8282,12 @@ ${q}`;
   // ---------- AI 연결 상태: 대화창 옆 점, 처음 한 번 안내 ----------
   function renderAiNote() {
     const st = aiState, checking = aiMode === 'auto' && st === 'checking', on = aiOn();
-    const eff = aiMode === 'off' ? 'off' : on ? 'on' : checking ? 'wait' : aiMode === 'copy' ? 'copy' : 'none';
+    const eff = aiMode === 'off' ? 'off' : on ? 'on' : checking ? 'wait' : aiMode === 'code' ? 'code' : aiMode === 'copy' ? 'copy' : 'none';
     const dot = $('#ai-dot'); dot.className = 'ai-dot ' + eff;
-    dot.querySelector('span').textContent = { on: 'Claude 연결됨', wait: '확인 중', copy: '다른 AI (복사)', off: 'AI 끔', none: 'AI 없음' }[eff];
+    dot.querySelector('span').textContent = { on: 'Claude 연결됨', wait: '확인 중', copy: AI_SITES[aiSite] ? AI_SITES[aiSite][0] : '내 AI', code: 'Claude Code', off: 'AI 없이', none: 'AI 없음' }[eff];
     dot.title = 'AI 방식 고르기';
     $('#cmp-text').placeholder = eff === 'off' ? '궁금한 것을 물어보세요 (사용 설명에서 찾아 드려요)' : on || checking ? '궁금한 것을 물어보세요 (예: 이 결정은 어떤 걸 고르는 게 좋아?)'
-      : '궁금한 것을 물어보세요 (다른 AI에 물을 질문으로 만들어 드려요)';
+      : '궁금한 것을 물어보세요 (내 AI에 물을 질문으로 만들어 드려요)';
     // 안내 띠는 처음 한 번만: 보여 준 순간 '봤음'으로 저장해 다음에 열 때는 띄우지 않고, 이번에도 20초 뒤 저절로 닫음
     // (AI 상태는 위 띠의 점으로 늘 보임)
     if (eff === 'none' && !store.get('ladder.aiNoteClosed', false) && !renderAiNote.t) { store.set('ladder.aiNoteClosed', true); renderAiNote.live = true; renderAiNote.t = setTimeout(() => { renderAiNote.live = false; $('#ai-note').hidden = true; }, 20000); }
@@ -8274,17 +8303,32 @@ ${q}`;
     const can = aiState === 'on';
     const opt = (k, t, d, dis) => `<label class="ap-opt ${aiMode === k ? 'on' : ''} ${dis ? 'dis' : ''}"><input type="radio" name="ai-mode" value="${k}" ${aiMode === k ? 'checked' : ''} ${dis ? 'disabled' : ''}><span><b>${t}</b><small>${d}</small></span></label>`;
     pop.innerHTML = `<div class="ap-h">AI 방식 고르기<button class="an-x" data-ap="close" title="닫기">×</button></div>
-      ${opt('auto', 'Claude 바로 쓰기', can ? '화면 안에서 Claude가 바로 답합니다. 지금 로그인한 내 Claude 계정의 사용량을 씁니다.' : 'claude.ai 링크로 열었을 때만 됩니다. 지금은 다른 AI 방식처럼 동작합니다.', false)}
-      ${aiMode === 'auto' && !can && aiState !== 'checking' ? `<div class="ap-go">${aiState === 'denied' ? 'claude.ai에서 이 페이지의 Claude 사용이 허용되지 않았습니다. 화면 위쪽의 허용 안내에서 허용하면 바로 답합니다.' : '이 화면(사이트)에서는 Claude가 바로 연결되지 않습니다. Claude가 화면 안에서 바로 답하게 하려면 claude.ai 링크로 여세요. <b>내 claude.ai 계정</b>으로 로그인해 내 사용량으로 씁니다(무료도 됨). 지금은 질문을 복사해 쓰는 방식으로 동작합니다.'}${aiState === 'denied' ? '' : `<br><a class="btn sm primary" href="${ARTIFACT_URL}" target="_blank" rel="noopener">claude.ai 링크로 열기</a>`}</div>` : ''}
-      ${opt('copy', '다른 AI 쓰기 (복사·붙여 넣기)', 'ChatGPT·Gemini·Claude 등 아무 AI. 지시문을 복사해 붙여 넣고 답을 다시 붙여 넣습니다. 무료 계정도 됩니다.')}
-      ${opt('off', 'AI 쓰지 않기', 'AI 기능을 끄고 아무것도 밖으로 보내지 않습니다. 기법 고르기·설문·계산·판정은 그대로 됩니다. 기관 규정상 외부 AI를 쓸 수 없을 때.')}
-      <p class="ap-f">어느 방식이든 응답 원자료는 AI에 보내지 않습니다. <a href="#guide-ai">자세히</a></p>`;
+      ${aiState === 'on' || (aiMode === 'auto' && aiState !== 'off') ? opt('auto', 'Claude 바로 쓰기', can ? '이 화면 안에서 Claude가 바로 답합니다. 지금 로그인한 내 Claude 계정의 사용량을 씁니다.' : aiState === 'denied' ? '이 페이지의 Claude 사용이 허용되지 않았습니다. 화면 위쪽의 허용 안내에서 허용하면 바로 답합니다.' : '확인 중…', false) : ''}
+      ${opt('copy', '내 AI 계정 (ChatGPT·Claude 등)', '쓰던 AI 채팅에 통이 만든 질문을 붙여 넣고 답을 다시 붙여 넣습니다. 무료 계정도 됩니다.')}
+      ${aiMode === 'copy' ? aiCopyHtml() : ''}
+      ${opt('code', 'Claude Code (연구 폴더 맡기기)', '내 컴퓨터의 Claude Code가 연구 폴더를 보고 해석, R 점검, 문서 정리를 합니다. Claude 유료 요금제(Pro 이상)와 PC가 필요합니다.')}
+      ${aiMode === 'code' ? aiCodeHtml() : ''}
+      ${opt('off', 'AI 없이', '아무것도 밖으로 보내지 않습니다. 기법 고르기, 설문, 계산, 판정, 표와 그래프는 그대로 됩니다. 글은 직접 씁니다.')}
+      <p class="ap-f">어느 방식이든 각자 자기 AI 계정으로 쓰고, 응답 원자료는 AI에 보내지 않습니다. <a href="#guide-ai">자세히</a><button class="ap-redo" data-setup-open>처음 설정 다시 하기</button></p>`;
+  }
+  // 내 AI 계정: 쓰는 AI 고르기 + 학습 끄기 안내
+  function aiCopyHtml() {
+    return `<div class="ap-sub">주로 쓰는 AI<div class="ap-sites">${[...Object.entries(AI_SITES).map(([k, v]) => [k, v[0]]), ['other', '그 밖의 AI']].map(([k, n]) => `<button type="button" data-ai-site="${k}" class="${aiSite === k ? 'on' : ''}">${n}</button>`).join('')}</div>
+      ${AI_SITES[aiSite] ? `질문을 복사할 때 <b>[복사하고 ${AI_SITES[aiSite][0]} 열기]</b>를 누르면 ${AI_SITES[aiSite][0]} 창이 열립니다. 붙여 넣기(Ctrl+V)만 하세요.` : '질문을 복사해 쓰시는 AI 채팅에 붙여 넣으세요.'}
+      ${AI_TRAIN_OFF[aiSite] ? `<br>대화를 AI 학습에 쓰지 않게 하려면: ${AI_TRAIN_OFF[aiSite]}` : '<br>쓰시는 AI의 설정에서 대화를 학습에 쓰지 않게 끌 수 있는지 확인하세요.'}</div>`;
+  }
+  // Claude Code: 연구 폴더 상태 + 연결 버튼 + 설치 안내
+  function aiCodeHtml() {
+    const fold = !FS_OK ? 'Claude Code는 <b>PC의 크롬·엣지·웨일</b>에서 연구 폴더를 연결해 씁니다. 이 브라우저에서는 폴더를 연결할 수 없습니다.'
+      : folderState === 'on' ? `연구 폴더 <b>${esc(dirHandle?.name || '')}</b>에 자동 저장 중입니다. 이 폴더에서 Claude Code를 여세요.`
+      : `Claude Code가 볼 <b>연구 폴더</b>를 연결하세요.<br><button class="btn sm primary" data-ap-fold>${folderState === 'need-permission' ? '연구 폴더 다시 연결' : '연구 폴더 연결'}</button>`;
+    return `<div class="ap-sub">${fold}<br><a href="#guide-claude-code">Claude Code 설치·사용 안내</a></div>`;
   }
   function openAiPop() { const pop = $('#ai-pop'); pop.hidden = false; renderAiPop(); }
-  function setAiMode(m) {
+  function setAiMode(m, quiet) {
     aiMode = m; _set('ladder.aiMode', m);
     renderAiNote(); renderInterp(); if (typeof renderImport === 'function') renderImport(); renderThread();
-    toast({ auto: aiState === 'on' ? 'Claude가 화면 안에서 바로 답합니다.' : 'claude.ai 링크로 열면 Claude가 바로 답합니다. 지금은 복사 방식으로 동작합니다.', copy: '다른 AI 방식: AI에 물을 지시문을 복사해 쓰시는 AI 채팅에 붙여 넣으세요.', off: 'AI를 쓰지 않습니다. 아무것도 밖으로 보내지 않습니다.' }[m]);
+    if (!quiet) toast({ auto: aiState === 'on' ? 'Claude가 화면 안에서 바로 답합니다.' : '이 화면에서는 Claude가 바로 연결되지 않아 질문을 복사해 쓰는 방식으로 동작합니다.', copy: `내 AI 계정 방식: 통이 만든 질문을 ${AI_SITES[aiSite] ? AI_SITES[aiSite][0] : '쓰시는 AI 채팅'}에 붙여 넣으세요.`, code: 'Claude Code 방식: 연구 폴더를 연결하고 그 폴더에서 Claude Code를 여세요.', off: 'AI 없이 씁니다. 아무것도 밖으로 보내지 않습니다.' }[m]);
   }
   document.addEventListener('click', e => {
     if (e.target.closest('[data-ai-mode-open]')) { e.preventDefault(); openAiPop(); return; }
@@ -8292,6 +8336,11 @@ ${q}`;
     if (!$('#ai-pop').hidden && !e.target.closest('#ai-pop') && !e.target.closest('#ai-dot')) $('#ai-pop').hidden = true;
   });
   $('#ai-pop').addEventListener('click', e => { const i = e.target.closest('input[name=ai-mode]'); if (i && i.value === aiMode) setTimeout(() => { setAiMode(aiMode); renderAiPop(); }, 0); });   // 클릭이 끝난 뒤 다시 그림 (먼저 그리면 바깥 클릭으로 보고 창이 닫힘)   // 이미 고른 방식을 다시 눌러도 지금 상태를 알려 줌
+  function setAiSite(k) { aiSite = k; _set('ladder.aiSite', k); renderAiNote(); renderInterp(); if (typeof renderImport === 'function') renderImport(); renderThread(); }
+  $('#ai-pop').addEventListener('click', e => {
+    const st = e.target.closest('[data-ai-site]'); if (st) { e.stopPropagation(); setAiSite(st.dataset.aiSite); renderAiPop(); return; }
+    if (e.target.closest('[data-ap-fold]')) { e.stopPropagation(); (folderState === 'need-permission' ? reconnect() : connectFolder()).then(() => renderAiPop()); }
+  });
   $('#ai-pop').addEventListener('change', e => { if (e.target.name === 'ai-mode') { setAiMode(e.target.value); renderAiPop(); } });
   $('#ai-note').addEventListener('click', e => {
     const b = e.target.closest('[data-an]'); if (!b) return;
@@ -8695,9 +8744,8 @@ ${q}`;
     if (!ai) {
       imp.res = null;
       setBusy('', `<b>${scanned ? '글자 정보가 없는 스캔 PDF입니다.' : '사진에서 글자를 읽으려면 AI가 필요합니다.'}</b> 이 화면에서는 AI가 사진을 읽을 수 없어요.
-        ${aiMode === 'copy' ? '다른 AI로 읽어 주세요.' : ''}<ol><li>ChatGPT, Gemini, Claude 같은 AI 채팅에 이 ${scanned ? 'PDF' : '사진'}을 올리고</li><li>아래 [지시문 복사]를 눌러 같은 채팅에 붙여 넣은 뒤</li><li>AI의 답을 [글 붙여 넣기]에 넣고 [문항 찾기]를 누르세요.</li></ol>
-        <div class="actions" style="margin-top:6px;padding-top:0;border:0"><button class="btn sm primary" data-si="copy-prompt">지시문 복사</button><button class="btn sm" data-si="tab-text">글 붙여 넣기로</button></div>
-        <span class="hint">claude.ai 링크로 열면 이 화면에서 바로 사진을 읽습니다.</span>`);
+        쓰시는 AI로 읽어 주세요.<ol><li>아래 [지시문 복사]를 누르고, ChatGPT·Claude 같은 AI 채팅에 이 ${scanned ? 'PDF' : '사진'}을 올리면서 지시문을 붙여 넣은 뒤</li><li>AI의 답을 [글 붙여 넣기]에 넣고 [문항 찾기]를 누르세요.</li></ol>
+        <div class="actions" style="margin-top:6px;padding-top:0;border:0"><button class="btn sm primary" data-si="copy-prompt">지시문 복사</button>${aiGo('data-si="copy-prompt"')}<button class="btn sm" data-si="tab-text">글 붙여 넣기로</button></div>`);
       return;
     }
     const use = images.slice(0, ai.lim.maxCount || 5);
@@ -11380,8 +11428,71 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
   if (hashGuide) openGuide(hashGuide[1]); else { const v0 = store.get('ladder.view', 'ladder'); switchView(v0 === 'guide' ? store.get('ladder.lastWork', 'ladder') : v0); }
   initFolder();
   document.addEventListener('click', e => { if (e.target.closest('[data-wc-on]')) { store.set('ladder.noWelcome', false); toast('환영 카드를 다시 켰습니다. 다음에 사이트를 열 때 나옵니다.'); } });
-  // ---------- 환영 카드: 시작 애니메이션 뒤 잠깐 나왔다 사라짐 ----------
+  // ---------- 처음 설정: AI 방식 → 연구 폴더 → 완료 (처음 한 번, 다시 하려면 AI 방식 창의 [처음 설정 다시 하기]) ----------
+  function openSetup() {
+    if ($('#welcome')) $('#welcome').remove();
+    const pop = $('#ai-pop'); if (pop) pop.hidden = true;
+    let step = 0, mode = aiMode === 'auto' ? (aiState === 'on' ? 'auto' : 'copy') : aiMode;
+    const w = document.createElement('div'); w.id = 'welcome'; w.className = 'setup'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-labelledby', 'su-h');
+    const opt = (k, t, d, tag) => `<label class="su-opt ${mode === k ? 'on' : ''}"><input type="radio" name="su-mode" value="${k}" ${mode === k ? 'checked' : ''}><span><b>${t}${tag ? `<span class="su-tag">${tag}</span>` : ''}</b><small>${d}</small></span></label>`;
+    const sites = () => `<div class="ap-sites">${[...Object.entries(AI_SITES).map(([k, v]) => [k, v[0]]), ['other', '그 밖의 AI']].map(([k, n]) => `<button type="button" data-ai-site="${k}" class="${aiSite === k ? 'on' : ''}">${n}</button>`).join('')}</div>`;
+    const foldLine = () => !FS_OK ? `이 브라우저(휴대폰, 사파리, 파이어폭스, claude.ai 화면)에서는 폴더 연결이 안 돼서 <b>이 브라우저에 저장</b>합니다. 브라우저 기록을 지우면 사라질 수 있으니 가끔 위쪽 <b>[📁 연구 폴더 › zip 받기]</b>로 백업하세요.${mode === 'code' ? '<br><b>Claude Code를 쓰려면 PC의 크롬·엣지·웨일에서 통을 열어 폴더를 연결하세요.</b>' : ''}`
+      : folderState === 'on' ? `✓ <b>${esc(dirHandle?.name || '')}</b> 폴더에 자동 저장합니다.`
+      : `PC의 폴더를 하나 고르면 작업이 그 폴더에 파일로 <b>자동 저장</b>됩니다. 브라우저 기록을 지워도 남고${mode === 'code' ? ', <b>Claude Code가 이 폴더를 보고 일합니다</b>' : ', 나중에 Claude Code를 쓸 때도 이 폴더를 씁니다'}. 연구마다 새 폴더를 하나 만들어 고르세요.
+        <div class="actions tight" style="margin-top:8px"><button class="btn sm primary" data-su="fold">${folderState === 'need-permission' ? '지난번 폴더 다시 연결' : '연구 폴더 고르기'}</button><button class="btn sm" data-su="next">이 브라우저에만 저장</button></div>`;
+    const name = () => ({ auto: 'Claude 바로 쓰기 (이 화면)', copy: `내 AI 계정 (${AI_SITES[aiSite] ? AI_SITES[aiSite][0] : '그 밖의 AI'})`, code: 'Claude Code (연구 폴더)', off: 'AI 없이' })[mode];
+    const render = () => {
+      const head = `<div class="su-steps">${['AI 방식', '연구 폴더', '완료'].map((t, i) => `<span class="${i === step ? 'on' : i < step ? 'done' : ''}">${i + 1}. ${t}</span>`).join('')}</div>`;
+      let body;
+      if (step === 0) body = `<h3 id="su-h">AI는 어떻게 쓸까요?</h3>
+        <p class="wc-sub">통계 계산과 판정은 AI 없이 통이 합니다. AI는 결과를 두고 상의하고 글을 다듬을 때 씁니다. 어느 방식이든 <b>각자 자기 계정</b>으로 쓰고, <b>응답 원자료는 AI에 보내지 않습니다</b>.</p>
+        ${aiState === 'on' ? opt('auto', 'Claude 바로 쓰기', '이 화면 안에서 Claude가 바로 답합니다. 지금 로그인한 내 Claude 계정을 씁니다.', '지금 화면') : ''}
+        ${opt('copy', '내 AI 계정', 'ChatGPT, Claude 등 이미 쓰는 AI. 무료 계정도 됩니다. 통이 질문을 만들어 주면 [복사하고 열기]로 붙여 넣어 상의합니다.', aiState === 'on' ? '' : '추천')}
+        ${mode === 'copy' ? `<div class="su-box">주로 쓰는 AI${sites()}${AI_TRAIN_OFF[aiSite] ? `대화를 AI 학습에 쓰지 않게 하려면 ${AI_TRAIN_OFF[aiSite]}. 유료 요금제도 기본은 켜져 있을 수 있습니다.` : '쓰시는 AI의 설정에서 대화를 학습에 쓰지 않게 끌 수 있는지 확인하세요.'}</div>` : ''}
+        ${opt('code', 'Claude Code (연구 폴더 맡기기)', '내 컴퓨터의 Claude Code가 연구 폴더를 보고 해석, R 점검, 문서 정리를 합니다. 교수님의 lazzzyResearch와 같은 방식. Claude 유료 요금제(Pro 이상)와 PC가 필요합니다.')}
+        ${opt('off', 'AI 없이', '아무것도 밖으로 보내지 않습니다. 기법 고르기, 설문, 계산, 판정, 표와 그래프는 그대로 되고, 글은 직접 씁니다.')}
+        <div class="su-act"><button class="su-later" data-su="later">나중에 정하기</button><button class="btn primary" data-su="next">다음</button></div>`;
+      else if (step === 1) body = `<h3 id="su-h">연구 자료는 어디에 저장할까요?</h3>
+        <div class="su-box">${foldLine()}</div>
+        <div class="su-act"><button class="btn" data-su="back">이전</button><span style="flex:1"></span><button class="btn primary" data-su="next">다음</button></div>`;
+      else body = `<h3 id="su-h">준비됐어요!</h3>
+        <ul class="su-sum"><li>AI: <b>${name()}</b></li><li>저장: <b>${FS_OK && folderState === 'on' ? esc(dirHandle?.name || '연구 폴더') + ' 폴더 (자동 저장)' : '이 브라우저'}</b></li></ul>
+        ${mode === 'code' ? `<p class="wc-how">Claude Code를 처음 쓰면 <a href="#guide-claude-code" data-su="done">설치·사용 안내</a>를 먼저 보세요.</p>` : ''}
+        ${mode === 'copy' ? `<p class="wc-how">AI에 물을 일이 생기면 통이 질문을 만들어 <b>[복사하고 ${AI_SITES[aiSite] ? AI_SITES[aiSite][0] : 'AI'} 열기]</b> 버튼을 보여 줍니다.</p>` : ''}
+        <p class="wc-how">바꾸려면 아래 대화창 왼쪽의 <b>● 점</b>을 누르세요. 사용법은 위 띠의 <b>[? 사용 설명]</b>에 있어요.</p>
+        <div class="su-act"><button class="btn" data-su="back">이전</button><span style="flex:1"></span><button class="btn primary" data-su="done">이제 연구를 시작해 볼까요?</button></div>`;
+      w.innerHTML = `<div class="wc-card" tabindex="-1"><button class="wc-x" data-su="later" aria-label="닫기">×</button>
+        <div class="wc-logo">${$('.hdr-title .wm') ? $('.hdr-title .wm').outerHTML.replace('class="wm"', 'class="wm wc-wm"') : ''}</div>${head}${body}</div>`;
+    };
+    const finish = later => {
+      store.set('ladder.setupDone', true);
+      if (!later) setAiMode(mode, true);
+      w.classList.add('out'); document.removeEventListener('keydown', key); setTimeout(() => w.remove(), 400);
+      if (later) toast('대화창 왼쪽 아래 점을 누르면 언제든 AI 방식을 고를 수 있어요.');
+    };
+    const key = e => { if (e.key === 'Escape') finish(true); };
+    document.addEventListener('keydown', key);
+    w.addEventListener('change', e => { if (e.target.name === 'su-mode') { mode = e.target.value; render(); } });
+    w.addEventListener('click', async e => {
+      const st = e.target.closest('[data-ai-site]'); if (st) { setAiSite(st.dataset.aiSite); render(); return; }
+      const b = e.target.closest('[data-su]'); if (!b) return;
+      const a = b.dataset.su;
+      if (a === 'next') { step++; render(); }
+      else if (a === 'back') { step--; render(); }
+      else if (a === 'fold') { await (folderState === 'need-permission' ? reconnect() : connectFolder()); if (folderState === 'on') step = 2; render(); }
+      else if (a === 'done') finish(false);
+      else if (a === 'later') finish(true);
+    });
+    render(); document.body.appendChild(w);
+    requestAnimationFrame(() => w.classList.add('in'));
+  }
+  document.addEventListener('click', e => { if (e.target.closest('[data-setup-open]')) { e.preventDefault(); openSetup(); } });
+  // ---------- 환영 카드: 시작 애니메이션 뒤 잠깐 나왔다 사라짐 (처음에는 대신 처음 설정) ----------
   (function () {
+    if (!hashGuide && !store.get('ladder.setupDone', false) && (!navigator.webdriver || store.get('ladder.forceSetup', false))) {
+      const wait = () => { if (document.getElementById('splash')) setTimeout(wait, 150); else setTimeout(() => sampleRawP.then(() => openSetup()), 120); };
+      return wait();
+    }
     if (hashGuide || store.get('ladder.noWelcome', false) || navigator.webdriver && !store.get('ladder.forceWelcome', false)) return;
     const again = !!store.get('ladder.welcomed', false), STAY = 9000;
     const show = () => {

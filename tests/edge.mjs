@@ -288,6 +288,32 @@ console.log('\n5. 가설 전부 계산하기');
   await ctx.close();
 }
 
+// ===================== 6. 처음 설정 · 내 AI 계정 =====================
+console.log('\n6. 처음 설정 · 내 AI 계정');
+{
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, permissions: ['clipboard-read', 'clipboard-write'] }); const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message));
+  await p.goto(BASE); await p.evaluate(() => { localStorage.clear(); localStorage.setItem('ladder.forceSetup', 'true'); }); await p.reload();
+  const shown = await p.waitForSelector('#welcome.setup', { timeout: 15000 }).then(() => true).catch(() => false);
+  ok('처음 들어오면 설정 화면(AI 방식 → 연구 폴더 → 완료)', shown);
+  const opts = await p.$$eval('#welcome input[name=su-mode]', es => es.map(e => e.value));
+  ok('사이트에서는 내 AI 계정 · Claude Code · AI 없이 세 가지 (claude.ai 링크 방식은 안 보임)', opts.join(',') === 'copy,code,off', opts.join(','));
+  await p.click('#welcome [data-ai-site=claude]'); await p.click('#welcome [data-su=next]'); await p.click('#welcome .su-act [data-su=next]');
+  const sum = await p.$eval('#welcome .su-sum', e => e.innerText);
+  await p.click('#welcome [data-su=done]'); await p.waitForTimeout(500);
+  const st = await p.evaluate(() => ['ladder.aiMode', 'ladder.aiSite', 'ladder.setupDone'].map(k => JSON.parse(localStorage.getItem(k))));
+  ok('고른 방식과 AI가 저장되고 요약에 보임', st.join(',') === 'copy,claude,true' && /Claude/.test(sum), `${st} · ${sum.replace(/\s+/g, ' ')}`);
+  await p.fill('#cmp-text', '표본은 몇 명이 필요해?'); await p.click('#cmp-send'); await p.waitForTimeout(400);
+  const go = await p.$('#thread [data-ai-go]');
+  const [np] = go ? await Promise.all([ctx.waitForEvent('page', { timeout: 5000 }).catch(() => null), go.click()]) : [null];
+  const clip = await p.evaluate(() => navigator.clipboard.readText()).catch(() => '');
+  ok('[복사하고 Claude 열기]: 질문을 복사하고 Claude 창을 엶', !!np && /claude\.ai\/new/.test(np.url()) && clip.length > 100, `${np ? np.url() : '창 없음'} · 복사 ${clip.length}자`);
+  if (np) await np.close();
+  await p.reload(); await p.waitForTimeout(800);
+  ok('다시 들어오면 설정 화면이 또 나오지 않음', !(await p.$('#welcome.setup')));
+  ok('페이지 오류 없음 (처음 설정)', !errs.length, errs.join(' | '));
+  await ctx.close();
+}
+
 await browser.close(); server.close();
 console.log(`\n${fail ? '✗' : '✓'} 통과 ${pass}, 실패 ${fail}`);
 if (fail) { fails.forEach(f => console.log('  - ' + f)); process.exit(1); }
