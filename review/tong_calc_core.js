@@ -4,7 +4,7 @@
 // 검증: tests/README.md 참고 — R 기준값 비교, 화면에서 돌린 분석 전부를 통이 만든 R 코드와 비교, 경계 상황 테스트.
 // 들어 있는 분석 함수 23개: pearson, spearman, partial, pointbiserial, chisq, onesample, ind_t, paired_t, oneway, factorial, ancova, regression, hier, logistic, med_parallel, med_serial, moderation, modmed7, modmed14, rm_anova, mixed_anova, mcnemar, cochran
 
-// ##### 1. 응답 읽기 · 동의 판정 · 점수 만들기(역문항, 최소 응답, 중복) (stats-ladder.html 4054~4164줄) #####
+// ##### 1. 응답 읽기 · 동의 판정 · 점수 만들기(역문항, 최소 응답, 중복) (stats-ladder.html 4065~4175줄) #####
   function autoMap() {
     colMap = {}; mapAuto = {};
     const H = raw.headers.map(h => norm(h).toLowerCase());
@@ -117,7 +117,7 @@
     }
     const hOpts = sel => `<option value="-1" ${sel < 0 ? 'selected' : ''}>(연결 안 함)</option>` + raw.headers.map((h, i) => `<option value="${i}" ${i === sel ? 'selected' : ''}>${i + 1}. ${esc(h.length > 40 ? h.slice(0, 40) + '…' : h)}</option>`).join('');
 
-// ##### 2. 계산 도우미 · 분포 · 회귀(QR) · 부트스트랩 · 베이즈 인자 · 숫자 표기 (stats-ladder.html 4195~4705줄) #####
+// ##### 2. 계산 도우미 · 분포 · 회귀(QR) · 부트스트랩 · 베이즈 인자 · 숫자 표기 (stats-ladder.html 4206~4716줄) #####
   // ---------- 계산 도우미 ----------
   const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
   const sd = a => { if (a.length < 2) return NaN; const m = mean(a); return Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / (a.length - 1)); };
@@ -630,7 +630,7 @@
 
   // =================================================================
 
-// ##### 3. 분석 방법 (RUN): 상관·t·분산분석·회귀·로지스틱·매개·조절 (stats-ladder.html 4705~5751줄) #####
+// ##### 3. 분석 방법 (RUN): 상관·t·분산분석·회귀·로지스틱·매개·조절 (stats-ladder.html 4716~5762줄) #####
   // =================================================================
   // ⑤ 분석
   // =================================================================
@@ -1679,7 +1679,7 @@
 
   // =================================================================
 
-// ##### 4. 분석 방법 (RUN 이어서): 반복측정·혼합설계 분산분석, 맥니마, 코크란 Q (stats-ladder.html 10909~11186줄) #####
+// ##### 4. 분석 방법 (RUN 이어서): 반복측정·혼합설계 분산분석, 맥니마, 코크란 Q (stats-ladder.html 10985~11262줄) #####
   // =================================================================
   // 반복측정 · 혼합설계 분산분석, 맥니마, 코크란 Q
   // =================================================================
@@ -1959,7 +1959,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
 
   // =================================================================
 
-// ##### 5. 결과 해석: 학생이 읽은 결과 점검(gistCheck), 가설↔효과 연결(autoLink), 결과 문단 틀 (stats-ladder.html 5783~6010줄) #####
+// ##### 5. 결과 해석: 학생이 읽은 결과 점검(gistCheck), 가설↔효과 연결(autoLink), 결과 문단 틀 (stats-ladder.html 5816~6043줄) #####
   // ---------- 결과의 줄기: 학생이 먼저 읽고, 코드가 판정과 맞는지 봄 ----------
   function readHint(e) {
     if (e.ciBased) return `신뢰구간 [${e.lo?.toFixed(3)}, ${e.hi?.toFixed(3)}]이 0을 포함하는지 보세요. 포함하지 않으면 간접효과가 있다고 읽습니다. 직접효과도 함께 보면 매개의 모양을 알 수 있어요.`;
@@ -2062,7 +2062,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
     const box = $('#in-main'); if (!box) return;
     autoLink();
     const effs = allEffects();
-    const aiChip = aiMode === 'off' ? '<span class="st missing">AI 쓰지 않음</span>' : aiMode === 'copy' ? '<span class="st manual">다른 AI (복사) 방식</span>' : aiState === 'on' ? '<span class="st auto">AI 연결됨</span>' : aiState === 'checking' ? '<span class="st manual">AI 확인 중…</span>'
+    const aiChip = aiUnset() ? '<span class="st missing">AI 정하기 전</span>' : aiMode === 'off' ? '<span class="st missing">AI 쓰지 않음</span>' : aiMode === 'copy' ? '<span class="st manual">내 AI 계정 방식</span>' : aiMode === 'code' ? `<span class="st manual">AI 도우미 (${agentName()})</span>` : aiState === 'on' ? '<span class="st auto">AI 연결됨</span>' : aiState === 'checking' ? '<span class="st manual">AI 확인 중…</span>'
       : aiState === 'denied' ? '<span class="st missing">AI 사용이 허용되지 않음</span>' : '<span class="st missing">AI 없음 · claude.ai 링크에서 열면 됩니다</span>';
     const effOpts = cur => `<option value="">(효과 고르기)</option>` + analyses.map(a => `<optgroup label="${esc(a.title)}">${a.effects.map(e => `<option value="${e.id}" ${e.id === cur ? 'selected' : ''}>${esc(e.label)}</option>`).join('')}</optgroup>`).join('');
     const hyps = intent.hyps.map((h, i) => {
@@ -2086,8 +2086,8 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
     }).join('');
 
     const ck = intent.check;
-    let mode = intent.mode || (aiOn() || (aiMode === 'auto' && aiState === 'checking') ? 'auto' : 'chat');
-    if (aiMode !== 'auto' && mode === 'auto') mode = 'chat';
+    let mode = intent.mode || (aiOn() || (aiMode === 'auto' && aiState === 'checking') ? 'auto' : aiMode === 'code' ? 'code' : 'chat');
+    if (mode === 'auto' && !(aiMode === 'auto' && aiState !== 'off')) mode = aiMode === 'code' ? 'code' : 'chat';
     if (aiMode === 'off') mode = 'off';
     const checkHtml = ck ? `<div class="ai-box">
       <div class="ai-label">AI가 이해한 연구 의도</div>
@@ -2137,12 +2137,12 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
         <div class="res-head"><h3 class="card-title">3. AI와 함께 해석하기</h3><a class="guide-link" href="#guide-ai">AI 연결 방법 설명</a></div>
         <p class="hint">어느 방법을 쓰든 판정은 위의 코드 판정을 따르고, 초안의 숫자와 판정은 이 화면이 다시 점검합니다. 먼저 2번에서 가설마다 <b>내가 읽은 결과</b>를 적어 두면 AI가 그 해석을 뼈대로 씁니다.${intent.hyps.some(h => h.effect && !norm(h.gist)) ? ` <span class="st missing">아직 안 적은 가설 ${intent.hyps.filter(h => h.effect && !norm(h.gist)).length}개</span>` : ''}</p>
         <div class="tmpl-box"><b>AI 없이</b> 판정과 숫자로 결과 문단의 틀을 만들고, 내가 읽은 결과를 논의 자리에 모아 둡니다. <button class="btn sm" data-in-act="tmpl">결과 문단 틀 만들기</button></div>
-        ${mode === 'off' ? `<div class="notice">AI를 쓰지 않도록 설정했습니다. 아무것도 밖으로 보내지 않습니다. 가설 판정과 결과표는 그대로 쓸 수 있으니, 해석 글은 직접 쓰고 아래 [초안 점검] 칸에 붙여 넣으면 숫자·판정을 점검합니다. <button class="btn sm" data-ai-mode-open>AI 방식 바꾸기</button></div>` : ''}
+        ${mode === 'off' && aiUnset() ? aiSuggest('결과를 두고 AI와 상의하고 싶으면 방법을 고르세요.') : mode === 'off' ? `<div class="notice">AI를 쓰지 않도록 설정했습니다. 아무것도 밖으로 보내지 않습니다. 가설 판정과 결과표는 그대로 쓸 수 있으니, 해석 글은 직접 쓰고 아래 [초안 점검] 칸에 붙여 넣으면 숫자·판정을 점검합니다. <button class="btn sm" data-ai-mode-open>AI 방식 바꾸기</button></div>` : ''}
         <div class="mode-tabs" role="tablist" ${mode === 'off' ? 'hidden' : ''}>
-          ${[['auto', 'Claude 바로 쓰기', 'claude.ai 링크'], ['chat', '다른 AI (복사)', 'ChatGPT·Gemini 등'], ['code', 'Claude Code', '연구 폴더 · 유료']].filter(([k]) => k !== 'auto' || aiMode === 'auto').map(([k, l, sub]) => `<button class="mode-tab" role="tab" data-in-mode="${k}" aria-selected="${mode === k}"><b>${l}</b><span>${sub}</span></button>`).join('')}
+          ${[['auto', 'Claude 바로 쓰기', '이 화면에서'], ['chat', '내 AI 계정', 'ChatGPT·Claude 등'], ['code', 'AI 도우미', `${agentName()} · 연구 폴더`]].filter(([k]) => k !== 'auto' || (aiMode === 'auto' && aiState !== 'off')).map(([k, l, sub]) => `<button class="mode-tab" role="tab" data-in-mode="${k}" aria-selected="${mode === k}"><b>${l}</b><span>${sub}</span></button>`).join('')}
         </div>
         ${mode === 'auto' ? `
-          ${aiOn() ? '' : `<div class="notice">이 화면에서는 Claude 바로 쓰기를 할 수 없습니다. ${aiState === 'denied' ? 'AI 사용이 허용되지 않았거나 이 계정에서 쓸 수 없습니다.' : 'claude.ai 링크에서 열면 됩니다.'} 다른 방법은 위의 [다른 AI (복사)]나 [Claude Code]를 고르세요.</div>`}
+          ${aiOn() ? '' : `<div class="notice">이 화면에서는 Claude 바로 쓰기를 할 수 없습니다. ${aiState === 'denied' ? 'AI 사용이 허용되지 않았거나 이 계정에서 쓸 수 없습니다.' : '잠시 뒤 다시 보세요.'} 다른 방법은 위의 [내 AI 계정]나 [Claude Code]를 고르세요.</div>`}
           <ol class="steps">
             <li><b>의도 확인</b>: AI가 연구 목적과 가설을 다시 말해 보고, 효과 연결이 맞는지 보고, 빠진 정보를 묻습니다.</li>
             <li><b>풀어 쓰기</b>: 2번에 적은 <b>내가 읽은 결과</b>를 뼈대로, 판정과 숫자를 그대로 써서 결과·논의를 논문 문체로 풀어 씁니다. 내 해석에 없는 주장은 덧붙이지 않고 [연구자 보완] 자리로 남깁니다. 쓴 뒤 코드가 다시 점검합니다.</li>
@@ -2155,28 +2155,28 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
             <span class="hint" id="in-prog"></span>
           </div>` : ''}
         ${mode === 'chat' ? `
-          <p class="hint">ChatGPT, Gemini, Claude 등 어떤 AI 채팅이든 됩니다. 무료 계정도 됩니다. 지시문을 복사해 붙여 넣고, AI의 답을 다시 여기에 붙여 넣으세요.</p>
+          <p class="hint">내가 쓰는 AI 채팅(ChatGPT, Claude, Gemini 등)이면 됩니다. 무료 계정도 됩니다. 지시문을 복사해 붙여 넣고, AI의 답을 다시 여기에 붙여 넣으세요. <a href="#" data-ai-mode-open>쓰는 AI 바꾸기</a></p>
           <div class="chat-steps">
             <div class="chat-step"><span class="n">1</span><div><b>의도 확인 지시문을 AI 채팅에 붙여 넣기</b>
-              <div class="actions tight"><button class="btn sm primary" data-in-act="copy-prompt" data-which="check">① 의도 확인 지시문 복사</button></div></div></div>
+              <div class="actions tight"><button class="btn sm primary" data-in-act="copy-prompt" data-which="check">① 의도 확인 지시문 복사</button>${aiGo('data-in-act="copy-prompt" data-which="check"')}</div></div></div>
             <div class="chat-step"><span class="n">2</span><div><b>AI의 답을 붙여 넣고, AI가 물은 것에 답하기</b>
               <label class="f">AI의 답<textarea rows="4" data-in-chat="aiText" placeholder="AI가 이해한 연구 목적, 가설별 확인, 질문을 붙여 넣으세요">${esc(intent.chat.aiText)}</textarea></label>
               <label class="f" style="margin-top:8px">AI의 질문에 대한 내 답<textarea rows="3" data-in-chat="myAnswers" placeholder="예: 1. 외집단은 이주민과 성소수자를 말함 2. 대학 커뮤니티에서 모집함">${esc(intent.chat.myAnswers)}</textarea></label>
               <p class="hint">AI가 '확인 필요'라고 한 가설은 위의 2번에서 효과 연결을 먼저 고치세요.</p></div></div>
-            <div class="chat-step"><span class="n">3</span><div><b>초안 쓰기 지시문을 같은 채팅에 붙여 넣기</b>
+            <div class="chat-step"><span class="n">3</span><div><b>초안 쓰기 지시문을 ①과 같은 대화창에 붙여 넣기</b>
               <div class="actions tight"><button class="btn sm primary" data-in-act="copy-prompt" data-which="write">② 초안 쓰기 지시문 복사</button></div></div></div>
             <div class="chat-step"><span class="n">4</span><div><b>AI가 쓴 초안을 아래 [초안 점검] 칸에 붙여 넣기</b></div></div>
           </div>` : ''}
         ${mode === 'code' ? `
-          <p class="hint">lazzzyResearch처럼 내 컴퓨터의 Claude Code로 대화하며 해석합니다. Claude 유료 요금제(Pro 이상)가 필요하고, <b>Claude 데스크톱 앱</b>으로 하면 터미널이 필요 없습니다. 처음이면 <a href="#guide-claude-code">처음부터 따라 하기</a>를 보세요.</p>
+          <p class="hint">lazzzyResearch처럼 내 컴퓨터의 AI 도우미가 연구 폴더를 보고 대화하며 해석합니다. 쓰는 도우미: ${agentChips()} 처음이면 <a href="#guide-claude-code">처음부터 따라 하기</a>를 보세요.</p>
           <div class="chat-steps">
-            <div class="chat-step"><span class="n">1</span><div><b>새 폴더를 하나 만들고, 아래 두 파일을 받아 그 폴더에 넣기</b>
-              <div class="actions tight"><button class="btn sm primary" data-in-act="dl-claude-md">CLAUDE.md 받기</button><button class="btn sm primary" data-in-act="dl-json">interpretation.json 받기</button></div>
-              <p class="hint">CLAUDE.md는 Claude가 지킬 규칙, interpretation.json은 연구 의도·가설·판정·결과표입니다. 응답 원자료는 들어 있지 않습니다. 가설이나 분석을 바꾸면 interpretation.json을 다시 받으세요.</p></div></div>
-            <div class="chat-step"><span class="n">2</span><div><b>Claude 데스크톱 앱에서 그 폴더 열기</b>
-              <p class="hint" style="margin-top:4px">앱 위쪽 <b>Code</b> 탭 → <b>Local</b> → <b>Select folder</b>. 터미널이 필요 없습니다. (<a href="https://claude.ai/download" target="_blank" rel="noopener">앱 설치</a> · 터미널이 익숙하면 그 폴더에서 <code>claude</code> 실행)</p>
+            <div class="chat-step"><span class="n">1</span><div><b>연구 폴더를 연결하기</b> (연결했으면 파일이 이미 들어 있습니다. 아니면 새 폴더에 아래 두 파일을 받아 넣기)
+              <div class="actions tight"><button class="btn sm primary" data-in-act="dl-claude-md">${AGENTS[aiAgent].file} 받기</button><button class="btn sm primary" data-in-act="dl-json">interpretation.json 받기</button></div>
+              <p class="hint">${AGENTS[aiAgent].file}는 AI 도우미가 지킬 규칙, interpretation.json은 연구 의도·가설·판정·결과표입니다. 응답 원자료는 들어 있지 않습니다. 가설이나 분석을 바꾸면 interpretation.json을 다시 받으세요.</p></div></div>
+            <div class="chat-step"><span class="n">2</span><div><b>${agentName()}로 그 폴더 열기</b>
+              <p class="hint" style="margin-top:4px">${{ claude: '<b>Claude 데스크톱 앱</b> 위쪽 <b>Code</b> 탭 → <b>Local</b> → <b>Select folder</b>. 터미널이 필요 없습니다. (<a href="https://claude.ai/download" target="_blank" rel="noopener">앱 설치</a> · 터미널이 익숙하면 그 폴더에서 <code>claude</code> 실행)', codex: '<b>Codex 앱</b>에서 그 폴더를 열거나, 그 폴더에서 터미널을 열고 <code>codex</code> 실행. 처음에 ChatGPT 계정으로 로그인합니다. (<a href="https://developers.openai.com/codex" target="_blank" rel="noopener">설치 안내</a>)', google: '<b>Antigravity 앱</b>에서 그 폴더를 엽니다. 처음에 구글 계정으로 로그인합니다. (<a href="https://antigravity.google" target="_blank" rel="noopener">앱 설치</a>)' }[aiAgent]}</p>
               <p class="hint">"통 해석 모드입니다."가 나오면 성공입니다. "해석해 줘"라고 쓰면 시작합니다.</p></div></div>
-            <div class="chat-step"><span class="n">3</span><div><b>Claude가 묻는 것에 답하면 폴더에 <code>draft.md</code>가 생깁니다</b></div></div>
+            <div class="chat-step"><span class="n">3</span><div><b>AI가 묻는 것에 답하면 폴더에 <code>draft.md</code>가 생깁니다</b> (연구 폴더를 연결했으면 통 창으로 돌아올 때 저절로 들어옵니다)</div></div>
             <div class="chat-step"><span class="n">4</span><div><b>draft.md 내용을 아래 [초안 점검] 칸에 붙여 넣기</b></div></div>
           </div>` : ''}
         ${mode !== 'auto' ? `<div class="paste-box">
@@ -2189,7 +2189,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
   }
 
 
-// ##### 6. 보고 체크리스트: 효과크기 신뢰구간, 정규성, 가정 점검 (stats-ladder.html 6814~7013줄) #####
+// ##### 6. 보고 체크리스트: 효과크기 신뢰구간, 정규성, 가정 점검 (stats-ladder.html 6865~7064줄) #####
   // =================================================================
   // 보고 체크리스트 (APA 7 결과 보고 항목을 코드가 점검)
   // =================================================================
@@ -2391,7 +2391,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
 
   // =================================================================
 
-// ##### 7. 분석 결정 (기본값) (stats-ladder.html 7125~7239줄) #####
+// ##### 7. 분석 결정 (기본값) (stats-ladder.html 7176~7290줄) #####
   // =================================================================
   // 분석 결정 (연구자가 정하고, 바꾼 것은 기록)
   // =================================================================
@@ -2508,7 +2508,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
 
   // =================================================================
 
-// ##### 8. R 코드 만들기 (재계산용) (stats-ladder.html 7239~7603줄) #####
+// ##### 8. R 코드 만들기 (재계산용) (stats-ladder.html 7290~7654줄) #####
   // =================================================================
   // R 코드 만들기 (분석 계획서 그대로, 기본 R만 사용)
   // =================================================================
@@ -2866,7 +2866,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
           <div class="actions tight"><button class="btn sm primary" data-an-act="r-data" ${lastScored ? '' : 'disabled'}>analysis_data.csv 받기</button><button class="btn sm primary" data-an-act="r-code" ${n ? '' : 'disabled'}>analysis.R 받기 (분석 ${n}개)</button></div>
           ${lastScored ? '' : '<p class="hint">analysis_data.csv는 [응답 취합]에서 점수를 만든 뒤 받을 수 있습니다.</p>'}</div></div>
         <div class="chat-step"><span class="n">2</span><div><b>R 실행</b> — 둘 중 하나
-          <ul class="notes"><li><b>Claude Code</b>: 그 폴더에서 <code>claude</code> 실행 → <b>"R로 분석해줘"</b>. Claude가 R을 대신 돌리고 결과를 정리합니다. (CLAUDE.md를 이 버전에서 다시 받으세요)</li>
+          <ul class="notes"><li><b>AI 도우미</b> (Claude Code · Codex · Antigravity): 그 폴더를 열고 <b>"R로 분석해줘"</b>. AI가 R을 대신 돌리고 결과를 정리합니다. 컴퓨터에 R이 있어야 합니다.</li>
           <li><b>RStudio</b>: <code>analysis.R</code>을 열고 [Source]. R을 몰라도 버튼 하나면 됩니다.</li></ul></div></div>
         <div class="chat-step"><span class="n">3</span><div><b>R 출력을 각 결과의 [R 결과와 맞춰 보기]에 붙여 넣기</b><p class="hint">효과마다 사이트와 R의 숫자가 같은지 표로 보여 줍니다.</p></div></div>
       </div>
@@ -2875,7 +2875,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
 
   // =================================================================
 
-// ##### 9. SPSS 명령문 만들기 · SPSS 출력과 대조 (stats-ladder.html 11186~11363줄) #####
+// ##### 9. SPSS 명령문 만들기 · SPSS 출력과 대조 (stats-ladder.html 11262~11439줄) #####
   // =================================================================
   // SPSS로 확인하기: 명령문(.sps) 만들기 + SPSS 출력의 숫자와 맞춰 보기 (AI 없이 규칙으로)
   // =================================================================
@@ -3055,7 +3055,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
   });
 
 
-// ##### 10. 표본 수 계산 (G*Power 방식): 분포 함수 (stats-ladder.html 9673~9770줄) #####
+// ##### 10. 표본 수 계산 (G*Power 방식): 분포 함수 (stats-ladder.html 9749~9846줄) #####
   // ---------- 표본 수 계산: 비중심 분포 (G*Power와 같은 방식) ----------
   const PW = (() => {
     const { pF, pChi, zInv } = ST;
@@ -3155,7 +3155,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
 
   // =================================================================
 
-// ##### 11. 표본 수 계산: 화면이 넘기는 자유도·비중심 모수 (stats-ladder.html 9845~10025줄) #####
+// ##### 11. 표본 수 계산: 화면이 넘기는 자유도·비중심 모수 (stats-ladder.html 9921~10101줄) #####
   // ---------- 표본 수 계산 ----------
   const ESZ = {
     d: { lab: 'd', v: [0.2, 0.5, 0.8] }, f: { lab: 'f', v: [0.1, 0.25, 0.4] }, f2: { lab: 'f²', v: [0.02, 0.15, 0.35] }, r: { lab: 'r', v: [0.1, 0.3, 0.5] },
@@ -3338,7 +3338,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
   });
 
 
-// ##### 12. 탐색적 요인분석 (PAF·PCA, 베리맥스) · 확인적 요인분석 (webR lavaan, CR·AVE·HTMT) (stats-ladder.html 10278~10527줄) #####
+// ##### 12. 탐색적 요인분석 (PAF·PCA, 베리맥스) · 확인적 요인분석 (webR lavaan, CR·AVE·HTMT) (stats-ladder.html 10354~10603줄) #####
   // ---------- 탐색적 요인분석: 주축요인추출(PAF) 또는 주성분 추출 + 베리맥스 회전 ----------
   // PAF는 R psych::fa(fm = "pa")·SPSS '주축 요인 추출'과 같은 반복 방식, 주성분은 R의 eigen과 같음. 회전은 R의 varimax(정규화)와 같음
   function jacobiEig(A) {
@@ -3590,7 +3590,7 @@ as.character(jsonlite::toJSON(list(lavaan = as.character(packageVersion("lavaan"
 
   // =================================================================
 
-// ##### 13. 자료 점검: 이상치·결측·표본 확인·측정 점검·사전 분석 (stats-ladder.html 10527~10909줄) #####
+// ##### 13. 자료 점검: 이상치·결측·표본 확인·측정 점검·사전 분석 (stats-ladder.html 10603~10985줄) #####
   // =================================================================
   // 자료 점검: 응답 정리(중복·이상치·결측) · 표본 확인 · 측정 점검 · 사전 분석
   // =================================================================
