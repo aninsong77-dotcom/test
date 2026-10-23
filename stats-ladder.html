@@ -1875,6 +1875,12 @@ pre code { background: none; border: 0; padding: 0; }
 .guide-link:hover { border-color: var(--navy-ink); }
 .guide { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 28px; align-items: start; }
 /* 영상으로 배우기 */
+.vid-btn { border-color: var(--orange) !important; color: var(--orange-deep) !important; background: var(--orange-soft) !important; }
+@keyframes vidPulse { 0% { box-shadow: 0 0 0 0 rgba(245,132,31,.55); } 70% { box-shadow: 0 0 0 9px rgba(245,132,31,0); } 100% { box-shadow: 0 0 0 0 rgba(245,132,31,0); } }
+body:not(.vid-seen) .vid-btn, body:not(.vid-seen) .vid-card { animation: vidPulse 2.2s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) { body:not(.vid-seen) .vid-btn, body:not(.vid-seen) .vid-card { animation: none; } }
+@media (max-width:640px){ #hdr-video { padding: 5px 9px; } }
+.gd-back { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
 .vid-strip { border: 1px solid var(--line); border-radius: 12px; background: var(--bg); box-shadow: var(--shadow); padding: 12px 14px; margin-bottom: 16px; }
 .vid-h { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; } .vid-h h3 { margin: 0; font-size: 15px; } .vid-h span { color: var(--ink-3); font-size: 13px; }
 .vid-cards { display: flex; gap: 10px; flex-wrap: wrap; }
@@ -2788,6 +2794,7 @@ table.compact.sp-table{min-width:0;table-layout:auto;width:100%}.sp-table td{ver
   <button class="hdr-btn" id="inst-btn" hidden title="통을 앱처럼 설치합니다 (바탕화면 아이콘, 따로 열리는 창)">⬇ 앱으로 설치</button>
   <button class="hdr-btn" id="rp-tog" title="오른쪽 보기 창 열기·닫기">보기 창</button>
   <div class="zoom-ctl" role="group" aria-label="글씨 크기"><button id="zm-dn" title="글씨 작게">가<sub>−</sub></button><span id="zm-v">100%</span><button id="zm-up" title="글씨 크게">가<sup>+</sup></button></div>
+  <button class="hdr-btn vid-btn" id="hdr-video" data-video="tutorial" title="영상으로 배우기">▶ 영상</button>
   <a class="hdr-btn" href="#guide-start">? 사용 설명</a>
   <span id="log-count" hidden></span><span id="ai-count" hidden></span>
 </header>
@@ -2945,6 +2952,7 @@ table.compact.sp-table{min-width:0;table-layout:auto;width:100%}.sp-table td{ver
 
   <!-- 사용 설명 (위키) -->
   <section class="view" id="view-guide" hidden>
+    <div class="gd-back" id="gd-back"></div>
     <div class="vid-strip" id="gd-videos"></div>
     <div class="guide">
       <aside class="gd-side">
@@ -6487,7 +6495,7 @@ ${REVIEW_RULES}
         <li><a href="#guide-checks">보고 체크리스트와 허점 점검</a> — 빠진 보고 항목과 심사에서 나올 질문을 미리 봅니다.</li>
       </ol>
       <h3>영상으로 보기</h3>
-      <p><button class="btn sm" data-video="tutorial">▶ 통 사용법 (약 9분)</button> <button class="btn sm" data-video="ai">▶ AI 함께 쓰기 (약 5분)</button> 이 화면 맨 위의 <b>영상으로 배우기</b>에서도 볼 수 있습니다.</p>
+      <p><button class="btn sm vid-btn" data-video="tutorial">▶ 통 사용법 (약 9분)</button> <button class="btn sm vid-btn" data-video="ai">▶ AI 함께 쓰기 (약 5분)</button> 이 화면 맨 위의 <b>영상으로 배우기</b>에서도 볼 수 있습니다.</p>
       <h3>먼저 해 보기</h3>
       <p>왼쪽 메뉴 <b>분석 결정·계산</b> → <b>[예시 자료로 해 보기]</b>. 가짜 응답 300명으로 전체 흐름을 볼 수 있습니다. 예시 자료는 논문에 쓰면 안 됩니다.</p>
       <h3>화면</h3>
@@ -6866,7 +6874,7 @@ ${REVIEW_RULES}
       <p>질문마다 [검토함]에 체크하며 정리하세요.</p>` },
 
     { id: 'ai', group: 'AI 연결', title: 'AI 방식', kw: 'AI 연결 ChatGPT 챗GPT Claude 클로드 Gemini 복사 학습 끄기 개인정보 Claude Code', tab: 'interp', body: `
-      <p class="hint">영상으로 보기: <button class="btn sm" data-video="ai">▶ AI 함께 쓰기 (약 5분)</button></p>
+      <p class="hint">영상으로 보기: <button class="btn sm vid-btn" data-video="ai">▶ AI 함께 쓰기 (약 5분)</button></p>
       <p class="g-sum">통계 계산과 판정은 AI 없이 통이 합니다. AI는 결과를 두고 상의하고 글을 다듬을 때 씁니다. 어느 방식이든 <b>각자 자기 AI 계정</b>으로 쓰고, <b>응답 원자료는 AI에 보내지 않습니다</b>. 처음에는 <b>AI 없이</b> 시작합니다. 결과 해석이나 대화창에서 <b>[AI 함께 쓰기]</b>를 누르거나, 대화창 왼쪽 아래 <b>점</b>을 누르면 연결하고 바꿉니다.</p>
       <table class="gtable"><thead><tr><th>방식</th><th>쓰는 법</th><th>필요한 것</th></tr></thead><tbody>
         <tr><td><b>AI 도우미</b><br><small>연구 폴더로 관리하고 싶은 학생</small></td><td>내 컴퓨터의 AI 도우미가 연구 폴더를 보고 해석, R 점검, 문서 정리를 합니다. 결과는 통에 저절로 들어옵니다. <a href="#guide-claude-code">따라 하기</a></td><td>PC(크롬·엣지·웨일) + 아래 중 하나<br>· <b>Claude Code</b>: Claude 유료 요금제(Pro 이상)<br>· <b>Codex</b>: ChatGPT 유료 요금제(Plus 이상)<br>· <b>Antigravity</b>: 구글 계정 (무료로도 됨, 사용량 한도 있음)<br>R 점검을 시키려면 PC에 R 설치</td></tr>
@@ -6975,6 +6983,9 @@ ${REVIEW_RULES}
   const vidPlayer = (k, closeAttr) => { const v = VIDEOS[k]; return `<div class="vid-player"><video controls playsinline autoplay preload="metadata" poster="${VBASE}${v.f}.jpg" src="${VBASE}${v.f}.mp4"></video>
     <div class="vid-pbar"><b>${esc(v.t)}</b><span class="actions tight" style="margin:0"><button class="btn sm" data-vid-fs>⛶ 전체 화면</button><a class="btn sm" href="${VBASE}${v.f}.mp4" target="_blank" rel="noopener">새 탭에서 보기</a><button class="btn sm" ${closeAttr}>닫기</button></span></div></div>`; };
   let vidCur = '';
+  const vidSeen = () => { document.body.classList.add('vid-seen'); _set('ladder.vidSeen', true); };
+  if (store.get('ladder.vidSeen', false)) document.body.classList.add('vid-seen');
+  document.addEventListener('play', e => { if (e.target.tagName === 'VIDEO') vidSeen(); }, true);
   function renderVidStrip() {
     const el = $('#gd-videos'); if (!el) return;
     el.innerHTML = `<div class="vid-h"><h3>▶ 영상으로 배우기</h3><span>여기서 바로 재생됩니다. 전체 화면으로도 볼 수 있어요.</span></div><div class="vid-cards">${vidCards(vidCur)}</div>${vidCur ? vidPlayer(vidCur, 'data-vid-close') : ''}`;
@@ -7000,7 +7011,8 @@ ${REVIEW_RULES}
   }
   document.addEventListener('click', e => { const b = e.target.closest('[data-video]'); if (b) { e.preventDefault(); openVideo(b.dataset.video); } });
   function renderGuide(id) {
-    if (!$('#gd-videos').childElementCount) renderVidStrip();   // 재생 중인 영상은 쪽을 옮겨도 그대로
+    if (!$('#gd-videos').childElementCount) renderVidStrip();
+    renderGuideBack();   // 재생 중인 영상은 쪽을 옮겨도 그대로
     if (id && GUIDE.some(g => g.id === id)) guideCur = id;
     const groups = [...new Set(GUIDE.map(g => g.group))];
     const q = norm($('#gd-q')?.value || '');
@@ -7055,6 +7067,17 @@ ${REVIEW_RULES}
     first = root.querySelector('.gd-mark'); if (first) first.scrollIntoView({ block: 'center' });
   }
   function openGuide(id) { switchView('guide'); renderGuide(id); $('#view-guide').scrollIntoView({ block: 'start' }); }
+  // 사용 설명 화면에서 하던 작업으로 돌아가기 (크게 보기 뒤에도)
+  function renderGuideBack() {
+    const w = store.get('ladder.lastWork', 'ladder'), name = VIEW_NAME[w] || '하던 화면';
+    $('#gd-back').innerHTML = `<button class="btn" data-gd-back="work">← ${esc(J(name, '으로/로'))} 돌아가기</button><button class="btn sm" data-gd-back="small" title="하던 화면으로 돌아가고 이 설명은 오른쪽 보기 창에 둡니다">작게 보기 (오른쪽 창)</button>`;
+  }
+  $('#gd-back').addEventListener('click', e => {
+    const b = e.target.closest('[data-gd-back]'); if (!b) return;
+    const w = store.get('ladder.lastWork', 'ladder'), id = guideCur;
+    switchView(w);
+    if (b.dataset.gdBack === 'small') openGuideRight(id);
+  });
   // #guide-xxx 링크는 어디서 눌러도 사용 설명으로
   document.addEventListener('click', e => {
     const a = e.target.closest('a[href^="#guide-"]'); if (!a) return;
@@ -9124,7 +9147,7 @@ ${q}`;
     const box = $('#rp-guide'); if (!box) return;
     if (!bodyOnly || !$('#rg-body')) {
       const groups = [...new Set(GUIDE.map(g => g.group))];
-      box.innerHTML = `<div class="rg-top"><input id="rg-q" type="search" placeholder="사용 설명 찾기 (예: 역문항, 폴더)" value="${esc(rg.q)}" aria-label="사용 설명 찾기"><button class="btn sm" data-rg="full" title="넓은 화면으로">크게 보기</button><button class="btn sm" data-video="tutorial" title="영상으로 배우기">▶ 영상</button></div>
+      box.innerHTML = `<div class="rg-top"><input id="rg-q" type="search" placeholder="사용 설명 찾기 (예: 역문항, 폴더)" value="${esc(rg.q)}" aria-label="사용 설명 찾기"><button class="btn sm" data-rg="full" title="넓은 화면으로">크게 보기</button><button class="btn sm vid-btn" data-video="tutorial" title="영상으로 배우기">▶ 영상</button></div>
         <select id="rg-sel" aria-label="사용 설명 쪽">${groups.map(gr => `<optgroup label="${esc(gr)}">${GUIDE.filter(g => g.group === gr).map(g => `<option value="${g.id}">${esc(g.title)}</option>`).join('')}</optgroup>`).join('')}</select>
         <div class="card rg-card" id="rg-body"></div>`;
     }
@@ -12282,7 +12305,7 @@ eff(${rq(`'${t}' 비율의 차이 (${r.vars.map(k => nm(S, k)).join(', ')})`)}, 
         <p class="wc-sub">계산과 점검은 통이, 판단과 해석은 연구자가 합니다.</p>
         <p class="wc-how">사용법은 위 띠의 <b>[? 사용 설명]</b>이나 왼쪽 메뉴 맨 아래 <b>사용 설명</b>에 있어요.</p>
         ${FS_OK && folderState !== 'on' && !again ? `<p class="wc-how">PC라면 연구마다 폴더를 하나 만들어 연결해 두세요. 작업이 그 폴더에 파일로 자동 저장됩니다. <button class="btn sm" data-wc="fold">연구 폴더 연결</button></p>` : ''}
-        <div class="wc-act"><button class="btn primary" data-wc="start">${again ? '이어서 연구하기' : '이제 연구를 시작해 볼까요?'}</button><button class="btn" data-wc="video">▶ 영상으로 보기</button><button class="btn" data-wc="guide">사용 설명 보기</button></div>
+        <div class="wc-act"><button class="btn primary" data-wc="start">${again ? '이어서 연구하기' : '이제 연구를 시작해 볼까요?'}</button><button class="btn vid-btn" data-wc="video">▶ 영상으로 보기</button><button class="btn" data-wc="guide">사용 설명 보기</button></div>
         <div class="wc-bar"><i style="animation-duration:${STAY}ms"></i></div>
         <p class="wc-note"><span class="wc-run">잠시 후 저절로 닫혀요</span><span class="wc-held">멈춤 · 마우스를 카드 밖으로 옮기면 다시 줄어들어요</span><button class="wc-never" data-wc="never">다시 보지 않기</button></p></div>`;
       document.body.appendChild(w); store.set('ladder.welcomed', true);
