@@ -6127,7 +6127,7 @@ function createSurvey() {
               <div class="actions tight"><button class="btn sm primary" data-in-act="dl-claude-md">${AGENTS[aiAgent].file} 받기</button><button class="btn sm primary" data-in-act="dl-json">interpretation.json 받기</button></div>
               <p class="hint">${AGENTS[aiAgent].file}는 AI 도우미가 지킬 규칙, interpretation.json은 연구 의도·가설·판정·결과표입니다. 응답 원자료는 들어 있지 않습니다. 가설이나 분석을 바꾸면 interpretation.json을 다시 받으세요.</p></div></div>
             <div class="chat-step"><span class="n">2</span><div><b>${agentName()}로 그 폴더 열기</b>
-              <p class="hint" style="margin-top:4px">${{ claude: '<b>Claude 데스크톱 앱</b> 왼쪽 위 <b>Code</b> 탭 → 입력칸 아래 첫 단추에서 <b>Local</b> 고르기 → 그 옆 폴더 단추 → <b>Open folder…</b> → 연구 폴더. 터미널이 필요 없습니다. (<a href="https://claude.ai/download" target="_blank" rel="noopener">앱 설치</a> · 터미널이 익숙하면 그 폴더에서 <code>claude</code> 실행)', codex: '<b>Codex 앱</b>에서 그 폴더를 열거나, 그 폴더에서 터미널을 열고 <code>codex</code> 실행. 처음에 ChatGPT 계정으로 로그인합니다. (<a href="https://developers.openai.com/codex" target="_blank" rel="noopener">설치 안내</a>)', google: '<b>Antigravity 앱</b>에서 그 폴더를 엽니다. 처음에 구글 계정으로 로그인합니다. (<a href="https://antigravity.google" target="_blank" rel="noopener">앱 설치</a>)' }[aiAgent]}</p>
+              <p class="hint" style="margin-top:4px">${{ claude: '<b>Claude 데스크톱 앱</b> 왼쪽 위 <b>Code</b> 탭 → 입력칸 아래 첫 단추에서 <b>Local</b> 고르기 → 그 옆 <b>📁 폴더 모양 단추</b> → 연구 폴더. 터미널이 필요 없습니다. (<a href="https://claude.ai/download" target="_blank" rel="noopener">앱 설치</a> · 터미널이 익숙하면 그 폴더에서 <code>claude</code> 실행)', codex: '<b>Codex 앱</b>에서 그 폴더를 열거나, 그 폴더에서 터미널을 열고 <code>codex</code> 실행. 처음에 ChatGPT 계정으로 로그인합니다. (<a href="https://developers.openai.com/codex" target="_blank" rel="noopener">설치 안내</a>)', google: '<b>Antigravity 앱</b>에서 그 폴더를 엽니다. 처음에 구글 계정으로 로그인합니다. (<a href="https://antigravity.google" target="_blank" rel="noopener">앱 설치</a>)' }[aiAgent]}</p>
               <p class="hint">"통 해석 모드입니다."가 나오면 성공입니다. "해석해 줘"라고 쓰면 시작합니다.</p></div></div>
             <div class="chat-step"><span class="n">3</span><div><b>AI가 묻는 것에 답하면 폴더에 <code>draft.md</code>가 생깁니다</b> (연구 폴더를 연결했으면 통 창으로 돌아올 때 저절로 들어옵니다)</div></div>
             <div class="chat-step"><span class="n">4</span><div><b>draft.md 내용을 아래 [초안 점검] 칸에 붙여 넣기</b></div></div>
@@ -6895,7 +6895,7 @@ ${REVIEW_RULES}
       <div class="gstep"><b>STEP 4. 결과 보기</b><p>AI가 만든 초안, R 결과, 허점 점검은 통 창을 다시 누르면 저절로 들어옵니다.</p></div>
       <div class="gstep"><b>다음부터는</b><p>통 아래쪽 <b>[Claude Code 열기]</b>를 누르거나 Claude 앱을 직접 열고, 왼쪽 목록에서 <b>그 연구 폴더의 대화</b>를 누르면 대화와 작업이 이어집니다. 폴더가 연결되어 있는 동안에는 통에서 바꾼 것이 연구 폴더에 저절로 저장되어 AI 도우미가 최신 자료를 봅니다. 브라우저를 다시 열면 위쪽 [📁 연구 폴더]에서 다시 연결하세요.</p></div>
       <h3>Claude Code (Claude 구독)</h3>
-      <div class="gstep"><b>데스크톱 앱의 Code 탭 (처음이면 추천 · 앱만 설치, 터미널 필요 없음)</b><p><a href="https://claude.ai/download" target="_blank" rel="noopener">Claude 데스크톱 앱</a>을 설치하고 로그인 → 왼쪽 위 <b>Code</b> 탭 → 입력칸 아래 첫 단추에서 <b>Local</b> 고르기 → 그 옆 폴더 단추 → <b>Open folder…</b> → 연구 폴더. (예전 화면이면 Code 탭 → Local → Select folder) 메뉴 이름이 다르면 <a href="https://code.claude.com/docs/en/desktop-quickstart" target="_blank" rel="noopener">공식 안내</a>를 보세요.</p></div>
+      <div class="gstep"><b>데스크톱 앱의 Code 탭 (처음이면 추천 · 앱만 설치, 터미널 필요 없음)</b><p><a href="https://claude.ai/download" target="_blank" rel="noopener">Claude 데스크톱 앱</a>을 설치하고 로그인 → 왼쪽 위 <b>Code</b> 탭 → 입력칸 아래 첫 단추에서 <b>Local</b> 고르기 → 그 옆 <b>📁 폴더 모양 단추</b> → 연구 폴더. (예전 화면이면 Code 탭 → Local → Select folder) 메뉴 이름이 다르면 <a href="https://code.claude.com/docs/en/desktop-quickstart" target="_blank" rel="noopener">공식 안내</a>를 보세요.</p></div>
       <div class="gstep"><b>터미널로 쓰기 (검은 글자 창)</b>
         <p>속은 데스크톱 앱의 Code 탭과 같은 Claude Code입니다. 글자 화면이 익숙하면 이쪽도 편합니다.</p>
         <p><b>① 연구 폴더에서 터미널 열기</b> · 윈도우 11: 폴더 빈 곳 오른쪽 클릭 → <b>터미널에서 열기</b> · 윈도우 10: 폴더 주소창에 <code>cmd</code> 입력 → Enter · 맥: 폴더를 Dock의 터미널 아이콘 위로 끌어다 놓기</p>
@@ -7904,7 +7904,7 @@ cat("\\n완료: 효과", nrow(EFF), "개 (R_results.csv에 저장)\\n")
     const F = [
       ['CLAUDE.md', claudeMd()], ['AGENTS.md', claudeMd()], ['GEMINI.md', claudeMd()],
       ['project.json', JSON.stringify(projectState(), null, 1)],
-      ['README.md', `# 통 연구 폴더\n\n통이 자동으로 저장하는 폴더입니다. 마지막 저장: ${new Date().toLocaleString('ko-KR')}\n\n- 1_survey: 설문 설계, 코드북, 구글 폼 스크립트\n- 2_data: 분석용 자료${folderOpts.saveRaw ? ', 응답 원자료' : ''}\n- 3_analysis: 분석 계획서, R 코드, 결과표 (AI 도우미가 만든 R_output.txt도 여기)\n- 4_interpretation: 해석 자료 (AI 도우미가 만든 draft.md, review.md도 여기)\n\nAI 도우미로 이 폴더를 열면 안내 파일의 규칙대로 일합니다.\n- Claude Code: Claude 데스크톱 앱의 Code 탭 → 입력칸 아래에서 Local → 폴더 단추 → Open folder… (CLAUDE.md를 읽음)\n- Codex: Codex 앱에서 이 폴더를 열거나 이 폴더에서 \`codex\` 실행 (AGENTS.md를 읽음)\n- Antigravity: 앱에서 이 폴더 열기 (GEMINI.md·AGENTS.md를 읽음)\nproject.json은 통이 다시 불러올 때 쓰니 고치지 마세요.\n`]
+      ['README.md', `# 통 연구 폴더\n\n통이 자동으로 저장하는 폴더입니다. 마지막 저장: ${new Date().toLocaleString('ko-KR')}\n\n- 1_survey: 설문 설계, 코드북, 구글 폼 스크립트\n- 2_data: 분석용 자료${folderOpts.saveRaw ? ', 응답 원자료' : ''}\n- 3_analysis: 분석 계획서, R 코드, 결과표 (AI 도우미가 만든 R_output.txt도 여기)\n- 4_interpretation: 해석 자료 (AI 도우미가 만든 draft.md, review.md도 여기)\n\nAI 도우미로 이 폴더를 열면 안내 파일의 규칙대로 일합니다.\n- Claude Code: Claude 데스크톱 앱의 Code 탭 → 입력칸 아래에서 Local → 📁 폴더 모양 단추 → 이 폴더 (CLAUDE.md를 읽음)\n- Codex: Codex 앱에서 이 폴더를 열거나 이 폴더에서 \`codex\` 실행 (AGENTS.md를 읽음)\n- Antigravity: 앱에서 이 폴더 열기 (GEMINI.md·AGENTS.md를 읽음)\nproject.json은 통이 다시 불러올 때 쓰니 고치지 마세요.\n`]
     ];
     if (sv.scales.length || sv.demos.length) F.push(['1_survey/survey.md', surveyMd()], ['1_survey/codebook.csv', codebookCsv()], ['1_survey/google_form.gs', buildScript()]);
     if (lastScored) F.push(['2_data/analysis_data.csv', toCsv(analysisRows())], ['2_data/item_analysis.csv', toCsv(itemStatsRows())], ['2_data/data_check.md', prelimMd()]);
@@ -8353,7 +8353,7 @@ ${q}`;
     if (AGENT_LINK[aiAgent]) {
       // 앱 링크(claude://)는 링크 누르기로 열어야 이 화면이 멈추지 않음. q는 입력칸 미리 채우기(공식 매개변수, 앱에서 무시하면 복사해 둔 것을 붙여 넣음)
       { const a = document.createElement('a'); a.href = AGENT_LINK[aiAgent] + (q ? '?q=' + encodeURIComponent(q.slice(0, 2000)) : ''); document.body.appendChild(a); a.click(); a.remove(); }
-      toast(`Claude 앱의 Code 탭(새 대화)이 열립니다. 이어서 하려면 앱 왼쪽 목록에서 그 연구 폴더의 대화를 누르세요. 처음이면 입력칸 아래 Local → 폴더 단추 → Open folder…로 ${fold}를 고르세요.${q ? ' 질문은 복사해 두었으니 입력칸이 비어 있으면 붙여 넣으세요.' : ''} 앱이 열리지 않으면 사용 설명의 설치 안내를 보세요.`, 10000);
+      toast(`Claude 앱의 Code 탭(새 대화)이 열립니다. 이어서 하려면 앱 왼쪽 목록에서 그 연구 폴더의 대화를 누르세요. 처음이면 입력칸 아래에서 Local을 고르고, 옆의 📁 폴더 모양 단추로 ${fold}를 고르세요.${q ? ' 질문은 입력칸에 채워 둡니다(비어 있으면 복사해 둔 것을 Ctrl+V).' : ''} 앱이 열리지 않으면 사용 설명의 설치 안내를 보세요.`, 10000);
     } else {
       openGuideRight('claude-code');
       toast(`${agentName()}를 열고 ${fold}를 여세요. 다음부터는 그 대화를 이어서 쓰면 됩니다.${q ? ' 질문은 복사해 두었으니 붙여 넣으세요.' : ''}`, 8000);
