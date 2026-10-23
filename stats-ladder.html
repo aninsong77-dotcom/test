@@ -9591,7 +9591,13 @@ ${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}`;
         R('r_simple_reg', '한쪽이 다른 쪽을 얼마나 설명하는가 (B, R²)', '한쪽을 원인으로 볼 이론이 있을 때')];
     } else if (c.model === 'pred') {
       const ky = K(c.y);
-      if (ky === 'g2') L = [R('r_logistic', '예·아니오가 될 가능성을 예측 (승산비)', '결과가 두 가지 분류일 때')];
+      const allCat = X.length > 0 && X.every(n => K(n) !== 'score');
+      if (ky === 'score' && allCat) {
+        // 원인이 모두 집단 변인이면 "영향"이라 써도 분산분석이 맞음 (회귀와 같은 계산 틀)
+        const fx = X.length > 1 ? R('r_factorial_anova', '원인이 모두 집단이라 분산분석으로 봅니다 (주효과와 상호작용)', X.length > 2 ? '집단 기준이 셋이면 통은 둘까지만 계산합니다. 둘씩 나눠 보거나 SPSS(UNIANOVA)를 쓰세요' : '원인 변인이 모두 집단 변인일 때')
+          : K(X[0]) === 'g3' ? R('r_oneway', '원인이 집단이라 분산분석으로 봅니다 (사후검정 포함)', '집단이 셋 이상일 때') : R('r_ind_t', '원인이 집단이라 평균 차이로 봅니다', '집단이 둘일 때');
+        L = [fx, R(ctl ? 'r_hier_reg' : X.length > 1 ? 'r_multiple_reg' : 'r_simple_reg', '집단 변인을 더미로 바꿔 회귀로 보기 (상호작용은 보지 못함)', '분산분석과 같은 틀의 계산이며 주효과만 볼 때')];
+      } else if (ky === 'g2') L = [R('r_logistic', '예·아니오가 될 가능성을 예측 (승산비)', '결과가 두 가지 분류일 때')];
       else if (ky === 'g3') L = [R('r_multinom', '세 가지 이상 유형 중 어디에 속할지 예측', '결과가 순서 없는 분류일 때')];
       else L = [R(ctl ? 'r_hier_reg' : X.length > 1 ? 'r_multiple_reg' : 'r_simple_reg', ctl ? '통제변인을 먼저 넣은 뒤 원인 변인이 더 설명하는 양 (ΔR²)' : '원인 변인이 결과를 얼마나 설명하는가 (B, β, R²)', ctl ? '통제변인이 있을 때' : X.length > 1 ? '원인 변인이 여럿일 때' : '원인 변인이 하나일 때'),
         R(ctl ? (X.length > 1 ? 'r_multiple_reg' : 'r_simple_reg') : 'r_hier_reg', ctl ? '통제 없이 한꺼번에 넣은 회귀' : '변인을 묶음별로 차례로 넣어 ΔR² 보기', ctl ? '통제 효과를 비교할 때' : '인구학 변인 → 주요 변인처럼 순서가 있을 때'),

@@ -313,6 +313,13 @@ console.log('\n4. 가설 붙여 넣기');
   await p.click('[data-mb-act=unmerge]'); await p.waitForTimeout(400);
   const st2 = await p.evaluate(() => JSON.parse(localStorage.getItem('ladder.hyp')));
   ok('[따로 분석하기]를 누르면 회귀 가설이 따로 카드가 됨', st2.cards.some(c => c.model === 'pred' && /정적 영향/.test(c.src || '')));
+  // 원인이 모두 집단 변인이면 "영향" 가설이어도 분산분석을 먼저 추천 (회귀는 두 번째)
+  await p.evaluate(() => { localStorage.clear(); localStorage.setItem('ladder.noWelcome', 'true'); }); await p.reload(); await p.waitForTimeout(700); await p.click('#splash').catch(() => {}); await p.click('[data-hp=mode-hyp]'); await p.waitForTimeout(300);
+  await p.click('.mb-paste summary'); await p.fill('#hp-text', '성별, 집단, 기간은 미토콘드리아에 영향을 미칠 것이다.'); await p.click('[data-mb-act=paste-read]'); await p.waitForTimeout(700);
+  await p.evaluate(() => { const h = JSON.parse(localStorage.getItem('ladder.hyp')); h.vlist.forEach(v => { if (v.name !== '미토콘드리아') v.kind = 'g2'; }); localStorage.setItem('ladder.hyp', JSON.stringify(h)); });
+  await p.reload(); await p.waitForTimeout(700); await p.click('#splash').catch(() => {});
+  const opts = await p.evaluate(() => document.body.innerText);
+  ok('원인이 모두 집단 변인이면 "영향" 가설도 분산분석을 먼저 추천', opts.indexOf('이원(다원) 분산분석') > -1 && opts.indexOf('이원(다원) 분산분석') < opts.indexOf('다중회귀분석'));
   ok('페이지 오류 없음 (가설)', !errs.length, errs.join(' | '));
   await ctx.close();
 }
