@@ -470,6 +470,28 @@ console.log('\n8. 앱처럼 설치');
   const ctx2 = await browser.newContext(); const p2 = await ctx2.newPage();
   await p2.goto(BASE + '#guide-install'); await p2.waitForTimeout(600);
   ok('사용 설명에 "앱처럼 설치하기"', /앱처럼 설치/.test(await race(p2.$eval('#gd-body', e => e.innerText).catch(() => ''), 5000, '')));
+  // 영상으로 배우기: 사용 설명 맨 위에서 재생, 팝업, 환영 카드
+  { const p2 = await ctx2.newPage(); const e2 = []; p2.on('pageerror', e => e2.push(e.message));
+    await p2.goto(BASE + '?v=vid#guide-start'); await p2.waitForTimeout(900); await p2.click('#splash').catch(() => {}); await p2.waitForTimeout(300);
+    const cards = await p2.$$eval('#gd-videos [data-vid-play]', e => e.map(x => x.dataset.vidPlay));
+    ok('사용 설명 맨 위에 영상 두 개(통 사용법 · AI 함께 쓰기)', cards.join(',') === 'tutorial,ai', cards.join(','));
+    await p2.click('#gd-videos [data-vid-play=tutorial]'); await p2.waitForTimeout(300);
+    const src = await p2.$eval('#gd-videos video', v => v.getAttribute('src')).catch(() => '');
+    ok('누르면 사용 설명 안에서 재생 (전체 화면 단추 있음)', /tong_tutorial\.mp4$/.test(src) && !!(await p2.$('#gd-videos [data-vid-fs]')), src);
+    await p2.click('.gd-item:nth-of-type(3)').catch(() => {}); await p2.waitForTimeout(300);
+    ok('사용 설명 쪽을 옮겨도 재생 중인 영상은 그대로', !!(await p2.$('#gd-videos video')));
+    await p2.click('.gd-item[href="#guide-start"]'); await p2.waitForTimeout(300);
+    await p2.click('#gd-body [data-video="ai"]'); await p2.waitForTimeout(300);
+    ok('[▶ AI 함께 쓰기] 단추는 팝업으로 재생', /tong_ai_connect\.mp4$/.test(await p2.$eval('.vid-modal video', v => v.getAttribute('src')).catch(() => '')));
+    await p2.keyboard.press('Escape'); await p2.waitForTimeout(200);
+    ok('Esc로 팝업 닫힘', !(await p2.$('.vid-modal')));
+    await p2.evaluate(() => { localStorage.setItem('ladder.forceWelcome', 'true'); localStorage.removeItem('ladder.noWelcome'); }); await p2.goto(BASE + '?v=wc'); await p2.waitForTimeout(600); await p2.click('#splash').catch(() => {});
+    await p2.waitForSelector('#welcome [data-wc=video]', { timeout: 8000 }).catch(() => {});
+    ok('환영 카드에 [▶ 영상으로 보기]', !!(await p2.$('#welcome [data-wc=video]')));
+    await p2.click('#welcome [data-wc=video]').catch(() => {}); await p2.waitForTimeout(500);
+    ok('환영 카드에서 누르면 통 사용법 영상 팝업', /tong_tutorial\.mp4$/.test(await p2.$eval('.vid-modal video', v => v.getAttribute('src')).catch(() => '')));
+    ok('페이지 오류 없음 (영상)', !e2.length, e2.join(' | '));
+    await p2.close(); }
   await ctx2.close();
 }
 
