@@ -2,7 +2,7 @@
 // 화면 파일은 늘 인터넷에서 먼저 받아(고친 내용이 바로 반영) 저장해 두고, 연결이 없을 때만 저장본을 씀
 // R(webR)·영상처럼 다른 주소나 큰 파일은 건드리지 않음
 const CACHE = 'tong-v1';
-const CORE = ['./', 'index.html', 'tong.webmanifest', 'tong-icon-192.png', 'tong-icon-512.png', 'tong-apple-touch-icon.png'];
+const CORE = ['./', 'index.html', 'tong.webmanifest', 'tong-icon-192.png', 'tong-icon-512.png', 'tong-apple-touch-icon.png', 'tong-favicon.ico', 'tong-favicon-48.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => Promise.all(CORE.map(u => c.add(u).catch(() => null)))));
   self.skipWaiting();
