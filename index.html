@@ -367,7 +367,7 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
         <button class="opt" id="ex-ko">예시: 한국어 논문 (TXT)</button>
       </div>
     </details>
-    <input type="file" id="file" accept=".pdf,.hwp,.hwpx,.txt,.xlsx,.xls,.csv,application/pdf,text/plain" hidden>
+    <input type="file" id="file" accept=".pdf,.hwp,.hwpx,.txt,.xlsx,.xls,.csv,.jpg,.jpeg,.png,.webp,application/pdf,text/plain,image/jpeg,image/png,image/webp" multiple hidden>
     <details class="dd" id="dd-cite">
       <summary data-tip="본문 속 [12], (Kim, 2021) 같은 출처 표시를 읽을지 고릅니다."><span class="k">출처</span><span class="v" id="sum-cite">빼고</span></summary>
       <div class="menu">
@@ -1034,8 +1034,9 @@ function classifyParas(parts, opt){
     if (!t) return;
     const skip = reason => {
       const last = blocks[blocks.length - 1];
-      if (last && last.kind === "skip" && last.reason === reason && last.page === p.page) last.text += "\n" + t;
-      else blocks.push({kind: "skip", reason, text: t, page: p.page});
+      const fresh = p.fig || (reason === SKIP_REASON.caption && RE_CAPTION.test(t));
+      if (!fresh && last && last.kind === "skip" && last.reason === reason && last.page === p.page) last.text += "\n" + t;
+      else blocks.push({kind: "skip", reason, text: t, page: p.page, fig: p.fig});
     };
     if (p.row){ blocks.push({kind: "para", text: t, page: p.page}); return; }
     if (p.skip === "header") return skip(SKIP_REASON.header);
@@ -1113,15 +1114,31 @@ const offReason = () => EDITION === "web"
 const opts = () => ({front: $("o-front").checked, small: $("o-small").checked, caption: $("o-caption").checked, refs: $("o-refs").checked});
 
 // ---- 파일 열기 ------------------------------------------------------------
-async function openFile(name, buf){
+// 파일 지문: 저장해 둔 글자 인식 결과를 찾는 데 쓴다 (앞뒤와 중간을 고르게 훑는 FNV 해시)
+function fileHash(chunks){
+  let h = 2166136261;
+  for (const u of chunks){
+    const step = Math.max(1, Math.floor(u.length / 65536));
+    for (let i = 0; i < u.length; i += step){ h ^= u[i]; h = Math.imul(h, 16777619); }
+    h ^= u.length; h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0).toString(36);
+}
+async function openFile(name, buf, images){
   stop();
   $("error").hidden = true;
   $("scan").hidden = true;
   state.fileName = name;
   $("file-stats").textContent = "여는 중…";
-  const ext = (name.match(/\.([a-z0-9]+)$/i)?.[1] || "").toLowerCase();
+  const ext = images ? "images" : extOf(name);
   try {
-    if (ext === "pdf"){
+    if (images){
+      state.fileHash = fileHash(await Promise.all(images.map(async f => new Uint8Array(await f.arrayBuffer()))));
+      state.source = {type: "images", images, pages: images.length, parts: []};
+    } else if (IMG_EXT.includes(ext)){
+      return openFile(name, null, [new Blob([buf], {type: "image/" + (ext === "jpg" ? "jpeg" : ext)})]);
+    } else if (ext === "pdf"){
+      state.fileHash = fileHash([new Uint8Array(buf)]);
       await need("pdf");
       const pdf = await pdfjsLib.getDocument({data: new Uint8Array(buf), isEvalSupported: false}).promise;
       const lines = await extractLines(pdf, (p, n) => { $("file-stats").textContent = `글자 읽는 중… ${p}/${n}쪽`; });
@@ -1138,8 +1155,11 @@ async function openFile(name, buf){
     } else if (ext === "txt" || ext === "md" || ext === ""){
       state.source = {type: "parts", parts: parseTxt(decodeText(buf))};
     } else {
-      throw new Error("지원하지 않는 형식입니다. PDF, 한글, 엑셀, TXT 파일을 열어 주세요.");
+      throw new Error("지원하지 않는 형식입니다. PDF, 한글, 엑셀, TXT, 사진(JPG, PNG) 파일을 열어 주세요.");
     }
+    // 전에 이 파일을 글자 인식했으면 그 결과를 바로 쓴다
+    const savedOcr = (state.source.type === "pdf" || state.source.type === "images") ? loadOcr() : null;
+    if (savedOcr?.parts?.length){ state.source.ocrParts = savedOcr.parts; state.source.ocrNext = savedOcr.next || state.source.pages + 1; }
     resetTr();
     ocrAbort?.abort();
     state.idx = 0;
@@ -1152,18 +1172,28 @@ async function openFile(name, buf){
   }
 }
 
+const IMG_EXT = ["jpg", "jpeg", "png", "webp"];
+const extOf = name => (name.match(/\.([a-z0-9]+)$/i)?.[1] || "").toLowerCase();
+// 사진은 여러 장을 한 문서로 (파일 이름 순서 = 쪽 순서)
+async function openFiles(list){
+  const files = [...list];
+  if (!files.length) return;
+  const imgs = files.filter(f => IMG_EXT.includes(extOf(f.name)) || /^image\//.test(f.type));
+  if (imgs.length && imgs.length === files.length){
+    imgs.sort((a, b) => a.name.localeCompare(b.name, undefined, {numeric: true}));
+    return openFile(imgs.length > 1 ? `사진 ${imgs.length}장` : imgs[0].name, null, imgs);
+  }
+  openFile(files[0].name, await files[0].arrayBuffer());
+}
 $("file").addEventListener("change", async e => {
-  const f = e.target.files[0]; if (!f) return;
-  openFile(f.name, await f.arrayBuffer());
+  await openFiles(e.target.files);
   e.target.value = "";
 });
 $("file-btn").addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " "){ e.preventDefault(); $("file").click(); } });
 const drop = document.body;
 ["dragenter", "dragover"].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add("drag"); }));
 ["dragleave", "drop"].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.remove("drag"); }));
-drop.addEventListener("drop", async e => {
-  const f = e.dataTransfer.files[0]; if (f) openFile(f.name, await f.arrayBuffer());
-});
+drop.addEventListener("drop", e => { openFiles(e.dataTransfer.files); });
 $("ex-en").addEventListener("click", () => openFile("예시 논문 (영어).pdf", Uint8Array.from(atob(SAMPLE_PDF_B64), c => c.charCodeAt(0)).buffer));
 $("ex-ko").addEventListener("click", () => openFile("예시 논문 (한국어).txt", new TextEncoder().encode(SAMPLE_TXT).buffer));
 
@@ -1298,7 +1328,7 @@ function blockEl(b, side, tv, cls){
 }
 function figureEl(b, side){
   const fig = make("figure", "fig");
-  if (b.fig && state.source?.pdf){
+  if (b.fig && hasPages()){
     const box = make("button", "fig-img", "그림을 불러오는 중…");
     box.type = "button";
     box.setAttribute("aria-label", `${b.page}쪽 전체 보기`);
@@ -1316,6 +1346,11 @@ function figureEl(b, side){
   const panel = make("div", "fig-explain"); panel.hidden = true; panel.setAttribute("aria-live", "polite");
   ask.addEventListener("click", () => explainFig(b, fig.querySelector(".fig-img"), panel, ask, isTable));
   tools.append(ask);
+  if (!b.fig && b.page && hasPages()){
+    const see = make("button", "btn ghost", "이 그림이 있는 쪽 보기"); see.type = "button";
+    see.addEventListener("click", () => openPage(b.page));
+    tools.append(see);
+  }
   fig.append(tools, panel);
   const cached = figCache()[figKey(b)];
   if (cached){ showFigInfo(panel, cached, b); ask.textContent = isTable ? "표 해석 다시 받기" : "그림 해석 다시 받기"; }
@@ -2068,7 +2103,7 @@ function mark(){
 function seg(onId, offId, on){ $(onId).setAttribute("aria-pressed", on); $(offId).setAttribute("aria-pressed", !on); updateSummaries(); }
 function updateSummaries(){
   $("tip-file").dataset.tip = (state.fileName ? `지금 파일: ${state.fileName}\n${state.statsText || ""}\n\n` : "") +
-    "PDF · 한글(HWP, HWPX) · 엑셀(XLSX, XLS, CSV) · TXT 파일을 엽니다. 화면에 끌어다 놓아도 됩니다.\n복사한 글은 ‘글 붙여넣기’나 Ctrl+V로 넣을 수 있습니다.";
+    "PDF · 한글(HWP, HWPX) · 엑셀(XLSX, XLS, CSV) · TXT · 사진(JPG, PNG, 여러 장 가능) 파일을 엽니다. 화면에 끌어다 놓아도 됩니다.\n복사한 글은 ‘글 붙여넣기’나 Ctrl+V로 넣을 수 있습니다.";
   $("sum-cite").textContent = state.stripCites ? "빼고" : "다 읽기";
   $("sum-mode").textContent = claudeState === "off" ? "안 됨" : trView() ? (state.view === "side" ? "나란히" : "문장마다") : "끔";
   $("sum-skip").textContent = ["o-front", "o-small", "o-caption", "o-refs"].filter(id => $(id).checked).length + "개";
@@ -2380,9 +2415,52 @@ async function renderPage(pageNo, scale){
   await page.render({canvasContext: ctx, viewport: vp}).promise;
   return {canvas: c, height: page.getViewport({scale: 1}).height, width: page.getViewport({scale: 1}).width};
 }
+// 쪽 하나를 캔버스로: PDF는 그리고, 사진은 줄여서 (긴 변 maxSide 픽셀 이하, 사진 방향은 EXIF대로)
+async function pageCanvas(p, maxSide){
+  const src = state.source;
+  if (src.images){
+    const bmp = await createImageBitmap(src.images[p - 1]);
+    const k = Math.min(1, maxSide / Math.max(bmp.width, bmp.height));
+    const c = document.createElement("canvas");
+    c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+    const g = c.getContext("2d");
+    g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height);
+    g.drawImage(bmp, 0, 0, c.width, c.height);
+    bmp.close?.();
+    return c;
+  }
+  const vp1 = (await src.pdf.getPage(p)).getViewport({scale: 1});
+  return (await renderPage(p, Math.min(3, maxSide / Math.max(vp1.width, vp1.height)))).canvas;
+}
+const hasPages = () => !!(state.source?.pdf || state.source?.images);
 async function drawFig(box){
-  const f = box._fig, pdf = state.source?.pdf;
-  if (!f || !pdf) return;
+  const f = box._fig, src = state.source, pdf = src?.pdf;
+  if (!f || !hasPages()) return;
+  // 글자 인식으로 찾은 그림 자리: 쪽 이미지에서 0~1000 비율 좌표로 잘라 낸다
+  if (f.norm){
+    try {
+      const c = await pageCanvas(f.page, 2200);
+      const [a, b, cc, d] = f.norm, pad = 12;
+      const sx = Math.max(0, a / 1000 * c.width - pad), sy = Math.max(0, b / 1000 * c.height - pad);
+      const sw = Math.min(c.width - sx, (cc - a) / 1000 * c.width + pad * 2), sh = Math.min(c.height - sy, (d - b) / 1000 * c.height + pad * 2);
+      const out = document.createElement("canvas");
+      out.width = Math.round(sw); out.height = Math.round(sh);
+      out.getContext("2d").drawImage(c, sx, sy, sw, sh, 0, 0, out.width, out.height);
+      const blob = await new Promise(r => out.toBlob(r, "image/jpeg", 0.9));
+      if (state.source !== src || !blob) return;
+      box._blob = blob;
+      const url = URL.createObjectURL(blob); figUrls.push(url);
+      const img = new Image();
+      img.alt = `${f.page}쪽의 그림·표`; img.src = url;
+      img.style.width = Math.round((cc - a) / 1000 * 900) + "px";
+      box.replaceChildren(img);
+      return blob;
+    } catch {
+      box.textContent = "그림을 그리지 못했어요. 눌러서 쪽 전체를 보세요.";
+      return;
+    }
+  }
+  if (!pdf) return;
   try {
     const w = f.x1 - f.x0, h = f.y1 - f.y0;
     const first = await pdf.getPage(f.page), pw = first.getViewport({scale: 1}).width;
@@ -2436,7 +2514,8 @@ async function explainFig(b, box, panel, btn, isTable){
   let images;
   try {
     const lim = await sampleFn.limits();
-    const blob = box?._blob || (box ? await drawFig(box) : null);
+    const blob = box?._blob || (box ? await drawFig(box) : null) ||
+      (b.page && hasPages() ? await new Promise(async r => (await pageCanvas(b.page, 1800)).toBlob(r, "image/jpeg", 0.85)) : null);
     if (lim?.images && blob) images = [blob];
   } catch {}
   const prompt = FIG_RULES + `\n\n논문 제목: ${docTitle()}\n종류: ${isTable ? "표" : "그림"}\n캡션: ${b.text.replace(/\s+/g, " ")}\n` +
@@ -2503,9 +2582,8 @@ async function openPage(p){
   $("pv-img").alt = `${p}쪽 전체`;
   if (dlg.showModal) dlg.showModal(); else dlg.open = true;
   try {
-    const pw = (await state.source.pdf.getPage(p)).getViewport({scale: 1}).width;
-    const {canvas} = await renderPage(p, Math.min(3, 1600 / pw));
-    canvas.toBlob(b => { if (!b) return; const u = URL.createObjectURL(b); figUrls.push(u); $("pv-img").src = u; });
+    const canvas = await pageCanvas(p, 2000);
+    canvas.toBlob(b => { if (!b) return; const u = URL.createObjectURL(b); figUrls.push(u); $("pv-img").src = u; }, "image/jpeg", 0.9);
   } catch {}
 }
 $("pv-close").addEventListener("click", () => $("pageview").close());
@@ -2515,71 +2593,115 @@ $("pageview").addEventListener("click", e => { if (e.target === $("pageview")) $
 let ocrAbort = null;
 function checkScan(){
   const src = state.source;
-  if (!src || src.type !== "pdf" || src.ocrParts) return;
-  const chars = new Array(src.pages + 1).fill(0);
-  for (const l of src.lines) if (!["header", "pagenum", "margin"].includes(l.kind)) chars[l.page] += l.text.length;
-  const empty = chars.slice(1).filter(c => c < 80).length;
-  if (empty < Math.max(1, src.pages * 0.5)) return;
+  if (!src || (src.type !== "pdf" && src.type !== "images")) return;
+  let empty = src.pages;
+  if (src.type === "pdf" && !src.ocrParts?.length){
+    const chars = new Array(src.pages + 1).fill(0);
+    for (const l of src.lines) if (!["header", "pagenum", "margin"].includes(l.kind)) chars[l.page] += l.text.length;
+    empty = chars.slice(1).filter(c => c < 80).length;
+    if (empty < Math.max(1, src.pages * 0.5)) return;
+  }
   $("scan").hidden = false;
   const off = claudeState === "off";
-  const emptyMsg = document.querySelector("#doc .empty");
-  if (emptyMsg) emptyMsg.textContent = "스캔한 이미지라 읽을 글자가 없습니다.";
-  $("scan-msg").textContent = `스캔본 PDF라 ${src.pages}쪽 중 ${empty}쪽에 글자가 없어 읽을 수 없습니다.` + (off ? " 글자 인식은 " + offReason() : "");
+  if (src.ocrParts?.length){
+    const done = Math.min((src.ocrNext || src.pages + 1) - 1, src.pages);
+    $("scan-msg").textContent = done >= src.pages ? "글자 인식 결과로 읽습니다." : `${src.pages}쪽 중 ${done}쪽까지 인식한 글자로 읽습니다.`;
+  } else {
+    const emptyMsg = document.querySelector("#doc .empty");
+    if (emptyMsg) emptyMsg.textContent = src.type === "images" ? "사진이라 글자를 먼저 인식해야 합니다." : "스캔한 이미지라 읽을 글자가 없습니다.";
+    $("scan-msg").textContent = (src.type === "images" ? `사진 ${src.pages}장이라 글자를 바로 읽을 수 없습니다.` : `스캔본 PDF라 ${src.pages}쪽 중 ${empty}쪽에 글자가 없어 읽을 수 없습니다.`) +
+      (off ? " 글자 인식은 " + offReason() : ` 한 쪽에 20~40초쯤 걸리고, 인식한 결과는 이 브라우저에 저장돼 다시 열 때는 바로 읽습니다.`);
+  }
+  $("ocr").textContent = ocrLabel();
   $("ocr").hidden = !sampleFn;
   $("ocr-elsewhere").hidden = !(off && EDITION === "web");
   $("ocr-elsewhere").href = CLAUDE_URL;
   $("ocr-status").textContent = !off && !sampleFn ? "글자 인식 기능을 확인하는 중…" : "";
   if (sampleFn) sampleFn.limits().then(l => { if (!l?.images){ $("ocr").hidden = true; $("ocr-status").textContent = "이 화면에서는 이미지를 Claude에게 보낼 수 없어 글자 인식을 쓸 수 없습니다."; } }).catch(() => {});
 }
-const OCR_PROMPT = `이 이미지는 학술 논문 PDF의 한 쪽을 스캔한 것입니다. 글자를 원문 언어 그대로 옮겨 적고, 덩어리마다 종류를 붙이세요.
-종류: "heading"(논문 제목·소제목), "body"(본문 문단), "front"(저자·소속·학술지 정보), "header"(머리말·꼬리말·쪽 번호·다운로드/저작권 안내 문구), "footnote"(각주), "caption"(그림·표 안의 글자와 설명), "references"(참고문헌 목록).
-규칙: 읽는 순서대로(2단 편집이면 왼쪽 단 먼저), 문단 하나를 덩어리 하나로, 줄 끝 하이픈으로 나뉜 단어는 이어 붙이고, 고치거나 요약하지 말 것.
-JSON 배열로만 답하세요. 예: [{"type":"heading","text":"1. Introduction"},{"type":"body","text":"..."}]
+const ocrLabel = () => {
+  const src = state.source;
+  if (ocrAbort) return "멈추기";
+  if (!src?.ocrParts?.length) return "Claude로 글자 인식";
+  return (src.ocrNext || 1) <= src.pages ? "이어서 인식하기" : "처음부터 다시 인식";
+};
+const OCR_PROMPT = `이 이미지는 학술 논문의 한 쪽을 스캔하거나 사진으로 찍은 것입니다. 오래된 인쇄물이라 글자가 흐리거나 기울어져 있을 수 있습니다.
+글자를 원문 언어 그대로 옮겨 적고, 덩어리마다 종류를 붙이세요.
+종류: "heading"(논문 제목·소제목), "body"(본문 문단), "front"(저자·소속·학술지 정보), "header"(머리말·꼬리말·쪽 번호·다운로드/저작권 안내 문구), "footnote"(각주), "caption"(그림·표의 제목과 설명), "table"(표 안 내용: 한 행을 한 줄로, 칸은 " | "로 나눔), "figure"(그래프·그림·사진이 있는 자리: text는 빈 문자열), "references"(참고문헌 목록).
+figure와 table에는 "box"에 이 이미지 안의 위치를 [왼쪽, 위, 오른쪽, 아래]로, 이미지 전체를 0~1000으로 본 정수로 적으세요.
+규칙:
+- 읽는 순서대로 적으세요. 2단 편집이면 왼쪽 단을 끝까지 읽고 오른쪽 단으로 넘어가세요.
+- 문단 하나를 덩어리 하나로, 줄 끝 하이픈으로 나뉜 단어는 이어 붙이세요.
+- 고치거나 요약하지 마세요. 확실히 읽을 수 없는 글자나 낱말은 지어내지 말고 [?]로 적으세요.
+- 각주 번호 같은 작은 위첨자 숫자는 빼세요.
+JSON 배열로만 답하세요. 예: [{"type":"heading","text":"1. Introduction"},{"type":"body","text":"..."},{"type":"figure","text":"","box":[80,120,520,430]},{"type":"caption","text":"Figure 1. ..."}]
 글자가 없는 쪽이면 [] 로 답하세요.`;
-const OCR_KIND = {front: "front", header: "header", footnote: "note", caption: "caption", references: "refs"};
+const OCR_KIND = {front: "front", header: "header", footnote: "note", caption: "caption", references: "refs", table: "table"};
+// 인식한 쪽 하나를 조각으로: 그림·표 자리는 가장 가까운 캡션에 붙인다
+function addOcrPage(src, p, arr){
+  const items = (Array.isArray(arr) ? arr : []).map(it => ({type: String(it?.type || ""), text: String(it?.text || "").trim(), box: it?.box}));
+  const okBox = b => Array.isArray(b) && b.length === 4 && b.every(n => Number.isFinite(+n)) && +b[2] - +b[0] > 30 && +b[3] - +b[1] > 30;
+  const areas = items.map((it, k) => ({k, it})).filter(({it}) => (it.type === "figure" || it.type === "table") && okBox(it.box));
+  const used = new Set();
+  items.forEach((it, k) => {
+    if (it.type === "figure" || !it.text) return;
+    const part = {text: it.text, page: p, heading: it.type === "heading", skip: OCR_KIND[it.type] || null, labeled: true};
+    if (it.type === "caption"){
+      const near = areas.filter(a => !used.has(a.k)).sort((a, b) => Math.abs(a.k - k) - Math.abs(b.k - k))[0];
+      if (near && Math.abs(near.k - k) <= 2){
+        used.add(near.k);
+        const box = near.it.box.map(n => Math.max(0, Math.min(1000, Math.round(+n))));
+        part.fig = {page: p, norm: box, text: near.it.type === "table" ? near.it.text.split("\n") : []};
+      }
+    }
+    src.ocrParts.push(part);
+  });
+}
+const OCR_LS = "jjk-ocr:";
+function loadOcr(){ try { return JSON.parse(localStorage.getItem(OCR_LS + state.fileHash) || "null"); } catch { return null; } }
+function saveOcr(src){
+  try {
+    localStorage.setItem(OCR_LS + state.fileHash, JSON.stringify({at: Date.now(), next: src.ocrNext, parts: src.ocrParts}));
+    const keys = Object.keys(localStorage).filter(k => k.startsWith(OCR_LS));
+    if (keys.length > 6) keys.map(k => { try { return [k, JSON.parse(localStorage.getItem(k)).at || 0]; } catch { return [k, 0]; } })
+      .sort((a, b) => a[1] - b[1]).slice(0, keys.length - 6).forEach(([k]) => localStorage.removeItem(k));
+  } catch {}
+}
 async function runOcr(){
   const src = state.source;
-  if (!src?.pdf || !sampleFn) return;
+  if (!hasPages() || !sampleFn) return;
   if (ocrAbort){ ocrAbort.abort(); return; }
   ocrAbort = new AbortController();
   const signal = ocrAbort.signal;
+  // 중간에 멈췄으면 이어서, 다 했으면 처음부터
+  if (!src.ocrParts?.length || (src.ocrNext || 1) > src.pages){ src.ocrParts = []; src.ocrNext = 1; }
   $("ocr").textContent = "멈추기";
-  src.ocrParts = [];
-  let failed = 0;
+  let failed = 0, stopMsg = "";
   try {
-    for (let p = 1; p <= src.pages && !signal.aborted; p++){
+    for (let p = src.ocrNext; p <= src.pages && !signal.aborted; p++){
       $("ocr-status").textContent = `글자 인식 중… ${p}/${src.pages}쪽`;
-      const page = await src.pdf.getPage(p);
-      const vp1 = page.getViewport({scale: 1});
-      const vp = page.getViewport({scale: Math.min(2.5, 1600 / Math.max(vp1.width, vp1.height))});
-      const canvas = document.createElement("canvas");
-      canvas.width = Math.round(vp.width); canvas.height = Math.round(vp.height);
-      await page.render({canvasContext: canvas.getContext("2d"), viewport: vp}).promise;
+      const canvas = await pageCanvas(p, 2000);
       const blob = await new Promise(r => canvas.toBlob(r, "image/jpeg", 0.85));
       try {
-        const arr = await sampleFn.json(OCR_PROMPT, {images: blob, signal, cache: {gcTime: 86400000}});
-        for (const it of Array.isArray(arr) ? arr : []){
-          const text = String(it?.text || "").trim(); if (!text) continue;
-          src.ocrParts.push({text, page: p, heading: it.type === "heading", skip: OCR_KIND[it.type] || null, labeled: true});
-        }
+        addOcrPage(src, p, await sampleFn.json(OCR_PROMPT, {images: blob, signal, cache: {gcTime: 86400000}}));
       } catch (e){
-        if (e?.code === "cancelled") break;
-        if (["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed", "images_unavailable"].includes(e?.code)){
-          $("ocr-status").textContent = "Claude를 쓸 수 없어 글자 인식을 멈췄습니다."; break;
-        }
-        if (e?.code === "rate_limited"){ $("ocr-status").textContent = `요청이 많아 ${p - 1}쪽까지 인식하고 멈췄습니다. 잠시 뒤 다시 눌러 주세요.`; break; }
+        if (e?.code === "cancelled" || signal.aborted) break;
+        if (["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed", "images_unavailable"].includes(e?.code)){ stopMsg = "Claude를 쓸 수 없어 글자 인식을 멈췄습니다."; break; }
+        if (e?.code === "rate_limited"){ stopMsg = `요청이 많아 ${p - 1}쪽까지 인식하고 멈췄습니다. 잠시 뒤 ‘이어서 인식하기’를 눌러 주세요.`; break; }
         failed++;
       }
+      src.ocrNext = p + 1;
+      saveOcr(src);
       if (!state.playing) rebuild();
     }
   } finally {
     ocrAbort = null;
-    $("ocr").textContent = "다시 인식하기";
-    if (src.ocrParts.length) $("scan-msg").textContent = "스캔본이라 Claude가 인식한 글자로 읽습니다.";
-    if (!/멈췄/.test($("ocr-status").textContent)){
-      $("ocr-status").textContent = signal.aborted ? "글자 인식을 멈췄습니다." : failed ? `인식 완료 (${failed}쪽은 인식하지 못했습니다)` : "글자 인식 완료";
-    }
+    $("ocr-status").textContent = stopMsg || (signal.aborted ? "글자 인식을 멈췄습니다. ‘이어서 인식하기’로 계속할 수 있어요."
+      : failed ? `인식 완료 (${failed}쪽은 인식하지 못했습니다)` : "글자 인식 완료");
     if (!state.playing) rebuild(); else state.rebuildLater = true;
+    const status = $("ocr-status").textContent;
+    checkScan();
+    $("ocr-status").textContent = status;
   }
 }
 $("ocr").addEventListener("click", runOcr);
