@@ -22,6 +22,7 @@
   --mark:#ffe58a; --mark-ink:#1b2430; --done:#8a96a3; --tr:#3d6b4f;
   --skip-bg:#eef1f4; --warn:#9a5b00;
   --paper:#ffffff; --paper-ink:#4a5562;
+  --hl-y:#fff0a3; --hl-g:#cdeecb; --hl-p:#ffd6e4;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
@@ -30,6 +31,7 @@
     --accent:#6ea4d6; --accent-ink:#0e1a26; --accent-soft:#1f3345;
     --mark:#5c4a0f; --mark-ink:#fff4c9; --done:#6b7784; --tr:#8cc7a0;
     --skip-bg:#161c23; --warn:#e0a44a;
+    --hl-y:#5a4b12; --hl-g:#1f4a2c; --hl-p:#5a2337;
   }
 }
 :root[data-theme="dark"]{
@@ -38,6 +40,7 @@
   --accent:#6ea4d6; --accent-ink:#0e1a26; --accent-soft:#1f3345;
   --mark:#5c4a0f; --mark-ink:#fff4c9; --done:#6b7784; --tr:#8cc7a0;
   --skip-bg:#161c23; --warn:#e0a44a;
+  --hl-y:#5a4b12; --hl-g:#1f4a2c; --hl-p:#5a2337;
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
@@ -125,7 +128,18 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
 .t.fail,.pair .t.fail{color:var(--warn)}
 .t.fixed{text-decoration:underline dotted;text-decoration-color:color-mix(in srgb, var(--tr) 75%, transparent);text-underline-offset:4px}
 .t.warn{text-decoration:underline wavy var(--warn);text-underline-offset:4px}
-.tview .s.hl,.tview .t.hl,.tview .s.pin,.tview .t.pin,.t.now{background:var(--mark);color:var(--mark-ink)}
+/* 형광펜: 원문 문장과 번역 문장에 같이 칠한다 */
+.s[data-hl],.t[data-hl]{-webkit-box-decoration-break:clone;box-decoration-break:clone;border-radius:2px}
+.s[data-hl="y"],.t[data-hl="y"]{background:var(--hl-y)}
+.s[data-hl="g"],.t[data-hl="g"]{background:var(--hl-g)}
+.s[data-hl="p"],.t[data-hl="p"]{background:var(--hl-p)}
+/* 학술 용어: 누르면 쉬운 풀이 */
+.term{text-decoration:underline dotted var(--accent);text-decoration-thickness:1.5px;text-underline-offset:3px;cursor:help;border-radius:2px}
+.term:hover,.term:focus-visible{background:var(--accent-soft)}
+.tview .s.hl,.tview .t.hl,.t.now{background:var(--mark);color:var(--mark-ink)}
+/* 고른 문장은 테두리로만 표시해서 형광펜 색이 그대로 보이게 */
+.tview .s.pin,.tview .t.pin{outline:2px solid var(--accent);outline-offset:2px}
+.doc.tview:not(.playing) .s.read{color:inherit}
 .tview .s:hover{text-decoration:none}
 .tview.strip .cite{text-decoration:none;opacity:1}
 .tag{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:.66rem;letter-spacing:.05em;border:1px solid var(--line);border-radius:4px;padding:0 5px;margin-right:6px;color:var(--muted);vertical-align:1px}
@@ -159,6 +173,40 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
 .pageview::backdrop{background:rgba(10,15,20,.6)}
 .pv-bar{position:sticky;top:0;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--line);font-family:"IBM Plex Mono",monospace;font-size:.8rem}
 .pageview img{display:block;width:100%;height:auto;min-height:200px;background:var(--paper)}
+
+/* 고른 문장에 쓰는 도구: 재생 바 위 한 줄 */
+.selbar{max-width:780px;margin:0 auto 10px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:.85rem}
+.wide .selbar{max-width:1240px}
+.sel-label{color:var(--muted);margin-right:2px}
+.sw{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);cursor:pointer;padding:0}
+.sw[data-c="y"]{background:var(--hl-y)}
+.sw[data-c="g"]{background:var(--hl-g)}
+.sw[data-c="p"]{background:var(--hl-p)}
+.sw[aria-pressed="true"]{outline:2px solid var(--accent);outline-offset:2px}
+.sel-gap{flex:1 1 auto}
+/* 용어 풀이 카드: 휴대폰은 화면 아래, 넓은 화면은 오른쪽 아래 */
+.termcard{position:fixed;z-index:30;left:max(12px, env(safe-area-inset-left, 0px));right:max(12px, env(safe-area-inset-right, 0px));bottom:84px;max-height:min(62vh, 560px);overflow:auto;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:12px;box-shadow:0 14px 40px rgba(20,30,45,.24);padding:14px 16px;display:grid;gap:12px;font-size:.9rem;line-height:1.65}
+@media (min-width:760px){.termcard{left:auto;width:410px;right:max(24px, env(safe-area-inset-right, 0px))}}
+.tc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.tc-en{font-weight:700;font-size:1rem}
+.tc-ko{color:var(--muted);font-size:.86rem}
+.tc-sec{display:grid;gap:3px}
+.tc-sec h4{margin:0;font-size:.74rem;font-weight:600;color:var(--muted)}
+.tc-sec p,.tc-sec ul{margin:0}
+.tc-sec ul{padding-left:18px}
+.tc-sec a{color:var(--accent)}
+.tc-quote{border-left:2px solid var(--line);padding-left:10px;color:var(--muted);font-size:.84rem}
+.tc-note{font-size:.78rem;color:var(--muted)}
+.tc-warn{color:var(--warn);font-size:.84rem}
+/* 형광펜 모아 보기 */
+.hl-list{display:grid;gap:14px;padding:14px 16px 18px}
+.hl-item{display:grid;gap:2px;text-align:left;font:inherit;color:inherit;background:none;border:0;border-left:5px solid var(--hl-y);padding:2px 0 2px 12px;cursor:pointer}
+.hl-item[data-c="g"]{border-left-color:var(--hl-g)}
+.hl-item[data-c="p"]{border-left-color:var(--hl-p)}
+.hl-item .ko{font-size:.95rem;line-height:1.65}
+.hl-item .en{font-size:.82rem;line-height:1.55;color:var(--muted)}
+.hl-empty{color:var(--muted);font-size:.9rem;margin:0}
+#hl-text{margin:0 16px 16px;width:calc(100% - 32px);min-height:120px;font:inherit;font-size:.85rem;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px}
 
 /* 번역 안내와 진행 막대 */
 .tr-cta{display:flex;flex-wrap:wrap;gap:10px 12px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--accent-soft)}
@@ -330,6 +378,8 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
       <span class="tr-msg" id="tr-msg" aria-live="polite"></span>
       <span class="tr-actions">
         <label class="tr-check" id="o-src-wrap"><input type="checkbox" id="o-src" checked> 원문 같이 보기</label>
+        <label class="tr-check" data-tip="학술 용어에 점선 밑줄을 긋습니다. 누르면 쉬운 풀이와 참고 자료가 나옵니다."><input type="checkbox" id="o-terms" checked> 용어 풀이</label>
+        <button class="btn ghost" id="hl-open" hidden>형광펜 <span id="hl-count">0</span></button>
         <button class="btn ghost" id="tr-toggle">멈추기</button>
       </span>
     </div>
@@ -345,7 +395,31 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
   <img id="pv-img" alt="">
 </dialog>
 
+<aside class="termcard" id="termcard" hidden aria-label="용어 풀이">
+  <div class="tc-head">
+    <div><div class="tc-en" id="tc-en"></div><div class="tc-ko" id="tc-ko"></div></div>
+    <button class="btn ghost icon" id="tc-close" aria-label="닫기">×</button>
+  </div>
+  <div id="tc-body" aria-live="polite"></div>
+</aside>
+
+<dialog class="pageview" id="hl-dlg" aria-label="형광펜 친 문장">
+  <div class="pv-bar"><span>형광펜 친 문장</span><span class="tr-actions"><button class="btn ghost" id="hl-copy">모두 복사</button><button class="btn ghost" id="hl-close">닫기</button></span></div>
+  <div class="hl-list" id="hl-list"></div>
+  <textarea id="hl-text" readonly hidden aria-label="복사할 글"></textarea>
+</dialog>
+
 <div class="player" role="region" aria-label="재생">
+  <div class="selbar" id="selbar" hidden role="toolbar" aria-label="고른 문장">
+    <span class="sel-label">형광펜</span>
+    <button class="sw" data-c="y" aria-label="노랑" aria-pressed="false"></button>
+    <button class="sw" data-c="g" aria-label="초록" aria-pressed="false"></button>
+    <button class="sw" data-c="p" aria-label="분홍" aria-pressed="false"></button>
+    <button class="btn ghost" id="sel-clear">지우기</button>
+    <span class="sel-gap"></span>
+    <button class="btn ghost" id="sel-play">여기서부터 읽기</button>
+    <button class="btn ghost icon" id="sel-close" aria-label="문장 고르기 끝내기">×</button>
+  </div>
   <div class="player-in">
     <label class="jump" data-tip="읽기 시작할 장을 고릅니다. 본문 문장을 눌러도 거기서부터 읽습니다."><select id="jump" aria-label="시작 위치"></select></label>
     <button class="btn" id="play" data-tip="고른 위치부터 읽기">▶ 읽기</button>
@@ -922,6 +996,8 @@ const state = {
   // 번역은 원문 문장 글자를 열쇠로 둔다 (설정을 바꿔 문장 번호가 달라져도 그대로 쓴다)
   translations: new Map(), fixed: new Map(), warn: new Map(),
   inflight: new Set(), failed: new Set(), waiters: new Map(),
+  terms: new Map(),      // 학술 용어: 영어 소문자 → {en, ko}
+  hl: new Map(),         // 형광펜: 원문 문장 → "y" | "g" | "p"
   running: false, trGen: 0, trCursor: 0, trStop: "", ctaClosed: false,
 };
 let sampleFn = null, wakeLock = null;
@@ -1060,6 +1136,7 @@ function rebuild(){
   updateModeUi();
   loadVoices();
   if (tv) loadTr();
+  state.hl = loadHl();
   render();
   if (tv) translateAll();
 }
@@ -1069,16 +1146,23 @@ $("o-show").addEventListener("change", () => { stop(); render(); });
 const speakText = s => (state.stripCites ? stripCitations(s.text) : s.text).trim();
 
 // ---- 화면 ----------------------------------------------------------------
+function fillSentence(span, i){
+  span.replaceChildren();
+  for (const p of citeParts(state.sentences[i].text)){
+    if (p.cite){ const c = document.createElement("span"); c.className = "cite"; c.textContent = p.text; span.appendChild(c); }
+    else span.append(...termNodes(p.text, "en"));
+  }
+}
 function sentenceEl(i){
-  const s = state.sentences[i];
   const span = document.createElement("span");
   span.className = "s"; span.dataset.i = i;
-  for (const p of citeParts(s.text)){
-    if (p.cite){ const c = document.createElement("span"); c.className = "cite"; c.textContent = p.text; span.appendChild(c); }
-    else span.appendChild(document.createTextNode(p.text));
-  }
-  // 번역해서 볼 때는 누르면 짝 문장을 표시하고 읽기 시작 위치만 옮긴다
-  span.addEventListener("click", () => { if (trView()){ pick(i); return; } stop(); state.idx = i; play(); });
+  fillSentence(span, i);
+  // 번역해서 볼 때는 누르면 짝 문장을 고르고(형광펜 도구가 뜬다) 읽기 시작 위치만 옮긴다
+  span.addEventListener("click", e => {
+    if (e.target.closest(".term")) return;
+    if (trView()){ pick(i); return; }
+    stop(); state.idx = i; play();
+  });
   return span;
 }
 function koEl(i){
@@ -1160,6 +1244,8 @@ function render(){
     doc.appendChild(p);
   }
   if (tv) state.sentences.forEach((_, i) => showTranslation(i));
+  state.sentences.forEach((s, i) => { if (state.hl.has(s.text)) applyHl(i); });
+  updateSelbar(); closeTerm();
   fillJump();
   mark();
   updateTrUi();
@@ -1174,12 +1260,13 @@ function setHover(i){
   hoverI = i;
   if (i !== null) pairEls(i).forEach(e => e.classList.add("hl"));
 }
-function pick(i){
+function pick(i, keep){
   const k = String(i);
   if (pinI !== null) pairEls(pinI).forEach(e => e.classList.remove("pin"));
-  pinI = pinI === k ? null : k;
+  pinI = pinI === k && !keep ? null : k;
   if (pinI !== null) pairEls(pinI).forEach(e => e.classList.add("pin"));
   if (!state.playing){ state.idx = i; mark(); }
+  updateSelbar();
 }
 $("doc").addEventListener("mouseover", e => {
   if (!trView()) return;
@@ -1187,7 +1274,196 @@ $("doc").addEventListener("mouseover", e => {
   setHover(el ? el.dataset.i ?? el.dataset.t : null);
 });
 $("doc").addEventListener("mouseleave", () => setHover(null));
-$("doc").addEventListener("click", e => { const t = e.target.closest?.(".t"); if (t) pick(+t.dataset.t); });
+$("doc").addEventListener("click", e => {
+  const term = e.target.closest?.(".term");
+  if (term){ const at = term.closest("[data-i], [data-t]"); openTerm(term.dataset.term, at ? +(at.dataset.i ?? at.dataset.t) : -1); return; }
+  const t = e.target.closest?.(".t"); if (t) pick(+t.dataset.t);
+});
+$("doc").addEventListener("keydown", e => {
+  const term = e.target.closest?.(".term");
+  if (term && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); term.click(); }
+});
+
+// ---- 형광펜 ----------------------------------------------------------------
+// 원문 문장 글자를 열쇠로 이 브라우저에 문서마다 남긴다. 번역해서 볼 때 문장을 누르면 도구가 뜬다.
+const HL_NAME = {y: "노랑", g: "초록", p: "분홍"};
+function applyHl(i){
+  const c = state.hl.get(state.sentences[i]?.text);
+  pairEls(i).forEach(e => { if (c) e.dataset.hl = c; else delete e.dataset.hl; });
+}
+function updateSelbar(){
+  const on = pinI !== null && trView();
+  $("selbar").hidden = !on;
+  if (!on) return;
+  const c = state.hl.get(state.sentences[+pinI]?.text) || "";
+  document.querySelectorAll("#selbar .sw").forEach(b => b.setAttribute("aria-pressed", b.dataset.c === c));
+  $("sel-clear").disabled = !c;
+}
+function setHl(c){
+  if (pinI === null) return;
+  const i = +pinI, text = state.sentences[i]?.text; if (!text) return;
+  if (c) state.hl.set(text, c); else state.hl.delete(text);
+  applyHl(i); saveHl(); updateSelbar(); updateTrUi();
+}
+document.querySelectorAll("#selbar .sw").forEach(b => b.addEventListener("click", () => setHl(b.getAttribute("aria-pressed") === "true" ? null : b.dataset.c)));
+$("sel-clear").addEventListener("click", () => setHl(null));
+$("sel-close").addEventListener("click", () => { if (pinI !== null) pick(+pinI); });
+$("sel-play").addEventListener("click", () => { if (pinI === null) return; const i = +pinI; pick(i); stop(); state.idx = i; play(); });
+const hlKey = () => "jjk-hl:" + docKey().slice(LS.length);
+function loadHl(){
+  try { return new Map(Object.entries(JSON.parse(localStorage.getItem(hlKey()) || "{}").hl || {})); } catch { return new Map(); }
+}
+function saveHl(){
+  try {
+    if (state.hl.size) localStorage.setItem(hlKey(), JSON.stringify({at: Date.now(), hl: Object.fromEntries(state.hl)}));
+    else localStorage.removeItem(hlKey());
+  } catch {}
+}
+function openHlList(){
+  const list = $("hl-list"); list.replaceChildren();
+  $("hl-text").hidden = true;
+  const items = state.sentences.map((s, i) => ({s, i, c: state.hl.get(s.text)})).filter(x => x.c);
+  if (!items.length) list.append(make("p", "hl-empty", "아직 형광펜 친 문장이 없어요. 번역 보기에서 문장을 누르고 색을 고르세요."));
+  for (const {s, i, c} of items){
+    const b = make("button", "hl-item"); b.dataset.c = c; b.type = "button";
+    const ko = state.translations.get(s.text);
+    if (ko) b.append(make("span", "ko", ko));
+    b.append(make("span", "en", s.text));
+    b.addEventListener("click", () => {
+      $("hl-dlg").close();
+      pick(i, true);
+      document.querySelector(`#doc [data-t="${i}"]`)?.scrollIntoView({block: "center"}) || document.querySelector(`#doc [data-i="${i}"]`)?.scrollIntoView({block: "center"});
+    });
+    list.append(b);
+  }
+  $("hl-copy").disabled = !items.length;
+  $("hl-dlg").showModal();
+}
+$("hl-open").addEventListener("click", openHlList);
+$("hl-close").addEventListener("click", () => $("hl-dlg").close());
+$("hl-copy").addEventListener("click", () => {
+  const text = state.sentences.filter(s => state.hl.has(s.text))
+    .map(s => [state.translations.get(s.text), s.text].filter(Boolean).join("\n")).join("\n\n");
+  const fallback = () => { const t = $("hl-text"); t.value = text; t.hidden = false; t.focus(); t.select(); };
+  try { navigator.clipboard.writeText(text).then(() => { $("hl-copy").textContent = "복사했어요"; setTimeout(() => { $("hl-copy").textContent = "모두 복사"; }, 1800); }, fallback); } catch { fallback(); }
+});
+
+// ---- 학술 용어 풀이 ----------------------------------------------------------
+// 번역할 때 Claude가 낯선 학술 용어를 함께 골라 준다. 누르면 쉬운 풀이를 받아 오고,
+// 출처는 정해 둔 공인 참고 자료 목록에서만 고르게 해서 확인 링크는 앱이 직접 만든다.
+let termRe = {en: null, ko: null}, termByKo = new Map();
+const escRe = t => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function buildTermRe(){
+  const list = [...state.terms.values()];
+  const en = list.map(t => t.en).sort((a, b) => b.length - a.length).map(escRe);
+  const ko = list.map(t => t.ko).filter(Boolean).sort((a, b) => b.length - a.length).map(escRe);
+  termRe = {en: en.length ? new RegExp(`\\b(?:${en.join("|")})\\b`, "gi") : null, ko: ko.length ? new RegExp(ko.join("|"), "g") : null};
+  termByKo = new Map(list.filter(t => t.ko).map(t => [t.ko, t]));
+}
+function termNodes(text, lang){
+  const re = trView() && $("o-terms").checked ? termRe[lang] : null;
+  if (!re) return [document.createTextNode(text)];
+  const out = []; let last = 0;
+  for (const m of text.matchAll(re)){
+    const t = lang === "en" ? state.terms.get(m[0].toLowerCase()) : termByKo.get(m[0]);
+    if (!t) continue;
+    if (m.index > last) out.push(document.createTextNode(text.slice(last, m.index)));
+    const b = make("span", "term", m[0]);
+    b.tabIndex = 0; b.setAttribute("role", "button"); b.dataset.term = t.en.toLowerCase();
+    b.setAttribute("aria-label", `${m[0]} 풀이 보기`);
+    out.push(b); last = m.index + m[0].length;
+  }
+  if (last < text.length) out.push(document.createTextNode(text.slice(last)));
+  return out;
+}
+function redecorate(){
+  document.querySelectorAll("#doc .s").forEach(el => fillSentence(el, +el.dataset.i));
+  if (trView()) state.sentences.forEach((_, i) => showTranslation(i));
+}
+function addTerms(list, items){
+  let added = false;
+  for (const t of Array.isArray(list) ? list.slice(0, 6) : []){
+    const en = String(t?.en || "").trim(), ko = String(t?.ko || "").trim();
+    const key = en.toLowerCase();
+    if (en.length < 3 || en.length > 60 || state.terms.has(key)) continue;
+    if (!items.some(s => s.text.toLowerCase().includes(key))) continue;
+    const koOk = ko.length >= 2 && items.some(s => (state.translations.get(s.text) || "").includes(ko));
+    state.terms.set(key, {en, ko: koOk ? ko : ""});
+    added = true;
+  }
+  if (added){ buildTermRe(); redecorate(); }
+}
+$("o-terms").addEventListener("change", () => { savePref("terms", $("o-terms").checked); redecorate(); if (!$("o-terms").checked) closeTerm(); });
+
+const gsite = (site, q) => `https://www.google.com/search?q=${encodeURIComponent(`site:${site} "${q}"`)}`;
+const TERM_SOURCES = {
+  apa: {name: "APA Dictionary of Psychology", what: "미국심리학회 심리학 사전", url: q => gsite("dictionary.apa.org", q)},
+  sep: {name: "Stanford Encyclopedia of Philosophy", what: "스탠퍼드대 철학 백과사전", url: q => `https://plato.stanford.edu/search/searcher.py?query=${encodeURIComponent(q)}`},
+  eric: {name: "ERIC Thesaurus", what: "미국 교육부 교육학 자료실 용어집", url: q => gsite("eric.ed.gov", q)},
+  wex: {name: "Wex", what: "코넬대 로스쿨 법률 사전", url: q => gsite("law.cornell.edu/wex", q)},
+  econlib: {name: "Concise Encyclopedia of Economics", what: "Econlib 경제학 백과사전", url: q => gsite("econlib.org", q)},
+  nist: {name: "NIST/SEMATECH e-Handbook of Statistical Methods", what: "미국 국립표준기술연구소 통계 핸드북", url: q => gsite("itl.nist.gov/div898/handbook", q)},
+  britannica: {name: "Encyclopaedia Britannica", what: "브리태니커 백과사전", url: q => `https://www.britannica.com/search?query=${encodeURIComponent(q)}`},
+};
+const TERM_RULES = `당신은 인문사회 분야 영어 논문을 읽는 한국 대학생에게 학술 용어를 풀어 주는 조교입니다.
+규칙:
+- 그 분야 표준 참고 자료에 실린 학술적 정의에 맞게 설명하세요. 모르는 것을 지어내지 마세요.
+- 책 제목, 쪽수, 인용문, 웹 주소를 쓰지 마세요. 출처는 아래 목록의 키로만 고르세요.
+- 확실하지 않거나 이 논문에서만 쓰는 말이면 "sure"를 false로 하고, easy에 그렇다고 밝히세요.
+참고 자료 목록: apa(심리학), sep(철학), eric(교육학), wex(법학), econlib(경제학), nist(통계), britannica(일반 백과)`;
+let termAsk = null;
+function closeTerm(){ $("termcard").hidden = true; termAsk?.abort(); termAsk = null; }
+$("tc-close").addEventListener("click", closeTerm);
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("termcard").hidden) closeTerm(); });
+function termCache(){ try { return JSON.parse(localStorage.getItem("jjk-terms") || "{}"); } catch { return {}; } }
+async function openTerm(key, i){
+  const t = state.terms.get(key); if (!t) return;
+  const sentence = state.sentences[i]?.text || "";
+  $("tc-en").textContent = t.en;
+  $("tc-ko").textContent = t.ko || "";
+  $("termcard").style.bottom = (document.querySelector(".player").offsetHeight + 10) + "px";
+  $("termcard").hidden = false;
+  const body = $("tc-body");
+  const showInfo = info => {
+    body.replaceChildren();
+    const sec = (title, ...nodes) => { const d = make("div", "tc-sec"); d.append(make("h4", "", title), ...nodes); body.append(d); };
+    if (info.sure === false) body.append(make("p", "tc-warn", "Claude가 이 용어의 정의를 확신하지 못했어요. 아래 참고 자료에서 꼭 확인해 주세요."));
+    sec("쉬운 풀이", make("p", "", info.easy || ""));
+    if (info.inPaper) sec("이 논문에서는", make("p", "", info.inPaper));
+    if (sentence) sec("이 논문의 문장", make("p", "tc-quote", sentence));
+    const keys = [...new Set([...(Array.isArray(info.sources) ? info.sources : []), "britannica"])].filter(k => TERM_SOURCES[k]).slice(0, 3);
+    const ul = make("ul");
+    for (const k of keys){
+      const li = make("li"), a = make("a", "", TERM_SOURCES[k].name);
+      a.href = TERM_SOURCES[k].url(t.en); a.target = "_blank"; a.rel = "noopener";
+      li.append(a, document.createTextNode(` (${TERM_SOURCES[k].what})`)); ul.append(li);
+    }
+    sec("출처 확인", ul, make("p", "tc-note", "풀이는 Claude가 위 참고 자료의 표준 정의를 바탕으로 쓴 것이고, 자료의 글을 그대로 옮긴 것은 아니에요. 정확한 정의는 링크에서 확인하세요."));
+  };
+  const cached = termCache()[key];
+  if (cached){ showInfo(cached); return; }
+  if (!sampleFn){ body.replaceChildren(make("p", "tc-warn", "용어 풀이는 Claude에 로그인해야 쓸 수 있어요.")); return; }
+  body.replaceChildren(make("p", "tc-note", "풀이를 받아 오는 중…"));
+  termAsk?.abort(); termAsk = new AbortController();
+  const signal = termAsk.signal;
+  const prompt = TERM_RULES + `\n\n논문 제목: ${docTitle()}\n용어: ${t.en}` + (t.ko ? ` (번역에서 쓴 말: ${t.ko})` : "") +
+    `\n이 용어가 나온 문장: ${sentence}\n\n` +
+    `JSON으로만 답하세요. 형식: {"easy": "전공자가 아니어도 이해할 쉬운 한국어 풀이 2~3문장", "inPaper": "이 문장에서 이 용어가 가리키는 것 1문장", "sources": ["이 용어를 표제어나 주요 항목으로 다루는 참고 자료 키 1~2개"], "sure": true}`;
+  try {
+    const info = await sampleFn.json(prompt, {modelTier: "default", signal, cache: {gcTime: 86400000}});
+    if (signal.aborted || !info || typeof info.easy !== "string") throw new Error("bad");
+    const clean = {easy: info.easy.trim(), inPaper: typeof info.inPaper === "string" ? info.inPaper.trim() : "", sources: Array.isArray(info.sources) ? info.sources.filter(k => TERM_SOURCES[k]) : [], sure: info.sure !== false};
+    try {
+      const all = termCache(); all[key] = clean;
+      const ks = Object.keys(all); if (ks.length > 300) delete all[ks[0]];
+      localStorage.setItem("jjk-terms", JSON.stringify(all));
+    } catch {}
+    if ($("tc-en").textContent === t.en) showInfo(clean);
+  } catch (e){
+    if (signal.aborted) return;
+    body.replaceChildren(make("p", "tc-warn", e?.code === "rate_limited" ? "요청이 많아 잠시 멈췄어요. 조금 뒤에 다시 눌러 주세요." : "풀이를 받아 오지 못했어요. 다시 눌러 주세요."));
+  }
+}
 
 // 시작 위치 목록: 처음 + 소제목마다
 function fillJump(){
@@ -1219,6 +1495,7 @@ $("jump").addEventListener("change", e => {
 });
 
 function mark(){
+  $("doc").classList.toggle("playing", state.playing);
   document.querySelectorAll("#doc .s").forEach(el => {
     const i = +el.dataset.i;
     el.classList.toggle("start", !state.playing && state.idx > 0 && i === state.idx);
@@ -1268,7 +1545,7 @@ function updateModeUi(){
   $("tip-mode").dataset.tip = off ? "번역: " + offReason()
     : !sampleFn ? "번역 기능을 확인하는 중입니다."
     : !isEn ? "지금 문서는 한국어라 번역하지 않습니다."
-    : "본문 문장마다 한국어 번역을 짝지어 보여 줍니다. 각주와 그림·표 설명도 번역합니다.\n읽기를 누르면 원문과 번역을 번갈아 읽습니다. 번역에는 Claude 사용량이 쓰입니다.";
+    : "본문 문장마다 한국어 번역을 짝지어 보여 줍니다. 각주와 그림·표 설명도 번역합니다.\n문장을 누르면 형광펜을 칠할 수 있고, 점선 밑줄 친 용어를 누르면 쉬운 풀이가 나옵니다.\n읽기를 누르면 원문과 번역을 번갈아 읽습니다. 번역에는 Claude 사용량이 쓰입니다.";
   updateTrUi();
 }
 
@@ -1300,10 +1577,16 @@ function askTranslate(items, ctx){
   const prompt = TR_RULES + `\n\n논문 제목: ${docTitle()}\n` +
     (ctx.length ? `바로 앞 문장(참고만 하고 옮기지 마세요): ${ctx.join(" ")}\n` : "") +
     `\n옮길 문장:\n${JSON.stringify(items.map((s, k) => ({n: k + 1, type: type(s), text: s.text})))}\n\n` +
-    `JSON 객체로만 답하세요. 키는 번호, 값은 번역입니다. 예: {"1": "첫 문장 번역", "2": "둘째 문장 번역"}`;
-  return sampleFn.json(prompt, {modelTier: "default", cache: {gcTime: 86400000}}).then(out => items.map((_, k) => {
-    const v = Array.isArray(out) ? out[k] : out?.[k + 1];
-    return typeof v === "string" && v.trim() ? v.trim() : null;
+    `JSON 객체로만 답하세요. 키는 번호, 값은 번역입니다. ` +
+    `"terms"에는 이 문장들에 나온 학술·전문 용어(통계 용어 포함) 가운데 전공자가 아니면 낯설 만한 것을 최대 4개 골라, ` +
+    `원문에 쓰인 그대로의 영어 표기(en)와 번역에서 실제로 쓴 한국어 표기(ko)를 넣으세요. 흔한 낱말과 사람·기관 이름은 빼고, 없으면 []로 두세요.\n` +
+    `예: {"1": "첫 문장 번역", "2": "둘째 문장 번역", "terms": [{"en": "implicit theories", "ko": "암묵적 이론"}]}`;
+  return sampleFn.json(prompt, {modelTier: "default", cache: {gcTime: 86400000}}).then(out => ({
+    tr: items.map((_, k) => {
+      const v = Array.isArray(out) ? out[k] : out?.[k + 1];
+      return typeof v === "string" && v.trim() ? v.trim() : null;
+    }),
+    terms: Array.isArray(out?.terms) ? out.terms : [],
   }));
 }
 // 원문의 숫자가 번역에 다 있는지 (1,234와 1234는 같은 수로 본다)
@@ -1352,13 +1635,14 @@ async function runChunk(idxs){
   idxs.forEach(showTranslation);
   const ctx = state.sentences.slice(Math.max(0, idxs[0] - 2), idxs[0]).map(s => s.text);
   try {
-    const out = await askTranslate(items, ctx);
+    const {tr: out, terms} = await askTranslate(items, ctx);
     const miss = items.filter((_, k) => !out[k]);
     if (miss.length){
-      const again = await askTranslate(miss, ctx);
+      const again = (await askTranslate(miss, ctx)).tr;
       miss.forEach((s, k) => { out[items.indexOf(s)] = again[k]; });
     }
     items.forEach((s, k) => { if (out[k]) state.translations.set(s.text, out[k]); else state.failed.add(s.text); });
+    addTerms(terms, items);
     const done = items.filter(s => state.translations.has(s.text));
     if (done.length) await reviewChunk(done);
   } catch (e){
@@ -1406,6 +1690,7 @@ function waitTr(text, ms){
 function resetTr(){
   state.trGen++; state.running = false; state.trStop = ""; state.trCursor = 0;
   state.translations.clear(); state.fixed.clear(); state.warn.clear(); state.failed.clear(); state.inflight.clear();
+  state.terms.clear(); buildTermRe();
   state.waiters.forEach(l => l.forEach(r => r())); state.waiters.clear();
   figUrls.forEach(u => URL.revokeObjectURL(u)); figUrls = [];
 }
@@ -1415,7 +1700,8 @@ function showTranslation(i){
   const el = document.querySelector(`#doc [data-t="${i}"]`); if (!el) return;
   const t = state.translations.get(s.text);
   const failed = !t && state.failed.has(s.text);
-  el.textContent = t || (failed ? "번역하지 못했어요" : state.inflight.has(s.text) ? "번역 중…" : "번역 대기 중…");
+  if (t) el.replaceChildren(...termNodes(t, "ko"));
+  else el.textContent = failed ? "번역하지 못했어요" : state.inflight.has(s.text) ? "번역 중…" : "번역 대기 중…";
   el.classList.toggle("wait", !t && !failed);
   el.classList.toggle("fail", failed);
   const why = t && state.fixed.get(s.text), warn = t && state.warn.get(s.text);
@@ -1455,6 +1741,8 @@ function updateTrUi(){
   $("tr-toggle").hidden = done === n;
   $("tr-toggle").textContent = state.running ? "멈추기" : left ? "이어서 번역" : "실패한 문장 다시 번역";
   $("o-src-wrap").hidden = state.view !== "side";
+  const nHl = S.filter(s => state.hl.has(s.text)).length;
+  $("hl-open").hidden = !nHl; $("hl-count").textContent = nHl;
   const legend = [fixed && `점선 밑줄 ${fixed}문장: 검수에서 고친 번역`, warn && `물결 밑줄 ${warn}문장: 원문의 숫자가 번역에 없어요. 원문과 대조해 보세요.`].filter(Boolean);
   $("tr-legend").hidden = !legend.length;
   $("tr-legend").textContent = legend.join(" · ");
@@ -1490,7 +1778,7 @@ function saveTr(){
         if (t) tr[s.text] = [t, state.fixed.get(s.text) || "", state.warn.get(s.text) || ""];
       }
       if (!Object.keys(tr).length) return;
-      localStorage.setItem(docKey(), JSON.stringify({at: Date.now(), tr}));
+      localStorage.setItem(docKey(), JSON.stringify({at: Date.now(), tr, terms: [...state.terms.values()]}));
       const keys = Object.keys(localStorage).filter(k => k.startsWith(LS));
       if (keys.length > 8){
         keys.map(k => { try { return [k, JSON.parse(localStorage.getItem(k)).at || 0]; } catch { return [k, 0]; } })
@@ -1508,6 +1796,8 @@ function loadTr(){
       if (why) state.fixed.set(en, why);
       if (warn) state.warn.set(en, warn);
     }
+    for (const t of Array.isArray(d?.terms) ? d.terms : []) if (t?.en && !state.terms.has(t.en.toLowerCase())) state.terms.set(t.en.toLowerCase(), {en: t.en, ko: t.ko || ""});
+    buildTermRe();
   } catch {}
 }
 
@@ -1737,6 +2027,7 @@ if (!synth){
   window.addEventListener("pagehide", () => synth.cancel());
 }
 if (loadPref("src") === false) $("o-src").checked = false;
+if (loadPref("terms") === false) $("o-terms").checked = false;
 updateModeUi();
 $("ex-en").click();
 if (claudeState === "pending"){
