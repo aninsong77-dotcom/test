@@ -207,6 +207,28 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
 .hr-mark[data-c="p"]{background:var(--hl-p)}
 .hr-mark:hover,.hr-mark:focus-visible{transform:scale(1.25)}
 @media (min-width:1300px){.hlrail{right:max(10px, env(safe-area-inset-right, 0px))}}
+/* 그림·표 해석 */
+.fig-tools{display:flex;gap:8px}
+.fig-explain{display:grid;gap:10px;padding:14px 16px;border:1px solid var(--line);border-radius:10px;background:var(--bg);font-size:.9rem;line-height:1.7}
+.fig-explain ul{margin:0;padding-left:18px}
+.num-unsure{text-decoration:underline wavy var(--warn);text-underline-offset:3px}
+/* 단어장 */
+.vc-count{color:var(--muted);font-size:.8rem;margin-left:4px}
+.vc-tools{display:grid;gap:10px;padding:12px 16px 0}
+.vc-find,.vc-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.vc-row .tr-actions{margin-left:auto}
+.vc-tools input[type="text"],.vc-tools input[type="search"]{flex:1 1 180px;min-width:0;font:inherit;font-size:.9rem;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:6px 10px}
+.vc-list{display:grid;gap:10px;padding:12px 16px 18px}
+.vc-item{display:grid;gap:4px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.vc-item.done{opacity:.6}
+.vc-head{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;justify-content:space-between}
+.vc-acts{display:flex;gap:6px}
+.vc-acts .btn{padding:3px 9px;font-size:.78rem}
+.vc-easy{margin:0;font-size:.9rem;line-height:1.6}
+.vc-ex{margin:0;font-size:.84rem;color:var(--muted);line-height:1.6}
+.vc-src{margin:0;font-size:.74rem;color:var(--muted)}
+.linkbtn{font:inherit;border:0;background:none;color:var(--accent);text-decoration:underline;cursor:pointer;padding:0}
+#tc-save{justify-self:start}
 /* 형광펜 모아 보기 */
 .hl-tools{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;padding:12px 16px 0}
 .tabs{display:inline-flex;border:1px solid var(--line);border-radius:8px;padding:2px;background:var(--bg)}
@@ -327,6 +349,7 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
         <label class="opt" for="file" id="file-btn" tabindex="0">내 파일 열기…</label>
         <button class="opt" id="paste-open">글 붙여넣기…</button>
         <button class="opt" id="hl-open-menu">형광펜 모음…</button>
+        <button class="opt" id="vocab-open">내 단어장…</button>
         <button class="opt" id="ex-en">예시: 영어 논문 (PDF)</button>
         <button class="opt" id="ex-ko">예시: 한국어 논문 (TXT)</button>
       </div>
@@ -439,6 +462,23 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
   <p class="hl-note" id="hl-note" aria-live="polite"></p>
   <div class="hl-list" id="hl-list"></div>
   <textarea id="hl-text" readonly hidden aria-label="복사할 글"></textarea>
+</dialog>
+
+<dialog class="pageview" id="vocab-dlg" aria-label="내 단어장">
+  <div class="pv-bar"><span>내 단어장 <span class="vc-count" id="vc-count"></span></span><button class="btn ghost" id="vocab-close">닫기</button></div>
+  <div class="vc-tools">
+    <form class="vc-find" id="vc-find">
+      <input id="vc-word" type="text" placeholder="새 단어 찾기 (예: self-efficacy)" aria-label="풀이를 볼 단어" autocomplete="off">
+      <button class="btn" type="submit">풀이 보기</button>
+    </form>
+    <div class="vc-row">
+      <input id="vc-q" type="search" placeholder="단어장에서 찾기" aria-label="단어장에서 찾기" autocomplete="off">
+      <label class="tr-check"><input type="checkbox" id="vc-hide"> 외운 단어 숨기기</label>
+      <span class="tr-actions"><button class="btn ghost" id="vc-copy">모두 복사</button><button class="btn" id="vc-save" hidden>파일로 저장</button></span>
+    </div>
+    <p class="hl-note" id="vc-note" aria-live="polite"></p>
+  </div>
+  <div class="vc-list" id="vc-list"></div>
 </dialog>
 
 <div class="player" role="region" aria-label="재생">
@@ -682,10 +722,10 @@ function findFigures(lines){
     const first = table ? down() : up(), second = table ? up() : down();
     const r = ok(first) ? first : ok(second) ? second : null;
     if (!r) continue;
-    l.fig = {page: l.page, x0: x0 - 4, x1: x1 + 4, y0: r.y0, y1: r.y1};
+    l.fig = {page: l.page, x0: x0 - 4, x1: x1 + 4, y0: r.y0, y1: r.y1, text: []};
     for (const p of page){
       if (cap.includes(p) || !["body", "heading", "small"].includes(p.kind)) continue;
-      if (p.y > r.y0 && p.y < r.y1 && inCols(p)){ p.kind = "figure"; p.reason = "그림·표 안 글자"; }
+      if (p.y > r.y0 && p.y < r.y1 && inCols(p)){ p.kind = "figure"; p.reason = "그림·표 안 글자"; l.fig.text.push(p.text); }
     }
   }
 }
@@ -1239,6 +1279,17 @@ function figureEl(b, side){
     fig.appendChild(box);
   }
   fig.appendChild(blockEl(b, side, true, "cap"));
+  // 그림·표 해석: 잘라 낸 그림, PDF에 들어 있는 표 안 글자, 캡션, 본문에서 이 그림을 말한 문장을 함께 보낸다
+  const isTable = /^[<\[(]?\s*(?:table|tab\.|표)/i.test(b.text);
+  const tools = make("div", "fig-tools");
+  const ask = make("button", "btn ghost", isTable ? "이 표 해석하기" : "이 그림 해석하기");
+  ask.type = "button";
+  const panel = make("div", "fig-explain"); panel.hidden = true; panel.setAttribute("aria-live", "polite");
+  ask.addEventListener("click", () => explainFig(b, fig.querySelector(".fig-img"), panel, ask, isTable));
+  tools.append(ask);
+  fig.append(tools, panel);
+  const cached = figCache()[figKey(b)];
+  if (cached){ showFigInfo(panel, cached, b); ask.textContent = isTable ? "표 해석 다시 받기" : "그림 해석 다시 받기"; }
   return fig;
 }
 function render(){
@@ -1358,6 +1409,7 @@ function saveHl(){
     localStorage.setItem(hlKey(), JSON.stringify({at: Date.now(), title: docTitle(), file: state.fileName || "", hl: Object.fromEntries(state.hl), ko, pos}));
   } catch {}
 }
+const canSave = () => EDITION === "web" || !!downloadsNs;
 // 형광펜 모음: 이 논문, 또는 이 브라우저에 남은 모든 논문
 let hlTab = "doc", downloadsNs = null;
 const HL_LABEL = {y: "노랑", g: "초록", p: "분홍"};
@@ -1407,7 +1459,7 @@ function renderHlList(){
     list.append(box);
   }
   $("hl-copy").disabled = $("hl-save").disabled = !n;
-  $("hl-save").hidden = !(EDITION === "web" || downloadsNs);
+  $("hl-save").hidden = !canSave();
 }
 function openHlList(){ renderHlList(); $("hl-dlg").showModal(); }
 function hlText(){
@@ -1438,27 +1490,30 @@ $("hl-copy").addEventListener("click", () => {
   const fallback = () => { const t = $("hl-text"); t.value = text; t.hidden = false; t.focus(); t.select(); $("hl-note").textContent = "자동 복사가 막혀 있어요. 아래 글을 길게 눌러 복사해 주세요."; };
   try { navigator.clipboard.writeText(text).then(() => { $("hl-note").textContent = "복사했어요."; }, fallback); } catch { fallback(); }
 });
-$("hl-save").addEventListener("click", async () => {
-  const text = hlText();
+$("hl-save").addEventListener("click", () => {
   const base = hlTab === "doc" ? (docTitle() || "논문").replace(/[\\/:*?"<>|]+/g, " ").slice(0, 60).trim() : "모든 논문";
-  const name = `형광펜 - ${base}.txt`;
+  saveFile(`형광펜 - ${base}.txt`, hlText(), $("hl-note"));
+});
+// 파일 저장: 웹 버전은 바로 내려받고, claude.ai 버전은 확인 창을 거친다
+async function saveFile(name, text, note){
   if (EDITION === "web"){
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([text], {type: "text/plain;charset=utf-8"}));
+    a.href = URL.createObjectURL(new Blob([text], {type: name.endsWith(".csv") ? "text/csv;charset=utf-8" : "text/plain;charset=utf-8"}));
     a.download = name; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-    $("hl-note").textContent = "파일로 저장했어요.";
+    note.textContent = "파일로 저장했어요.";
     return;
   }
+  if (!downloadsNs){ note.textContent = "이 화면에서는 파일로 저장할 수 없어요. ‘모두 복사’로 옮겨 주세요."; return; }
   try {
     await downloadsNs.save({filename: name, data: text});
-    $("hl-note").textContent = "파일로 저장했어요.";
+    note.textContent = "파일로 저장했어요.";
   } catch (e){
-    $("hl-note").textContent = e?.code === "declined" ? "저장을 취소했어요."
+    note.textContent = e?.code === "declined" ? "저장을 취소했어요."
       : e?.code === "rate_limited" ? "저장 창이 이미 열려 있어요. 그 창을 먼저 닫아 주세요."
       : "이 화면에서는 파일로 저장할 수 없어요. ‘모두 복사’로 옮겨 주세요.";
   }
-});
+}
 
 // 형광펜 위치 막대
 let railQueued = false;
@@ -1560,28 +1615,52 @@ const TERM_SOURCES = {
 const TERM_RULES = `당신은 인문사회 분야 영어 논문을 읽는 한국 대학생에게 학술 용어를 풀어 주는 조교입니다.
 규칙:
 - 그 분야 표준 참고 자료에 실린 학술적 정의에 맞게 설명하세요. 모르는 것을 지어내지 마세요.
+- 쉬운 풀이에는 다른 전문 용어를 쓰지 말고, 쓸 수밖에 없으면 바로 풀어 쓰세요. 막연한 말 대신 구체적으로 쓰세요.
+- 예시는 일상이나 학교에서 볼 법한 구체적인 장면으로 드세요.
+- 한국 학계 번역어는 실제로 널리 쓰이는 것만 적고, 확실하지 않으면 빈 배열로 두세요.
 - 책 제목, 쪽수, 인용문, 웹 주소를 쓰지 마세요. 출처는 아래 목록의 키로만 고르세요.
 - 확실하지 않거나 이 논문에서만 쓰는 말이면 "sure"를 false로 하고, easy에 그렇다고 밝히세요.
 참고 자료 목록: apa(심리학), sep(철학), eric(교육학), wex(법학), econlib(경제학), nist(통계), britannica(일반 백과)`;
-let termAsk = null;
-function closeTerm(){ $("termcard").hidden = true; termAsk?.abort(); termAsk = null; }
+let termAsk = null, curTerm = null;
+function closeTerm(){ $("termcard").hidden = true; termAsk?.abort(); termAsk = null; curTerm = null; }
 $("tc-close").addEventListener("click", closeTerm);
 document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("termcard").hidden) closeTerm(); });
-function termCache(){ try { return JSON.parse(localStorage.getItem("jjk-terms") || "{}"); } catch { return {}; } }
-async function openTerm(key, i){
+const TERM_CACHE = "jjk-terms2";
+function termCache(){ try { return JSON.parse(localStorage.getItem(TERM_CACHE) || "{}"); } catch { return {}; } }
+function openTerm(key, i){
   const t = state.terms.get(key); if (!t) return;
-  const sentence = state.sentences[i]?.text || "";
+  showTerm(t, state.sentences[i]?.text || "");
+}
+// 단어장에서 직접 찾은 낱말: 지금 논문에 나온 문장이 있으면 그 문장을 문맥으로 쓴다
+function lookupWord(word){
+  const w = word.trim(); if (!w) return;
+  const t = state.terms.get(w.toLowerCase()) || {en: w, ko: ""};
+  const s = state.sentences.find(s => s.text.toLowerCase().includes(w.toLowerCase()));
+  showTerm(t, s?.text || "");
+}
+async function showTerm(t, sentence){
+  const key = t.en.toLowerCase();
+  curTerm = {t, sentence, info: null};
   $("tc-en").textContent = t.en;
   $("tc-ko").textContent = t.ko || "";
   $("termcard").style.bottom = (document.querySelector(".player").offsetHeight + 10) + "px";
   $("termcard").hidden = false;
   const body = $("tc-body");
   const showInfo = info => {
+    curTerm.info = info;
     body.replaceChildren();
     const sec = (title, ...nodes) => { const d = make("div", "tc-sec"); d.append(make("h4", "", title), ...nodes); body.append(d); };
     if (info.sure === false) body.append(make("p", "tc-warn", "Claude가 이 용어의 정의를 확신하지 못했어요. 아래 참고 자료에서 꼭 확인해 주세요."));
     sec("쉬운 풀이", make("p", "", info.easy || ""));
+    if (info.example) sec("예를 들면", make("p", "", info.example));
     if (info.inPaper) sec("이 논문에서는", make("p", "", info.inPaper));
+    if (info.confusable) sec("헷갈리기 쉬운 개념", make("p", "", info.confusable));
+    if (info.koTerms?.length){
+      const p = make("p", "", info.koTerms.join(", "));
+      const nodes = [p];
+      if (t.ko && !info.koTerms.some(k => k.replace(/\s/g, "") === t.ko.replace(/\s/g, ""))) nodes.push(make("p", "tc-note", `이 번역에서는 ‘${t.ko}’로 옮겼어요. 논문을 인용하거나 다른 자료를 찾을 때는 위 번역어도 함께 찾아보세요.`));
+      sec("한국 학계에서 쓰는 번역어", ...nodes);
+    }
     if (sentence) sec("이 논문의 문장", make("p", "tc-quote", sentence));
     const keys = [...new Set([...(Array.isArray(info.sources) ? info.sources : []), "britannica"])].filter(k => TERM_SOURCES[k]).slice(0, 3);
     const ul = make("ul");
@@ -1591,31 +1670,135 @@ async function openTerm(key, i){
       li.append(a, document.createTextNode(` (${TERM_SOURCES[k].what})`)); ul.append(li);
     }
     sec("출처 확인", ul, make("p", "tc-note", "풀이는 Claude가 위 참고 자료의 표준 정의를 바탕으로 쓴 것이고, 자료의 글을 그대로 옮긴 것은 아니에요. 정확한 정의는 링크에서 확인하세요."));
+    const save = make("button", "btn", "");
+    save.type = "button"; save.id = "tc-save";
+    const sync = () => { const has = inVocab(t.en); save.textContent = has ? "단어장에서 빼기" : "단어장에 넣기"; save.classList.toggle("ghost", has); };
+    save.addEventListener("click", () => { inVocab(t.en) ? removeVocab(t.en) : addVocab(curTerm); sync(); });
+    sync();
+    body.append(save);
   };
   const cached = termCache()[key];
   if (cached){ showInfo(cached); return; }
   if (!sampleFn){ body.replaceChildren(make("p", "tc-warn", "용어 풀이는 Claude에 로그인해야 쓸 수 있어요.")); return; }
-  body.replaceChildren(make("p", "tc-note", "풀이를 받아 오는 중…"));
+  body.replaceChildren(make("p", "tc-note", "풀이를 받아 오는 중… 10~30초쯤 걸려요."));
   termAsk?.abort(); termAsk = new AbortController();
   const signal = termAsk.signal;
   const prompt = TERM_RULES + `\n\n논문 제목: ${docTitle()}\n용어: ${t.en}` + (t.ko ? ` (번역에서 쓴 말: ${t.ko})` : "") +
-    `\n이 용어가 나온 문장: ${sentence}\n\n` +
-    `JSON으로만 답하세요. 형식: {"easy": "전공자가 아니어도 이해할 쉬운 한국어 풀이 2~3문장", "inPaper": "이 문장에서 이 용어가 가리키는 것 1문장", "sources": ["이 용어를 표제어나 주요 항목으로 다루는 참고 자료 키 1~2개"], "sure": true}`;
+    (sentence ? `\n이 용어가 나온 문장: ${sentence}` : "\n(이 논문에서 이 용어가 나온 문장을 찾지 못했어요. inPaper는 빈 문자열로 두세요.)") + `\n\n` +
+    `JSON으로만 답하세요. 형식: {"easy": "전공자가 아니어도 이해할 쉬운 한국어 풀이 2~3문장", ` +
+    `"example": "구체적인 예 1~2문장", "inPaper": "이 문장에서 이 용어가 가리키는 것 1문장", ` +
+    `"confusable": "헷갈리기 쉬운 비슷한 개념과의 차이 1문장, 없으면 빈 문자열", ` +
+    `"koTerms": ["한국 학계에서 쓰는 번역어, 가장 널리 쓰는 것부터 1~3개"], ` +
+    `"sources": ["이 용어를 표제어나 주요 항목으로 다루는 참고 자료 키 1~2개"], "sure": true}`;
   try {
     const info = await sampleFn.json(prompt, {modelTier: "default", signal, cache: {gcTime: 86400000}});
     if (signal.aborted || !info || typeof info.easy !== "string") throw new Error("bad");
-    const clean = {easy: info.easy.trim(), inPaper: typeof info.inPaper === "string" ? info.inPaper.trim() : "", sources: Array.isArray(info.sources) ? info.sources.filter(k => TERM_SOURCES[k]) : [], sure: info.sure !== false};
+    const str = v => typeof v === "string" ? v.trim() : "";
+    const clean = {
+      easy: info.easy.trim(), example: str(info.example), inPaper: str(info.inPaper), confusable: str(info.confusable),
+      koTerms: Array.isArray(info.koTerms) ? info.koTerms.filter(k => typeof k === "string" && k.trim()).map(k => k.trim()).slice(0, 3) : [],
+      sources: Array.isArray(info.sources) ? info.sources.filter(k => TERM_SOURCES[k]) : [], sure: info.sure !== false,
+    };
     try {
       const all = termCache(); all[key] = clean;
       const ks = Object.keys(all); if (ks.length > 300) delete all[ks[0]];
-      localStorage.setItem("jjk-terms", JSON.stringify(all));
+      localStorage.setItem(TERM_CACHE, JSON.stringify(all));
     } catch {}
-    if ($("tc-en").textContent === t.en) showInfo(clean);
+    if (curTerm?.t === t) showInfo(clean);
   } catch (e){
     if (signal.aborted) return;
     body.replaceChildren(make("p", "tc-warn", e?.code === "rate_limited" ? "요청이 많아 잠시 멈췄어요. 조금 뒤에 다시 눌러 주세요." : "풀이를 받아 오지 못했어요. 다시 눌러 주세요."));
   }
 }
+
+// ---- 단어장 ----------------------------------------------------------------
+// 용어 카드에서 넣은 낱말을 논문과 상관없이 이 브라우저에 모아 둔다.
+const VOCAB = "jjk-vocab";
+function vocab(){ try { return JSON.parse(localStorage.getItem(VOCAB) || "[]"); } catch { return []; } }
+function saveVocab(list){ try { localStorage.setItem(VOCAB, JSON.stringify(list)); } catch {} }
+const inVocab = en => vocab().some(v => v.en.toLowerCase() === en.toLowerCase());
+let vocabUndo = null;
+function addVocab(cur){
+  if (!cur) return;
+  const list = vocab().filter(v => v.en.toLowerCase() !== cur.t.en.toLowerCase());
+  const info = cur.info || {};
+  list.unshift({en: cur.t.en, ko: cur.t.ko || info.koTerms?.[0] || "", koTerms: info.koTerms || [], easy: info.easy || "", example: info.example || "",
+    sentence: cur.sentence || "", title: docTitle() || state.fileName || "", at: Date.now(), done: false});
+  saveVocab(list);
+}
+function removeVocab(en){
+  const list = vocab();
+  const k = list.findIndex(v => v.en.toLowerCase() === en.toLowerCase());
+  if (k < 0) return;
+  vocabUndo = {item: list[k], at: k};
+  list.splice(k, 1); saveVocab(list);
+}
+function renderVocab(){
+  const q = $("vc-q").value.trim().toLowerCase(), hideDone = $("vc-hide").checked;
+  const all = vocab();
+  const list = all.filter(v => !(hideDone && v.done) && (!q || [v.en, v.ko, v.easy, ...(v.koTerms || [])].join(" ").toLowerCase().includes(q)));
+  $("vc-count").textContent = `${all.length}개` + (all.some(v => v.done) ? ` · 외운 단어 ${all.filter(v => v.done).length}개` : "");
+  const box = $("vc-list"); box.replaceChildren();
+  $("vc-copy").disabled = $("vc-save").disabled = !all.length;
+  if (!list.length){
+    box.append(make("p", "hl-empty", all.length ? "찾는 단어가 없어요." : "단어장이 비어 있어요. 점선 밑줄 친 용어를 누르고 ‘단어장에 넣기’를 누르거나, 위 칸에 단어를 넣고 ‘풀이 보기’를 누르세요."));
+    return;
+  }
+  for (const v of list){
+    const item = make("article", "vc-item" + (v.done ? " done" : ""));
+    const head = make("div", "vc-head");
+    const name = make("div", "");
+    name.append(make("b", "", v.en), document.createTextNode(v.ko ? ` · ${v.ko}` : ""));
+    const acts = make("div", "vc-acts");
+    const done = make("button", "btn ghost", v.done ? "외웠어요 ✓" : "외웠어요");
+    done.type = "button"; done.setAttribute("aria-pressed", !!v.done);
+    done.addEventListener("click", () => { const l = vocab(); const it = l.find(x => x.en === v.en); if (it){ it.done = !it.done; saveVocab(l); renderVocab(); } });
+    const look = make("button", "btn ghost", "풀이");
+    look.type = "button";
+    look.addEventListener("click", () => { $("vocab-dlg").close(); lookupWord(v.en); });
+    const del = make("button", "btn ghost", "빼기");
+    del.type = "button";
+    del.addEventListener("click", () => { removeVocab(v.en); renderVocab(); $("vc-note").replaceChildren(document.createTextNode(`‘${v.en}’을(를) 뺐어요. `), undoBtn()); });
+    acts.append(done, look, del);
+    head.append(name, acts);
+    item.append(head);
+    if (v.easy) item.append(make("p", "vc-easy", v.easy));
+    if (v.example) item.append(make("p", "vc-ex", "예: " + v.example));
+    if (v.title) item.append(make("p", "vc-src", v.title));
+    box.append(item);
+  }
+}
+function undoBtn(){
+  const b = make("button", "linkbtn", "되돌리기"); b.type = "button";
+  b.addEventListener("click", () => {
+    if (!vocabUndo) return;
+    const l = vocab(); l.splice(Math.min(vocabUndo.at, l.length), 0, vocabUndo.item); saveVocab(l);
+    vocabUndo = null; $("vc-note").textContent = ""; renderVocab();
+  });
+  return b;
+}
+function openVocab(){ $("vc-note").textContent = ""; $("vc-save").hidden = !canSave(); renderVocab(); $("vocab-dlg").showModal(); }
+$("vocab-open").addEventListener("click", openVocab);
+$("vocab-close").addEventListener("click", () => $("vocab-dlg").close());
+$("vc-q").addEventListener("input", renderVocab);
+$("vc-hide").addEventListener("change", renderVocab);
+$("vc-find").addEventListener("submit", e => {
+  e.preventDefault();
+  const w = $("vc-word").value.trim(); if (!w) return;
+  $("vocab-dlg").close(); $("vc-word").value = ""; lookupWord(w);
+});
+const csvCell = t => `"${String(t || "").replace(/"/g, '""')}"`;
+function vocabCsv(){
+  const rows = [["영어", "한국어", "학계 번역어", "쉬운 풀이", "예", "논문", "논문의 문장", "외움"]];
+  for (const v of vocab()) rows.push([v.en, v.ko, (v.koTerms || []).join(", "), v.easy, v.example, v.title, v.sentence, v.done ? "O" : ""]);
+  return "﻿" + rows.map(r => r.map(csvCell).join(",")).join("\r\n") + "\r\n";
+}
+$("vc-copy").addEventListener("click", () => {
+  const text = vocab().map(v => `${v.en}${v.ko ? " · " + v.ko : ""}\n${v.easy}${v.example ? "\n예: " + v.example : ""}`).join("\n\n");
+  const fallback = () => { $("vc-note").textContent = "자동 복사가 막혀 있어요. ‘파일로 저장’을 써 주세요."; };
+  try { navigator.clipboard.writeText(text).then(() => { $("vc-note").textContent = "복사했어요."; }, fallback); } catch { fallback(); }
+});
+$("vc-save").addEventListener("click", () => saveFile("짹짹이 단어장.csv", vocabCsv(), $("vc-note")));
 
 // 시작 위치 목록: 처음 + 소제목마다
 function fillJump(){
@@ -1710,13 +1893,20 @@ const NO_CLAUDE = ["not_granted", "sampling_disabled", "not_declared", "capabili
 const trView = () => state.view !== "orig" && state.lang === "en" && !!sampleFn;
 const koSpeak = t => (state.stripCites ? stripCitations(t) : t).trim();
 const docTitle = () => state.blocks.find(b => b.kind === "heading")?.text || state.fileName || "";
+// 초록: '초록' 제목 다음 문단, 없으면 첫 문단 (분야와 용어를 가늠하는 문맥으로만 쓴다)
+function abstractText(){
+  const at = state.blocks.findIndex(b => b.kind === "heading" && RE_ABSTRACT.test(b.text));
+  const b = (at >= 0 ? state.blocks.slice(at + 1) : state.blocks).find(b => b.kind === "para");
+  return b ? b.text.slice(0, 700) : "";
+}
 
 const TR_RULES = `당신은 인문사회 분야(심리학, 교육학, 경제학, 법학, 철학 등) 영어 논문을 한국어로 옮기는 번역가입니다.
 규칙:
 - 번호마다 그 문장만 한국어로 옮기세요. 문장을 합치거나 다른 번호로 넘기지 말고, 하나도 빼지 마세요.
 - 요약하거나 덜어 내지 마세요. 단서(may, likely 등), 부정, 비교, 인과의 방향을 그대로 살리세요.
 - 숫자, 통계 기호(M, SD, p, d, β, F, t, N 등), 단위, 본문 속 출처 표시((Kim, 2021), [12])는 원문 그대로 두세요.
-- 전문 용어는 그 분야 한국 연구자들이 쓰는 번역어로 옮기고, 한국에서도 흔히 영어로 부르는 말(ANOVA, Likert 등)은 영어 그대로 두세요.
+- 전문 용어는 한국 학계에서 가장 널리 쓰는 번역어로 옮기고, 한국에서도 흔히 영어로 부르는 말(ANOVA, Likert 등)은 영어 그대로 두세요.
+- 앞에서 정한 용어 번역이 주어지면 같은 용어는 반드시 그대로 옮기세요. 처음 나오는 전문 용어의 번역어가 덜 알려졌거나 여러 개면 번역어 뒤 괄호에 영어 원어를 한 번 덧붙이세요.
 - 학술 논문의 문어체(~다)로 쓰세요. 제목은 제목답게 짧게 옮기세요.`;
 const REVIEW_RULES = `다음은 영어 학술 논문 문장과 한국어 번역의 짝입니다. 한 문장씩 원문과 대조해서 아래 문제가 있는 번역만 고치세요.
 - 뜻이 뒤집힘: 부정(not, no, never, neither), 비교의 방향, 인과의 방향, 조건이 반대로 옮겨짐
@@ -1726,7 +1916,11 @@ const REVIEW_RULES = `다음은 영어 학술 논문 문장과 한국어 번역�
 
 function askTranslate(items, ctx){
   const type = s => s.block.kind === "heading" ? "제목" : s.block.aside === "note" ? "각주" : s.block.aside === "caption" ? "그림·표 설명" : "본문";
+  const gloss = [...state.terms.values()].filter(t => t.ko).slice(-80).map(t => `${t.en} → ${t.ko}`).join("; ");
+  const abs = abstractText();
   const prompt = TR_RULES + `\n\n논문 제목: ${docTitle()}\n` +
+    (abs && !items.some(s => abs.includes(s.text)) ? `초록(분야와 용어를 가늠하는 데만 참고하고 옮기지 마세요): ${abs}\n` : "") +
+    (gloss ? `앞에서 정한 용어 번역: ${gloss}\n` : "") +
     (ctx.length ? `바로 앞 문장(참고만 하고 옮기지 마세요): ${ctx.join(" ")}\n` : "") +
     `\n옮길 문장:\n${JSON.stringify(items.map((s, k) => ({n: k + 1, type: type(s), text: s.text})))}\n\n` +
     `JSON 객체로만 답하세요. 키는 번호, 값은 번역입니다. ` +
@@ -1983,15 +2177,107 @@ async function drawFig(box){
     out.getContext("2d").drawImage(canvas, f.x0 * scale, (height - f.y1) * scale, out.width, out.height, 0, 0, out.width, out.height);
     const blob = await new Promise(r => out.toBlob(r, "image/png"));
     if (state.source?.pdf !== pdf || !blob) return;
+    box._blob = blob;
     const url = URL.createObjectURL(blob); figUrls.push(url);
     const img = new Image();
     img.alt = `${f.page}쪽의 그림·표`;
     img.src = url;
     img.style.width = Math.round(w * 1.4) + "px";
     box.replaceChildren(img);
+    return blob;
   } catch {
     box.textContent = "그림을 그리지 못했어요. 눌러서 쪽 전체를 보세요.";
   }
+}
+
+// ---- 그림·표 해석 ------------------------------------------------------------
+const FIG_RULES = `당신은 인문사회 분야 논문을 읽는 한국 대학생에게 그림과 표를 풀어 주는 조교입니다. 아래 자료로 이 그림·표를 한국어로 해석하세요.
+규칙:
+- 숫자는 'PDF에 들어 있는 글자', 캡션, 본문 문장에 있는 값을 그대로 쓰세요. 그림에서 눈으로만 읽은 값은 숫자 뒤에 "(그림에서 읽은 대략값)"을 붙이세요.
+- 자료에 없는 내용을 지어내지 말고, 읽기 어려운 부분은 읽기 어렵다고 밝히세요.
+- 전문 용어와 통계 기호는 쉬운 말로 풀어 쓰세요. (예: SD는 표준편차, 흩어진 정도)
+- 논문의 주장을 그대로 믿지 말고, 그림·표가 실제로 보여 주는 만큼만 말하세요.`;
+const figKey = b => docKey().slice(LS.length) + "|" + b.text.slice(0, 120);
+function figCache(){ try { return JSON.parse(localStorage.getItem("jjk-figs") || "{}"); } catch { return {}; } }
+function figLabelRe(caption){
+  const m = caption.match(/^[<\[(]?\s*(fig(?:ure)?\.?|table|tab\.|그림|표)\s*(\d+(?:[.-]\d+)?)/i);
+  if (!m) return null;
+  const word = /^(?:table|tab\.|표)$/i.test(m[1]) ? "(?:Table|Tab\\.|표)" : "(?:Figure|Fig\\.|그림)";
+  return new RegExp(`${word}\\s*${m[2].replace(".", "\\.")}(?!\\d|[.-]\\d)`, "i");
+}
+let figAsk = null;
+async function explainFig(b, box, panel, btn, isTable){
+  if (!sampleFn){ panel.hidden = false; panel.replaceChildren(make("p", "tc-warn", "그림·표 해석은 Claude에 로그인해야 쓸 수 있어요.")); return; }
+  figAsk?.abort(); figAsk = new AbortController();
+  const signal = figAsk.signal;
+  btn.disabled = true;
+  panel.hidden = false;
+  panel.replaceChildren(make("p", "tc-note", isTable ? "표를 읽는 중… 30초~1분쯤 걸려요." : "그림을 읽는 중… 30초~1분쯤 걸려요."));
+  const re = figLabelRe(b.text);
+  const mentions = re ? state.sentences.filter(s => !s.aside && re.test(s.text)).slice(0, 5).map(s => s.text) : [];
+  const inside = (b.fig?.text || []).join("\n");
+  let images;
+  try {
+    const lim = await sampleFn.limits();
+    const blob = box?._blob || (box ? await drawFig(box) : null);
+    if (lim?.images && blob) images = [blob];
+  } catch {}
+  const prompt = FIG_RULES + `\n\n논문 제목: ${docTitle()}\n종류: ${isTable ? "표" : "그림"}\n캡션: ${b.text.replace(/\s+/g, " ")}\n` +
+    (inside ? `PDF에 들어 있는 그림·표 안 글자(정확한 값, 줄 순서대로): \n${inside}\n` : "") +
+    (mentions.length ? `본문에서 이 그림·표를 말한 문장: ${mentions.join(" ")}\n` : "") +
+    (images ? "그림·표 이미지를 함께 보냅니다.\n" : "이미지는 보내지 못했어요. 글자만 보고 해석하고, 그래프 모양처럼 글자로 알 수 없는 것은 모른다고 밝히세요.\n") +
+    `\nJSON으로만 답하세요. 형식: {"what": "무엇을 보여 주는지(축·행·열·단위 포함) 2~3문장", "how": "읽는 법: 각 부분이 뜻하는 것 2~3문장", ` +
+    `"findings": ["핵심 결과 2~4개, 숫자 포함"], "claim": "본문의 주장과 이 그림·표가 어떻게 이어지는지 1~2문장", ` +
+    `"caution": "해석할 때 주의할 점(오차 막대, 통계적 유의성, 표본, 축 범위 등) 1~2문장, 없으면 빈 문자열"}`;
+  try {
+    const info = await sampleFn.json(prompt, {modelTier: "complex", images, signal, cache: {gcTime: 86400000}});
+    if (signal.aborted) return;
+    if (!info || typeof info.what !== "string") throw new Error("bad");
+    const str = v => typeof v === "string" ? v.trim() : "";
+    const clean = {what: str(info.what), how: str(info.how), findings: Array.isArray(info.findings) ? info.findings.filter(f => typeof f === "string" && f.trim()).slice(0, 5) : [],
+      claim: str(info.claim), caution: str(info.caution), image: !!images,
+      known: [...numsOf([b.text, inside, ...mentions].join(" "))]};
+    try {
+      const all = figCache(); all[figKey(b)] = clean;
+      const ks = Object.keys(all); if (ks.length > 120) delete all[ks[0]];
+      localStorage.setItem("jjk-figs", JSON.stringify(all));
+    } catch {}
+    showFigInfo(panel, clean, b);
+    btn.textContent = isTable ? "표 해석 다시 받기" : "그림 해석 다시 받기";
+  } catch (e){
+    if (signal.aborted) return;
+    panel.replaceChildren(make("p", "tc-warn", e?.code === "rate_limited" ? "요청이 많아 잠시 멈췄어요. 조금 뒤에 다시 눌러 주세요."
+      : e?.code === "images_unavailable" ? "이 화면에서는 이미지를 보낼 수 없어요." : "해석을 받아 오지 못했어요. 다시 눌러 주세요."));
+  } finally {
+    btn.disabled = false;
+  }
+}
+// 해석 속 숫자 가운데 PDF 글자·캡션·본문에서 확인되지 않는 값(그림에서 눈으로 읽은 값 등)은 물결 밑줄로 표시한다
+function numCheckedNodes(text, known){
+  const out = []; let last = 0;
+  for (const m of text.matchAll(/\d+(?:[.,]\d+)*/g)){
+    const n = m[0].replace(/,(?=\d{3}(?!\d))/g, "");
+    if (known.has(n) || /^\d$/.test(n)) continue;
+    if (m.index > last) out.push(document.createTextNode(text.slice(last, m.index)));
+    const sp = make("span", "num-unsure", m[0]); sp.title = "PDF 글자·캡션·본문에서 확인되지 않은 숫자예요. 그림과 직접 대조해 보세요.";
+    out.push(sp); last = m.index + m[0].length;
+  }
+  if (last < text.length) out.push(document.createTextNode(text.slice(last)));
+  return out;
+}
+function showFigInfo(panel, info, b){
+  const known = new Set(info.known || []);
+  panel.hidden = false; panel.replaceChildren();
+  const sec = (title, ...nodes) => { const d = make("div", "tc-sec"); d.append(make("h4", "", title), ...nodes); panel.append(d); };
+  const para = t => { const p = make("p"); p.append(...numCheckedNodes(t, known)); return p; };
+  if (info.what) sec("무엇을 보여 주나", para(info.what));
+  if (info.how) sec("읽는 법", para(info.how));
+  if (info.findings.length){ const ul = make("ul"); info.findings.forEach(f => { const li = make("li"); li.append(...numCheckedNodes(f, known)); ul.append(li); }); sec("핵심 결과", ul); }
+  if (info.claim) sec("본문 주장과의 관계", para(info.claim));
+  if (info.caution) sec("읽을 때 주의할 점", para(info.caution));
+  const unsure = panel.querySelectorAll(".num-unsure").length;
+  panel.append(make("p", "tc-note", (info.image ? "Claude가 그림과 PDF 글자를 보고 쓴 해석이에요." : "이미지를 보내지 못해 글자만 보고 쓴 해석이에요.") +
+    (unsure ? " 물결 밑줄 숫자는 PDF 글자·캡션·본문에서 확인되지 않은 값이라 그림과 직접 대조해 보세요." : " 해석에 나온 숫자는 모두 PDF 글자·캡션·본문에서 확인됐어요.")));
 }
 async function openPage(p){
   const dlg = $("pageview");
