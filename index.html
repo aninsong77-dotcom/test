@@ -212,6 +212,19 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
 .fig-explain{display:grid;gap:10px;padding:14px 16px;border:1px solid var(--line);border-radius:10px;background:var(--bg);font-size:.9rem;line-height:1.7}
 .fig-explain ul{margin:0;padding-left:18px}
 .num-unsure{text-decoration:underline wavy var(--warn);text-underline-offset:3px}
+/* 우클릭 메뉴 · 선택 막대 · 알림 */
+.ctxmenu{position:fixed;z-index:50;min-width:200px;max-width:min(280px, calc(100vw - 16px));background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 32px rgba(20,30,45,.22);padding:6px;display:grid;gap:2px;font-size:.88rem}
+.cm-head{padding:4px 10px 6px;border-bottom:1px solid var(--line);margin-bottom:2px;font-weight:600;overflow-wrap:anywhere}
+.cm-item{font:inherit;text-align:left;padding:7px 10px;border:0;border-radius:6px;background:none;color:inherit;cursor:pointer}
+.cm-item:hover,.cm-item:focus-visible{background:var(--bg)}
+.cm-hl{display:flex;align-items:center;gap:8px;padding:6px 10px;border-top:1px solid var(--line);margin-top:2px;color:var(--muted);font-size:.8rem}
+.cm-hl span{margin-right:auto}
+.cm-hl .sw{width:22px;height:22px}
+.cm-tip{margin:2px 10px 2px;font-size:.7rem;color:var(--muted)}
+@media (hover:none){.cm-tip{display:none}}
+.selpop{position:fixed;z-index:45;display:flex;gap:6px;padding:6px;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 26px rgba(20,30,45,.2)}
+.toast{position:fixed;z-index:46;left:50%;transform:translateX(-50%);max-width:calc(100vw - 24px);display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;padding:9px 14px;border-radius:10px;background:var(--ink);color:var(--bg);font-size:.86rem;box-shadow:0 10px 26px rgba(20,30,45,.25)}
+.toast .linkbtn{color:var(--bg);font-weight:600}
 /* 단어장 */
 .vc-count{color:var(--muted);font-size:.8rem;margin-left:4px}
 .vc-tools{display:grid;gap:10px;padding:12px 16px 0}
@@ -437,6 +450,21 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
   <img id="pv-img" alt="">
 </dialog>
 
+<div class="ctxmenu" id="ctxmenu" hidden role="menu" aria-label="단어와 문장">
+  <div class="cm-head" id="cm-head"><span id="cm-word"></span></div>
+  <button class="cm-item" id="cm-add" role="menuitem">단어장에 넣기</button>
+  <button class="cm-item" id="cm-look" role="menuitem">풀이 보기</button>
+  <div class="cm-hl" id="cm-hl"><span>이 문장 형광펜</span>
+    <button class="sw" data-c="y" aria-label="노랑" aria-pressed="false"></button><button class="sw" data-c="g" aria-label="초록" aria-pressed="false"></button><button class="sw" data-c="p" aria-label="분홍" aria-pressed="false"></button>
+  </div>
+  <p class="cm-tip">Shift+우클릭: 브라우저 기본 메뉴</p>
+</div>
+<div class="selpop" id="selpop" hidden>
+  <button class="btn" id="sp-add">단어장에 넣기</button>
+  <button class="btn ghost" id="sp-look">풀이</button>
+</div>
+<div class="toast" id="toast" hidden role="status"></div>
+
 <nav class="hlrail" id="hlrail" hidden aria-label="형광펜 위치"><i class="hr-view" id="hr-view"></i></nav>
 
 <aside class="termcard" id="termcard" hidden aria-label="용어 풀이">
@@ -477,6 +505,7 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
       <span class="tr-actions"><button class="btn ghost" id="vc-copy">모두 복사</button><button class="btn" id="vc-save" hidden>파일로 저장</button></span>
     </div>
     <p class="hl-note" id="vc-note" aria-live="polite"></p>
+    <p class="hl-note">본문에서 모르는 단어를 우클릭(휴대폰은 길게 눌러 선택)하면 바로 넣을 수 있어요. <button class="linkbtn" id="vc-addall" type="button" hidden></button></p>
   </div>
   <div class="vc-list" id="vc-list"></div>
 </dialog>
@@ -1683,6 +1712,19 @@ async function showTerm(t, sentence){
   body.replaceChildren(make("p", "tc-note", "풀이를 받아 오는 중… 10~30초쯤 걸려요."));
   termAsk?.abort(); termAsk = new AbortController();
   const signal = termAsk.signal;
+  try {
+    const info = await fetchTermInfo(t, sentence, signal);
+    if (curTerm?.t === t) showInfo(info);
+  } catch (e){
+    if (signal.aborted) return;
+    body.replaceChildren(make("p", "tc-warn", e?.code === "rate_limited" ? "요청이 많아 잠시 멈췄어요. 조금 뒤에 다시 눌러 주세요." : "풀이를 받아 오지 못했어요. 다시 눌러 주세요."));
+  }
+}
+// 용어 풀이 받기: 저장해 둔 풀이가 있으면 그것을 쓰고, 받으면 저장한다. 단어장에 풀이 없이 들어 있던 낱말이면 채운다.
+async function fetchTermInfo(t, sentence, signal){
+  const key = t.en.toLowerCase();
+  const cached = termCache()[key];
+  if (cached){ fillVocab(t.en, cached); return cached; }
   const prompt = TERM_RULES + `\n\n논문 제목: ${docTitle()}\n용어: ${t.en}` + (t.ko ? ` (번역에서 쓴 말: ${t.ko})` : "") +
     (sentence ? `\n이 용어가 나온 문장: ${sentence}` : "\n(이 논문에서 이 용어가 나온 문장을 찾지 못했어요. inPaper는 빈 문자열로 두세요.)") + `\n\n` +
     `JSON으로만 답하세요. 형식: {"easy": "전공자가 아니어도 이해할 쉬운 한국어 풀이 2~3문장", ` +
@@ -1690,25 +1732,143 @@ async function showTerm(t, sentence){
     `"confusable": "헷갈리기 쉬운 비슷한 개념과의 차이 1문장, 없으면 빈 문자열", ` +
     `"koTerms": ["한국 학계에서 쓰는 번역어, 가장 널리 쓰는 것부터 1~3개"], ` +
     `"sources": ["이 용어를 표제어나 주요 항목으로 다루는 참고 자료 키 1~2개"], "sure": true}`;
+  const info = await sampleFn.json(prompt, {modelTier: "default", signal, cache: {gcTime: 86400000}});
+  if (signal?.aborted) throw {code: "cancelled"};
+  if (!info || typeof info.easy !== "string") throw new Error("bad");
+  const str = v => typeof v === "string" ? v.trim() : "";
+  const clean = {
+    easy: info.easy.trim(), example: str(info.example), inPaper: str(info.inPaper), confusable: str(info.confusable),
+    koTerms: Array.isArray(info.koTerms) ? info.koTerms.filter(k => typeof k === "string" && k.trim()).map(k => k.trim()).slice(0, 3) : [],
+    sources: Array.isArray(info.sources) ? info.sources.filter(k => TERM_SOURCES[k]) : [], sure: info.sure !== false,
+  };
   try {
-    const info = await sampleFn.json(prompt, {modelTier: "default", signal, cache: {gcTime: 86400000}});
-    if (signal.aborted || !info || typeof info.easy !== "string") throw new Error("bad");
-    const str = v => typeof v === "string" ? v.trim() : "";
-    const clean = {
-      easy: info.easy.trim(), example: str(info.example), inPaper: str(info.inPaper), confusable: str(info.confusable),
-      koTerms: Array.isArray(info.koTerms) ? info.koTerms.filter(k => typeof k === "string" && k.trim()).map(k => k.trim()).slice(0, 3) : [],
-      sources: Array.isArray(info.sources) ? info.sources.filter(k => TERM_SOURCES[k]) : [], sure: info.sure !== false,
-    };
-    try {
-      const all = termCache(); all[key] = clean;
-      const ks = Object.keys(all); if (ks.length > 300) delete all[ks[0]];
-      localStorage.setItem(TERM_CACHE, JSON.stringify(all));
-    } catch {}
-    if (curTerm?.t === t) showInfo(clean);
-  } catch (e){
-    if (signal.aborted) return;
-    body.replaceChildren(make("p", "tc-warn", e?.code === "rate_limited" ? "요청이 많아 잠시 멈췄어요. 조금 뒤에 다시 눌러 주세요." : "풀이를 받아 오지 못했어요. 다시 눌러 주세요."));
+    const all = termCache(); all[key] = clean;
+    const ks = Object.keys(all); if (ks.length > 300) delete all[ks[0]];
+    localStorage.setItem(TERM_CACHE, JSON.stringify(all));
+  } catch {}
+  fillVocab(t.en, clean);
+  return clean;
+}
+
+// ---- 우클릭 메뉴 · 선택 막대 -------------------------------------------------
+// PC: 본문 단어를 우클릭하면 단어장·풀이·형광펜 메뉴. 휴대폰: 단어를 길게 눌러 선택하면 아래에 같은 버튼.
+// Shift를 누른 채 우클릭하면 브라우저 기본 메뉴가 뜬다.
+const cleanWord = w => w.replace(/\s+/g, " ").replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}%)]+$/gu, "").trim();
+function wordAt(x, y){
+  let node = null, off = 0;
+  if (document.caretRangeFromPoint){ const r = document.caretRangeFromPoint(x, y); if (r){ node = r.startContainer; off = r.startOffset; } }
+  else if (document.caretPositionFromPoint){ const p = document.caretPositionFromPoint(x, y); if (p){ node = p.offsetNode; off = p.offset; } }
+  if (!node || node.nodeType !== 3) return "";
+  const text = node.textContent, isW = ch => /[\p{L}\p{N}'’-]/u.test(ch || "");
+  let a = off, b = off;
+  while (a > 0 && isW(text[a - 1])) a--;
+  while (b < text.length && isW(text[b])) b++;
+  return cleanWord(text.slice(a, b));
+}
+const sentenceOf = el => { const at = el?.closest?.("[data-i], [data-t]"); return at ? +(at.dataset.i ?? at.dataset.t) : -1; };
+let ctx = null;
+function closeCtx(){ $("ctxmenu").hidden = true; ctx = null; }
+function openCtx(word, i, x, y){
+  const m = $("ctxmenu");
+  ctx = {word, i};
+  const has = word && inVocab(word);
+  $("cm-word").textContent = word || "";
+  $("cm-add").hidden = !word;
+  $("cm-add").textContent = has ? "단어장에서 빼기" : "단어장에 넣기";
+  $("cm-look").hidden = !word;
+  $("cm-hl").hidden = i < 0;
+  $("cm-head").hidden = !word;
+  const c = i >= 0 ? state.hl.get(state.sentences[i]?.text) : "";
+  m.querySelectorAll(".sw").forEach(b => b.setAttribute("aria-pressed", b.dataset.c === c));
+  m.hidden = false;
+  const w = m.offsetWidth, h = m.offsetHeight;
+  m.style.left = Math.max(8, Math.min(x, innerWidth - w - 8)) + "px";
+  m.style.top = Math.max(8, Math.min(y, innerHeight - h - 8)) + "px";
+  (word ? $("cm-add") : m.querySelector(".sw"))?.focus();
+}
+function saveWord(word, i){
+  if (!word) return;
+  if (inVocab(word)){ removeVocab(word); toast(`‘${word}’을(를) 단어장에서 뺐어요.`, false); return; }
+  const t = state.terms.get(word.toLowerCase()) || termByKo.get(word) || {en: word, ko: ""};
+  const sentence = state.sentences[i]?.text || state.sentences.find(s => s.text.toLowerCase().includes(word.toLowerCase()))?.text || "";
+  addVocab({t, sentence, info: null});
+  vocabUndo = null;
+  toast(`‘${t.en}’을(를) 단어장에 넣었어요.` + (sampleFn && !termCache()[t.en.toLowerCase()] ? " 풀이는 뒤에서 받아 와요." : ""), true);
+}
+$("doc").addEventListener("contextmenu", e => {
+  if (e.shiftKey) return;
+  const sel = String(getSelection() || "").trim();
+  const term = e.target.closest?.(".term");
+  const tk = term && state.terms.get(term.dataset.term);
+  const word = cleanWord(sel && sel.length <= 80 && $("doc").contains(getSelection().anchorNode) ? sel : tk ? tk.en : wordAt(e.clientX, e.clientY));
+  const i = sentenceOf(e.target);
+  if (!word && i < 0) return;
+  e.preventDefault();
+  hideSelbar2();
+  openCtx(word, i, e.clientX, e.clientY);
+});
+$("cm-add").addEventListener("click", () => { const c = ctx; closeCtx(); if (c) saveWord(c.word, c.i); });
+$("cm-look").addEventListener("click", () => {
+  const c = ctx; closeCtx(); if (!c) return;
+  const t = state.terms.get(c.word.toLowerCase()) || termByKo.get(c.word) || {en: c.word, ko: ""};
+  showTerm(t, state.sentences[c.i]?.text || "");
+});
+$("ctxmenu").querySelectorAll(".sw").forEach(b => b.addEventListener("click", () => {
+  const c = ctx; closeCtx(); if (!c || c.i < 0) return;
+  const text = state.sentences[c.i]?.text; if (!text) return;
+  if (b.getAttribute("aria-pressed") === "true") state.hl.delete(text); else state.hl.set(text, b.dataset.c);
+  applyHl(c.i); saveHl(); updateSelbar(); updateTrUi(); queueRail();
+}));
+document.addEventListener("pointerdown", e => { if (!$("ctxmenu").hidden && !e.target.closest("#ctxmenu")) closeCtx(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeCtx(); });
+addEventListener("scroll", () => { if (!$("ctxmenu").hidden) closeCtx(); }, {passive: true});
+
+// 선택 막대: 본문에서 글자를 고르면 그 아래에 [단어장에 넣기] [풀이]
+let selTimer = 0;
+function hideSelbar2(){ $("selpop").hidden = true; }
+document.addEventListener("selectionchange", () => {
+  clearTimeout(selTimer);
+  selTimer = setTimeout(() => {
+    const sel = getSelection();
+    const text = cleanWord(String(sel || ""));
+    if (!sel || sel.isCollapsed || !text || text.length > 80 || !$("doc").contains(sel.anchorNode) || !$("ctxmenu").hidden){ hideSelbar2(); return; }
+    const r = sel.getRangeAt(0).getBoundingClientRect();
+    const pop = $("selpop");
+    pop.dataset.word = text;
+    pop.dataset.i = sentenceOf(sel.anchorNode.parentElement);
+    $("sp-add").textContent = inVocab(text) ? "단어장에서 빼기" : "단어장에 넣기";
+    pop.hidden = false;
+    // 휴대폰의 기본 선택 메뉴는 보통 위에 뜨므로 아래에 둔다
+    const below = r.bottom + 10, w = pop.offsetWidth;
+    pop.style.left = Math.max(8, Math.min(r.left + r.width / 2 - w / 2, innerWidth - w - 8)) + "px";
+    pop.style.top = (below + pop.offsetHeight > innerHeight - 70 ? Math.max(8, r.top - pop.offsetHeight - 10) : below) + "px";
+  }, 250);
+});
+$("sp-add").addEventListener("click", () => { const p = $("selpop"); saveWord(p.dataset.word, +p.dataset.i); getSelection()?.removeAllRanges(); hideSelbar2(); });
+$("sp-look").addEventListener("click", () => {
+  const p = $("selpop"), w = p.dataset.word;
+  const t = state.terms.get(w.toLowerCase()) || termByKo.get(w) || {en: w, ko: ""};
+  getSelection()?.removeAllRanges(); hideSelbar2();
+  showTerm(t, state.sentences[+p.dataset.i]?.text || "");
+});
+
+// 알림: 단어장에 넣었을 때 [되돌리기] [단어장 보기]
+let toastTimer = 0;
+function toast(msg, withUndo){
+  const el = $("toast");
+  el.replaceChildren(make("span", "", msg));
+  if (withUndo && vocabUndo === null){
+    const b = make("button", "linkbtn", "되돌리기"); b.type = "button";
+    const last = vocab()[0]?.en;
+    b.addEventListener("click", () => { if (last) removeVocab(last); vocabUndo = null; el.hidden = true; });
+    el.append(b);
   }
+  const open = make("button", "linkbtn", "단어장 보기"); open.type = "button";
+  open.addEventListener("click", () => { el.hidden = true; openVocab(); });
+  el.append(open);
+  el.style.bottom = (document.querySelector(".player").offsetHeight + 12) + "px";
+  el.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.hidden = true; }, 5000);
 }
 
 // ---- 단어장 ----------------------------------------------------------------
@@ -1721,10 +1881,38 @@ let vocabUndo = null;
 function addVocab(cur){
   if (!cur) return;
   const list = vocab().filter(v => v.en.toLowerCase() !== cur.t.en.toLowerCase());
-  const info = cur.info || {};
+  const info = cur.info || termCache()[cur.t.en.toLowerCase()] || {};
   list.unshift({en: cur.t.en, ko: cur.t.ko || info.koTerms?.[0] || "", koTerms: info.koTerms || [], easy: info.easy || "", example: info.example || "",
-    sentence: cur.sentence || "", title: docTitle() || state.fileName || "", at: Date.now(), done: false});
+    sentence: cur.sentence || "", title: docTitle() || state.fileName || "", at: Date.now(), done: false, pending: !info.easy});
   saveVocab(list);
+  if (!info.easy) queueVocabInfo(cur.t.en);
+}
+function fillVocab(en, info){
+  const list = vocab();
+  const v = list.find(x => x.en.toLowerCase() === en.toLowerCase());
+  if (!v || !v.pending) return;
+  Object.assign(v, {ko: v.ko || info.koTerms?.[0] || "", koTerms: info.koTerms || [], easy: info.easy || "", example: info.example || "", pending: false});
+  saveVocab(list);
+  if ($("vocab-dlg").open) renderVocab();
+}
+// 넣은 낱말의 풀이는 한 번에 하나씩 뒤에서 받아 온다
+const vocabQueue = [];
+let vocabBusy = false;
+function queueVocabInfo(en){ if (!vocabQueue.includes(en)) vocabQueue.push(en); runVocabQueue(); }
+async function runVocabQueue(){
+  if (vocabBusy || !sampleFn) return;
+  vocabBusy = true;
+  while (vocabQueue.length){
+    const en = vocabQueue[0];
+    const v = vocab().find(x => x.en === en);
+    if (v?.pending){
+      try { await fetchTermInfo({en: v.en, ko: v.ko}, v.sentence); }
+      catch (e){ if (e?.code === "rate_limited" || NO_CLAUDE.includes(e?.code)){ vocabQueue.length = 0; break; } }
+    }
+    vocabQueue.shift();
+    if ($("vocab-dlg").open) renderVocab();
+  }
+  vocabBusy = false;
 }
 function removeVocab(en){
   const list = vocab();
@@ -1737,6 +1925,7 @@ function renderVocab(){
   const q = $("vc-q").value.trim().toLowerCase(), hideDone = $("vc-hide").checked;
   const all = vocab();
   const list = all.filter(v => !(hideDone && v.done) && (!q || [v.en, v.ko, v.easy, ...(v.koTerms || [])].join(" ").toLowerCase().includes(q)));
+  updateAddAll();
   $("vc-count").textContent = `${all.length}개` + (all.some(v => v.done) ? ` · 외운 단어 ${all.filter(v => v.done).length}개` : "");
   const box = $("vc-list"); box.replaceChildren();
   $("vc-copy").disabled = $("vc-save").disabled = !all.length;
@@ -1763,6 +1952,12 @@ function renderVocab(){
     head.append(name, acts);
     item.append(head);
     if (v.easy) item.append(make("p", "vc-easy", v.easy));
+    else if (v.pending){
+      const wait = vocabQueue.includes(v.en);
+      const p = make("p", "vc-ex", wait ? "풀이 받는 중…" : "아직 풀이가 없어요. ");
+      if (!wait && sampleFn){ const get = make("button", "linkbtn", "풀이 받기"); get.type = "button"; get.addEventListener("click", () => { queueVocabInfo(v.en); renderVocab(); }); p.append(get); }
+      item.append(p);
+    }
     if (v.example) item.append(make("p", "vc-ex", "예: " + v.example));
     if (v.title) item.append(make("p", "vc-src", v.title));
     box.append(item);
@@ -1777,7 +1972,29 @@ function undoBtn(){
   });
   return b;
 }
-function openVocab(){ $("vc-note").textContent = ""; $("vc-save").hidden = !canSave(); renderVocab(); $("vocab-dlg").showModal(); }
+function updateAddAll(){
+  const have = new Set(vocab().map(v => v.en.toLowerCase()));
+  const n = [...state.terms.keys()].filter(k => !have.has(k)).length;
+  $("vc-addall").hidden = !n;
+  $("vc-addall").textContent = `이 논문에서 찾은 용어 ${n}개 모두 넣기`;
+}
+$("vc-addall").addEventListener("click", () => {
+  const have = new Set(vocab().map(v => v.en.toLowerCase()));
+  const list = vocab(), title = docTitle() || state.fileName || "";
+  let n = 0;
+  for (const t of state.terms.values()){
+    if (have.has(t.en.toLowerCase())) continue;
+    const info = termCache()[t.en.toLowerCase()] || {};
+    const s = state.sentences.find(s => s.text.toLowerCase().includes(t.en.toLowerCase()));
+    list.push({en: t.en, ko: t.ko || info.koTerms?.[0] || "", koTerms: info.koTerms || [], easy: info.easy || "", example: info.example || "",
+      sentence: s?.text || "", title, at: Date.now(), done: false, pending: !info.easy});
+    n++;
+  }
+  saveVocab(list);
+  $("vc-note").textContent = `${n}개를 넣었어요. 풀이는 단어마다 ‘풀이 받기’를 누르면 받아 와요.`;
+  renderVocab();
+});
+function openVocab(){ $("vc-note").textContent = ""; $("vc-save").hidden = !canSave(); updateAddAll(); renderVocab(); $("vocab-dlg").showModal(); }
 $("vocab-open").addEventListener("click", openVocab);
 $("vocab-close").addEventListener("click", () => $("vocab-dlg").close());
 $("vc-q").addEventListener("input", renderVocab);
