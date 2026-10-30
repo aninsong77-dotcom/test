@@ -198,7 +198,25 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
 .tc-quote{border-left:2px solid var(--line);padding-left:10px;color:var(--muted);font-size:.84rem}
 .tc-note{font-size:.78rem;color:var(--muted)}
 .tc-warn{color:var(--warn);font-size:.84rem}
+/* 형광펜 위치 막대: 화면 오른쪽 가장자리에 문서 전체를 줄여 놓고 칠한 자리를 표시 */
+.hlrail{position:fixed;z-index:4;right:max(3px, env(safe-area-inset-right, 0px));top:80px;bottom:80px;width:12px;border-radius:6px;background:color-mix(in srgb, var(--line) 55%, transparent)}
+.hr-view{position:absolute;left:0;right:0;border-radius:6px;background:color-mix(in srgb, var(--accent) 16%, transparent);border:1px solid color-mix(in srgb, var(--accent) 45%, transparent);pointer-events:none}
+.hr-mark{position:absolute;left:-1px;width:14px;height:7px;margin-top:-3px;padding:0;border:1px solid color-mix(in srgb, var(--ink) 40%, transparent);border-radius:3px;background:var(--hl-y);cursor:pointer}
+.hr-mark::before{content:"";position:absolute;inset:-6px -8px}
+.hr-mark[data-c="g"]{background:var(--hl-g)}
+.hr-mark[data-c="p"]{background:var(--hl-p)}
+.hr-mark:hover,.hr-mark:focus-visible{transform:scale(1.25)}
+@media (min-width:1300px){.hlrail{right:max(10px, env(safe-area-inset-right, 0px))}}
 /* 형광펜 모아 보기 */
+.hl-tools{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;padding:12px 16px 0}
+.tabs{display:inline-flex;border:1px solid var(--line);border-radius:8px;padding:2px;background:var(--bg)}
+.tab{font:inherit;font-size:.84rem;padding:5px 12px;border:0;border-radius:6px;background:none;color:var(--muted);cursor:pointer}
+.tab[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:600;box-shadow:0 1px 3px rgba(20,30,45,.12)}
+.hl-note{margin:8px 16px 0;font-size:.78rem;color:var(--muted)}
+.hl-doc{display:grid;gap:10px}
+.hl-doc h3{margin:6px 0 0;font-size:.92rem;display:flex;gap:8px;align-items:baseline;justify-content:space-between}
+.hl-doc h3 span{font-weight:400;font-size:.76rem;color:var(--muted);white-space:nowrap}
+.hl-item:disabled{cursor:default;color:inherit;opacity:1}
 .hl-list{display:grid;gap:14px;padding:14px 16px 18px}
 .hl-item{display:grid;gap:2px;text-align:left;font:inherit;color:inherit;background:none;border:0;border-left:5px solid var(--hl-y);padding:2px 0 2px 12px;cursor:pointer}
 .hl-item[data-c="g"]{border-left-color:var(--hl-g)}
@@ -308,6 +326,7 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
       <div class="menu">
         <label class="opt" for="file" id="file-btn" tabindex="0">내 파일 열기…</label>
         <button class="opt" id="paste-open">글 붙여넣기…</button>
+        <button class="opt" id="hl-open-menu">형광펜 모음…</button>
         <button class="opt" id="ex-en">예시: 영어 논문 (PDF)</button>
         <button class="opt" id="ex-ko">예시: 한국어 논문 (TXT)</button>
       </div>
@@ -395,6 +414,8 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
   <img id="pv-img" alt="">
 </dialog>
 
+<nav class="hlrail" id="hlrail" hidden aria-label="형광펜 위치"><i class="hr-view" id="hr-view"></i></nav>
+
 <aside class="termcard" id="termcard" hidden aria-label="용어 풀이">
   <div class="tc-head">
     <div><div class="tc-en" id="tc-en"></div><div class="tc-ko" id="tc-ko"></div></div>
@@ -403,8 +424,19 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
   <div id="tc-body" aria-live="polite"></div>
 </aside>
 
-<dialog class="pageview" id="hl-dlg" aria-label="형광펜 친 문장">
-  <div class="pv-bar"><span>형광펜 친 문장</span><span class="tr-actions"><button class="btn ghost" id="hl-copy">모두 복사</button><button class="btn ghost" id="hl-close">닫기</button></span></div>
+<dialog class="pageview" id="hl-dlg" aria-label="형광펜 모음">
+  <div class="pv-bar"><span>형광펜 모음</span><button class="btn ghost" id="hl-close">닫기</button></div>
+  <div class="hl-tools">
+    <span class="tabs" role="group" aria-label="모아 볼 범위">
+      <button class="tab" id="hl-tab-doc" aria-pressed="true">이 논문</button>
+      <button class="tab" id="hl-tab-all" aria-pressed="false">모든 논문</button>
+    </span>
+    <span class="tr-actions">
+      <button class="btn ghost" id="hl-copy">모두 복사</button>
+      <button class="btn" id="hl-save" hidden>파일로 저장</button>
+    </span>
+  </div>
+  <p class="hl-note" id="hl-note" aria-live="polite"></p>
   <div class="hl-list" id="hl-list"></div>
   <textarea id="hl-text" readonly hidden aria-label="복사할 글"></textarea>
 </dialog>
@@ -1245,7 +1277,7 @@ function render(){
   }
   if (tv) state.sentences.forEach((_, i) => showTranslation(i));
   state.sentences.forEach((s, i) => { if (state.hl.has(s.text)) applyHl(i); });
-  updateSelbar(); closeTerm();
+  updateSelbar(); closeTerm(); queueRail();
   fillJump();
   mark();
   updateTrUi();
@@ -1303,7 +1335,7 @@ function setHl(c){
   if (pinI === null) return;
   const i = +pinI, text = state.sentences[i]?.text; if (!text) return;
   if (c) state.hl.set(text, c); else state.hl.delete(text);
-  applyHl(i); saveHl(); updateSelbar(); updateTrUi();
+  applyHl(i); saveHl(); updateSelbar(); updateTrUi(); queueRail();
 }
 document.querySelectorAll("#selbar .sw").forEach(b => b.addEventListener("click", () => setHl(b.getAttribute("aria-pressed") === "true" ? null : b.dataset.c)));
 $("sel-clear").addEventListener("click", () => setHl(null));
@@ -1315,38 +1347,158 @@ function loadHl(){
 }
 function saveHl(){
   try {
-    if (state.hl.size) localStorage.setItem(hlKey(), JSON.stringify({at: Date.now(), hl: Object.fromEntries(state.hl)}));
-    else localStorage.removeItem(hlKey());
+    if (!state.hl.size){ localStorage.removeItem(hlKey()); return; }
+    // 모든 논문 모아 보기에 쓰도록 제목, 번역, 문서 안 순서도 같이 남긴다
+    const ko = {}, pos = {};
+    state.sentences.forEach((s, i) => {
+      if (!state.hl.has(s.text) || s.text in pos) return;
+      pos[s.text] = i;
+      const t = state.translations.get(s.text); if (t) ko[s.text] = t;
+    });
+    localStorage.setItem(hlKey(), JSON.stringify({at: Date.now(), title: docTitle(), file: state.fileName || "", hl: Object.fromEntries(state.hl), ko, pos}));
   } catch {}
 }
-function openHlList(){
+// 형광펜 모음: 이 논문, 또는 이 브라우저에 남은 모든 논문
+let hlTab = "doc", downloadsNs = null;
+const HL_LABEL = {y: "노랑", g: "초록", p: "분홍"};
+function currentHlDoc(){
+  const items = [];
+  state.sentences.forEach((s, i) => { const c = state.hl.get(s.text); if (c && !items.some(x => x.en === s.text)) items.push({en: s.text, ko: state.translations.get(s.text) || "", c, i}); });
+  return {title: docTitle() || state.fileName || "지금 논문", items, current: true};
+}
+function allHlDocs(){
+  const out = [], cur = hlKey();
+  try {
+    for (const k of Object.keys(localStorage)){
+      if (!k.startsWith("jjk-hl:") || k === cur) continue;
+      const d = JSON.parse(localStorage.getItem(k));
+      const items = Object.entries(d?.hl || {}).map(([en, c]) => ({en, c, ko: d.ko?.[en] || "", pos: d.pos?.[en] ?? 0})).sort((a, b) => a.pos - b.pos);
+      if (items.length) out.push({title: d.title || d.file || "제목 없는 문서", at: d.at || 0, items});
+    }
+  } catch {}
+  out.sort((a, b) => b.at - a.at);
+  const now = currentHlDoc();
+  return now.items.length ? [now, ...out] : out;
+}
+function hlDocs(){ return hlTab === "doc" ? [currentHlDoc()].filter(d => d.items.length) : allHlDocs(); }
+function renderHlList(){
   const list = $("hl-list"); list.replaceChildren();
   $("hl-text").hidden = true;
-  const items = state.sentences.map((s, i) => ({s, i, c: state.hl.get(s.text)})).filter(x => x.c);
-  if (!items.length) list.append(make("p", "hl-empty", "아직 형광펜 친 문장이 없어요. 번역 보기에서 문장을 누르고 색을 고르세요."));
-  for (const {s, i, c} of items){
-    const b = make("button", "hl-item"); b.dataset.c = c; b.type = "button";
-    const ko = state.translations.get(s.text);
-    if (ko) b.append(make("span", "ko", ko));
-    b.append(make("span", "en", s.text));
-    b.addEventListener("click", () => {
-      $("hl-dlg").close();
-      pick(i, true);
-      document.querySelector(`#doc [data-t="${i}"]`)?.scrollIntoView({block: "center"}) || document.querySelector(`#doc [data-i="${i}"]`)?.scrollIntoView({block: "center"});
-    });
-    list.append(b);
+  $("hl-tab-doc").setAttribute("aria-pressed", hlTab === "doc");
+  $("hl-tab-all").setAttribute("aria-pressed", hlTab === "all");
+  const docs = hlDocs();
+  const n = docs.reduce((a, d) => a + d.items.length, 0);
+  $("hl-note").textContent = "형광펜은 이 브라우저에만 저장돼요. 다른 기기에서도 보거나 오래 두려면 ‘파일로 저장’을 눌러 주세요.";
+  if (!n) list.append(make("p", "hl-empty", hlTab === "doc"
+    ? "이 논문에는 아직 형광펜 친 문장이 없어요. 번역 보기에서 문장을 누르고 색을 고르세요."
+    : "아직 형광펜 친 문장이 없어요."));
+  for (const d of docs){
+    const box = make("section", "hl-doc");
+    if (hlTab === "all"){ const h = make("h3", "", d.title); h.append(make("span", "", d.current ? `지금 논문 · ${d.items.length}문장` : `${d.items.length}문장`)); box.append(h); }
+    for (const it of d.items){
+      const b = make("button", "hl-item"); b.type = "button"; b.dataset.c = it.c;
+      b.setAttribute("aria-label", `${HL_LABEL[it.c]} 형광펜: ${it.ko || it.en}`);
+      if (it.ko) b.append(make("span", "ko", it.ko));
+      b.append(make("span", "en", it.en));
+      if (d.current) b.addEventListener("click", () => { $("hl-dlg").close(); goToSentence(it.i); });
+      else b.disabled = true;
+      box.append(b);
+    }
+    list.append(box);
   }
-  $("hl-copy").disabled = !items.length;
-  $("hl-dlg").showModal();
+  $("hl-copy").disabled = $("hl-save").disabled = !n;
+  $("hl-save").hidden = !(EDITION === "web" || downloadsNs);
+}
+function openHlList(){ renderHlList(); $("hl-dlg").showModal(); }
+function hlText(){
+  const today = new Date().toISOString().slice(0, 10);
+  const lines = [`짹짹이 형광펜 모음 (${today})`, ""];
+  for (const d of hlDocs()){
+    lines.push(`■ ${d.title}`, "");
+    for (const it of d.items){
+      lines.push(`[${HL_LABEL[it.c]}] ${it.ko || it.en}`);
+      if (it.ko) lines.push(`       ${it.en}`);
+      lines.push("");
+    }
+  }
+  return lines.join("\n").trim() + "\n";
+}
+function goToSentence(i){
+  const el = document.querySelector(`#doc [data-t="${i}"]`) || document.querySelector(`#doc [data-i="${i}"]`);
+  el?.scrollIntoView({block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
+  if (trView()) pick(i, true);
 }
 $("hl-open").addEventListener("click", openHlList);
+$("hl-open-menu").addEventListener("click", () => { hlTab = state.sentences.some(s => state.hl.has(s.text)) ? "doc" : "all"; openHlList(); });
+$("hl-tab-doc").addEventListener("click", () => { hlTab = "doc"; renderHlList(); });
+$("hl-tab-all").addEventListener("click", () => { hlTab = "all"; renderHlList(); });
 $("hl-close").addEventListener("click", () => $("hl-dlg").close());
 $("hl-copy").addEventListener("click", () => {
-  const text = state.sentences.filter(s => state.hl.has(s.text))
-    .map(s => [state.translations.get(s.text), s.text].filter(Boolean).join("\n")).join("\n\n");
-  const fallback = () => { const t = $("hl-text"); t.value = text; t.hidden = false; t.focus(); t.select(); };
-  try { navigator.clipboard.writeText(text).then(() => { $("hl-copy").textContent = "복사했어요"; setTimeout(() => { $("hl-copy").textContent = "모두 복사"; }, 1800); }, fallback); } catch { fallback(); }
+  const text = hlText();
+  const fallback = () => { const t = $("hl-text"); t.value = text; t.hidden = false; t.focus(); t.select(); $("hl-note").textContent = "자동 복사가 막혀 있어요. 아래 글을 길게 눌러 복사해 주세요."; };
+  try { navigator.clipboard.writeText(text).then(() => { $("hl-note").textContent = "복사했어요."; }, fallback); } catch { fallback(); }
 });
+$("hl-save").addEventListener("click", async () => {
+  const text = hlText();
+  const base = hlTab === "doc" ? (docTitle() || "논문").replace(/[\\/:*?"<>|]+/g, " ").slice(0, 60).trim() : "모든 논문";
+  const name = `형광펜 - ${base}.txt`;
+  if (EDITION === "web"){
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([text], {type: "text/plain;charset=utf-8"}));
+    a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    $("hl-note").textContent = "파일로 저장했어요.";
+    return;
+  }
+  try {
+    await downloadsNs.save({filename: name, data: text});
+    $("hl-note").textContent = "파일로 저장했어요.";
+  } catch (e){
+    $("hl-note").textContent = e?.code === "declined" ? "저장을 취소했어요."
+      : e?.code === "rate_limited" ? "저장 창이 이미 열려 있어요. 그 창을 먼저 닫아 주세요."
+      : "이 화면에서는 파일로 저장할 수 없어요. ‘모두 복사’로 옮겨 주세요.";
+  }
+});
+
+// 형광펜 위치 막대
+let railQueued = false;
+function updateRail(){
+  const rail = $("hlrail");
+  rail.querySelectorAll(".hr-mark").forEach(m => m.remove());
+  const doc = $("doc").getBoundingClientRect();
+  const items = state.sentences.map((s, i) => [s, i]).filter(([s]) => state.hl.has(s.text));
+  rail.hidden = !items.length || !doc.height || $("doc").hidden;
+  if (rail.hidden) return;
+  rail.style.top = (document.querySelector(".topbar").getBoundingClientRect().bottom + 10) + "px";
+  rail.style.bottom = (innerHeight - document.querySelector(".player").getBoundingClientRect().top + 10) + "px";
+  for (const [s, i] of items){
+    const el = document.querySelector(`#doc [data-t="${i}"]`) || document.querySelector(`#doc [data-i="${i}"]`);
+    if (!el || !el.getClientRects().length) continue;
+    const top = el.getBoundingClientRect().top - doc.top;
+    const b = make("button", "hr-mark"); b.type = "button"; b.dataset.c = state.hl.get(s.text);
+    b.style.top = Math.min(100, Math.max(0, top / doc.height * 100)) + "%";
+    const label = (state.translations.get(s.text) || s.text);
+    b.title = label.length > 70 ? label.slice(0, 70) + "…" : label;
+    b.setAttribute("aria-label", `${HL_LABEL[b.dataset.c]} 형광펜으로 가기: ${b.title}`);
+    b.addEventListener("click", () => goToSentence(i));
+    rail.append(b);
+  }
+  updateRailView();
+}
+function updateRailView(){
+  const rail = $("hlrail"); if (rail.hidden) return;
+  const doc = $("doc").getBoundingClientRect();
+  const viewTop = document.querySelector(".topbar").getBoundingClientRect().bottom;
+  const viewBottom = document.querySelector(".player").getBoundingClientRect().top;
+  const a = Math.max(0, (viewTop - doc.top) / doc.height), b = Math.min(1, (viewBottom - doc.top) / doc.height);
+  const v = $("hr-view");
+  v.hidden = b <= a;
+  v.style.top = a * 100 + "%"; v.style.height = Math.max(0, b - a) * 100 + "%";
+}
+const queueRail = () => { if (railQueued) return; railQueued = true; requestAnimationFrame(() => { railQueued = false; updateRail(); }); };
+addEventListener("scroll", () => requestAnimationFrame(updateRailView), {passive: true});
+addEventListener("resize", queueRail);
+if ("ResizeObserver" in window) new ResizeObserver(queueRail).observe($("doc"));
 
 // ---- 학술 용어 풀이 ----------------------------------------------------------
 // 번역할 때 Claude가 낯선 학술 용어를 함께 골라 준다. 누르면 쉬운 풀이를 받아 오고,
@@ -1778,6 +1930,7 @@ function saveTr(){
         if (t) tr[s.text] = [t, state.fixed.get(s.text) || "", state.warn.get(s.text) || ""];
       }
       if (!Object.keys(tr).length) return;
+      if (state.hl.size) saveHl();
       localStorage.setItem(docKey(), JSON.stringify({at: Date.now(), tr, terms: [...state.terms.values()]}));
       const keys = Object.keys(localStorage).filter(k => k.startsWith(LS));
       if (keys.length > 8){
@@ -2033,6 +2186,7 @@ $("ex-en").click();
 if (claudeState === "pending"){
   const settle = fn => { sampleFn = fn || null; claudeState = fn ? "on" : "off"; updateModeUi(); if (state.view !== "orig") rebuild(); checkScan(); };
   window.claude.use("sample").then(settle).catch(() => settle(null));
+  window.claude.use("downloads").then(ns => { downloadsNs = ns || null; }).catch(() => {});
 }
 </script>
 
