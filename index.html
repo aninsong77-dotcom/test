@@ -21,6 +21,7 @@
   --accent:#2b5c8a; --accent-ink:#ffffff; --accent-soft:#e3edf6;
   --mark:#ffe58a; --mark-ink:#1b2430; --done:#8a96a3; --tr:#3d6b4f;
   --skip-bg:#eef1f4; --warn:#9a5b00;
+  --paper:#ffffff; --paper-ink:#4a5562;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
@@ -116,8 +117,61 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
 .strip .cite{text-decoration:line-through;opacity:.6}
 .pair{display:grid;gap:2px;margin-bottom:8px}
 .pair .s{display:block}
-.tr{display:block;color:var(--tr);font-size:.95rem;line-height:1.7}
-.tr.wait{color:var(--muted);font-style:italic}
+.pair .t{display:block;color:var(--tr);font-size:.95rem;line-height:1.7}
+
+/* 번역 문장. 한 쌍(원문 문장 + 번역 문장)은 같은 번호를 달고, 마우스를 올리거나 누르면 둘 다 칠한다 */
+.t{border-radius:3px;transition:background .15s;cursor:pointer}
+.t.wait,.pair .t.wait{color:var(--muted);font-style:italic;font-size:.9em}
+.t.fail,.pair .t.fail{color:var(--warn)}
+.t.fixed{text-decoration:underline dotted;text-decoration-color:color-mix(in srgb, var(--tr) 75%, transparent);text-underline-offset:4px}
+.t.warn{text-decoration:underline wavy var(--warn);text-underline-offset:4px}
+.tview .s.hl,.tview .t.hl,.tview .s.pin,.tview .t.pin,.t.now{background:var(--mark);color:var(--mark-ink)}
+.tview .s:hover{text-decoration:none}
+.tview.strip .cite{text-decoration:none;opacity:1}
+.tag{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:.66rem;letter-spacing:.05em;border:1px solid var(--line);border-radius:4px;padding:0 5px;margin-right:6px;color:var(--muted);vertical-align:1px}
+.doc .note{font-size:.86rem;line-height:1.7;color:var(--muted)}
+
+/* 원문 · 번역 나란히: 휴대폰은 번역 위·원문 아래, 넓은 화면은 왼쪽 원문 · 오른쪽 번역 */
+.wide .wrap,.wide .toolbar,.wide .player-in{max-width:1240px}
+.doc.side{gap:16px}
+.cols-head{display:none}
+.row{display:grid;grid-template-columns:minmax(0,1fr);gap:6px}
+.row>.ko{order:-1}
+.row>.src{color:var(--muted);font-size:.9rem;line-height:1.7;padding-left:12px;border-left:2px solid var(--line)}
+.doc.no-src .row>.src{display:none}
+@media (min-width:900px){
+  .doc.side{padding:26px 32px}
+  .cols-head{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px;font-family:"IBM Plex Mono",monospace;font-size:.7rem;letter-spacing:.08em;color:var(--muted);border-bottom:1px solid var(--line);padding-bottom:8px}
+  .row{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px}
+  .row>.ko{order:0}
+  .row>.src{color:var(--ink);font-size:.95rem;line-height:1.8;padding-left:0;border-left:0}
+  .doc.no-src .row,.doc.no-src .cols-head{grid-template-columns:minmax(0,1fr)}
+  .doc.no-src .cols-head span:first-child{display:none}
+  .doc.no-src .row>.ko{max-width:46em}
+}
+
+/* 그림·표: PDF 쪽에서 그 자리만 잘라 붙인다. 누르면 쪽 전체 */
+.fig{margin:4px 0;display:grid;gap:10px}
+.fig-img{display:grid;place-items:center;width:100%;min-height:72px;padding:14px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--paper-ink);font:inherit;font-size:.8rem;cursor:zoom-in}
+.fig-img img{display:block;max-width:100%;height:auto}
+.fig .row,.fig .cap{font-size:.88rem;line-height:1.65}
+.pageview{border:0;padding:0;border-radius:10px;background:var(--surface);color:var(--ink);width:min(920px, calc(100vw - 24px));max-height:calc(100dvh - 24px)}
+.pageview::backdrop{background:rgba(10,15,20,.6)}
+.pv-bar{position:sticky;top:0;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--line);font-family:"IBM Plex Mono",monospace;font-size:.8rem}
+.pageview img{display:block;width:100%;height:auto;min-height:200px;background:var(--paper)}
+
+/* 번역 안내와 진행 막대 */
+.tr-cta{display:flex;flex-wrap:wrap;gap:10px 12px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--accent-soft)}
+.tr-cta p{margin:0;flex:1 1 260px;font-size:.9rem}
+.trbar{display:grid;gap:8px}
+.tr-top{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between}
+.tr-msg{font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.tr-actions{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.tr-check{display:flex;gap:6px;align-items:center;font-size:.85rem;cursor:pointer}
+.tr-check input{accent-color:var(--accent);margin:0}
+.tr-prog{height:4px;border-radius:2px;background:var(--line);overflow:hidden}
+.tr-prog i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+.tr-legend{margin:0;font-size:.78rem;color:var(--muted)}
 .skip{background:var(--skip-bg);border-radius:6px;padding:8px 10px;font-size:.82rem;line-height:1.5;color:var(--muted);white-space:pre-line;text-decoration:line-through;text-decoration-color:color-mix(in srgb, var(--muted) 60%, transparent)}
 .skip .why{display:inline-block;text-decoration:none;font-family:"IBM Plex Mono",monospace;font-size:.68rem;letter-spacing:.05em;border:1px solid var(--line);border-radius:4px;padding:0 5px;margin-right:6px;background:var(--surface)}
 .hide-skips .skip{display:none}
@@ -140,7 +194,7 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
   .doc{padding:16px}
   .status{display:none}
 }
-@media (prefers-reduced-motion:reduce){.s{transition:none}}
+@media (prefers-reduced-motion:reduce){.s,.t,.tr-prog i{transition:none}}
 /* 글 붙여넣기 */
 .paste{display:grid;gap:10px;padding:12px}
 .paste textarea{font:inherit;font-size:.95rem;line-height:1.6;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;width:100%;resize:vertical;min-height:140px}
@@ -222,7 +276,8 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
       <summary id="tip-mode"><span class="k">번역</span><span class="v" id="sum-mode">끔</span></summary>
       <div class="menu">
         <button class="opt" id="mode-orig" aria-pressed="true">원문만</button>
-        <button class="opt" id="mode-bi" aria-pressed="false">원문 + 한국어 번역</button>
+        <button class="opt" id="mode-side" aria-pressed="false">원문 · 번역 나란히</button>
+        <button class="opt" id="mode-bi" aria-pressed="false">문장마다 번역 아래에</button>
         <p class="off-note" id="mode-off" hidden></p>
       </div>
     </details>
@@ -264,8 +319,31 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
     <span class="busy" id="ocr-status" aria-live="polite"></span>
   </div>
 
+  <div class="tr-cta" id="tr-cta" hidden>
+    <p id="tr-cta-msg">영어 논문이에요. 본문을 문장 하나도 빼지 않고 한글로 옮겨 원문 옆에 나란히 놓을 수 있어요.</p>
+    <button class="btn" id="tr-cta-go">나란히 번역하기</button>
+    <a class="btn" id="tr-cta-link" href="#" target="_blank" rel="noopener" hidden>claude.ai 버전에서 번역하기</a>
+    <button class="btn ghost icon" id="tr-cta-close" aria-label="닫기">×</button>
+  </div>
+  <section class="trbar" id="trbar" hidden aria-label="번역 진행">
+    <div class="tr-top">
+      <span class="tr-msg" id="tr-msg" aria-live="polite"></span>
+      <span class="tr-actions">
+        <label class="tr-check" id="o-src-wrap"><input type="checkbox" id="o-src" checked> 원문 같이 보기</label>
+        <button class="btn ghost" id="tr-toggle">멈추기</button>
+      </span>
+    </div>
+    <div class="tr-prog" aria-hidden="true"><i id="tr-fill"></i></div>
+    <p class="tr-legend" id="tr-legend" hidden></p>
+  </section>
+
   <article class="card doc" id="doc" aria-label="읽을 본문"><p class="empty">불러오는 중…</p></article>
 </div>
+
+<dialog class="pageview" id="pageview" aria-label="쪽 전체 보기">
+  <div class="pv-bar"><span id="pv-title"></span><button class="btn ghost" id="pv-close">닫기</button></div>
+  <img id="pv-img" alt="">
+</dialog>
 
 <div class="player" role="region" aria-label="재생">
   <div class="player-in">
@@ -313,9 +391,10 @@ async function extractLines(pdf, onProgress){
       }
       if (!sameLine){
         flush();
-        cur = {text: "", x, y, xEnd: x, size, sizeChars: 0, chars: 0, monoChars: 0, rotated, page: p, pageH: vp.height, pageW: vp.width};
+        cur = {text: "", x, y, xEnd: x, size, sizeChars: 0, chars: 0, monoChars: 0, maxGap: 0, rotated, page: p, pageH: vp.height, pageW: vp.width};
       }
       const gap = x - cur.xEnd;
+      if (cur.text && gap > cur.maxGap) cur.maxGap = gap;
       if (cur.text && gap > size * 0.15 && !/\s$/.test(cur.text) && !/^\s/.test(it.str)) cur.text += " ";
       cur.text += it.str;
       cur.xEnd = Math.max(cur.xEnd, x + w);
@@ -453,6 +532,58 @@ function classify(lines, opt){
   return {bodySize};
 }
 
+// 그림·표 자리 찾기: 캡션에서 위(그림) 또는 아래(표)로, 가장 가까운 본문 문장 줄 앞까지를 그림 영역으로 본다.
+// 영역 안의 글자(축 이름, 표의 칸)는 본문에서 빼고, 영역은 캡션 줄의 fig에 남겨 화면에 잘라 붙인다.
+// 표의 한 행은 칸 사이가 비어서 글자 수에 비해 줄이 길다 (한글은 한 글자를 1em, 그 밖은 0.5em으로 친다)
+const textEm = t => t.length * 0.5 + (t.match(/[\u1100-\u11FF\u3130-\u318F\uAC00-\uD7AF\u3040-\u30FF\u4E00-\u9FFF]/g) || []).length * 0.5;
+const isSparse = l => l.maxGap > l.size * 1.2 || l.xEnd - l.x > textEm(l.text) * l.size * 1.35;
+const isProseLine = l => (l.kind === "body" || l.kind === "heading") && !isSparse(l) &&
+  (l.text.length >= 30 || /[.?!:;,)]$/.test(l.text) || (l.kind === "heading" && l.text.length >= 8));
+function findFigures(lines){
+  const byPage = {};
+  for (const l of lines) (byPage[l.page] ||= []).push(l);
+  for (let i = 0; i < lines.length; i++){
+    const l = lines[i];
+    if (l.kind !== "caption" || !RE_CAPTION.test(l.text)) continue;
+    const cap = [l];
+    for (let j = i + 1; j < lines.length && lines[j].kind === "caption" && lines[j].page === l.page && !RE_CAPTION.test(lines[j].text); j++) cap.push(lines[j]);
+    const page = byPage[l.page], W = l.pageW, H = l.pageH;
+    const text = page.filter(p => !["header", "pagenum", "margin"].includes(p.kind));
+    const left = Math.min(...text.map(p => p.x)), right = Math.max(...text.map(p => p.xEnd));
+    // 2단 편집이면 캡션이 있는 단만, 아니면 본문 폭 전체
+    const prose = page.filter(isProseLine);
+    const crossesMid = p => p.x < W / 2 - 10 && p.xEnd > W / 2 + 10;
+    const twoCol = prose.length > 4 && prose.filter(crossesMid).length < prose.length * 0.2;
+    const cx0 = Math.min(...cap.map(c => c.x)), cx1 = Math.max(...cap.map(c => c.xEnd));
+    const [x0, x1] = !twoCol || crossesMid({x: cx0, xEnd: cx1}) ? [left, right] : cx0 < W / 2 ? [left, W / 2] : [W / 2, right];
+    const inCols = p => p.x < x1 && p.xEnd > x0;
+    // 머리말 줄 아래, 꼬리말 줄 위까지만
+    const head = page.filter(p => ["header", "pagenum", "margin"].includes(p.kind) && p.y > H / 2);
+    const foot = page.filter(p => ["header", "pagenum", "margin"].includes(p.kind) && p.y < H / 2);
+    const ceil = head.length ? Math.min(...head.map(p => p.y - p.size * 0.4)) : H * 0.95;
+    const floor = foot.length ? Math.max(...foot.map(p => p.y + p.size)) : H * 0.05;
+    const capTop = Math.max(...cap.map(c => c.y)) + l.size, capBottom = Math.min(...cap.map(c => c.y)) - l.size * 0.4;
+    const up = () => {
+      const hits = prose.filter(p => p.y > capTop && inCols(p) && !cap.includes(p));
+      return {y0: capTop, y1: hits.length ? Math.min(...hits.map(p => p.y - p.size * 0.4)) : ceil};
+    };
+    const down = () => {
+      const hits = prose.filter(p => p.y < capBottom && inCols(p) && !cap.includes(p));
+      return {y0: hits.length ? Math.max(...hits.map(p => p.y + p.size)) : floor, y1: capBottom};
+    };
+    const ok = r => r.y1 - r.y0 > 24 && r.y1 - r.y0 < H * 0.75;
+    const table = /^[<\[(]?\s*(?:table|tab\.|표)/i.test(l.text);
+    const first = table ? down() : up(), second = table ? up() : down();
+    const r = ok(first) ? first : ok(second) ? second : null;
+    if (!r) continue;
+    l.fig = {page: l.page, x0: x0 - 4, x1: x1 + 4, y0: r.y0, y1: r.y1};
+    for (const p of page){
+      if (cap.includes(p) || !["body", "heading", "small"].includes(p.kind)) continue;
+      if (p.y > r.y0 && p.y < r.y1 && inCols(p)){ p.kind = "figure"; p.reason = "그림·표 안 글자"; }
+    }
+  }
+}
+
 // 본문 줄 → 문단/제목 블록. 중간에 끼어든 제외 줄은 문단이 끝난 뒤에 붙인다.
 function buildBlocks(lines){
   const blocks = [];
@@ -473,8 +604,9 @@ function buildBlocks(lines){
   const addSkip = l => {
     const target = para ? pendingSkips : blocks;
     const last = target[target.length - 1];
-    if (last && last.kind === "skip" && last.reason === l.reason && last.page === l.page) last.text += "\n" + l.text;
-    else target.push({kind: "skip", reason: l.reason, page: l.page, text: l.text});
+    const newCaption = l.kind === "caption" && RE_CAPTION.test(l.text);
+    if (last && last.kind === "skip" && last.reason === l.reason && last.page === l.page && !newCaption) last.text += "\n" + l.text;
+    else target.push({kind: "skip", reason: l.reason, page: l.page, text: l.text, fig: l.fig});
   };
 
   for (const l of lines){
@@ -755,7 +887,7 @@ function classifyParas(parts, opt){
 
 
 // ---- 예시 ----------------------------------------------------------------
-const SAMPLE_PDF_B64 = "JVBERi0xLjQKJZOMi54gUmVwb3J0TGFiIEdlbmVyYXRlZCBQREYgZG9jdW1lbnQgKG9wZW5zb3VyY2UpCjEgMCBvYmoKPDwKL0YxIDIgMCBSIC9GMiAzIDAgUiAvRjMgNCAwIFIgL0Y0IDUgMCBSCj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9CYXNlRm9udCAvSGVsdmV0aWNhIC9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nIC9OYW1lIC9GMSAvU3VidHlwZSAvVHlwZTEgL1R5cGUgL0ZvbnQKPj4KZW5kb2JqCjMgMCBvYmoKPDwKL0Jhc2VGb250IC9UaW1lcy1JdGFsaWMgL0VuY29kaW5nIC9XaW5BbnNpRW5jb2RpbmcgL05hbWUgL0YyIC9TdWJ0eXBlIC9UeXBlMSAvVHlwZSAvRm9udAo+PgplbmRvYmoKNCAwIG9iago8PAovQmFzZUZvbnQgL1RpbWVzLVJvbWFuIC9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nIC9OYW1lIC9GMyAvU3VidHlwZSAvVHlwZTEgL1R5cGUgL0ZvbnQKPj4KZW5kb2JqCjUgMCBvYmoKPDwKL0Jhc2VGb250IC9UaW1lcy1Cb2xkIC9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nIC9OYW1lIC9GNCAvU3VidHlwZSAvVHlwZTEgL1R5cGUgL0ZvbnQKPj4KZW5kb2JqCjYgMCBvYmoKPDwKL0NvbnRlbnRzIDExIDAgUiAvTWVkaWFCb3ggWyAwIDAgNjEyIDc5MiBdIC9QYXJlbnQgMTAgMCBSIC9SZXNvdXJjZXMgPDwKL0ZvbnQgMSAwIFIgL1Byb2NTZXQgWyAvUERGIC9UZXh0IC9JbWFnZUIgL0ltYWdlQyAvSW1hZ2VJIF0KPj4gL1JvdGF0ZSAwIC9UcmFucyA8PAoKPj4gCiAgL1R5cGUgL1BhZ2UKPj4KZW5kb2JqCjcgMCBvYmoKPDwKL0NvbnRlbnRzIDEyIDAgUiAvTWVkaWFCb3ggWyAwIDAgNjEyIDc5MiBdIC9QYXJlbnQgMTAgMCBSIC9SZXNvdXJjZXMgPDwKL0ZvbnQgMSAwIFIgL1Byb2NTZXQgWyAvUERGIC9UZXh0IC9JbWFnZUIgL0ltYWdlQyAvSW1hZ2VJIF0KPj4gL1JvdGF0ZSAwIC9UcmFucyA8PAoKPj4gCiAgL1R5cGUgL1BhZ2UKPj4KZW5kb2JqCjggMCBvYmoKPDwKL1BhZ2VNb2RlIC9Vc2VOb25lIC9QYWdlcyAxMCAwIFIgL1R5cGUgL0NhdGFsb2cKPj4KZW5kb2JqCjkgMCBvYmoKPDwKL0F1dGhvciAoXChhbm9ueW1vdXNcKSkgL0NyZWF0aW9uRGF0ZSAoRDoyMDI2MDkyNzA1NDgwMyswMCcwMCcpIC9DcmVhdG9yIChcKHVuc3BlY2lmaWVkXCkpIC9LZXl3b3JkcyAoKSAvTW9kRGF0ZSAoRDoyMDI2MDkyNzA1NDgwMyswMCcwMCcpIC9Qcm9kdWNlciAoUmVwb3J0TGFiIFBERiBMaWJyYXJ5IC0gXChvcGVuc291cmNlXCkpIAogIC9TdWJqZWN0IChcKHVuc3BlY2lmaWVkXCkpIC9UaXRsZSAoU2VjdGlvbi1Bd2FyZSBTdW1tYXJpemF0aW9uIG9mIExvbmcgUGFwZXJzKSAvVHJhcHBlZCAvRmFsc2UKPj4KZW5kb2JqCjEwIDAgb2JqCjw8Ci9Db3VudCAyIC9LaWRzIFsgNiAwIFIgNyAwIFIgXSAvVHlwZSAvUGFnZXMKPj4KZW5kb2JqCjExIDAgb2JqCjw8Ci9GaWx0ZXIgWyAvQVNDSUk4NURlY29kZSAvRmxhdGVEZWNvZGUgXSAvTGVuZ3RoIDI3MTAKPj4Kc3RyZWFtCkdhdD0sOy9iMksmcTk7UVIpZVIxOys0J2Jsb25dLmZgOFdUZDlgPFsqUk9NMlE+KTg6LGNbWFNmREZuJiljQ11jMmxnNyQhPjdtSDNBXVE/bz9HWDZAZi1OM107VVNjR3QwTisiR3FnIltOci4sVVVzYixtSSVzRihdSSxxYkBwPE5gREpEJ19AJilnT3NjTD9uW3RgV0dMZEkjRDAzKypBQEMhUU1aLixQXWRsZk1WUCtOUzxfXUwkXHRFaDtvSlFVa15WcjNMUjhGU0VvM15fTCRmMWMtQWc6VD1CR2lKYzduWHEnZDpxJzdePjtNYGtYL18vZGNzJUM1QF9tR1ZWMD9ZZmRjO18ldCZZZCtxLFI7MVNMVWFNRmMzTTJeLG9tXGBBYU5CXm1WWlgwQ3RtXGhfaGRmOiVHRitQQ3Q4WiozQGFlNFApZiYrclpKRDVBR2FrcCRdS0QrcF48ZHAnU3MrbC43XzJRa1BIb1leZD1FUVE0YCxwaDRHQmZlZUpxLkxQa0Vwc0RKbSUxZi5eWSg+VXMvUjVKLSQuIUFNXjZPZyZ1KEdATWxwcV4nOytoYmdAR2FOJFBZUWlcPjI2WVpmLylAQGZPWkRSRT0rKmJGPUdZYzdVRHAqRDRhLidrNUhQRCNWMlY0XmxISCJ0cmN0bydXJi9cNipAWl8lWFFyQW9DQ1EqXzRtNTo7Xzc7Wj9MajBKX2FnNEZSYi5DKVsjLW9oT0Y1LCVyOjwpSyJoZHU1Lyk8dGNIZy1GL0s6ZkFcZ2ddOVVHb2NIRks8bkdLTXM3aU4/Syo6KzpsOk5bMl9MRiwhaCdlbmNAdWoiaEppal91VC5oV1M4SywkSylcNzdfXSpKZF8/YiIhL3UmRUdrQ09lVWg+K0drTnE3KWRrbVFiND9fKztrZmZSMV4zST43U1d1V2ZfUmQoK2tQOFNNR05qMTk3L20qNGJMNUpiKzg5a3MvKyQpLy0oQTBublklaVs8QjJQakstRF9uXiouYTwiOWRucmBtdGJeWiJpNzhKWlAkWzFnSGJqaSliTj1wTU5HKmVabTIwTWwvTykpYHJjZFpjLVVnJmtUPGVGIjBCLjRkKC5KOD4qbFpbRkMyMmVlaFUzVyxGVDg4OCQtTiREQ1E1WFAqNWI3VWZxQVs8ZHFiVjxpRT09YCgqPCY9PHEpT1BRby9gQS8mJGIrIVRpKEpNNk5VQS5ETC9layg1bD40Tk5bQVkmbz1kNmshWnJYc0NBZkozXD9Dbm4pYjUhViRda3EwKS5PXllNVWYwOCxvVl4pRGFMOEwyY2RGWzc0USdhLFJJdS4lLXExKSdoOColVWdJLVE1VnBjUV48PnNGUUF0UGhpPG05JGJWampAOiM8NGAoV1QsZUFTNFU3WSVLJHQqOmN0ZFBHUyZeXlZrYm9lSjlvJG8hZzpXRlYtVHUhVSlBJFgwL2AlIjBRbDJxJSg8RjpeKyE6TWNsQ1ljYHJxS05IP1hkKSlIbFpaK1U/Zj1OVThiI2smSG9FZ3BdbGpBT1EiYWBZNWpdUDUtdGY+dVgsPWY1JWg/Kjd1MVkyNVg7KTFhMVZfVCYtaVZiXlNcVSdZNFpdYmx0bzs+YFxlVDdpdDFqcTonalVjZ3ReVSsyJU1uXzFHNFYoS2oyQGRxPjslK2A3PyMqPF5tdWdbYz1LWykiNkBLRHQ+QGpxJiZSV2Nsbk48VWFcJypCI00uKyEqS0lHNUBCWFNpQG88XyR1ViwtcV9VSWBjLHBaJTFLX0clNDs4Lz4lMyZLJ3BsVzk0ViZVMyk1ZF81SWRNOHRPNml0YCZkPXBobTBhI29HZVpSQ2VRRiY/UUhNUG9HaDw+WWNMTEVZPCRIczRQM1ExMmFpJCU4OS4kZjBSY0hiZElXJVEnU28xcHVSZDJtOz1QbSclPW5EZThoRFtuY24uO0E5UlpYVC5ySigkVy8nMk1fMStJUScrQ2JGLG4sZyNKOW9wSE9pMDRBRGE+N2JJMi8iXjNnZCRKV2dHQnRXSj9GVkRDXmgkQitAMVFvKzlRNl5ZRDJydENQPVhrcSg5bVVhN1dZLS44KS45NXNyc2NxUylSXUsoWUJpb3JZIWsyNzlwVUg+Pzc0S09HVTZDQk8qaCJfc2ZlMy5sLSQ9OVVLJm8sNUpWPilHKEtiWUxsLzY+c01XOkU+clhubkFdKTg6QS5sO1w6OzVEL1pFKEQ6JGZHMiV1ZT9GVVZlSzJdRCdxYGZwSGk+VGordD9CKGRuKFw2SzUmQHUtSmk7bW5WOklMVDcwXkFOJTc0I2U8bUdTM0diO2JBOFlvIkNRRF9CbFdcP1JxNytQVz1vV1xqO2MyI18mPFJYcDw0P2swY0w/PD5rSVhESCdJNyFHSzlfLz9CYlpTUyg7LyoycmRoT2gqaEc8TWdaNTlZZ19XJE4mJypXYGY6QGU7XjNGRC5AOlA1RlBmMz06XCpqSUtnS1JdYE5PLUlPVl8vIlxPXC1zdGNuPm4+LTwndG87UjREOyxFbW5pNT5XI3JOKWp0Tk42VCxURDYhSFg3UGtjTWxkJFtPdU5lQ19tcE1OUkZCRD5YZXJMMmxhPmIlLDBXclc+PlpjPTAsRSo7TlJoUHRzTk9lM2F1cDRCLyJVMkI0LiNfLUApPU5wKFZZOTdwOmVOSyxaVWkuQzJTUFZPMClOYmIrP0xPZlBjKiVNRXJfY2BwT2A4KUhaNm4obHBKVzNMQ0BNazVbVzlCcXVFOEouNSJCcitFNWc1dWJxW3NjbEpoVCh1bG9mWklYKD48LFxPSkpFXCNOOlY6JXFwclhRIiU1Jzc7KmIjRyQpbig0dF4yQiNWTFRDVExcNT9FaCdkWjUkP3QoPV9GXXBvJU41VkJzRzo8IXFjS1diOS4wL1c0TGIvZGtWTkZZY1I4Vy9OQkM5K0JVPWxPRlolYDkiYmMpYDluWyIvPSNHKnNnSylSWz1gTVY3dTZNak9rYVZIXWxJM2EnImsuNW5xLUpKOy4jPEBxU0VuR2F1YmpkOic9JUhRWHM5OlxgQXIpWEZeRkEyNmhzcElfaHVAXVMlQ1YnZnEoVy5LQ09OOSk1SzROOFVdVF9dVnE2JnVZNSZeOCVVIWk2Sik8W1pLaWBHP1ooVHJRNkUxREk7YWk1VCZhIzpmKi5bNEQzWVpXWTNTW2dmWS9QQTojJ3E0TSNTQUddI15uKjIlZTZkU2UuYTcxSm8+anFtNF5hNmwlIWBsZFlhNkVnS11xNlIpPVFWaERNW1VEKGstIlR0YlYmJUEoSWJUciY+cydEYl9DPDppRkw2bU1LPy1caXJsaVghNzEjLmBSUlc8Ri5OVFlbJmM1Qk4kP1VYQkViUXBDRyo6czRPVSE/RVI0N2pxLlgvN0s6NS05IjVqRFheUjJOWldzUmdeI009XWJRcURATFp0YyxrTCgnZ1FkRVoxdTM0ZiE2ZypCa2RobWJxYj0rZVJmUURiQTxhWSxCP2xbUUc1ZDwuOXBFPiVmbi09SUpgLFAnYTI3L2tiZkhkJF4+cC9BRnJhbWdpJGlIZSIsaGE1JmtcdCc7cS9uND8iOEpfNC1hLWxcb2lkXGcrLjw+fj5lbmRzdHJlYW0KZW5kb2JqCjEyIDAgb2JqCjw8Ci9GaWx0ZXIgWyAvQVNDSUk4NURlY29kZSAvRmxhdGVEZWNvZGUgXSAvTGVuZ3RoIDQ2Ngo+PgpzdHJlYW0KR2F0JV07LD4lXydTWUg/KCQ/MGdmIV0oPV4tUjhTalQzNzM5dU1nISdXQU1XZ0M7LC9tcC40QkxiRVohUDI8TmxjaFp1MzM4R2RtbyllLGdcLz5TWU0vMzQ/QFApLCMlKCFyRCw6WD0zUTo/XWVcWCxodXFeRVBCOi5rMFxjJiRZVGVvUD5mIUgqSS9WPUVYRTNpcSpAYz0zNF1EK2gyaDM8aCs+JDlCPDxLS3Erak9CZVkhYVBOImFTcDtTZV83STpNKmg5KWcwOSo8aV1oZGBJVkgkSkFEbl00V1guQDtWL2hwM0JtREoyKFJvKUtoJmBzVWdLSTkwVlslaT07bD9vQzUqLWYqWkxtL1pGMictT15HcyRhKTddYC51VVFNTDdSUDE0NW9HRkhaLjlCPmhOXXRAb1pUPj1aNCgvdSxTWj5BR2VHQ2tjSjsqU2tcWE1pOXAsKl9INk4pPm84WmlAMSRRUmxzWiEuJTc1cDltY0E5TXRFOG5WJjFnUk9mZ1M1WENzSWdWPVBpZGk4SlF0bUczOTg0S1NqZ1RQOyNHXChDb2lESEddU18ycTYyPjAiYFElM1FqWGJuQkc+YEl0MyprTistNW8pZktYJF5+PmVuZHN0cmVhbQplbmRvYmoKeHJlZgowIDEzCjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDA2MSAwMDAwMCBuIAowMDAwMDAwMTIyIDAwMDAwIG4gCjAwMDAwMDAyMjkgMDAwMDAgbiAKMDAwMDAwMDMzOSAwMDAwMCBuIAowMDAwMDAwNDQ4IDAwMDAwIG4gCjAwMDAwMDA1NTYgMDAwMDAgbiAKMDAwMDAwMDc1MSAwMDAwMCBuIAowMDAwMDAwOTQ2IDAwMDAwIG4gCjAwMDAwMDEwMTUgMDAwMDAgbiAKMDAwMDAwMTMyNCAwMDAwMCBuIAowMDAwMDAxMzkwIDAwMDAwIG4gCjAwMDAwMDQxOTIgMDAwMDAgbiAKdHJhaWxlcgo8PAovSUQgCls8NWRiMzA2MDk4YjE2NTg0MjcwYzU2OTZiZWIwOWE5NWI+PDVkYjMwNjA5OGIxNjU4NDI3MGM1Njk2YmViMDlhOTViPl0KJSBSZXBvcnRMYWIgZ2VuZXJhdGVkIFBERiBkb2N1bWVudCAtLSBkaWdlc3QgKG9wZW5zb3VyY2UpCgovSW5mbyA5IDAgUgovUm9vdCA4IDAgUgovU2l6ZSAxMwo+PgpzdGFydHhyZWYKNDc0OQolJUVPRgo=";
+const SAMPLE_PDF_B64 = "JVBERi0xLjQKJZOMi54gUmVwb3J0TGFiIEdlbmVyYXRlZCBQREYgZG9jdW1lbnQgKG9wZW5zb3VyY2UpCjEgMCBvYmoKPDwKL0YxIDIgMCBSIC9GMiAzIDAgUiAvRjMgNCAwIFIgL0Y0IDUgMCBSCj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9CYXNlRm9udCAvSGVsdmV0aWNhIC9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nIC9OYW1lIC9GMSAvU3VidHlwZSAvVHlwZTEgL1R5cGUgL0ZvbnQKPj4KZW5kb2JqCjMgMCBvYmoKPDwKL0Jhc2VGb250IC9UaW1lcy1JdGFsaWMgL0VuY29kaW5nIC9XaW5BbnNpRW5jb2RpbmcgL05hbWUgL0YyIC9TdWJ0eXBlIC9UeXBlMSAvVHlwZSAvRm9udAo+PgplbmRvYmoKNCAwIG9iago8PAovQmFzZUZvbnQgL1RpbWVzLVJvbWFuIC9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nIC9OYW1lIC9GMyAvU3VidHlwZSAvVHlwZTEgL1R5cGUgL0ZvbnQKPj4KZW5kb2JqCjUgMCBvYmoKPDwKL0Jhc2VGb250IC9UaW1lcy1Cb2xkIC9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nIC9OYW1lIC9GNCAvU3VidHlwZSAvVHlwZTEgL1R5cGUgL0ZvbnQKPj4KZW5kb2JqCjYgMCBvYmoKPDwKL0NvbnRlbnRzIDExIDAgUiAvTWVkaWFCb3ggWyAwIDAgNjEyIDc5MiBdIC9QYXJlbnQgMTAgMCBSIC9SZXNvdXJjZXMgPDwKL0ZvbnQgMSAwIFIgL1Byb2NTZXQgWyAvUERGIC9UZXh0IC9JbWFnZUIgL0ltYWdlQyAvSW1hZ2VJIF0KPj4gL1JvdGF0ZSAwIC9UcmFucyA8PAoKPj4gCiAgL1R5cGUgL1BhZ2UKPj4KZW5kb2JqCjcgMCBvYmoKPDwKL0NvbnRlbnRzIDEyIDAgUiAvTWVkaWFCb3ggWyAwIDAgNjEyIDc5MiBdIC9QYXJlbnQgMTAgMCBSIC9SZXNvdXJjZXMgPDwKL0ZvbnQgMSAwIFIgL1Byb2NTZXQgWyAvUERGIC9UZXh0IC9JbWFnZUIgL0ltYWdlQyAvSW1hZ2VJIF0KPj4gL1JvdGF0ZSAwIC9UcmFucyA8PAoKPj4gCiAgL1R5cGUgL1BhZ2UKPj4KZW5kb2JqCjggMCBvYmoKPDwKL1BhZ2VNb2RlIC9Vc2VOb25lIC9QYWdlcyAxMCAwIFIgL1R5cGUgL0NhdGFsb2cKPj4KZW5kb2JqCjkgMCBvYmoKPDwKL0F1dGhvciAoXChleGFtcGxlXCkpIC9DcmVhdGlvbkRhdGUgKEQ6MjAyNjEwMzAwOTE5MDUrMDAnMDAnKSAvQ3JlYXRvciAoXCh1bnNwZWNpZmllZFwpKSAvS2V5d29yZHMgKCkgL01vZERhdGUgKEQ6MjAyNjEwMzAwOTE5MDUrMDAnMDAnKSAvUHJvZHVjZXIgKFJlcG9ydExhYiBQREYgTGlicmFyeSAtIFwob3BlbnNvdXJjZVwpKSAKICAvU3ViamVjdCAoXCh1bnNwZWNpZmllZFwpKSAvVGl0bGUgKEdyb3d0aC1GcmFtZWQgRmVlZGJhY2sgYW5kIFBlcnNpc3RlbmNlIGluIEludHJvZHVjdG9yeSBTdGF0aXN0aWNzKSAvVHJhcHBlZCAvRmFsc2UKPj4KZW5kb2JqCjEwIDAgb2JqCjw8Ci9Db3VudCAyIC9LaWRzIFsgNiAwIFIgNyAwIFIgXSAvVHlwZSAvUGFnZXMKPj4KZW5kb2JqCjExIDAgb2JqCjw8Ci9GaWx0ZXIgWyAvQVNDSUk4NURlY29kZSAvRmxhdGVEZWNvZGUgXSAvTGVuZ3RoIDIzOTkKPj4Kc3RyZWFtCkdhdFUzXzMzUV8mXFwmbHFRX1AxLS49K2NQIz4yKVlpRC1XYS5BOSMvK0xScExrSSRhODpWKTAsS2pHZGYsdU4hWj1dV1xlQztdNSJHcVRrSWRfRDhVKEJQT3MtbShYWT8xQWUyUE1Vc2VWOWZEMFczSEpcbGgybnJMJSNMQmI7Vj4uMUczYiNuJ1ZGOSw6SGxpLUloVV5STmVoOzNLVlpidVtjbVY1MFRUYnNlQjk/aURJRSdLNGlDLjFZQls5KWdlXEo5WSNoYmxlX0ZWcSQ5MXAjaDdoa0FfSjBiPS1IMW5dU3QmSHNaZEppcURFNV06MWEkSFpTZkBvckdqQClhRjhrRyIwWHJuYCJvNlpaJFtqJC1jQV9APEQyb05rVSI/cSsvXHIuX2xKZzZWM28pPm8xMD4xLlxVR0BGNjZXa2QuKTk4U1dHRFErIURabCwoUHMpRklQQ1V1YCwmPVhwdCUsaEFpMEJZVGJAZ1oiXFA8SEZnPEJaYk5jRHJtNGpuUD88aSZWW1VEZSY0XT1VPVtnU2M4UC4+PUo2WCdgX3BAZG9lPW4zMjI+KUBKNm5LZTw8PEdrLWlxN1kmZUA8b0BaQHM5WEp1KnUyVGlVYzcsLidlJUYwUyonRCs3Uj9WaE0taSJFMkhyZ01aN1VDMWVdZk8hRlsuRVhXJkVQcjBSOCY2cWknLmc8bydcOF8kWls2XC03M3I+UVEqT01NcjE4UW9rWW9xRztFKzRLQjJic3EzZ1RyMyhTYVxlWHBcY1NbWDhHOE40RTZpaWRyYSZjYjA9UUY7XWJUIVNzcUckW1NeI082NyEoREI4TVJNQmUvL204bjsnYVdKRDRpYk9eczRjaFYuKDpMMiUqQSJOUUgkc1hlSHRRJ1g0XFVxLXFqMT1vU0AlRXQhXW8nKC5hbDZbXXQ/RScrIlEuIkxtTFhQLTorKkZIZyVaYSVaSlckLEYkVUgyJ2c6K0k2OysoVl5zbWpiWF8+L0hyISVxK1RAclo0YF9TR2VrPkZeRlhgY0FkYWpRZy88bSI5bzBCTDJvaT85SVVYRERdOyElc0srZkxjMmwpJlFRVCg+aT5COHJtRic4N0Z1NzJVXFxbUmAwNzVcV0BUISI6OT1VTk5WMCdNXGFfRWhqJGtCSTxlWltLYCFib0xhUE4/Um9EZDJOWy04RnE/QEEzJywiM19EWihHPDxKbyRsIilVTzBHIS9WJls8OHVyaGUvLmReOEJFQiE/aShyJz4wJyRwKGpxMy4ubypsPSxGI2cyJ151KSI3bzBiVl5rb04iYlZVIVNMW09ATUNdQHFNNW4iMHBWVGkvS044aEAlUFpbTUg3WC9bVDQobzQ5bGFHa0klUU1RXzgoSlReNioqTl0pRko8XSs5R0EjOl02UzphO2E6Rz1lMlImUEVtJHJGTGlxTjUvaFtVPFdrJE0uaCxkKkVDMVpZMnJnNHA+QFNzNy86RmVQOywrOlpRKzRGODMxX2hPaSdIRUtwbkUoJEtaUjlmNSNkV1UxMTcnUlgkRDQvTy5ER0FPLkNgL2hJbEhLcFAvaHFRKDdGUklFcG9gcDJ0aklKRiJOQGlwbUkiN0Q/LTo4bEQqbVpvMjBEYj1SY3BFNF5vJkxdajBvIztYOFA/WzEkIyNCPEZsVmAzS21HNWFIa3AkWzY6ZjUoOkk9TGk7MzMtSkFcQCpARkltZEdVOFByQktkRWEoMjtIZWMiY2YibXFDRzpJb3M/QkpiSDZAOiR1Mmk+QDJsVXAucjk0dCRsIi1NRmlrR0FqQGs5PigkYSlpMUE2OyNAaDpzLjs8NToqJ15yIiUpQiU6W0c0MjknNUxCXkVtcy1zT1E7ImxQSCw4L0FoaU9EUSUzNFkhYWhAL3JUKFNxa1FmV2Q4YlBQIk5pRCt1PkEqaXNAMWxMTCFOcm9JZiskYVA1Vy1mXU9rN0locEUnJmxOT2tUdXMrKHJKQSQyNGZvO15rXSYzdVFyMExsc2JtWUohKVk6IWBdUixKaj5gR2k7TlFYSFRpczZbcEEiTFQ1clA0I1suLSMzXzdFYz9ELWphMUIwRUpPTmJJUS4zdGhTJSkndVhQa2YxK0ZLMUNFKjh1K2pPUTpMKDlwNkExYDFZVDleXCExRDI+TiEjKEFhcTprPkJscT5pUF5AZjFIMVJJTkFtYzUmWGtgQFE+QmYrMlxjQUxXZiY2L0VMQj48UyIpUjwiZyNZITVcJTRlQj1sVnMhOkUyJ1pZUm5KdSM5ZEE+OjhQRzdfW2hsWCwzUkJxJT5jK15DV0ZsITE3WkE6OT5YaVs0Q1Y4M1QoZjMlNTVCQV5ERFc9JVoxSEJjcCJfaW5gPlpfaUhQRU4qPjs4ZGZ1KlI0WVM5L2ddM15SYCN0czVaZEw9Kio3dSQhSy49RyYuInU9JjdmW1lEP0wjY3FSb25kR2BZQCs1UmlhPXBHcC1xaUxmSzZYbUtJXEJRJShRI3MtQypfaDVPb0RwayglKkkzcypKJkxfYFxqT2I6bmA4OVtPMSVmNDckbjYjJFUoOVYoVXNgNT5oLV08I0gyWD1ySVhZKmxtTDlhRWZrako5IVlgR1VuOSk+aVtzQUU0PF4mYGhYSDRBcnBsU1RbXGJVZjhPRFhdYTpedEtabVViTT5pKS45QjpVP2g5LVNDL11LcnJAMyY3LTk7ZWVRVllfZicncVkmWCYnPEdVKWU1amJlSF1AUzpTPjlVXD9KKkNVKiYqPiwkIyY7MEwoQSNZb2JDVm1wQlxUL3FTakhMWGtVP0FncWVgUVoySGEpW3JMbnAmYEk4JilgKmZZZyxpQyFmX3FzWS5AUyluR0RGblZWTnBKdGgrXk88T3RgTC1oYjRAKTc2SUMvUVViWz8xcjVKajZ0bjYyKiNXQz4tITZsOmkiMThHI0poTzZQZldpMEB0ITk0QlA8JHNEVDBgLlFdRXVBMy9daWRrOUA3KD1qJ01lPCcxQzxaQUlhcztTLlxMUyM1XF0uP1khbExgMEFsJVBIRidCcyJKYT5QZj4zRjMpTyooaCQsLHFpQXEyTWZNKSVbOG41aHA9dGA1JWFOPHJrZWpxM0ZVXiNAR2llW1AsLTIlZ18yVUlhLzNZKG1VdF1YNF86L2VWSVEiQDc9bG8zMlt1LXBoTmwqTSlvL3AvL0JnVS9GJGZzSEAjNn4+ZW5kc3RyZWFtCmVuZG9iagoxMiAwIG9iago8PAovRmlsdGVyIFsgL0FTQ0lJODVEZWNvZGUgL0ZsYXRlRGVjb2RlIF0gL0xlbmd0aCAxODk1Cj4+CnN0cmVhbQpHYXRtPDlsbyZJJkFAc0JtJWteS09WJVptJjM2OlYtXVtUJFkrO0FLVkUqLWg1VTdVMC00J2hZWGgpOV0kXWwmT00zXjgmTyUnYGsvL0osKyhballlaThCT0ljU3UuaFMmM29RJEMmQUslYileRTlYIURhSExoJFFjN2ZOXERsNFNsUk9PYyJOTCdzKE0zJFtXTjM2XWYkRClnPV9vNGkmP1knOWtPdCxUVFEiS2VsUF8sclwzPG5XTT9qcVAtTjhULnBwYT9IUT0ic1JXZSg2XDw0aVJiZTZAWj5eTFlHVTNWblxnMGhTLVY0My8+XDhNdD05IW1zajUkcjpcUW1XLzNMaE80XFNbMUBgMGlYTWIlV0lqIWtfWHE2ISEoP2BCOTNiJ090SUNUNitqKG5TUSRLJ2A5cnFbU1NQJUlIQGcsUSRAIjZoK0xAISQ9Qm1nJlM4XmlNMmJPOTVtWDZPJG42bSpBbWhocGdzLTI8Q0h0THIpbVZMSV83Kmc1b0dDRkNKMjVtJWoxVTRTdD5ZLC8mTmlXOm9Ta11QJE5cWShJYkhgMSlGTzk3Y2toSzI0YDZoaGFcK0leISgiQmBlVCwjImxdL29lVDM2WipDIydDTVkmaidDSFZyMV1TXjRDcj1zRSpKLCNPYFg1IlsnVTtdXXFnWnVWInJkZEQ+XHFWTFU6MEM0JzRXWyJOYyozbDppYFwpPk4iZXUyRDk8KHMsXytbMVBhMEtsOj9eTHFSaFIxQVwrZk8vMSM2W0dRQzZ1Y1wrJmEuOT9zR1kqPkdmK3RuTF8vYjUvQiQqO0thL105ZnIqYXBaaDE/N21mYDNNcDNaXEg4TDtHdD5pV3ROUk8+WFJUUEAmRSskLClUTDA4NEk8ZUttTVpbOFRxbWQiL0Y2ZT9rImBsUG1YIzBPX11jZGImaHBNWlN1azdIJDQlYm5xSikmXFpzMGA1RVJIMDMtQyUwZVhvWypZJHByaz0sOVk9Tzs9TFUhWiY0Xj8hX2dgYlUpRCE1SnFmKCxxKnVtJ1FuSkBJVGY6JmclRF8zS2I/PDY0SHBCamIyKTdjSUtnPTprK08ncTolKURKSl8vRiNOOHEpLTtxclFna0IhPWpEPUI5MjY+QicwOGVfUz5lLWwwaU1TTy1LZiI7dClcZSNCPU5LKVVsLiYvUCcnXjdgPkgoZmZQWjwyM05lazktUSJJYGUsLy8xbkxHX210ZStfblE+bWhKbmJjJU0ndGF0WSZBIjtDN19tZFUsXDNTPSwuLylrYTgyZ1osMm9TY05lUm9aYDFrT0M9SCJRW0ZtYCJbP0JzKCVXNkFfaW5OYT9VdT5jQWU6TFU0JGNwZiozV15LTl1TcF1ZIjQ1b243VyduUV8sdCRoc0olMCtLZl8xXk1wX0kjaTZUVXI0UkFqN28yPHE1L0VBL2orb09cSWtmQGt0R2hEbzFdYFhKXWorMScvNzEqaylxKjBCVDI+SUhHazZLMV5dJFhcaW5NJFBnRWpuISQpYSkpVnEyXEsnZm8qZyYrQ0pSakIrcU5eVlZYTkstRT0wbiYoRUFLMFJETzAkVTVHSjkpKmdGaSNnYi8jRldjTFJxWVsnQCcqKGklcy0zP00+dHJta2Q3JyVSdCQnaWluQkBoLFpuNDtxNT0qaV5UOUwzTldDZFFaQyxHLDxbM1shMFZUYGMpJHA1KT9pMipaWzs3YS09U3JvPGFJV1pLcz07JjVmXyVSIVxrI2dsUkFGcERNUycvXmNOaWw5JU4nLjJHSkBlUkJbb0Qlb0JCOG1QKSRBck1tJz1tPDopU1BsQV5WMEVKUlYlNSFmP1okLnE6amMsVDxRLy45RSMzMyQ4K0BQKytgPzRgMk5VPTsuRVZbOy8mZEFyWHAqPWROcjRQWnE4bDw8K0YkcFoqM2dEbEs+XT9BM2lmVjlYbyt0TFdxQFNkSlcyazJoZGhFSSsiOTJjQUk3UkVNNDU/NWdeOy1AOytodDVqSCg3KCNbLWNDY3VbSlNANCI1Ulo8QWY9bXM/M1k6cyomOFBZJW0lZ2tpZ0ohQVVjT2JXVXM/akFSMkNgRSEjSzIodDtRYWgmLGRDUlxLSGklcCEkayMwbV9JMnRePTYwNzNyJmoxR202bE1HLidaNVBZYThBNnIzN2FWL1U3cF8lcEU4JTByZyZMbkFYTW4/QD1LLzRLWD9eQDdiN11BcVs0OlpPNzhQZmVCMDlDRzljN3NrakIxOjFNZFVXMl51UixgNlU4NVotWGgrOHNDaS9QaDYiPVJRNC8iXVROaTFPZF1ZUEcqZW9bbiI3ZURHVVlHWkdcaDJjTGRrbWVaZi9wZFo5b1hZOG5rZSxDKCJKXjVQOWQkO3VfK0xcQUBLOStpaideRjc9Vy1ZXnJybzJFaTtFcl0+a2gzWlgwSkZGN0Ffbmc+Jmo0TS5IOj5Hbjw4YSdYIjJjaVVycyYjaVtjPDQpXEJmWlFPJTJ0QVgnXT06QVRGXGBtXHIoXEtQYWFdTnM/JyN+PmVuZHN0cmVhbQplbmRvYmoKeHJlZgowIDEzCjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDA2MSAwMDAwMCBuIAowMDAwMDAwMTIyIDAwMDAwIG4gCjAwMDAwMDAyMjkgMDAwMDAgbiAKMDAwMDAwMDMzOSAwMDAwMCBuIAowMDAwMDAwNDQ4IDAwMDAwIG4gCjAwMDAwMDA1NTYgMDAwMDAgbiAKMDAwMDAwMDc1MSAwMDAwMCBuIAowMDAwMDAwOTQ2IDAwMDAwIG4gCjAwMDAwMDEwMTUgMDAwMDAgbiAKMDAwMDAwMTM0NSAwMDAwMCBuIAowMDAwMDAxNDExIDAwMDAwIG4gCjAwMDAwMDM5MDIgMDAwMDAgbiAKdHJhaWxlcgo8PAovSUQgCls8Mzk0YTZiMDNhZTMxN2NhNmM0NDZmNDhlOGJhOGM3ZDU+PDM5NGE2YjAzYWUzMTdjYTZjNDQ2ZjQ4ZThiYThjN2Q1Pl0KJSBSZXBvcnRMYWIgZ2VuZXJhdGVkIFBERiBkb2N1bWVudCAtLSBkaWdlc3QgKG9wZW5zb3VyY2UpCgovSW5mbyA5IDAgUgovUm9vdCA4IDAgUgovU2l6ZSAxMwo+PgpzdGFydHhyZWYKNTg4OQolJUVPRgo=";
 const SAMPLE_TXT = "교육공학연구 제41권 제2호\n온라인 강의 만족도에 관한 연구\n\n홍길동, 김철수\n한국대학교 교육학과\n\n초록\n본 연구는 대학생의 자기주도 학습 능력이 온라인 강의 만족도에\n미치는 영향을 분석하였다(김민수 외, 2021). 분석 결과 유의한 영향이 있었다[12].\n\n1. 서론\n온라인 강의는 코로나19 이후 빠르게 확산되었다[3, 5]. 그러나 학습자의\n만족도는 여전히 낮은 편이다(Smith et al., 2020).\n\n- 2 -\n교육공학연구 제41권 제2호\n\n2. 연구 방법\n설문은 412명을 대상으로 실시하였다.\n그림 1. 연구 모형\n\n- 3 -\n교육공학연구 제41권 제2호\n\n참고문헌\n김민수, 이영희 (2021). 온라인 학습. 교육공학연구, 37(1), 1-20.\n";
 
 // ---- 라이브러리는 필요한 형식을 열 때만 불러온다 ---------------------------------
@@ -785,8 +917,12 @@ const state = {
   lang: "en",
   blocks: [], sentences: [],
   idx: 0, playing: false, paused: false, phase: "src",
-  stripCites: true, bilingual: false,
-  translations: new Map(), pending: new Map(),
+  stripCites: true,
+  view: "orig",          // orig: 원문만 | side: 원문 · 번역 나란히 | bi: 문장마다 번역 아래에
+  // 번역은 원문 문장 글자를 열쇠로 둔다 (설정을 바꿔 문장 번호가 달라져도 그대로 쓴다)
+  translations: new Map(), fixed: new Map(), warn: new Map(),
+  inflight: new Set(), failed: new Set(), waiters: new Map(),
+  running: false, trGen: 0, trCursor: 0, trStop: "", ctaClosed: false,
 };
 let sampleFn = null, wakeLock = null;
 // 번역·글자 인식은 claude.ai 안에서만 된다. web: 깃허브 등 일반 웹 버전
@@ -827,7 +963,7 @@ async function openFile(name, buf){
     } else {
       throw new Error("지원하지 않는 형식입니다. PDF, 한글, 엑셀, TXT 파일을 열어 주세요.");
     }
-    state.translations.clear(); state.pending.clear();
+    resetTr();
     ocrAbort?.abort();
     state.idx = 0;
     rebuild();
@@ -879,9 +1015,13 @@ document.addEventListener("paste", e => {
 function rebuild(){
   if (!state.source) return;
   stop();
+  state.trGen++; state.running = false;
+  const curText = state.sentences[state.idx]?.text;
   const o = opts();
   if (state.source.type === "pdf" && !state.source.ocrParts){
     classify(state.source.lines, o);
+    for (const l of state.source.lines) delete l.fig;
+    if (o.caption) findFigures(state.source.lines);
     state.blocks = buildBlocks(state.source.lines);
   } else {
     state.blocks = classifyParas(state.source.ocrParts || state.source.parts, o);
@@ -891,14 +1031,20 @@ function rebuild(){
   const ko = (sample.match(/[가-힣]/g) || []).length, en = (sample.match(/[A-Za-z]/g) || []).length;
   state.lang = ko > en * 0.3 ? "ko" : "en";
 
+  // 번역해서 볼 때는 각주와 그림·표 설명도 번역한다 (소리 내어 읽지는 않는다)
+  const tv = trView();
   state.sentences = [];
   state.blocks.forEach(b => {
-    if (b.kind === "skip") return;
+    b.aside = b.kind === "skip" && tv ? ASIDE[b.reason] || null : null;
+    if (b.kind === "skip" && !b.aside) return;
     b.first = state.sentences.length;
     const parts = b.kind === "heading" ? [b.text] : splitSentences(b.text);
-    for (const t of parts) state.sentences.push({text: t, block: b});
+    b.count = parts.length;
+    for (const t of parts) state.sentences.push({text: t, block: b, aside: !!b.aside});
   });
-  state.idx = Math.min(state.idx, Math.max(0, state.sentences.length - 1));
+  const again = curText ? state.sentences.findIndex(s => s.text === curText) : -1;
+  state.idx = again >= 0 ? again : Math.min(state.idx, Math.max(0, state.sentences.length - 1));
+  state.trCursor = state.idx;
   const skipped = state.blocks.filter(b => b.kind === "skip");
   // 본문으로 잡힌 글이 너무 적으면 알려 준다 (빼는 규칙이 이 문서에 안 맞을 수 있음)
   const len = bs => bs.reduce((n, b) => n + b.text.length, 0);
@@ -909,11 +1055,13 @@ function rebuild(){
   else if ($("error").textContent === LOW) $("error").hidden = true;
   const reasons = [...new Set(skipped.map(b => b.reason))];
   $("file-stats").textContent = "";
-  state.statsText = `${state.lang === "ko" ? "한국어" : "영어"} · 읽을 문장 ${state.sentences.length}개` +
+  state.statsText = `${state.lang === "ko" ? "한국어" : "영어"} · 읽을 문장 ${state.sentences.filter(s => !s.aside).length}개` +
     (skipped.length ? ` · 뺀 부분: ${reasons.join(", ")}` : "");
   updateModeUi();
   loadVoices();
+  if (tv) loadTr();
   render();
+  if (tv) translateAll();
 }
 ["o-front", "o-small", "o-caption", "o-refs"].forEach(id => $(id).addEventListener("change", () => { updateSummaries(); rebuild(); }));
 $("o-show").addEventListener("change", () => { stop(); render(); });
@@ -929,50 +1077,118 @@ function sentenceEl(i){
     if (p.cite){ const c = document.createElement("span"); c.className = "cite"; c.textContent = p.text; span.appendChild(c); }
     else span.appendChild(document.createTextNode(p.text));
   }
-  span.addEventListener("click", () => { stop(); state.idx = i; play(); });
+  // 번역해서 볼 때는 누르면 짝 문장을 표시하고 읽기 시작 위치만 옮긴다
+  span.addEventListener("click", () => { if (trView()){ pick(i); return; } stop(); state.idx = i; play(); });
   return span;
+}
+function koEl(i){
+  const t = document.createElement("span");
+  t.className = "t"; t.dataset.t = i;
+  return t;
+}
+const make = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text) e.textContent = text; return e; };
+const ASIDE_TAG = {note: "각주", caption: "그림·표 설명"};
+// 블록 하나: 나란히 보기면 [원문 칸 | 번역 칸] 한 줄, 아니면 문장마다 원문 아래 번역
+function blockEl(b, side, tv, cls){
+  const tag = b.kind === "heading" ? "div" : "p";
+  const range = Array.from({length: b.count}, (_, k) => b.first + k);
+  const label = () => b.aside === "note" ? make("span", "tag", ASIDE_TAG.note) : null;
+  if (side){
+    const row = make("div", "row " + cls);
+    const src = make(tag, "src"), ko = make(tag, "ko");
+    src.lang = "en"; ko.lang = "ko";
+    const l1 = label(), l2 = label();
+    if (l1){ src.append(l1); ko.append(l2); }
+    range.forEach(i => { src.append(sentenceEl(i), " "); ko.append(koEl(i), " "); });
+    row.append(src, ko);
+    return row;
+  }
+  const el = make(tag, cls);
+  const l = label(); if (l) el.append(l);
+  for (const i of range){
+    if (tv){ const pair = make("span", "pair"); pair.append(sentenceEl(i), koEl(i)); el.appendChild(pair); }
+    else el.append(sentenceEl(i), " ");
+  }
+  return el;
+}
+function figureEl(b, side){
+  const fig = make("figure", "fig");
+  if (b.fig && state.source?.pdf){
+    const box = make("button", "fig-img", "그림을 불러오는 중…");
+    box.type = "button";
+    box.setAttribute("aria-label", `${b.page}쪽 전체 보기`);
+    box._fig = b.fig;
+    box.addEventListener("click", () => openPage(b.fig.page));
+    if (figObs) figObs.observe(box); else drawFig(box);
+    fig.appendChild(box);
+  }
+  fig.appendChild(blockEl(b, side, true, "cap"));
+  return fig;
 }
 function render(){
   const doc = $("doc");
   doc.innerHTML = "";
+  hoverI = null; pinI = null;
+  const tv = trView(), side = tv && state.view === "side";
+  document.body.classList.toggle("wide", side);
   doc.classList.toggle("strip", state.stripCites);
+  doc.classList.toggle("tview", tv);
+  doc.classList.toggle("side", side);
+  doc.classList.toggle("no-src", side && !$("o-src").checked);
   doc.classList.toggle("hide-skips", !$("o-show").checked);
-  const bi = state.bilingual && state.lang === "en";
+  if (side){ const hd = make("div", "cols-head"); hd.append(make("span", "", "원문"), make("span", "", "한국어 번역")); doc.appendChild(hd); }
   let lastPage = null, seenTitle = false;
   for (const b of state.blocks){
-    if (b.page && b.page !== lastPage && (b.kind !== "skip" || $("o-show").checked)){
+    if (b.page && b.page !== lastPage && (b.kind !== "skip" || b.aside || $("o-show").checked)){
       if (lastPage !== null){ const pg = document.createElement("span"); pg.className = "pg"; pg.textContent = `p. ${b.page}`; doc.appendChild(pg); }
       lastPage = b.page;
     }
-    if (b.kind === "skip"){
+    if (b.kind === "skip" && !b.aside){
       const d = document.createElement("div"); d.className = "skip";
       const why = document.createElement("span"); why.className = "why"; why.textContent = b.reason;
       d.append(why, document.createTextNode(b.text));
       doc.appendChild(d); continue;
     }
-    const el = document.createElement(b.kind === "heading" ? "div" : "p");
-    if (b.kind === "heading"){ el.className = "h" + (!seenTitle ? " title" : ""); seenTitle = true; }
-    const end = b.first + (b.kind === "heading" ? 1 : splitSentences(b.text).length);
-    for (let i = b.first; i < end; i++){
-      if (bi){
-        const pair = document.createElement("span"); pair.className = "pair";
-        const tr = document.createElement("span"); tr.className = "tr"; tr.dataset.tr = i;
-        pair.append(sentenceEl(i), tr); el.appendChild(pair);
-      } else {
-        el.appendChild(sentenceEl(i)); el.appendChild(document.createTextNode(" "));
-      }
-    }
-    doc.appendChild(el);
+    if (b.aside === "caption"){ doc.appendChild(figureEl(b, side)); continue; }
+    let cls = b.aside === "note" ? "note" : "";
+    if (b.kind === "heading"){ cls = "h" + (!seenTitle ? " title" : ""); seenTitle = true; }
+    doc.appendChild(blockEl(b, side, tv, cls));
   }
   if (!state.sentences.length){
     const p = document.createElement("p"); p.className = "empty";
     p.textContent = "읽을 본문을 찾지 못했습니다. ‘빼고 읽을 부분’ 선택을 줄여 보세요.";
     doc.appendChild(p);
   }
-  if (bi) state.sentences.forEach((_, i) => showTranslation(i));
+  if (tv) state.sentences.forEach((_, i) => showTranslation(i));
   fillJump();
   mark();
+  updateTrUi();
 }
+
+// 짝 문장 표시: 마우스를 올리면 잠깐, 누르면 고정
+let hoverI = null, pinI = null;
+const pairEls = i => document.querySelectorAll(`#doc [data-i="${i}"], #doc [data-t="${i}"]`);
+function setHover(i){
+  if (i === hoverI) return;
+  if (hoverI !== null) pairEls(hoverI).forEach(e => e.classList.remove("hl"));
+  hoverI = i;
+  if (i !== null) pairEls(i).forEach(e => e.classList.add("hl"));
+}
+function pick(i){
+  const k = String(i);
+  if (pinI !== null) pairEls(pinI).forEach(e => e.classList.remove("pin"));
+  pinI = pinI === k ? null : k;
+  if (pinI !== null) pairEls(pinI).forEach(e => e.classList.add("pin"));
+  if (!state.playing){ state.idx = i; mark(); }
+}
+$("doc").addEventListener("mouseover", e => {
+  if (!trView()) return;
+  const el = e.target.closest?.("[data-i], [data-t]");
+  setHover(el ? el.dataset.i ?? el.dataset.t : null);
+});
+$("doc").addEventListener("mouseleave", () => setHover(null));
+$("doc").addEventListener("click", e => { const t = e.target.closest?.(".t"); if (t) pick(+t.dataset.t); });
+
 // 시작 위치 목록: 처음 + 소제목마다
 function fillJump(){
   const sel = $("jump");
@@ -1003,16 +1219,20 @@ $("jump").addEventListener("change", e => {
 });
 
 function mark(){
-  document.querySelectorAll(".s").forEach(el => {
+  document.querySelectorAll("#doc .s").forEach(el => {
     const i = +el.dataset.i;
     el.classList.toggle("start", !state.playing && state.idx > 0 && i === state.idx);
     el.classList.toggle("now", state.playing && i === state.idx);
     el.classList.toggle("read", i < state.idx);
   });
-  const now = document.querySelector(".s.now");
+  document.querySelectorAll("#doc .t").forEach(el => el.classList.toggle("now", state.playing && +el.dataset.t === state.idx));
+  // 번역해서 볼 때는 번역 문장을 기준으로 따라간다 (휴대폰에서는 원문을 숨길 수 있어서)
+  const now = document.querySelector(trView() ? "#doc .t.now" : "#doc .s.now");
   if (now) now.scrollIntoView({block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
   syncJump();
-  $("status").textContent = state.sentences.length ? `${Math.min(state.idx + 1, state.sentences.length)}/${state.sentences.length}` : "";
+  const main = state.sentences.filter(s => !s.aside).length;
+  const at = state.sentences.slice(0, state.idx + 1).filter(s => !s.aside).length;
+  $("status").textContent = main ? `${Math.min(Math.max(at, 1), main)}/${main}` : "";
 }
 
 // ---- 설정 버튼 ------------------------------------------------------------
@@ -1021,7 +1241,7 @@ function updateSummaries(){
   $("tip-file").dataset.tip = (state.fileName ? `지금 파일: ${state.fileName}\n${state.statsText || ""}\n\n` : "") +
     "PDF · 한글(HWP, HWPX) · 엑셀(XLSX, XLS, CSV) · TXT 파일을 엽니다. 화면에 끌어다 놓아도 됩니다.\n복사한 글은 ‘글 붙여넣기’나 Ctrl+V로 넣을 수 있습니다.";
   $("sum-cite").textContent = state.stripCites ? "빼고" : "다 읽기";
-  $("sum-mode").textContent = claudeState === "off" ? "안 됨" : state.bilingual && state.lang === "en" && sampleFn ? "켬" : "끔";
+  $("sum-mode").textContent = claudeState === "off" ? "안 됨" : trView() ? (state.view === "side" ? "나란히" : "문장마다") : "끔";
   $("sum-skip").textContent = ["o-front", "o-small", "o-caption", "o-refs"].filter(id => $(id).checked).length + "개";
 }
 // 드롭다운: 하나만 열고, 바깥을 누르거나 항목을 고르면 닫는다
@@ -1030,10 +1250,10 @@ dds.forEach(d => d.addEventListener("toggle", () => { if (d.open) dds.forEach(o 
 document.addEventListener("click", e => { if (!e.target.closest(".dd")) dds.forEach(d => d.open = false); });
 document.addEventListener("keydown", e => { if (e.key === "Escape") dds.forEach(d => d.open = false); });
 document.querySelectorAll(".opt").forEach(b => b.addEventListener("click", () => { b.closest(".dd").open = false; }));
-$("cite-strip").addEventListener("click", () => { state.stripCites = true; seg("cite-strip", "cite-keep", true); state.translations.clear(); stop(); render(); });
-$("cite-keep").addEventListener("click", () => { state.stripCites = false; seg("cite-strip", "cite-keep", false); state.translations.clear(); stop(); render(); });
-$("mode-orig").addEventListener("click", () => { state.bilingual = false; updateModeUi(); stop(); render(); });
-$("mode-bi").addEventListener("click", () => { state.bilingual = true; updateModeUi(); stop(); render(); translateFrom(state.idx); });
+$("cite-strip").addEventListener("click", () => { state.stripCites = true; seg("cite-strip", "cite-keep", true); stop(); render(); });
+$("cite-keep").addEventListener("click", () => { state.stripCites = false; seg("cite-strip", "cite-keep", false); stop(); render(); });
+function setView(v){ state.view = v; updateModeUi(); rebuild(); }
+["orig", "side", "bi"].forEach(v => $("mode-" + v).addEventListener("click", () => setView(v)));
 function updateModeUi(){
   queueMicrotask(updateSummaries);
   const isEn = state.lang === "en";
@@ -1041,56 +1261,309 @@ function updateModeUi(){
   $("dd-mode").classList.toggle("off", off);
   $("mode-off").hidden = !off;
   if (off) $("mode-off").innerHTML = offReason() + (EDITION === "web" ? ` <a href="${CLAUDE_URL}" target="_blank" rel="noopener">claude.ai 버전 열기</a>` : "");
-  $("mode-orig").disabled = $("mode-bi").disabled = !isEn || !sampleFn;
-  seg("mode-bi", "mode-orig", state.bilingual && isEn && !!sampleFn);
-  $("voice-ko-wrap").hidden = !(state.bilingual && isEn && sampleFn);
+  const can = isEn && !!sampleFn;
+  $("mode-side").disabled = $("mode-bi").disabled = !can;
+  ["orig", "side", "bi"].forEach(v => $("mode-" + v).setAttribute("aria-pressed", (can ? state.view : "orig") === v));
+  $("voice-ko-wrap").hidden = !trView();
   $("tip-mode").dataset.tip = off ? "번역: " + offReason()
     : !sampleFn ? "번역 기능을 확인하는 중입니다."
-    : !isEn ? "지금 문서는 한국어라 번역 없이 읽습니다."
-    : "영어 한 문장을 읽고, 이어서 그 문장의 번역을 읽습니다. 번역에는 Claude 사용량이 조금 쓰입니다.";
+    : !isEn ? "지금 문서는 한국어라 번역하지 않습니다."
+    : "본문 문장마다 한국어 번역을 짝지어 보여 줍니다. 각주와 그림·표 설명도 번역합니다.\n읽기를 누르면 원문과 번역을 번갈아 읽습니다. 번역에는 Claude 사용량이 쓰입니다.";
+  updateTrUi();
 }
 
 // ---- 번역 (claude.ai 안에서만) ---------------------------------------------
-const BATCH = 20;
-function showTranslation(i){
-  const el = document.querySelector(`[data-tr="${i}"]`); if (!el) return;
-  const t = state.translations.get(speakText(state.sentences[i]));
-  el.textContent = t || "번역 대기 중…";
-  el.classList.toggle("wait", !t);
+// 문장마다 번호를 붙여 보내고 같은 번호로 받아 짝을 맞춘다. 묶음 하나가 끝나면
+// 숫자가 빠졌는지 코드로 비교하고, Claude가 한 번 더 원문과 대조해 뜻이 뒤집힌 번역을 고친다.
+const BATCH = 14;
+const ASIDE = {"각주·작은 글씨": "note", "각주·미주": "note", "그림·표 설명": "caption"};
+const NO_CLAUDE = ["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed"];
+const trView = () => state.view !== "orig" && state.lang === "en" && !!sampleFn;
+const koSpeak = t => (state.stripCites ? stripCitations(t) : t).trim();
+const docTitle = () => state.blocks.find(b => b.kind === "heading")?.text || state.fileName || "";
+
+const TR_RULES = `당신은 인문사회 분야(심리학, 교육학, 경제학, 법학, 철학 등) 영어 논문을 한국어로 옮기는 번역가입니다.
+규칙:
+- 번호마다 그 문장만 한국어로 옮기세요. 문장을 합치거나 다른 번호로 넘기지 말고, 하나도 빼지 마세요.
+- 요약하거나 덜어 내지 마세요. 단서(may, likely 등), 부정, 비교, 인과의 방향을 그대로 살리세요.
+- 숫자, 통계 기호(M, SD, p, d, β, F, t, N 등), 단위, 본문 속 출처 표시((Kim, 2021), [12])는 원문 그대로 두세요.
+- 전문 용어는 그 분야 한국 연구자들이 쓰는 번역어로 옮기고, 한국에서도 흔히 영어로 부르는 말(ANOVA, Likert 등)은 영어 그대로 두세요.
+- 학술 논문의 문어체(~다)로 쓰세요. 제목은 제목답게 짧게 옮기세요.`;
+const REVIEW_RULES = `다음은 영어 학술 논문 문장과 한국어 번역의 짝입니다. 한 문장씩 원문과 대조해서 아래 문제가 있는 번역만 고치세요.
+- 뜻이 뒤집힘: 부정(not, no, never, neither), 비교의 방향, 인과의 방향, 조건이 반대로 옮겨짐
+- 빠짐: 숫자, 단위, 통계 값, 고유명사, 절이나 수식어가 빠짐
+- 더함: 원문에 없는 내용이 들어감
+말투나 용어 취향만 다른 것은 고치지 마세요.`;
+
+function askTranslate(items, ctx){
+  const type = s => s.block.kind === "heading" ? "제목" : s.block.aside === "note" ? "각주" : s.block.aside === "caption" ? "그림·표 설명" : "본문";
+  const prompt = TR_RULES + `\n\n논문 제목: ${docTitle()}\n` +
+    (ctx.length ? `바로 앞 문장(참고만 하고 옮기지 마세요): ${ctx.join(" ")}\n` : "") +
+    `\n옮길 문장:\n${JSON.stringify(items.map((s, k) => ({n: k + 1, type: type(s), text: s.text})))}\n\n` +
+    `JSON 객체로만 답하세요. 키는 번호, 값은 번역입니다. 예: {"1": "첫 문장 번역", "2": "둘째 문장 번역"}`;
+  return sampleFn.json(prompt, {modelTier: "default", cache: {gcTime: 86400000}}).then(out => items.map((_, k) => {
+    const v = Array.isArray(out) ? out[k] : out?.[k + 1];
+    return typeof v === "string" && v.trim() ? v.trim() : null;
+  }));
 }
-function translateFrom(start){
-  if (!sampleFn || !state.bilingual || state.lang !== "en") return Promise.resolve();
-  const b = Math.floor(start / BATCH);
-  if (state.pending.has(b)) return state.pending.get(b);
-  const idxs = [];
-  for (let i = b * BATCH; i < Math.min((b + 1) * BATCH, state.sentences.length); i++){
-    if (!state.translations.has(speakText(state.sentences[i]))) idxs.push(i);
+// 원문의 숫자가 번역에 다 있는지 (1,234와 1234는 같은 수로 본다)
+const numsOf = t => new Set((t.match(/\d+(?:[.,]\d+)*/g) || []).map(n => n.replace(/,(?=\d{3}(?!\d))/g, "")));
+const missingNums = (en, ko) => { const k = numsOf(ko); return [...numsOf(en)].filter(n => !k.has(n)); };
+async function reviewChunk(items){
+  const pairs = items.map((s, k) => ({n: k + 1, en: s.text, ko: state.translations.get(s.text)}));
+  const hints = pairs.map(p => [p.n, missingNums(p.en, p.ko)]).filter(([, m]) => m.length).map(([n, m]) => `${n}번(원문의 ${m.join(", ")}이 번역에 없음)`);
+  const prompt = REVIEW_RULES + (hints.length ? `\n\n숫자 검사에서 걸린 문장: ${hints.join(", ")}` : "") +
+    `\n\n${JSON.stringify(pairs)}\n\n` +
+    `고칠 문장만 JSON 배열로 답하세요. 형식: [{"n": 번호, "why": "무엇이 틀렸는지 짧게", "ko": "고친 번역 전체"}]. 고칠 것이 없으면 [] 로 답하세요.`;
+  try {
+    const fixes = await sampleFn.json(prompt, {modelTier: "default", cache: {gcTime: 86400000}});
+    for (const f of Array.isArray(fixes) ? fixes : []){
+      const s = items[+f?.n - 1];
+      if (!s || typeof f.ko !== "string" || !f.ko.trim() || f.ko.trim() === state.translations.get(s.text)) continue;
+      state.translations.set(s.text, f.ko.trim());
+      state.fixed.set(s.text, String(f.why || "").trim() || "원문과 뜻이 달라 다시 옮김");
+    }
+  } catch (e){
+    if (NO_CLAUDE.includes(e?.code) || e?.code === "rate_limited") throw e;
+  } finally {
+    for (const s of items){
+      const m = missingNums(s.text, state.translations.get(s.text) || "");
+      if (m.length) state.warn.set(s.text, m.join(", ")); else state.warn.delete(s.text);
+    }
   }
-  if (!idxs.length) return Promise.resolve();
-  idxs.forEach(i => { const el = document.querySelector(`[data-tr="${i}"]`); if (el) el.textContent = "번역 중…"; });
-  const src = idxs.map(i => speakText(state.sentences[i]));
-  const prompt = "다음은 영어 학술 논문의 문장들입니다. 각 문장을 자연스러운 한국어로 번역하세요. " +
-    "전문 용어는 정확하게, 숫자와 기호는 그대로 두고, 소리 내어 읽기 좋은 문장으로 옮기세요. " +
-    "입력과 같은 순서·같은 개수의 JSON 문자열 배열로만 답하세요. 예: [\"첫 문장 번역\", \"둘째 문장 번역\"]\n\n" +
-    JSON.stringify(src);
-  const p = sampleFn.json(prompt, {modelTier: "quick", cache: {gcTime: 86400000}})
-    .then(arr => {
-      if (Array.isArray(arr)) src.forEach((s, k) => { if (typeof arr[k] === "string" && arr[k].trim()) state.translations.set(s, arr[k].trim()); });
-      idxs.forEach(showTranslation);
-    })
-    .catch(e => {
-      idxs.forEach(i => { const el = document.querySelector(`[data-tr="${i}"]`); if (el) el.textContent = ""; });
-      const hide = ["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed"];
-      if (hide.includes(e?.code)){ sampleFn = null; claudeState = "off"; state.bilingual = false; updateModeUi(); }
-      $("error").textContent = e?.code === "rate_limited" ? "번역 요청이 많아 잠시 멈췄습니다. 조금 뒤에 다시 눌러 주세요."
-        : hide.includes(e?.code) ? "번역을 쓸 수 없어 원문만 읽습니다."
-        : "번역하지 못한 문장이 있습니다. 해당 문장은 원문만 읽습니다.";
-      $("error").hidden = false;
-    })
-    .finally(() => state.pending.delete(b));
-  state.pending.set(b, p);
-  return p;
 }
+
+// 아직 번역 안 된 문장을 읽는 위치부터 이어서 최대 BATCH개
+function nextChunk(){
+  const S = state.sentences, n = S.length, out = [];
+  for (let k = 0; k < n && out.length < BATCH; k++){
+    const i = (state.trCursor + k) % n;
+    const t = S[i].text;
+    if (state.translations.has(t) || state.inflight.has(t) || state.failed.has(t)){ if (out.length) break; continue; }
+    if (out.length && i !== out[out.length - 1] + 1) break;
+    out.push(i);
+  }
+  if (out.length) state.trCursor = (out[out.length - 1] + 1) % n;
+  return out;
+}
+async function runChunk(idxs){
+  const items = idxs.map(i => state.sentences[i]);
+  items.forEach(s => state.inflight.add(s.text));
+  idxs.forEach(showTranslation);
+  const ctx = state.sentences.slice(Math.max(0, idxs[0] - 2), idxs[0]).map(s => s.text);
+  try {
+    const out = await askTranslate(items, ctx);
+    const miss = items.filter((_, k) => !out[k]);
+    if (miss.length){
+      const again = await askTranslate(miss, ctx);
+      miss.forEach((s, k) => { out[items.indexOf(s)] = again[k]; });
+    }
+    items.forEach((s, k) => { if (out[k]) state.translations.set(s.text, out[k]); else state.failed.add(s.text); });
+    const done = items.filter(s => state.translations.has(s.text));
+    if (done.length) await reviewChunk(done);
+  } catch (e){
+    if (!NO_CLAUDE.includes(e?.code) && e?.code !== "rate_limited") items.forEach(s => { if (!state.translations.has(s.text)) state.failed.add(s.text); });
+    throw e;
+  } finally {
+    items.forEach(s => { state.inflight.delete(s.text); (state.waiters.get(s.text) || []).forEach(r => r()); state.waiters.delete(s.text); });
+    refreshTr(items);
+    saveTr();
+  }
+}
+async function translateAll(){
+  if (!trView() || state.running) return;
+  state.running = true; state.trStop = "";
+  const gen = state.trGen;
+  updateTrUi();
+  const worker = async () => {
+    while (state.running && gen === state.trGen){
+      const idxs = nextChunk();
+      if (!idxs.length) break;
+      try { await runChunk(idxs); }
+      catch (e){
+        if (NO_CLAUDE.includes(e?.code)){
+          sampleFn = null; claudeState = "off"; state.view = "orig";
+          $("error").textContent = "Claude를 쓸 수 없어 번역을 멈추고 원문만 보여 줍니다."; $("error").hidden = false;
+          setTimeout(() => { updateModeUi(); rebuild(); });
+        } else if (e?.code === "rate_limited") state.trStop = "요청이 많아 잠시 멈췄어요. 조금 뒤에 ‘이어서 번역’을 눌러 주세요.";
+        else continue;   // 이 묶음만 실패로 표시하고 다음 묶음으로
+        if (gen === state.trGen) state.running = false;
+      }
+    }
+  };
+  await Promise.all([worker(), worker()]);
+  if (gen === state.trGen) state.running = false;
+  updateTrUi();
+}
+// 읽기 중에 번역이 아직 없으면 잠깐 기다린다
+function waitTr(text, ms){
+  if (state.translations.has(text) || state.failed.has(text)) return Promise.resolve();
+  return new Promise(r => {
+    state.waiters.set(text, [...(state.waiters.get(text) || []), r]);
+    setTimeout(r, ms);
+  });
+}
+function resetTr(){
+  state.trGen++; state.running = false; state.trStop = ""; state.trCursor = 0;
+  state.translations.clear(); state.fixed.clear(); state.warn.clear(); state.failed.clear(); state.inflight.clear();
+  state.waiters.forEach(l => l.forEach(r => r())); state.waiters.clear();
+  figUrls.forEach(u => URL.revokeObjectURL(u)); figUrls = [];
+}
+
+function showTranslation(i){
+  const s = state.sentences[i]; if (!s) return;
+  const el = document.querySelector(`#doc [data-t="${i}"]`); if (!el) return;
+  const t = state.translations.get(s.text);
+  const failed = !t && state.failed.has(s.text);
+  el.textContent = t || (failed ? "번역하지 못했어요" : state.inflight.has(s.text) ? "번역 중…" : "번역 대기 중…");
+  el.classList.toggle("wait", !t && !failed);
+  el.classList.toggle("fail", failed);
+  const why = t && state.fixed.get(s.text), warn = t && state.warn.get(s.text);
+  el.classList.toggle("fixed", !!why && !warn);
+  el.classList.toggle("warn", !!warn);
+  el.title = warn ? `원문의 숫자 ${warn}이(가) 번역에 보이지 않아요. 원문과 대조해 보세요.` : why ? `검수에서 고친 번역: ${why}` : "";
+}
+function refreshTr(items){
+  const texts = new Set(items.map(s => s.text));
+  state.sentences.forEach((s, i) => { if (texts.has(s.text)) showTranslation(i); });
+  updateTrUi();
+}
+function updateTrUi(){
+  const isEn = state.lang === "en" && state.sentences.length > 0;
+  const tv = trView();
+  const canCta = claudeState === "on" || EDITION === "web";
+  $("tr-cta").hidden = tv || !isEn || state.ctaClosed || !canCta;
+  $("tr-cta-go").hidden = claudeState !== "on";
+  $("tr-cta-link").hidden = !(EDITION === "web");
+  $("tr-cta-link").href = CLAUDE_URL;
+  $("tr-cta-msg").textContent = EDITION === "web"
+    ? "영어 논문이에요. claude.ai 버전에서는 본문을 문장 하나도 빼지 않고 한글로 옮겨 원문 옆에 나란히 놓아 드려요."
+    : "영어 논문이에요. 본문을 문장 하나도 빼지 않고 한글로 옮겨 원문 옆에 나란히 놓을 수 있어요. Claude 사용량이 쓰입니다.";
+  $("trbar").hidden = !tv;
+  if (!tv) return;
+  const S = state.sentences, n = S.length;
+  let done = 0, fixed = 0, warn = 0, failed = 0;
+  for (const s of S){
+    const has = state.translations.has(s.text);
+    if (has) done++; else if (state.failed.has(s.text)) failed++;
+    if (has && state.warn.has(s.text)) warn++; else if (has && state.fixed.has(s.text)) fixed++;
+  }
+  const left = n - done - failed;
+  $("tr-fill").style.width = (n ? done / n * 100 : 0) + "%";
+  $("tr-msg").textContent = done === n ? `번역 끝 · ${n}문장`
+    : (state.running ? "번역하는 중" : "번역 멈춤") + ` · ${done}/${n}문장` + (failed ? ` · 실패 ${failed}` : "") + (state.trStop ? ` · ${state.trStop}` : "");
+  $("tr-toggle").hidden = done === n;
+  $("tr-toggle").textContent = state.running ? "멈추기" : left ? "이어서 번역" : "실패한 문장 다시 번역";
+  $("o-src-wrap").hidden = state.view !== "side";
+  const legend = [fixed && `점선 밑줄 ${fixed}문장: 검수에서 고친 번역`, warn && `물결 밑줄 ${warn}문장: 원문의 숫자가 번역에 없어요. 원문과 대조해 보세요.`].filter(Boolean);
+  $("tr-legend").hidden = !legend.length;
+  $("tr-legend").textContent = legend.join(" · ");
+}
+$("tr-toggle").addEventListener("click", () => {
+  if (state.running){ state.running = false; state.trGen++; updateTrUi(); return; }
+  state.failed.clear(); state.trCursor = state.idx;
+  state.sentences.forEach((_, i) => showTranslation(i));
+  translateAll();
+});
+$("tr-cta-go").addEventListener("click", () => setView("side"));
+$("tr-cta-close").addEventListener("click", () => { state.ctaClosed = true; updateTrUi(); });
+$("o-src").addEventListener("change", () => { savePref("src", $("o-src").checked); render(); });
+
+// 번역 결과는 이 브라우저에 문서마다 남겨, 같은 논문을 다시 열면 이어서 쓴다 (최근 8편)
+const LS = "jjk-tr:";
+function savePref(k, v){ try { localStorage.setItem("jjk-pref:" + k, JSON.stringify(v)); } catch {} }
+function loadPref(k){ try { return JSON.parse(localStorage.getItem("jjk-pref:" + k)); } catch { return null; } }
+function docKey(){
+  const str = state.sentences.filter(s => !s.aside).slice(0, 40).map(s => s.text).join("\n");
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0;
+  return LS + (h >>> 0).toString(36) + str.length.toString(36);
+}
+let saveTimer = 0;
+function saveTr(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try {
+      const tr = {};
+      for (const s of state.sentences){
+        const t = state.translations.get(s.text);
+        if (t) tr[s.text] = [t, state.fixed.get(s.text) || "", state.warn.get(s.text) || ""];
+      }
+      if (!Object.keys(tr).length) return;
+      localStorage.setItem(docKey(), JSON.stringify({at: Date.now(), tr}));
+      const keys = Object.keys(localStorage).filter(k => k.startsWith(LS));
+      if (keys.length > 8){
+        keys.map(k => { try { return [k, JSON.parse(localStorage.getItem(k)).at || 0]; } catch { return [k, 0]; } })
+          .sort((a, b) => a[1] - b[1]).slice(0, keys.length - 8).forEach(([k]) => localStorage.removeItem(k));
+      }
+    } catch {}
+  }, 800);
+}
+function loadTr(){
+  try {
+    const d = JSON.parse(localStorage.getItem(docKey()) || "null");
+    for (const [en, [ko, why, warn]] of Object.entries(d?.tr || {})){
+      if (state.translations.has(en) || typeof ko !== "string") continue;
+      state.translations.set(en, ko);
+      if (why) state.fixed.set(en, why);
+      if (warn) state.warn.set(en, warn);
+    }
+  } catch {}
+}
+
+// ---- 그림·표: PDF 쪽을 그려서 그 자리만 잘라 낸다 ------------------------------
+let figUrls = [];
+const figObs = "IntersectionObserver" in window
+  ? new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting){ figObs.unobserve(e.target); drawFig(e.target); } }), {rootMargin: "600px 0px"})
+  : null;
+async function renderPage(pageNo, scale){
+  const page = await state.source.pdf.getPage(pageNo);
+  const vp = page.getViewport({scale});
+  const c = document.createElement("canvas");
+  c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+  await page.render({canvasContext: ctx, viewport: vp}).promise;
+  return {canvas: c, height: page.getViewport({scale: 1}).height, width: page.getViewport({scale: 1}).width};
+}
+async function drawFig(box){
+  const f = box._fig, pdf = state.source?.pdf;
+  if (!f || !pdf) return;
+  try {
+    const w = f.x1 - f.x0, h = f.y1 - f.y0;
+    const first = await pdf.getPage(f.page), pw = first.getViewport({scale: 1}).width;
+    // 휴대폰 캔버스 한도를 넘지 않게: 쪽 너비 2200px 이하
+    const scale = Math.max(1.5, Math.min(3, 1400 / w, 2200 / pw));
+    const {canvas, height} = await renderPage(f.page, scale);
+    const out = document.createElement("canvas");
+    out.width = Math.round(w * scale); out.height = Math.round(h * scale);
+    out.getContext("2d").drawImage(canvas, f.x0 * scale, (height - f.y1) * scale, out.width, out.height, 0, 0, out.width, out.height);
+    const blob = await new Promise(r => out.toBlob(r, "image/png"));
+    if (state.source?.pdf !== pdf || !blob) return;
+    const url = URL.createObjectURL(blob); figUrls.push(url);
+    const img = new Image();
+    img.alt = `${f.page}쪽의 그림·표`;
+    img.src = url;
+    img.style.width = Math.round(w * 1.4) + "px";
+    box.replaceChildren(img);
+  } catch {
+    box.textContent = "그림을 그리지 못했어요. 눌러서 쪽 전체를 보세요.";
+  }
+}
+async function openPage(p){
+  const dlg = $("pageview");
+  $("pv-title").textContent = `p. ${p}`;
+  $("pv-img").removeAttribute("src");
+  $("pv-img").alt = `${p}쪽 전체`;
+  if (dlg.showModal) dlg.showModal(); else dlg.open = true;
+  try {
+    const pw = (await state.source.pdf.getPage(p)).getViewport({scale: 1}).width;
+    const {canvas} = await renderPage(p, Math.min(3, 1600 / pw));
+    canvas.toBlob(b => { if (!b) return; const u = URL.createObjectURL(b); figUrls.push(u); $("pv-img").src = u; });
+  } catch {}
+}
+$("pv-close").addEventListener("click", () => $("pageview").close());
+$("pageview").addEventListener("click", e => { if (e.target === $("pageview")) $("pageview").close(); });
 
 // ---- 스캔 PDF: Claude로 글자 인식 (claude.ai 안에서만) --------------------------
 let ocrAbort = null;
@@ -1200,20 +1673,22 @@ function step(){
   if (!state.playing) return;
   if (state.idx >= state.sentences.length){ finish(); return; }
   const s = state.sentences[state.idx];
-  const bi = state.bilingual && state.lang === "en" && sampleFn;
+  if (s.aside){ state.idx++; return step(); }   // 각주·그림 설명은 화면에만
+  const bi = trView();
   mark();
-  if (bi){ translateFrom(state.idx); translateFrom(state.idx + BATCH / 2); }
+  // 번역이 아직 안 된 곳이면 여기부터 먼저 번역한다
+  if (bi && !state.translations.has(s.text) && !state.inflight.has(s.text)){ state.trCursor = state.idx; translateAll(); }
   const text = speakText(s);
   if (!text){ state.idx++; return step(); }
   const u = utter(text, "voice-src", state.lang === "ko" ? "ko-KR" : "en-US");
   u.onend = async () => {
     if (!state.playing) return;
     if (bi){
-      await translateFrom(state.idx);
+      await waitTr(s.text, 30000);
       if (!state.playing) return;
-      const t = state.translations.get(text);
+      const t = state.translations.get(s.text);
       if (t){
-        const k = utter(t, "voice-ko", "ko-KR");
+        const k = utter(koSpeak(t), "voice-ko", "ko-KR");
         k.onend = () => { if (state.playing){ state.idx++; step(); } };
         k.onerror = onErr;
         synth.speak(k);
@@ -1261,10 +1736,11 @@ if (!synth){
   synth.addEventListener ? synth.addEventListener("voiceschanged", loadVoices) : (synth.onvoiceschanged = loadVoices);
   window.addEventListener("pagehide", () => synth.cancel());
 }
+if (loadPref("src") === false) $("o-src").checked = false;
 updateModeUi();
 $("ex-en").click();
 if (claudeState === "pending"){
-  const settle = fn => { sampleFn = fn || null; claudeState = fn ? "on" : "off"; updateModeUi(); if (state.bilingual) render(); checkScan(); };
+  const settle = fn => { sampleFn = fn || null; claudeState = fn ? "on" : "off"; updateModeUi(); if (state.view !== "orig") rebuild(); checkScan(); };
   window.claude.use("sample").then(settle).catch(() => settle(null));
 }
 </script>
