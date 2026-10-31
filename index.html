@@ -2609,8 +2609,8 @@ function checkScan(){
   } else {
     const emptyMsg = document.querySelector("#doc .empty");
     if (emptyMsg) emptyMsg.textContent = src.type === "images" ? "사진이라 글자를 먼저 인식해야 합니다." : "스캔한 이미지라 읽을 글자가 없습니다.";
-    $("scan-msg").textContent = (src.type === "images" ? `사진 ${src.pages}장이라 글자를 바로 읽을 수 없습니다.` : `스캔본 PDF라 ${src.pages}쪽 중 ${empty}쪽에 글자가 없어 읽을 수 없습니다.`) +
-      (off ? " 글자 인식은 " + offReason() : ` 한 쪽에 20~40초쯤 걸리고, 인식한 결과는 이 브라우저에 저장돼 다시 열 때는 바로 읽습니다.`);
+    $("scan-msg").textContent = (src.type === "images" ? `사진 ${src.pages}장이에요.` : `글자가 없는 스캔본 PDF예요(${src.pages}쪽 중 ${empty}쪽).`) +
+      (off ? " 글자 인식은 " + offReason() : ` ‘Claude로 글자 인식’을 누르면 읽을 수 있어요. 한 쪽에 20~40초쯤 걸리고, 인식한 쪽부터 바로 읽고 번역해요. 결과는 이 브라우저에 저장돼 다시 열면 바로 읽어요.`);
   }
   $("ocr").textContent = ocrLabel();
   $("ocr").hidden = !sampleFn;
@@ -2676,6 +2676,7 @@ async function runOcr(){
   // 중간에 멈췄으면 이어서, 다 했으면 처음부터
   if (!src.ocrParts?.length || (src.ocrNext || 1) > src.pages){ src.ocrParts = []; src.ocrNext = 1; }
   $("ocr").textContent = "멈추기";
+  $("scan-msg").textContent = "Claude로 글자를 읽는 중이에요. 인식이 끝난 쪽부터 바로 읽고 번역해요.";
   let failed = 0, stopMsg = "";
   try {
     for (let p = src.ocrNext; p <= src.pages && !signal.aborted; p++){
