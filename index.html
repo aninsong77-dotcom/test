@@ -1100,7 +1100,7 @@ const state = {
   inflight: new Set(), failed: new Set(), waiters: new Map(),
   terms: new Map(),      // 학술 용어: 영어 소문자 → {en, ko}
   hl: new Map(),         // 형광펜: 원문 문장 → "y" | "g" | "p"
-  running: false, trGen: 0, trCursor: 0, trStop: "", ctaClosed: false,
+  running: false, trGen: 0, trCursor: 0, trStop: "", ctaClosed: false, trLoaded: 0,
 };
 let sampleFn = null, wakeLock = null;
 // 번역·글자 인식은 claude.ai 안에서만 된다. web: 깃허브 등 일반 웹 버전
@@ -1131,6 +1131,7 @@ async function openFile(name, buf, images){
   state.fileName = name;
   $("file-stats").textContent = "여는 중…";
   const ext = images ? "images" : extOf(name);
+  state.fileHash = buf ? fileHash([new Uint8Array(buf)]) : "";
   try {
     if (images){
       state.fileHash = fileHash(await Promise.all(images.map(async f => new Uint8Array(await f.arrayBuffer()))));
@@ -1138,7 +1139,6 @@ async function openFile(name, buf, images){
     } else if (IMG_EXT.includes(ext)){
       return openFile(name, null, [new Blob([buf], {type: "image/" + (ext === "jpg" ? "jpeg" : ext)})]);
     } else if (ext === "pdf"){
-      state.fileHash = fileHash([new Uint8Array(buf)]);
       await need("pdf");
       const pdf = await pdfjsLib.getDocument({data: new Uint8Array(buf), isEvalSupported: false}).promise;
       const lines = await extractLines(pdf, (p, n) => { $("file-stats").textContent = `글자 읽는 중… ${p}/${n}쪽`; });
@@ -1459,7 +1459,11 @@ $("sel-close").addEventListener("click", () => { if (pinI !== null) pick(+pinI);
 $("sel-play").addEventListener("click", () => { if (pinI === null) return; const i = +pinI; pick(i); stop(); state.idx = i; play(); });
 const hlKey = () => "jjk-hl:" + docKey().slice(LS.length);
 function loadHl(){
-  try { return new Map(Object.entries(JSON.parse(localStorage.getItem(hlKey()) || "{}").hl || {})); } catch { return new Map(); }
+  const m = new Map();
+  for (const key of ["jjk-hl:" + legacyKey(), hlKey()]){
+    try { for (const [en, c] of Object.entries(JSON.parse(localStorage.getItem(key) || "{}").hl || {})) m.set(en, c); } catch {}
+  }
+  return m;
 }
 function saveHl(){
   try {
@@ -2287,7 +2291,7 @@ function waitTr(text, ms){
   });
 }
 function resetTr(){
-  state.trGen++; state.running = false; state.trStop = ""; state.trCursor = 0;
+  state.trGen++; state.running = false; state.trStop = ""; state.trCursor = 0; state.trLoaded = 0;
   state.translations.clear(); state.fixed.clear(); state.warn.clear(); state.failed.clear(); state.inflight.clear();
   state.terms.clear(); buildTermRe();
   state.waiters.forEach(l => l.forEach(r => r())); state.waiters.clear();
@@ -2335,8 +2339,9 @@ function updateTrUi(){
   }
   const left = n - done - failed;
   $("tr-fill").style.width = (n ? done / n * 100 : 0) + "%";
-  $("tr-msg").textContent = done === n ? `번역 끝 · ${n}문장`
-    : (state.running ? "번역하는 중" : "번역 멈춤") + ` · ${done}/${n}문장` + (failed ? ` · 실패 ${failed}` : "") + (state.trStop ? ` · ${state.trStop}` : "");
+  const loaded = state.trLoaded ? ` · 저장해 둔 번역 ${state.trLoaded}문장을 불러왔어요` : "";
+  $("tr-msg").textContent = (done === n ? `번역 끝 · ${n}문장`
+    : (state.running ? "번역하는 중" : "번역 멈춤") + ` · ${done}/${n}문장` + (failed ? ` · 실패 ${failed}` : "") + (state.trStop ? ` · ${state.trStop}` : "")) + loaded;
   $("tr-toggle").hidden = done === n;
   $("tr-toggle").textContent = state.running ? "멈추기" : left ? "이어서 번역" : "실패한 문장 다시 번역";
   $("o-src-wrap").hidden = state.view !== "side";
@@ -2360,18 +2365,24 @@ $("o-src").addEventListener("change", () => { savePref("src", $("o-src").checked
 const LS = "jjk-tr:";
 function savePref(k, v){ try { localStorage.setItem("jjk-pref:" + k, JSON.stringify(v)); } catch {} }
 function loadPref(k){ try { return JSON.parse(localStorage.getItem("jjk-pref:" + k)); } catch { return null; } }
-function docKey(){
+// 저장 열쇠: 파일 지문. 같은 파일이면 '빼기' 설정을 바꾸거나 스캔본을 다시 인식해도 같은 열쇠를 쓴다.
+function docKey(){ return LS + (state.fileHash ? "f" + state.fileHash : legacyKey()); }
+// 예전 버전이 쓰던 열쇠(앞 40문장): 그때 저장한 번역·형광펜을 찾아 합치는 데만 쓴다
+function legacyKey(){
   const str = state.sentences.filter(s => !s.aside).slice(0, 40).map(s => s.text).join("\n");
   let h = 0;
   for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0;
-  return LS + (h >>> 0).toString(36) + str.length.toString(36);
+  return (h >>> 0).toString(36) + str.length.toString(36);
 }
 let saveTimer = 0;
 function saveTr(){
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     try {
-      const tr = {};
+      // 지금 안 보이는 문장(빼기로 뺀 부분 등)의 번역도 지우지 않고 합쳐 둔다
+      let old = {};
+      try { old = JSON.parse(localStorage.getItem(docKey()) || "null")?.tr || {}; } catch {}
+      const tr = old;
       for (const s of state.sentences){
         const t = state.translations.get(s.text);
         if (t) tr[s.text] = [t, state.fixed.get(s.text) || "", state.warn.get(s.text) || ""];
@@ -2388,17 +2399,21 @@ function saveTr(){
   }, 800);
 }
 function loadTr(){
-  try {
-    const d = JSON.parse(localStorage.getItem(docKey()) || "null");
-    for (const [en, [ko, why, warn]] of Object.entries(d?.tr || {})){
-      if (state.translations.has(en) || typeof ko !== "string") continue;
-      state.translations.set(en, ko);
-      if (why) state.fixed.set(en, why);
-      if (warn) state.warn.set(en, warn);
-    }
-    for (const t of Array.isArray(d?.terms) ? d.terms : []) if (t?.en && !state.terms.has(t.en.toLowerCase())) state.terms.set(t.en.toLowerCase(), {en: t.en, ko: t.ko || ""});
-    buildTermRe();
-  } catch {}
+  const before = state.translations.size;
+  for (const key of new Set([docKey(), LS + legacyKey()])){
+    try {
+      const d = JSON.parse(localStorage.getItem(key) || "null");
+      for (const [en, [ko, why, warn]] of Object.entries(d?.tr || {})){
+        if (state.translations.has(en) || typeof ko !== "string") continue;
+        state.translations.set(en, ko);
+        if (why) state.fixed.set(en, why);
+        if (warn) state.warn.set(en, warn);
+      }
+      for (const t of Array.isArray(d?.terms) ? d.terms : []) if (t?.en && !state.terms.has(t.en.toLowerCase())) state.terms.set(t.en.toLowerCase(), {en: t.en, ko: t.ko || ""});
+    } catch {}
+  }
+  state.trLoaded += state.translations.size - before;
+  buildTermRe();
 }
 
 // ---- 그림·표: PDF 쪽을 그려서 그 자리만 잘라 낸다 ------------------------------
