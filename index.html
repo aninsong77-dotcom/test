@@ -298,6 +298,13 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
 .skip .why{display:inline-block;text-decoration:none;font-family:"IBM Plex Mono",monospace;font-size:.68rem;letter-spacing:.05em;border:1px solid var(--line);border-radius:4px;padding:0 5px;margin-right:6px;background:var(--surface)}
 .hide-skips .skip{display:none}
 .empty{color:var(--muted)}
+/* 처음 화면: 이 창에 대한 안내 (흐린 글씨) */
+.doc{align-content:start}
+.empty-guide{max-width:36em;margin:24px auto;align-content:start;color:var(--muted);font-size:.95rem;line-height:1.8;display:grid;gap:10px}
+.empty-guide p,.empty-guide ul{margin:0}
+.empty-guide ul{padding-left:20px;display:grid;gap:4px}
+.empty-guide b{font-weight:600;color:inherit}
+.eg-title{font-size:1.1rem;font-weight:600}
 
 /* 재생 바 */
 .player{position:sticky;bottom:0;z-index:5;background:var(--surface);border-top:1px solid var(--line);box-shadow:0 -4px 16px rgba(20,30,45,.06);padding:10px 16px calc(12px + env(safe-area-inset-bottom, 0px))}
@@ -464,7 +471,19 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
     <p class="tr-legend" id="tr-legend" hidden></p>
   </section>
 
-  <article class="card doc" id="doc" aria-label="읽을 본문"><p class="empty">불러오는 중…</p></article>
+  <article class="card doc" id="doc" aria-label="읽을 본문">
+    <div class="empty-guide">
+      <p class="eg-title">여기에 논문 본문이 나와요</p>
+      <p>위쪽 <b>파일</b>을 눌러 논문을 열거나, 파일을 이 화면에 끌어다 놓으세요. 복사한 글은 <b>파일 → 글 붙여넣기</b>로 넣을 수 있어요.</p>
+      <ul>
+        <li>열 수 있는 파일: PDF, 한글(HWP), 엑셀, TXT, 논문 사진</li>
+        <li id="eg-tr">영어 논문은 원문 옆에 한글 번역이 문장마다 짝지어 붙어요</li>
+        <li>모르는 단어는 우클릭(휴대폰은 길게 눌러 선택)해서 단어장에 넣어요</li>
+        <li>아래 <b>▶ 읽기</b>를 누르면 소리 내어 읽어 줘요</li>
+      </ul>
+      <p>자세한 사용법은 오른쪽 위 <b>사용 설명</b>(휴대폰은 <b>?</b>)에 있어요. 어떻게 보이는지 먼저 보고 싶으면 <b>파일 → 예시</b>를 열어 보세요.</p>
+    </div>
+  </article>
 </div>
 
 <dialog class="pageview" id="pageview" aria-label="쪽 전체 보기">
@@ -3026,7 +3045,7 @@ if (!synth){
 if (loadPref("src") === false) $("o-src").checked = false;
 if (loadPref("terms") === false) $("o-terms").checked = false;
 updateModeUi();
-$("ex-en").click();
+if (EDITION === "web") $("eg-tr").textContent = "영어 논문의 한글 번역은 claude.ai 버전에서 돼요";
 if (claudeState === "pending"){
   const settle = fn => { sampleFn = fn || null; claudeState = fn ? "on" : "off"; updateModeUi(); if (state.view !== "orig") rebuild(); checkScan(); };
   window.claude.use("sample").then(settle).catch(() => settle(null));
