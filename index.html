@@ -1159,7 +1159,8 @@ async function openFile(name, buf, images){
     }
     // 전에 이 파일을 글자 인식했으면 그 결과를 바로 쓴다
     const savedOcr = (state.source.type === "pdf" || state.source.type === "images") ? loadOcr() : null;
-    if (savedOcr?.parts?.length){ state.source.ocrParts = savedOcr.parts; state.source.ocrNext = savedOcr.next || state.source.pages + 1; }
+    if (savedOcr?.parts?.length || savedOcr?.failed?.length){ state.source.ocrParts = savedOcr.parts || []; state.source.ocrNext = savedOcr.next || state.source.pages + 1; state.source.ocrFailed = savedOcr.failed ||
+      Array.from({length: Math.min(state.source.ocrNext - 1, state.source.pages)}, (_, k) => k + 1).filter(pg => !savedOcr.parts.some(x => x.page === pg)); }
     resetTr();
     ocrAbort?.abort();
     state.idx = 0;
@@ -2603,9 +2604,10 @@ function checkScan(){
   }
   $("scan").hidden = false;
   const off = claudeState === "off";
-  if (src.ocrParts?.length){
-    const done = Math.min((src.ocrNext || src.pages + 1) - 1, src.pages);
-    $("scan-msg").textContent = done >= src.pages ? "글자 인식 결과로 읽습니다." : `${src.pages}쪽 중 ${done}쪽까지 인식한 글자로 읽습니다.`;
+  if (src.ocrParts?.length || src.ocrFailed?.length){
+    const done = Math.min((src.ocrNext || src.pages + 1) - 1, src.pages), bad = src.ocrFailed?.length || 0;
+    $("scan-msg").textContent = (done >= src.pages ? "글자 인식 결과로 읽습니다." : `${src.pages}쪽 중 ${done}쪽까지 인식한 글자로 읽습니다.`) +
+      (bad ? ` 읽지 못한 쪽이 ${bad}개 있어요(${src.ocrFailed.slice(0, 8).join(", ")}${bad > 8 ? " …" : ""}쪽).` : "");
   } else {
     const emptyMsg = document.querySelector("#doc .empty");
     if (emptyMsg) emptyMsg.textContent = src.type === "images" ? "사진이라 글자를 먼저 인식해야 합니다." : "스캔한 이미지라 읽을 글자가 없습니다.";
@@ -2622,8 +2624,9 @@ function checkScan(){
 const ocrLabel = () => {
   const src = state.source;
   if (ocrAbort) return "멈추기";
-  if (!src?.ocrParts?.length) return "Claude로 글자 인식";
-  return (src.ocrNext || 1) <= src.pages ? "이어서 인식하기" : "처음부터 다시 인식";
+  if (!src?.ocrParts?.length && !src?.ocrFailed?.length) return "Claude로 글자 인식";
+  if ((src.ocrNext || 1) <= src.pages) return "이어서 인식하기";
+  return src.ocrFailed?.length ? `못 읽은 ${src.ocrFailed.length}쪽 다시 인식` : "처음부터 다시 인식";
 };
 const OCR_PROMPT = `이 이미지는 학술 논문의 한 쪽을 스캔하거나 사진으로 찍은 것입니다. 오래된 인쇄물이라 글자가 흐리거나 기울어져 있을 수 있습니다.
 글자를 원문 언어 그대로 옮겨 적고, 덩어리마다 종류를 붙이세요.
@@ -2661,44 +2664,87 @@ const OCR_LS = "jjk-ocr:";
 function loadOcr(){ try { return JSON.parse(localStorage.getItem(OCR_LS + state.fileHash) || "null"); } catch { return null; } }
 function saveOcr(src){
   try {
-    localStorage.setItem(OCR_LS + state.fileHash, JSON.stringify({at: Date.now(), next: src.ocrNext, parts: src.ocrParts}));
+    localStorage.setItem(OCR_LS + state.fileHash, JSON.stringify({at: Date.now(), next: src.ocrNext, parts: src.ocrParts, failed: src.ocrFailed || []}));
     const keys = Object.keys(localStorage).filter(k => k.startsWith(OCR_LS));
     if (keys.length > 6) keys.map(k => { try { return [k, JSON.parse(localStorage.getItem(k)).at || 0]; } catch { return [k, 0]; } })
       .sort((a, b) => a[1] - b[1]).slice(0, keys.length - 6).forEach(([k]) => localStorage.removeItem(k));
   } catch {}
 }
+// 글자 인식 응답 읽기: 코드 블록, 객체로 감싼 배열, 길어서 중간에 잘린 응답도 완성된 덩어리까지는 살린다
+function parseOcr(text){
+  const t = String(text || "").replace(/```(?:json)?/gi, "").trim();
+  const tryParse = x => { try { return JSON.parse(x); } catch { return undefined; } };
+  let v = tryParse(t);
+  if (v === undefined){ const a = t.indexOf("["), b = t.lastIndexOf("]"); if (a >= 0 && b > a) v = tryParse(t.slice(a, b + 1)); }
+  if (v && !Array.isArray(v) && typeof v === "object") v = Object.values(v).find(Array.isArray);
+  if (Array.isArray(v)) return v;
+  const out = [];
+  for (const m of t.matchAll(/\{[^{}]*"type"\s*:\s*"[^"]*"[^{}]*\}/g)){ const o = tryParse(m[0]); if (o) out.push(o); }
+  return out.length ? out : null;
+}
+const OCR_WHY = {rate_limited: "요청이 많음", cancelled: "취소", invalid_request: "요청 형식", too_large: "이미지가 너무 큼", timeout: "시간 초과", bad: "응답을 읽지 못함", empty: "빈 응답"};
 async function runOcr(){
   const src = state.source;
   if (!hasPages() || !sampleFn) return;
   if (ocrAbort){ ocrAbort.abort(); return; }
   ocrAbort = new AbortController();
   const signal = ocrAbort.signal;
-  // 중간에 멈췄으면 이어서, 다 했으면 처음부터
-  if (!src.ocrParts?.length || (src.ocrNext || 1) > src.pages){ src.ocrParts = []; src.ocrNext = 1; }
+  src.ocrFailed ||= [];
+  // 할 쪽: 중간에 멈췄으면 그다음부터 + 못 읽은 쪽, 다 했고 못 읽은 쪽이 있으면 그 쪽만, 아니면 처음부터
+  let pages;
+  if (src.ocrParts?.length && (src.ocrNext || 1) <= src.pages){
+    pages = [...src.ocrFailed, ...Array.from({length: src.pages - src.ocrNext + 1}, (_, k) => src.ocrNext + k)];
+  } else if ((src.ocrParts?.length || src.ocrFailed.length) && src.ocrFailed.length){
+    pages = [...src.ocrFailed];
+  } else {
+    src.ocrParts = []; src.ocrNext = 1; src.ocrFailed = [];
+    pages = Array.from({length: src.pages}, (_, k) => k + 1);
+  }
   $("ocr").textContent = "멈추기";
   $("scan-msg").textContent = "Claude로 글자를 읽는 중이에요. 인식이 끝난 쪽부터 바로 읽고 번역해요.";
-  let failed = 0, stopMsg = "";
+  let stopMsg = "", lastWhy = "";
+  const show = p => {
+    const n = state.sentences.filter(x => !x.aside).length, bad = src.ocrFailed.length;
+    $("ocr-status").textContent = `글자 인식 중… ${p}/${src.pages}쪽 · 지금까지 ${n}문장` + (bad ? ` · 못 읽은 쪽 ${bad}개${lastWhy ? ` (${lastWhy})` : ""}` : "");
+  };
   try {
-    for (let p = src.ocrNext; p <= src.pages && !signal.aborted; p++){
-      $("ocr-status").textContent = `글자 인식 중… ${p}/${src.pages}쪽`;
+    for (const p of pages){
+      if (signal.aborted) break;
+      show(p);
       const canvas = await pageCanvas(p, 2000);
       const blob = await new Promise(r => canvas.toBlob(r, "image/jpeg", 0.85));
+      let ok = false;
       try {
-        addOcrPage(src, p, await sampleFn.json(OCR_PROMPT, {images: blob, signal, cache: {gcTime: 86400000}}));
+        const res = await sampleFn(OCR_PROMPT, {images: blob, signal, cache: {gcTime: 86400000}});
+        const arr = parseOcr(res?.text);
+        if (arr){
+          src.ocrParts = src.ocrParts.filter(x => x.page !== p);
+          addOcrPage(src, p, arr);
+          src.ocrParts.sort((a, b) => a.page - b.page);
+          ok = true;
+        } else lastWhy = OCR_WHY[res?.text?.trim() ? "bad" : "empty"];
       } catch (e){
         if (e?.code === "cancelled" || signal.aborted) break;
         if (["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed", "images_unavailable"].includes(e?.code)){ stopMsg = "Claude를 쓸 수 없어 글자 인식을 멈췄습니다."; break; }
-        if (e?.code === "rate_limited"){ stopMsg = `요청이 많아 ${p - 1}쪽까지 인식하고 멈췄습니다. 잠시 뒤 ‘이어서 인식하기’를 눌러 주세요.`; break; }
-        failed++;
+        if (e?.code === "rate_limited"){ stopMsg = `요청이 많아 멈췄습니다. 잠시 뒤 ‘${src.ocrNext <= src.pages ? "이어서 인식하기" : "다시 인식"}’를 눌러 주세요.`; break; }
+        // 응답이 길어 실패했어도 받은 부분이 있으면 살린다
+        const arr = parseOcr(e?.text);
+        if (arr?.length){ src.ocrParts = src.ocrParts.filter(x => x.page !== p); addOcrPage(src, p, arr); src.ocrParts.sort((a, b) => a.page - b.page); ok = true; }
+        else lastWhy = OCR_WHY[e?.code] || e?.code || "알 수 없는 오류";
       }
-      src.ocrNext = p + 1;
+      src.ocrFailed = src.ocrFailed.filter(x => x !== p);
+      if (!ok) src.ocrFailed.push(p);
+      src.ocrFailed.sort((a, b) => a - b);
+      if (p >= src.ocrNext) src.ocrNext = p + 1;
       saveOcr(src);
       if (!state.playing) rebuild();
+      show(p);
     }
   } finally {
     ocrAbort = null;
+    const bad = src.ocrFailed.length;
     $("ocr-status").textContent = stopMsg || (signal.aborted ? "글자 인식을 멈췄습니다. ‘이어서 인식하기’로 계속할 수 있어요."
-      : failed ? `인식 완료 (${failed}쪽은 인식하지 못했습니다)` : "글자 인식 완료");
+      : bad ? `인식 끝 · ${bad}쪽은 읽지 못했어요${lastWhy ? ` (${lastWhy})` : ""}. ‘못 읽은 쪽 다시 인식’을 눌러 보세요.` : "글자 인식 완료");
     if (!state.playing) rebuild(); else state.rebuildLater = true;
     const status = $("ocr-status").textContent;
     checkScan();
