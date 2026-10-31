@@ -391,11 +391,12 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
         <button class="opt" id="paste-open">글 붙여넣기…</button>
         <button class="opt" id="hl-open-menu">형광펜 모음…</button>
         <button class="opt" id="vocab-open">내 단어장…</button>
+        <button class="opt" id="save-docx">번역본 Word로 저장…</button>
         <button class="opt" id="ex-en">예시: 영어 논문 (PDF)</button>
         <button class="opt" id="ex-ko">예시: 한국어 논문 (TXT)</button>
       </div>
     </details>
-    <input type="file" id="file" accept=".pdf,.hwp,.hwpx,.txt,.xlsx,.xls,.csv,.jpg,.jpeg,.png,.webp,application/pdf,text/plain,image/jpeg,image/png,image/webp" multiple hidden>
+    <input type="file" id="file" accept=".pdf,.docx,.hwp,.hwpx,.txt,.xlsx,.xls,.csv,.jpg,.jpeg,.png,.webp,application/pdf,text/plain,image/jpeg,image/png,image/webp" multiple hidden>
     <details class="dd" id="dd-cite">
       <summary data-tip="본문 속 [12], (Kim, 2021) 같은 출처 표시를 읽을지 고릅니다."><span class="k">출처</span><span class="v" id="sum-cite">빼고</span></summary>
       <div class="menu">
@@ -464,6 +465,7 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
         <label class="tr-check" id="o-src-wrap"><input type="checkbox" id="o-src" checked> 원문 같이 보기</label>
         <label class="tr-check" data-tip="학술 용어에 점선 밑줄을 긋습니다. 누르면 쉬운 풀이와 참고 자료가 나옵니다."><input type="checkbox" id="o-terms" checked> 용어 풀이</label>
         <button class="btn ghost" id="hl-open" hidden>형광펜 <span id="hl-count">0</span></button>
+        <button class="btn ghost" id="tr-docx">Word로 저장</button>
         <button class="btn ghost" id="tr-toggle">멈추기</button>
       </span>
     </div>
@@ -476,7 +478,7 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
       <p class="eg-title">여기에 논문 본문이 나와요</p>
       <p>위쪽 <b>파일</b>을 눌러 논문을 열거나, 파일을 이 화면에 끌어다 놓으세요. 복사한 글은 <b>파일 → 글 붙여넣기</b>로 넣을 수 있어요.</p>
       <ul>
-        <li>열 수 있는 파일: PDF, 한글(HWP), 엑셀, TXT, 논문 사진</li>
+        <li>열 수 있는 파일: PDF, Word, 한글(HWP), 엑셀, TXT, 논문 사진</li>
         <li id="eg-tr">영어 논문은 원문 옆에 한글 번역이 문장마다 짝지어 붙어요</li>
         <li>모르는 단어는 우클릭(휴대폰은 길게 눌러 선택)해서 단어장에 넣어요</li>
         <li>아래 <b>▶ 읽기</b>를 누르면 소리 내어 읽어 줘요</li>
@@ -543,7 +545,7 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
       <summary>1. 논문 열기</summary>
       <ol>
         <li>위쪽 <b>파일</b>을 누르고 <b>내 파일 열기</b>를 고르세요. 파일을 화면에 끌어다 놓아도 돼요.</li>
-        <li>열 수 있는 파일: PDF, 한글(HWP, HWPX), 엑셀(XLSX, CSV), TXT, 사진(JPG, PNG)</li>
+        <li>열 수 있는 파일: PDF, Word(DOCX), 한글(HWP, HWPX), 엑셀(XLSX, CSV), TXT, 사진(JPG, PNG)</li>
         <li>복사한 글은 <b>글 붙여넣기</b>를 누르거나, 화면 아무 데서나 Ctrl+V로 넣으면 돼요.</li>
       </ol>
       <p>머리말·꼬리말, 쪽 번호, 참고문헌은 자동으로 빼고 본문만 보여 줘요. 빠진 내용이 있으면 <b>빼기</b> 메뉴에서 항목을 꺼 보세요.</p>
@@ -637,7 +639,8 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
         <li>번역, 글자 인식 결과, 형광펜, 단어장은 <b>지금 쓰는 기기의 이 브라우저에만</b> 저장돼요. 다른 기기에서는 보이지 않고, 브라우저 기록을 지우면 함께 사라져요.</li>
         <li><b>논문 파일은 저장되지 않아요.</b> 다시 볼 때 같은 PDF를 다시 열면 저장해 둔 번역이 바로 나와요.</li>
         <li>번역은 최근 8편, 글자 인식은 최근 6개 파일까지 남아요. 그보다 많아지면 오래된 것부터 지워져요.</li>
-        <li>오래 보관하려면 형광펜 모음과 단어장의 <b>파일로 저장</b>을 쓰세요.</li>
+        <li>오래 보관하거나 다른 기기에서 보려면 <b>파일 → 번역본 Word로 저장</b>을 쓰세요. 원문과 번역이 나란히 있는 Word 파일로 저장되고, 이 파일을 짹짹이에서 다시 열면 번역, 형광펜, 용어 풀이가 그대로 돌아와요.</li>
+        <li>형광펜 모음과 단어장도 각각 <b>파일로 저장</b>할 수 있어요.</li>
         <li>번역과 풀이는 Claude 사용량을 써요. 한도에 걸려 멈추면 조금 뒤에 <b>이어서 번역</b>을 누르세요.</li>
         <li>번역과 풀이는 AI가 한 것이에요. 인용하거나 중요한 판단에 쓸 문장은 옆의 원문과 꼭 대조하세요.</li>
       </ul>
@@ -1316,13 +1319,17 @@ async function openFile(name, buf, images){
     } else if (ext === "hwpx"){
       await need("jszip");
       state.source = {type: "parts", parts: await parseHwpx(buf, JSZip, DOMParser)};
+    } else if (ext === "docx"){
+      // 짹짹이로 저장한 Word 파일이면 번역·형광펜·풀이까지 되살리고, 아니면 글자만 읽는다
+      const r = await parseDocx(buf);
+      state.source = r.saved ? {type: "saved", blocks: r.saved.blocks || [], saved: r.saved} : {type: "parts", parts: r.parts};
     } else if (["xlsx", "xls", "csv", "xlsm", "ods"].includes(ext)){
       await need("xlsx");
       state.source = {type: "parts", parts: parseSheet(buf, XLSX), sheet: true};
     } else if (ext === "txt" || ext === "md" || ext === ""){
       state.source = {type: "parts", parts: parseTxt(decodeText(buf))};
     } else {
-      throw new Error("지원하지 않는 형식입니다. PDF, 한글, 엑셀, TXT, 사진(JPG, PNG) 파일을 열어 주세요.");
+      throw new Error("지원하지 않는 형식입니다. PDF, Word(DOCX), 한글, 엑셀, TXT, 사진(JPG, PNG) 파일을 열어 주세요.");
     }
     // 전에 이 파일을 글자 인식했으면 그 결과를 바로 쓴다
     const savedOcr = (state.source.type === "pdf" || state.source.type === "images") ? loadOcr() : null;
@@ -1331,7 +1338,9 @@ async function openFile(name, buf, images){
     resetTr();
     ocrAbort?.abort();
     state.idx = 0;
+    if (state.source.saved) applySaved(state.source.saved);
     rebuild();
+    if (state.source.saved) saveTr();
     checkScan();
   } catch (e){
     $("file-stats").textContent = "";
@@ -1393,7 +1402,9 @@ function rebuild(){
   state.trGen++; state.running = false;
   const curText = state.sentences[state.idx]?.text;
   const o = opts();
-  if (state.source.type === "pdf" && !state.source.ocrParts){
+  if (state.source.type === "saved"){
+    state.blocks = state.source.blocks.map(b => ({kind: b.kind, text: b.text, page: b.page, reason: b.reason}));
+  } else if (state.source.type === "pdf" && !state.source.ocrParts){
     classify(state.source.lines, o);
     for (const l of state.source.lines) delete l.fig;
     if (o.caption) findFigures(state.source.lines);
@@ -1734,13 +1745,13 @@ $("hl-save").addEventListener("click", () => {
 async function saveFile(name, text, note){
   if (EDITION === "web"){
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([text], {type: name.endsWith(".csv") ? "text/csv;charset=utf-8" : "text/plain;charset=utf-8"}));
+    a.href = URL.createObjectURL(text instanceof Blob ? text : new Blob([text], {type: name.endsWith(".csv") ? "text/csv;charset=utf-8" : "text/plain;charset=utf-8"}));
     a.download = name; a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);
     note.textContent = "파일로 저장했어요.";
     return;
   }
-  if (!downloadsNs){ note.textContent = "이 화면에서는 파일로 저장할 수 없어요. ‘모두 복사’로 옮겨 주세요."; return; }
+  if (!downloadsNs){ note.textContent = "이 화면에서는 파일로 저장할 수 없어요."; return; }
   try {
     await downloadsNs.save({filename: name, data: text});
     note.textContent = "파일로 저장했어요.";
@@ -2061,7 +2072,7 @@ $("sp-look").addEventListener("click", () => {
 
 // 알림: 단어장에 넣었을 때 [되돌리기] [단어장 보기]
 let toastTimer = 0;
-function toast(msg, withUndo){
+function toast(msg, withUndo, vocabLink = true){
   const el = $("toast");
   el.replaceChildren(make("span", "", msg));
   if (withUndo && vocabUndo === null){
@@ -2070,12 +2081,191 @@ function toast(msg, withUndo){
     b.addEventListener("click", () => { if (last) removeVocab(last); vocabUndo = null; el.hidden = true; });
     el.append(b);
   }
-  const open = make("button", "linkbtn", "단어장 보기"); open.type = "button";
-  open.addEventListener("click", () => { el.hidden = true; openVocab(); });
-  el.append(open);
+  if (vocabLink){
+    const open = make("button", "linkbtn", "단어장 보기"); open.type = "button";
+    open.addEventListener("click", () => { el.hidden = true; openVocab(); });
+    el.append(open);
+  }
   el.style.bottom = (document.querySelector(".player").offsetHeight + 12) + "px";
   el.hidden = false;
   clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.hidden = true; }, 5000);
+}
+
+// ---- 번역본 Word 파일 ----------------------------------------------------------
+// 원문 | 번역 두 칸 표로 쓰고, 형광펜은 배경색, 검수 표시는 밑줄로 남긴다.
+// 짹짹이가 다시 열 수 있도록 블록·번역·형광펜·풀이를 customXml 부분에 함께 넣는다 (Word 화면에는 보이지 않음).
+const W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+const JJK_NS = "urn:jjakjjak:v1";
+const xesc = t => String(t).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F￾￿]/g, "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const utf8ToB64 = str => { const b = new TextEncoder().encode(str); let out = ""; for (let i = 0; i < b.length; i += 0x8000) out += String.fromCharCode(...b.subarray(i, i + 0x8000)); return btoa(out); };
+const b64ToUtf8 = str => new TextDecoder().decode(Uint8Array.from(atob(str.replace(/\s+/g, "")), c => c.charCodeAt(0)));
+const HL_FILL = {y: "FFF0A3", g: "CDEECB", p: "FFD6E4"};
+function wRun(text, o = {}){
+  const pr = [o.bold && "<w:b/>", o.italic && "<w:i/>", o.color && `<w:color w:val="${o.color}"/>`, o.size && `<w:sz w:val="${o.size}"/><w:szCs w:val="${o.size}"/>`,
+    o.u && `<w:u w:val="${o.u[0]}" w:color="${o.u[1]}"/>`, o.fill && `<w:shd w:val="clear" w:color="auto" w:fill="${o.fill}"/>`].filter(Boolean).join("");
+  return `<w:r>${pr ? `<w:rPr>${pr}</w:rPr>` : ""}<w:t xml:space="preserve">${xesc(text)}</w:t></w:r>`;
+}
+const wPara = (runs, o = {}) => `<w:p><w:pPr>${o.keep ? "<w:keepNext/>" : ""}<w:spacing w:before="${o.before || 0}" w:after="${o.after ?? 80}"/></w:pPr>${runs}</w:p>`;
+function docxBlocks(){
+  // 본문 블록과 각주·그림 설명(뺀 부분 중 번역하는 것)만
+  return state.blocks.filter(b => b.kind !== "skip" || ASIDE[b.reason]);
+}
+function docxCell(runs, shade){ return `<w:tc><w:tcPr><w:tcW w:w="2500" w:type="pct"/>${shade ? `<w:shd w:val="clear" w:color="auto" w:fill="${shade}"/>` : ""}</w:tcPr>${runs}</w:tc>`; }
+function buildDocumentXml(){
+  const title = docTitle() || state.fileName || "논문";
+  const koTitle = state.translations.get(title);
+  const today = new Date().toISOString().slice(0, 10);
+  const head = [
+    wPara(wRun(koTitle || title, {bold: true, size: 32}), {after: 60}),
+    koTitle ? wPara(wRun(title, {size: 22, color: "5D6A78"}), {after: 60}) : "",
+    wPara(wRun(`짹짹이로 번역 · 원본 파일: ${state.fileName || "-"} · ${today}`, {size: 16, color: "5D6A78"}), {after: 40}),
+    wPara(wRun("배경색: 형광펜 · ", {size: 16, color: "5D6A78"}) + wRun("점선 밑줄", {size: 16, color: "5D6A78", u: ["dotted", "3D6B4F"]}) + wRun(": 검수에서 고친 번역 · ", {size: 16, color: "5D6A78"}) +
+      wRun("물결 밑줄", {size: 16, color: "5D6A78", u: ["wave", "C07A00"]}) + wRun(": 원문 숫자가 번역에 없어 대조가 필요한 문장. 번역은 AI가 한 것이니 중요한 문장은 원문과 대조하세요.", {size: 16, color: "5D6A78"}), {after: 200}),
+  ].join("");
+  const rows = [`<w:tr><w:trPr><w:tblHeader/></w:trPr>${docxCell(wPara(wRun("원문", {bold: true, size: 18, color: "5D6A78"})), "EEF1F4")}${docxCell(wPara(wRun("한국어 번역", {bold: true, size: 18, color: "5D6A78"})), "EEF1F4")}</w:tr>`];
+  let missing = 0;
+  for (const b of docxBlocks()){
+    const isHead = b.kind === "heading", aside = b.kind === "skip" ? ASIDE[b.reason] : null;
+    const parts = isHead ? [b.text] : splitSentences(b.text);
+    const base = isHead ? {bold: true, size: 22} : aside ? {size: 17, color: "5D6A78", italic: aside === "caption"} : {};
+    const tag = aside === "note" ? "[각주] " : aside === "caption" ? "[그림·표] " : "";
+    let en = tag ? wRun(tag, {...base, bold: true}) : "", ko = en;
+    for (const t of parts){
+      const tr = state.translations.get(t), c = state.hl.get(t), fill = c ? HL_FILL[c] : null;
+      const u = state.warn.get(t) ? ["wave", "C07A00"] : state.fixed.get(t) ? ["dotted", "3D6B4F"] : null;
+      en += wRun(t + " ", {...base, fill});
+      if (tr) ko += wRun(tr + " ", {...base, fill, u});
+      else { ko += wRun("(번역 없음) ", {...base, color: "9A5B00", italic: true}); missing++; }
+    }
+    rows.push(`<w:tr><w:trPr><w:cantSplit/></w:trPr>${docxCell(wPara(en, {keep: isHead}))}${docxCell(wPara(ko, {keep: isHead}))}</w:tr>`);
+  }
+  const border = v => `<w:${v} w:val="single" w:sz="4" w:space="0" w:color="D9DFE6"/>`;
+  const table = `<w:tbl><w:tblPr><w:tblW w:w="5000" w:type="pct"/><w:tblLayout w:type="fixed"/><w:tblBorders>${["top", "left", "bottom", "right", "insideH", "insideV"].map(border).join("")}</w:tblBorders>` +
+    `<w:tblCellMar><w:top w:w="60" w:type="dxa"/><w:left w:w="100" w:type="dxa"/><w:bottom w:w="60" w:type="dxa"/><w:right w:w="100" w:type="dxa"/></w:tblCellMar></w:tblPr>` +
+    `<w:tblGrid><w:gridCol w:w="4932"/><w:gridCol w:w="4932"/></w:tblGrid>${rows.join("")}</w:tbl>`;
+  // 용어 풀이 (받아 둔 것만)
+  const cache = termCache();
+  const terms = [...state.terms.values()].filter(t => cache[t.en.toLowerCase()]?.easy);
+  let gloss = "";
+  if (terms.length){
+    gloss = wPara(wRun("용어 풀이", {bold: true, size: 26}), {before: 360, after: 120, keep: true});
+    for (const t of terms){
+      const info = cache[t.en.toLowerCase()];
+      gloss += wPara(wRun(t.en, {bold: true}) + wRun(t.ko || info.koTerms?.[0] ? ` · ${t.ko || info.koTerms[0]}` : ""), {after: 20, keep: true});
+      gloss += wPara(wRun(info.easy), {after: info.example ? 20 : 120});
+      if (info.example) gloss += wPara(wRun("예: " + info.example, {color: "5D6A78", size: 18}), {after: 120});
+    }
+    gloss += wPara(wRun("용어 풀이는 Claude가 표준 정의를 바탕으로 쓴 것이에요. 정확한 정의는 참고 자료에서 확인하세요.", {size: 16, color: "5D6A78"}));
+  }
+  const xml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="${W_NS}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>` +
+    head + table + gloss +
+    `<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1021" w:bottom="1134" w:left="1021" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>`;
+  return {xml, missing};
+}
+function savedData(){
+  const blocks = state.blocks.map(b => ({kind: b.kind, text: b.text, page: b.page, reason: b.reason}));
+  const tr = {}, texts = new Set();
+  for (const b of docxBlocks()) for (const t of b.kind === "heading" ? [b.text] : splitSentences(b.text)) texts.add(t);
+  for (const t of texts){ const ko = state.translations.get(t); if (ko) tr[t] = [ko, state.fixed.get(t) || "", state.warn.get(t) || ""]; }
+  const cache = termCache(), termInfo = {};
+  for (const t of state.terms.values()){ const i = cache[t.en.toLowerCase()]; if (i) termInfo[t.en.toLowerCase()] = i; }
+  const fc = figCache(), figs = {};
+  for (const b of state.blocks) if (b.kind === "skip" && ASIDE[b.reason] === "caption" && fc[figKey(b)]) figs[b.text.slice(0, 120)] = fc[figKey(b)];
+  return {v: 1, app: "jjakjjak", title: docTitle(), fileName: state.fileName || "", fileHash: state.fileHash || "", savedAt: Date.now(),
+    blocks, tr, terms: [...state.terms.values()], termInfo, figs, hl: Object.fromEntries([...state.hl].filter(([t]) => texts.has(t)))};
+}
+async function buildDocx(){
+  await need("jszip");
+  const zip = new JSZip();
+  const {xml, missing} = buildDocumentXml();
+  const guid = (crypto.randomUUID?.() || "6a1d0f3e-0000-4000-8000-" + Date.now().toString(16).padStart(12, "0")).toUpperCase();
+  zip.file("[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">` +
+    `<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>` +
+    `<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>` +
+    `<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>` +
+    `<Override PartName="/customXml/itemProps1.xml" ContentType="application/vnd.openxmlformats-officedocument.customXmlProperties+xml"/></Types>`);
+  zip.file("_rels/.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+    `<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`);
+  zip.file("word/_rels/document.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+    `<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>` +
+    `<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXml" Target="../customXml/item1.xml"/></Relationships>`);
+  zip.file("word/styles.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="${W_NS}"><w:docDefaults><w:rPrDefault><w:rPr>` +
+    `<w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="Malgun Gothic" w:cs="Times New Roman"/><w:sz w:val="20"/><w:szCs w:val="20"/><w:lang w:val="en-US" w:eastAsia="ko-KR"/>` +
+    `</w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="80" w:line="300" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>` +
+    `<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style></w:styles>`);
+  zip.file("word/document.xml", xml);
+  zip.file("customXml/item1.xml", `<?xml version="1.0" encoding="UTF-8"?><jjakjjak xmlns="${JJK_NS}">${utf8ToB64(JSON.stringify(savedData()))}</jjakjjak>`);
+  zip.file("customXml/itemProps1.xml", `<?xml version="1.0" encoding="UTF-8" standalone="no"?><ds:datastoreItem ds:itemID="{${guid}}" xmlns:ds="http://schemas.openxmlformats.org/officeDocument/2006/customXml"><ds:schemaRefs><ds:schemaRef ds:uri="${JJK_NS}"/></ds:schemaRefs></ds:datastoreItem>`);
+  zip.file("customXml/_rels/item1.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+    `<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/customXmlProps" Target="itemProps1.xml"/></Relationships>`);
+  const blob = await zip.generateAsync({type: "blob", mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", compression: "DEFLATE"});
+  return {blob, missing};
+}
+async function saveDocx(){
+  if (!state.blocks.length){ toast("먼저 논문을 열어 주세요.", false, false); return; }
+  const note = {set textContent(m){ toast(m, false, false); }};
+  try {
+    const {blob, missing} = await buildDocx();
+    const base = (docTitle() || state.fileName || "논문").replace(/[\\/:*?"<>|]+/g, " ").slice(0, 60).trim();
+    await saveFile(`${base} (짹짹이 번역).docx`, blob, note);
+    if (missing) setTimeout(() => toast(`번역이 안 된 ${missing}문장은 ‘(번역 없음)’으로 들어갔어요. 번역이 끝난 뒤 다시 저장하면 채워져요.`, false, false), 1200);
+  } catch {
+    toast("Word 파일을 만들지 못했어요. 다시 눌러 주세요.", false, false);
+  }
+}
+$("save-docx").addEventListener("click", saveDocx);
+$("tr-docx").addEventListener("click", saveDocx);
+
+// Word 읽기: 짹짹이 저장본이면 저장 정보를, 아니면 문단 글자를
+async function parseDocx(buf){
+  await need("jszip");
+  const zip = await JSZip.loadAsync(buf);
+  for (const name of Object.keys(zip.files).filter(n => /^customXml\/item\d+\.xml$/i.test(n))){
+    const xml = await zip.file(name).async("string");
+    const m = xml.match(/<jjakjjak[^>]*>([A-Za-z0-9+/=\s]+)<\/jjakjjak>/);
+    if (m && xml.includes(JJK_NS)){ try { return {saved: JSON.parse(b64ToUtf8(m[1]))}; } catch {} }
+  }
+  const main = zip.file("word/document.xml");
+  if (!main) throw new Error("Word 문서 본문을 찾지 못했습니다.");
+  const doc = new DOMParser().parseFromString(await main.async("string"), "application/xml");
+  const parts = [];
+  for (const p of doc.getElementsByTagNameNS(W_NS, "p")){
+    let text = "";
+    for (const n of p.getElementsByTagNameNS(W_NS, "*")){
+      if (n.localName === "t") text += n.textContent;
+      else if (n.localName === "tab" || n.localName === "br") text += " ";
+    }
+    const style = p.getElementsByTagNameNS(W_NS, "pStyle")[0]?.getAttributeNS(W_NS, "val") || "";
+    if (text.trim()) parts.push(/^(heading|title|제목)/i.test(style) ? {text, heading: true} : {text});
+  }
+  return {parts};
+}
+// 저장본 되살리기: 번역·검수 표시·용어·형광펜·풀이를 이 브라우저 저장소에도 넣는다
+function applySaved(d){
+  if (d.fileHash) state.fileHash = d.fileHash;
+  if (d.fileName) state.fileName = d.fileName;
+  for (const [en, v] of Object.entries(d.tr || {})){
+    const [ko, why, warn] = Array.isArray(v) ? v : [v];
+    if (typeof ko !== "string") continue;
+    state.translations.set(en, ko);
+    if (why) state.fixed.set(en, why);
+    if (warn) state.warn.set(en, warn);
+  }
+  state.trLoaded = state.translations.size;
+  for (const t of Array.isArray(d.terms) ? d.terms : []) if (t?.en) state.terms.set(t.en.toLowerCase(), {en: t.en, ko: t.ko || ""});
+  buildTermRe();
+  try {
+    const tc = termCache(); Object.assign(tc, d.termInfo || {}); localStorage.setItem(TERM_CACHE, JSON.stringify(tc));
+    if (d.hl && Object.keys(d.hl).length){
+      const cur = JSON.parse(localStorage.getItem(hlKey()) || "{}");
+      localStorage.setItem(hlKey(), JSON.stringify({...cur, at: Date.now(), title: d.title || "", hl: {...(cur.hl || {}), ...d.hl}}));
+    }
+    const fc = figCache();
+    for (const [cap, info] of Object.entries(d.figs || {})) fc[docKey().slice(LS.length) + "|" + cap] = info;
+    localStorage.setItem("jjk-figs", JSON.stringify(fc));
+  } catch {}
+  state.view = "side";
+  toast(`저장해 둔 번역본을 열었어요. 번역 ${state.translations.size}문장` + (d.hl ? `, 형광펜 ${Object.keys(d.hl).length}문장` : "") + "을 되살렸어요.", false, false);
 }
 
 // ---- 사용 설명 ----------------------------------------------------------------
@@ -2284,7 +2474,7 @@ function mark(){
 function seg(onId, offId, on){ $(onId).setAttribute("aria-pressed", on); $(offId).setAttribute("aria-pressed", !on); updateSummaries(); }
 function updateSummaries(){
   $("tip-file").dataset.tip = (state.fileName ? `지금 파일: ${state.fileName}\n${state.statsText || ""}\n\n` : "") +
-    "PDF · 한글(HWP, HWPX) · 엑셀(XLSX, XLS, CSV) · TXT · 사진(JPG, PNG, 여러 장 가능) 파일을 엽니다. 화면에 끌어다 놓아도 됩니다.\n복사한 글은 ‘글 붙여넣기’나 Ctrl+V로 넣을 수 있습니다.";
+    "PDF · Word(DOCX) · 한글(HWP, HWPX) · 엑셀(XLSX, XLS, CSV) · TXT · 사진(JPG, PNG, 여러 장 가능) 파일을 엽니다. 화면에 끌어다 놓아도 됩니다.\n복사한 글은 ‘글 붙여넣기’나 Ctrl+V로 넣을 수 있습니다.";
   $("sum-cite").textContent = state.stripCites ? "빼고" : "다 읽기";
   $("sum-mode").textContent = claudeState === "off" ? "안 됨" : trView() ? (state.view === "side" ? "나란히" : "문장마다") : "끔";
   $("sum-skip").textContent = ["o-front", "o-small", "o-caption", "o-refs"].filter(id => $(id).checked).length + "개";
@@ -2302,11 +2492,11 @@ function setView(v){ state.view = v; updateModeUi(); rebuild(); }
 function updateModeUi(){
   queueMicrotask(updateSummaries);
   const isEn = state.lang === "en";
-  const off = claudeState === "off";
+  const off = claudeState === "off" && state.source?.type !== "saved";
   $("dd-mode").classList.toggle("off", off);
   $("mode-off").hidden = !off;
   if (off) $("mode-off").innerHTML = offReason() + (EDITION === "web" ? ` <a href="${CLAUDE_URL}" target="_blank" rel="noopener">claude.ai 버전 열기</a>` : "");
-  const can = isEn && !!sampleFn;
+  const can = isEn && (!!sampleFn || state.source?.type === "saved");
   $("mode-side").disabled = $("mode-bi").disabled = !can;
   ["orig", "side", "bi"].forEach(v => $("mode-" + v).setAttribute("aria-pressed", (can ? state.view : "orig") === v));
   $("voice-ko-wrap").hidden = !trView();
@@ -2323,7 +2513,7 @@ function updateModeUi(){
 const BATCH = 14;
 const ASIDE = {"각주·작은 글씨": "note", "각주·미주": "note", "그림·표 설명": "caption"};
 const NO_CLAUDE = ["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed"];
-const trView = () => state.view !== "orig" && state.lang === "en" && !!sampleFn;
+const trView = () => state.view !== "orig" && state.lang === "en" && (!!sampleFn || state.source?.type === "saved");
 const koSpeak = t => (state.stripCites ? stripCitations(t) : t).trim();
 const docTitle = () => state.blocks.find(b => b.kind === "heading")?.text || state.fileName || "";
 // 초록: '초록' 제목 다음 문단, 없으면 첫 문단 (분야와 용어를 가늠하는 문맥으로만 쓴다)
@@ -2435,6 +2625,7 @@ async function runChunk(idxs){
 }
 async function translateAll(){
   if (!trView() || state.running) return;
+  if (!sampleFn){ updateTrUi(); return; }   // 저장본을 Claude 없이 볼 때: 저장된 번역만
   state.running = true; state.trStop = "";
   const gen = state.trGen;
   updateTrUi();
