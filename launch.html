@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>짹짹이</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="launch.webmanifest">
+<meta name="apple-mobile-web-app-title" content="짹짹이">
+<meta name="theme-color" content="#f3f5f7">
+<style>
+:root{--bg:#f3f5f7;--surface:#fff;--ink:#1b2430;--muted:#5d6a78;--line:#d9dfe6;--accent:#2b5c8a;--accent-ink:#fff}
+@media (prefers-color-scheme: dark){:root{--bg:#12171d;--surface:#1a2129;--ink:#e4e9ef;--muted:#9aa7b4;--line:#2c3642;--accent:#6ea4d6;--accent-ink:#0e1a26}}
+*{box-sizing:border-box}
+body{margin:0;min-height:100dvh;display:grid;place-items:center;background:var(--bg);color:var(--ink);font:15px/1.7 system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;padding:24px max(16px, env(safe-area-inset-left, 0px))}
+main{max-width:30em;width:100%;display:grid;gap:14px;justify-items:center;text-align:center}
+img{width:96px;height:96px;border-radius:22px}
+h1{margin:0;font-size:1.4rem}
+p{margin:0;color:var(--muted)}
+a.go{display:inline-block;padding:10px 22px;border-radius:9px;background:var(--accent);color:var(--accent-ink);text-decoration:none;font-weight:600}
+.setup{text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 18px;width:100%}
+.setup h2{margin:0 0 6px;font-size:1rem}
+.setup ul{margin:0;padding-left:20px;color:var(--ink)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+  <img src="icon-192.png" alt="">
+  <h1>짹짹이</h1>
+  <p id="msg">Claude 버전 짹짹이를 여는 중이에요…</p>
+  <a class="go" id="go" href="https://claude.ai/artifact/VM3EN357jUcNfKLQYmuQEX">짹짹이 열기</a>
+  <section class="setup" id="setup" hidden>
+    <h2>병아리 아이콘으로 바로가기 만들기</h2>
+    <ul>
+      <li><b>아이폰(사파리)</b>: 아래 공유 버튼(□↑) → 홈 화면에 추가</li>
+      <li><b>안드로이드(크롬)</b>: 오른쪽 위 ⋮ → 홈 화면에 추가</li>
+      <li><b>PC(크롬·엣지)</b>: 오른쪽 위 ⋮ → 저장 및 공유(또는 앱) → 바로가기 만들기</li>
+    </ul>
+    <p>만든 바로가기를 누르면 이 화면을 거쳐 바로 짹짹이가 열려요.</p>
+  </section>
+</main>
+<script>
+// 이 주소 뒤에 #setup을 붙여 열면 바로가기 만드는 법을 보여 주고 넘어가지 않는다.
+// 주소에서 #setup은 바로 지워서, 이 상태로 만든 바로가기는 다음부터 곧장 짹짹이로 넘어간다.
+if (location.hash === "#setup"){
+  history.replaceState(null, "", location.pathname);
+  document.getElementById("setup").hidden = false;
+  document.getElementById("msg").textContent = "이 화면을 홈 화면이나 바탕 화면에 추가하면 병아리 아이콘이 생겨요.";
+} else {
+  location.replace(document.getElementById("go").href);
+}
+</script>
+</body>
+</html>

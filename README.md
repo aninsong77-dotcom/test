@@ -51,6 +51,15 @@
 | 스캔본 PDF 글자 인식 | 됨 (Claude 로그인 필요) | 안 됨 — claude.ai 버전으로 가는 링크 표시 |
 | 홈 화면 아이콘 | claude.ai 아이콘 | 병아리 아이콘 |
 
+## 병아리 아이콘 바로가기 (launch.html)
+
+claude.ai 링크를 홈 화면이나 바탕 화면에 추가하면 claude.ai 아이콘이 붙습니다(아이콘은 링크 주소의 사이트가 정하기 때문).
+병아리 아이콘을 쓰려면 GitHub Pages에 올린 `launch.html`을 바로가기로 만듭니다.
+
+1. `https://aninsong77-dotcom.github.io/test/launch.html#setup`을 엽니다. 바로가기 만드는 법이 나오고 다른 곳으로 넘어가지 않습니다.
+2. 그 화면에서 홈 화면에 추가(휴대폰) 또는 바로가기 만들기(PC 크롬·엣지)를 합니다.
+3. 만든 바로가기를 누르면 `launch.html`이 곧장 claude.ai 버전 짹짹이로 넘겨 줍니다.
+
 ## GitHub Pages로 올리기
 
 1. 저장소 **Settings → General → Danger Zone → Change visibility**에서 공개로 바꿉니다. (비공개 저장소의 Pages는 GitHub 유료 요금제가 필요합니다.)
