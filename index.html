@@ -138,7 +138,7 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
 .term:hover,.term:focus-visible{background:var(--accent-soft)}
 .tview .s.hl,.tview .t.hl,.t.now{background:var(--mark);color:var(--mark-ink)}
 /* 고른 문장은 테두리로만 표시해서 형광펜 색이 그대로 보이게 */
-.tview .s.pin,.tview .t.pin{outline:2px solid var(--accent);outline-offset:2px}
+.s.pin,.t.pin{outline:2px solid var(--accent);outline-offset:2px}
 .doc.tview:not(.playing) .s.read{color:inherit}
 .tview .s:hover{text-decoration:none}
 .tview.strip .cite{text-decoration:none;opacity:1}
@@ -481,7 +481,7 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
         <li>열 수 있는 파일: PDF, Word, 한글(HWP), 엑셀, TXT, 논문 사진</li>
         <li id="eg-tr">영어 논문은 원문 옆에 한글 번역이 문장마다 짝지어 붙어요</li>
         <li>모르는 단어는 우클릭(휴대폰은 길게 눌러 선택)해서 단어장에 넣어요</li>
-        <li>아래 <b>▶ 읽기</b>를 누르면 소리 내어 읽어 줘요</li>
+        <li>문장을 누르면 형광펜을 칠할 수 있고, 아래 <b>▶ 읽기</b>를 누르면 소리 내어 읽어 줘요</li>
       </ul>
       <p>자세한 사용법은 오른쪽 위 <b>사용 설명</b>(휴대폰은 <b>?</b>)에 있어요. 어떻게 보이는지 먼저 보고 싶으면 <b>파일 → 예시</b>를 열어 보세요.</p>
     </div>
@@ -554,7 +554,7 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
     <details>
       <summary>2. 번역해서 읽기</summary>
       <ol>
-        <li>영어 논문을 열면 나오는 <b>나란히 번역하기</b>를 누르세요. 위쪽 <b>번역</b> 메뉴에서 고를 수도 있어요.</li>
+        <li>영어 논문을 열면 처음부터 원문과 번역이 두 칸으로 나란히 나오고, 번역이 바로 시작돼요. 위쪽 <b>번역</b> 메뉴에서 보기를 바꿀 수 있고, 고른 보기는 다음에도 그대로예요.</li>
         <li><b>원문 · 번역 나란히</b>: PC는 왼쪽 원문, 오른쪽 번역이에요. 휴대폰은 번역 아래에 원문이 붙어요.</li>
         <li><b>문장마다 번역 아래에</b>: 영어 한 문장 바로 아래에 번역 한 문장이 나와요.</li>
       </ol>
@@ -582,7 +582,7 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
     <details>
       <summary>4. 형광펜</summary>
       <ul>
-        <li>번역 보기에서 문장을 누르면 아래에 형광펜 도구가 떠요. 노랑, 초록, 분홍 중에 고르세요. 같은 색을 다시 누르면 지워져요.</li>
+        <li>문장을 누르면 아래에 형광펜 도구가 떠요. 노랑, 초록, 분홍 중에 고르세요. 같은 색을 다시 누르면 지워져요. 한국어 논문에서도 돼요.</li>
         <li>우클릭 메뉴의 <b>이 문장 형광펜</b>으로도 칠할 수 있어요.</li>
         <li>화면 오른쪽 가장자리 막대에 칠한 자리가 색으로 표시돼요. 표시를 누르면 그 문장으로 가요.</li>
         <li><b>파일 → 형광펜 모음</b>에서 칠한 문장만 모아 보고, 복사하거나 파일로 저장할 수 있어요. <b>모든 논문</b>을 누르면 다른 논문의 형광펜도 함께 보여요.</li>
@@ -593,6 +593,7 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
       <summary>5. 학술 용어 풀이</summary>
       <ul>
         <li>번역하면서 낯선 학술 용어에 <span class="u-dot-accent">점선 밑줄</span>을 그어요. 누르면 풀이 카드가 떠요.</li>
+        <li><b>한국어 논문</b>은 위쪽 <b>학술 용어 찾기</b>를 누르면 용어를 찾아 밑줄을 그어요. 풀이 카드에 영어 원어도 나와요.</li>
         <li>카드에는 쉬운 풀이, 구체적인 예, 이 논문에서의 뜻, 헷갈리기 쉬운 개념, 한국 학계에서 쓰는 번역어가 나와요.</li>
         <li><b>출처 확인</b>의 링크는 APA 심리학 사전, 스탠퍼드 철학 백과사전 같은 공인 참고 자료로 연결돼요.</li>
       </ul>
@@ -626,7 +627,7 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
       <summary>8. 읽어 주기</summary>
       <ul>
         <li>아래 <b>▶ 읽기</b>를 누르면 본문을 소리 내어 읽어요. 번역 보기에서는 영어 한 문장, 이어서 그 번역을 읽어요.</li>
-        <li>원문만 보기에서는 문장을 누르면 거기서부터 읽어요. 번역 보기에서는 문장을 누른 뒤 <b>여기서부터 읽기</b>를 누르세요.</li>
+        <li>특정 문장부터 읽으려면 그 문장을 누른 뒤 아래 <b>여기서부터 읽기</b>를 누르세요.</li>
         <li>아래 왼쪽 목록에서 장·소제목을 골라 그 위치부터 읽을 수 있어요. 오른쪽에서 속도를 바꿔요.</li>
         <li><b>출처</b> 메뉴: 본문 속 (Kim, 2021), [12] 같은 출처 표시를 빼고 읽을지 고르세요.</li>
         <li><b>음성</b> 메뉴: 목소리를 바꿔요. ★ 표시가 붙은 음성이 대체로 더 자연스러워요.</li>
@@ -692,7 +693,7 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
     <button class="btn ghost icon" id="sel-close" aria-label="문장 고르기 끝내기">×</button>
   </div>
   <div class="player-in">
-    <label class="jump" data-tip="읽기 시작할 장을 고릅니다. 본문 문장을 눌러도 거기서부터 읽습니다."><select id="jump" aria-label="시작 위치"></select></label>
+    <label class="jump" data-tip="읽기 시작할 장을 고릅니다. 문장을 누른 뒤 ‘여기서부터 읽기’를 눌러도 됩니다."><select id="jump" aria-label="시작 위치"></select></label>
     <button class="btn" id="play" data-tip="고른 위치부터 읽기">▶ 읽기</button>
     <button class="btn ghost icon" id="pause" disabled aria-label="일시정지" data-tip="일시정지 / 계속">❚❚</button>
     <button class="btn ghost icon" id="stop" disabled aria-label="정지" data-tip="멈추고 처음으로">■</button>
@@ -1271,6 +1272,7 @@ const state = {
   terms: new Map(),      // 학술 용어: 영어 소문자 → {en, ko}
   hl: new Map(),         // 형광펜: 원문 문장 → "y" | "g" | "p"
   running: false, trGen: 0, trCursor: 0, trStop: "", ctaClosed: false, trLoaded: 0,
+  koScanned: 0, koRunning: false, koStarted: false,   // 한국어 논문 용어 찾기: 훑은 문장 수
 };
 let sampleFn = null, wakeLock = null;
 // 번역·글자 인식은 claude.ai 안에서만 된다. web: 깃허브 등 일반 웹 버전
@@ -1399,7 +1401,7 @@ document.addEventListener("paste", e => {
 function rebuild(){
   if (!state.source) return;
   stop();
-  state.trGen++; state.running = false;
+  state.trGen++; state.running = false; state.koRunning = false;
   const curText = state.sentences[state.idx]?.text;
   const o = opts();
   if (state.source.type === "saved"){
@@ -1445,10 +1447,11 @@ function rebuild(){
     (skipped.length ? ` · 뺀 부분: ${reasons.join(", ")}` : "");
   updateModeUi();
   loadVoices();
-  if (tv) loadTr();
+  if (tv || state.lang === "ko") loadTr();
   state.hl = loadHl();
   render();
   if (tv) translateAll();
+  if (state.lang === "ko" && state.koStarted) findKoTerms();
 }
 ["o-front", "o-small", "o-caption", "o-refs"].forEach(id => $(id).addEventListener("change", () => { updateSummaries(); rebuild(); }));
 $("o-show").addEventListener("change", () => { stop(); render(); });
@@ -1460,18 +1463,17 @@ function fillSentence(span, i){
   span.replaceChildren();
   for (const p of citeParts(state.sentences[i].text)){
     if (p.cite){ const c = document.createElement("span"); c.className = "cite"; c.textContent = p.text; span.appendChild(c); }
-    else span.append(...termNodes(p.text, "en"));
+    else span.append(...termNodes(p.text, state.lang === "ko" ? "ko" : "en"));
   }
 }
 function sentenceEl(i){
   const span = document.createElement("span");
   span.className = "s"; span.dataset.i = i;
   fillSentence(span, i);
-  // 번역해서 볼 때는 누르면 짝 문장을 고르고(형광펜 도구가 뜬다) 읽기 시작 위치만 옮긴다
+  // 문장을 누르면 그 문장을 고른다: 아래에 형광펜 도구와 '여기서부터 읽기'가 뜬다
   span.addEventListener("click", e => {
     if (e.target.closest(".term")) return;
-    if (trView()){ pick(i); return; }
-    stop(); state.idx = i; play();
+    pick(i);
   });
   return span;
 }
@@ -1618,7 +1620,7 @@ function applyHl(i){
   pairEls(i).forEach(e => { if (c) e.dataset.hl = c; else delete e.dataset.hl; });
 }
 function updateSelbar(){
-  const on = pinI !== null && trView();
+  const on = pinI !== null;
   $("selbar").hidden = !on;
   if (!on) return;
   const c = state.hl.get(state.sentences[+pinI]?.text) || "";
@@ -1807,15 +1809,18 @@ if ("ResizeObserver" in window) new ResizeObserver(queueRail).observe($("doc"));
 // 출처는 정해 둔 공인 참고 자료 목록에서만 고르게 해서 확인 링크는 앱이 직접 만든다.
 let termRe = {en: null, ko: null}, termByKo = new Map();
 const escRe = t => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const termKey = t => (t.en || t.ko || "").toLowerCase();
+// 용어 이름: 한국어 논문에서는 한국어 표기가 먼저
+const termName = t => state.lang === "ko" ? (t.ko || t.en) : (t.en || t.ko);
 function buildTermRe(){
   const list = [...state.terms.values()];
-  const en = list.map(t => t.en).sort((a, b) => b.length - a.length).map(escRe);
+  const en = list.map(t => t.en).filter(Boolean).sort((a, b) => b.length - a.length).map(escRe);
   const ko = list.map(t => t.ko).filter(Boolean).sort((a, b) => b.length - a.length).map(escRe);
   termRe = {en: en.length ? new RegExp(`\\b(?:${en.join("|")})\\b`, "gi") : null, ko: ko.length ? new RegExp(ko.join("|"), "g") : null};
   termByKo = new Map(list.filter(t => t.ko).map(t => [t.ko, t]));
 }
 function termNodes(text, lang){
-  const re = trView() && $("o-terms").checked ? termRe[lang] : null;
+  const re = (trView() || state.lang === "ko") && $("o-terms").checked ? termRe[lang] : null;
   if (!re) return [document.createTextNode(text)];
   const out = []; let last = 0;
   for (const m of text.matchAll(re)){
@@ -1823,7 +1828,7 @@ function termNodes(text, lang){
     if (!t) continue;
     if (m.index > last) out.push(document.createTextNode(text.slice(last, m.index)));
     const b = make("span", "term", m[0]);
-    b.tabIndex = 0; b.setAttribute("role", "button"); b.dataset.term = t.en.toLowerCase();
+    b.tabIndex = 0; b.setAttribute("role", "button"); b.dataset.term = termKey(t);
     b.setAttribute("aria-label", `${m[0]} 풀이 보기`);
     out.push(b); last = m.index + m[0].length;
   }
@@ -1839,7 +1844,7 @@ function addTerms(list, items){
   for (const t of Array.isArray(list) ? list.slice(0, 6) : []){
     const en = String(t?.en || "").trim(), ko = String(t?.ko || "").trim();
     const key = en.toLowerCase();
-    if (en.length < 3 || en.length > 60 || state.terms.has(key)) continue;
+    if (en.length < 3 || en.length > 60 || state.terms.has(key)) continue;   // key = 영어 소문자
     if (!items.some(s => s.text.toLowerCase().includes(key))) continue;
     const koOk = ko.length >= 2 && items.some(s => (state.translations.get(s.text) || "").includes(ko));
     state.terms.set(key, {en, ko: koOk ? ko : ""});
@@ -1858,6 +1863,7 @@ const TERM_SOURCES = {
   econlib: {name: "Concise Encyclopedia of Economics", what: "Econlib 경제학 백과사전", url: q => gsite("econlib.org", q)},
   nist: {name: "NIST/SEMATECH e-Handbook of Statistical Methods", what: "미국 국립표준기술연구소 통계 핸드북", url: q => gsite("itl.nist.gov/div898/handbook", q)},
   britannica: {name: "Encyclopaedia Britannica", what: "브리태니커 백과사전", url: q => `https://www.britannica.com/search?query=${encodeURIComponent(q)}`},
+  stdict: {name: "표준국어대사전", what: "국립국어원", url: (q, kq) => gsite("stdict.korean.go.kr", kq || q)},
 };
 const TERM_RULES = `당신은 인문사회 분야 영어 논문을 읽는 한국 대학생에게 학술 용어를 풀어 주는 조교입니다.
 규칙:
@@ -1867,7 +1873,7 @@ const TERM_RULES = `당신은 인문사회 분야 영어 논문을 읽는 한국
 - 한국 학계 번역어는 실제로 널리 쓰이는 것만 적고, 확실하지 않으면 빈 배열로 두세요.
 - 책 제목, 쪽수, 인용문, 웹 주소를 쓰지 마세요. 출처는 아래 목록의 키로만 고르세요.
 - 확실하지 않거나 이 논문에서만 쓰는 말이면 "sure"를 false로 하고, easy에 그렇다고 밝히세요.
-참고 자료 목록: apa(심리학), sep(철학), eric(교육학), wex(법학), econlib(경제학), nist(통계), britannica(일반 백과)`;
+참고 자료 목록: apa(심리학), sep(철학), eric(교육학), wex(법학), econlib(경제학), nist(통계), britannica(일반 백과), stdict(국어사전: 한국어로 널리 쓰는 낱말)`;
 let termAsk = null, curTerm = null;
 function closeTerm(){ $("termcard").hidden = true; termAsk?.abort(); termAsk = null; curTerm = null; }
 $("tc-close").addEventListener("click", closeTerm);
@@ -1881,15 +1887,15 @@ function openTerm(key, i){
 // 단어장에서 직접 찾은 낱말: 지금 논문에 나온 문장이 있으면 그 문장을 문맥으로 쓴다
 function lookupWord(word){
   const w = word.trim(); if (!w) return;
-  const t = state.terms.get(w.toLowerCase()) || {en: w, ko: ""};
+  const t = state.terms.get(w.toLowerCase()) || termByKo.get(w) || (/[가-힣]/.test(w) ? {en: "", ko: w} : {en: w, ko: ""});
   const s = state.sentences.find(s => s.text.toLowerCase().includes(w.toLowerCase()));
   showTerm(t, s?.text || "");
 }
 async function showTerm(t, sentence){
-  const key = t.en.toLowerCase();
+  const key = termKey(t), isKo = state.lang === "ko";
   curTerm = {t, sentence, info: null};
-  $("tc-en").textContent = t.en;
-  $("tc-ko").textContent = t.ko || "";
+  $("tc-en").textContent = termName(t);
+  $("tc-ko").textContent = (isKo ? t.en : t.ko) || "";
   $("termcard").style.bottom = (document.querySelector(".player").offsetHeight + 10) + "px";
   $("termcard").hidden = false;
   const body = $("tc-body");
@@ -1902,7 +1908,11 @@ async function showTerm(t, sentence){
     if (info.example) sec("예를 들면", make("p", "", info.example));
     if (info.inPaper) sec("이 논문에서는", make("p", "", info.inPaper));
     if (info.confusable) sec("헷갈리기 쉬운 개념", make("p", "", info.confusable));
-    if (info.koTerms?.length){
+    if (isKo){
+      if (!t.en && info.en) $("tc-ko").textContent = info.en;
+      if (info.en || t.en) sec("영어 원어", make("p", "", info.en || t.en), make("p", "tc-note", "해외 문헌을 찾거나 인용할 때 이 말로 찾아보세요."));
+      if (info.koTerms?.length) sec("같은 뜻으로 쓰는 다른 말", make("p", "", info.koTerms.join(", ")));
+    } else if (info.koTerms?.length){
       const p = make("p", "", info.koTerms.join(", "));
       const nodes = [p];
       if (t.ko && !info.koTerms.some(k => k.replace(/\s/g, "") === t.ko.replace(/\s/g, ""))) nodes.push(make("p", "tc-note", `이 번역에서는 ‘${t.ko}’로 옮겼어요. 논문을 인용하거나 다른 자료를 찾을 때는 위 번역어도 함께 찾아보세요.`));
@@ -1913,14 +1923,15 @@ async function showTerm(t, sentence){
     const ul = make("ul");
     for (const k of keys){
       const li = make("li"), a = make("a", "", TERM_SOURCES[k].name);
-      a.href = TERM_SOURCES[k].url(t.en); a.target = "_blank"; a.rel = "noopener";
+      a.href = TERM_SOURCES[k].url(info.en || t.en || t.ko, t.ko || termName(t)); a.target = "_blank"; a.rel = "noopener";
       li.append(a, document.createTextNode(` (${TERM_SOURCES[k].what})`)); ul.append(li);
     }
     sec("출처 확인", ul, make("p", "tc-note", "풀이는 Claude가 위 참고 자료의 표준 정의를 바탕으로 쓴 것이고, 자료의 글을 그대로 옮긴 것은 아니에요. 정확한 정의는 링크에서 확인하세요."));
     const save = make("button", "btn", "");
     save.type = "button"; save.id = "tc-save";
-    const sync = () => { const has = inVocab(t.en); save.textContent = has ? "단어장에서 빼기" : "단어장에 넣기"; save.classList.toggle("ghost", has); };
-    save.addEventListener("click", () => { inVocab(t.en) ? removeVocab(t.en) : addVocab(curTerm); sync(); });
+    const word = termName(t);
+    const sync = () => { const has = inVocab(word); save.textContent = has ? "단어장에서 빼기" : "단어장에 넣기"; save.classList.toggle("ghost", has); };
+    save.addEventListener("click", () => { inVocab(word) ? removeVocab(word) : addVocab(curTerm); sync(); });
     sync();
     body.append(save);
   };
@@ -1940,22 +1951,24 @@ async function showTerm(t, sentence){
 }
 // 용어 풀이 받기: 저장해 둔 풀이가 있으면 그것을 쓰고, 받으면 저장한다. 단어장에 풀이 없이 들어 있던 낱말이면 채운다.
 async function fetchTermInfo(t, sentence, signal){
-  const key = t.en.toLowerCase();
+  const key = termKey(t), isKo = state.lang === "ko";
   const cached = termCache()[key];
-  if (cached){ fillVocab(t.en, cached); return cached; }
-  const prompt = TERM_RULES + `\n\n논문 제목: ${docTitle()}\n용어: ${t.en}` + (t.ko ? ` (번역에서 쓴 말: ${t.ko})` : "") +
+  if (cached){ fillVocab(termName(t), cached); return cached; }
+  const prompt = TERM_RULES + `\n\n논문 제목: ${docTitle()}\n` + (isKo ? `한국어 논문입니다.\n용어: ${t.ko || t.en}` + (t.en && t.ko ? ` (영어 원어: ${t.en})` : "")
+      : `용어: ${t.en}` + (t.ko ? ` (번역에서 쓴 말: ${t.ko})` : "")) +
     (sentence ? `\n이 용어가 나온 문장: ${sentence}` : "\n(이 논문에서 이 용어가 나온 문장을 찾지 못했어요. inPaper는 빈 문자열로 두세요.)") + `\n\n` +
     `JSON으로만 답하세요. 형식: {"easy": "전공자가 아니어도 이해할 쉬운 한국어 풀이 2~3문장", ` +
     `"example": "구체적인 예 1~2문장", "inPaper": "이 문장에서 이 용어가 가리키는 것 1문장", ` +
     `"confusable": "헷갈리기 쉬운 비슷한 개념과의 차이 1문장, 없으면 빈 문자열", ` +
-    `"koTerms": ["한국 학계에서 쓰는 번역어, 가장 널리 쓰는 것부터 1~3개"], ` +
+    `"en": "영어 원어(모르거나 원래 한국어 말이면 빈 문자열)", ` +
+    (isKo ? `"koTerms": ["같은 뜻으로 한국 학계에서 쓰는 다른 표현 0~3개"], ` : `"koTerms": ["한국 학계에서 쓰는 번역어, 가장 널리 쓰는 것부터 1~3개"], `) +
     `"sources": ["이 용어를 표제어나 주요 항목으로 다루는 참고 자료 키 1~2개"], "sure": true}`;
   const info = await sampleFn.json(prompt, {modelTier: "default", signal, cache: {gcTime: 86400000}});
   if (signal?.aborted) throw {code: "cancelled"};
   if (!info || typeof info.easy !== "string") throw new Error("bad");
   const str = v => typeof v === "string" ? v.trim() : "";
   const clean = {
-    easy: info.easy.trim(), example: str(info.example), inPaper: str(info.inPaper), confusable: str(info.confusable),
+    easy: info.easy.trim(), example: str(info.example), inPaper: str(info.inPaper), confusable: str(info.confusable), en: str(info.en),
     koTerms: Array.isArray(info.koTerms) ? info.koTerms.filter(k => typeof k === "string" && k.trim()).map(k => k.trim()).slice(0, 3) : [],
     sources: Array.isArray(info.sources) ? info.sources.filter(k => TERM_SOURCES[k]) : [], sure: info.sure !== false,
   };
@@ -1964,7 +1977,7 @@ async function fetchTermInfo(t, sentence, signal){
     const ks = Object.keys(all); if (ks.length > 300) delete all[ks[0]];
     localStorage.setItem(TERM_CACHE, JSON.stringify(all));
   } catch {}
-  fillVocab(t.en, clean);
+  fillVocab(termName(t), clean);
   return clean;
 }
 
@@ -1982,6 +1995,15 @@ function wordAt(x, y){
   while (a > 0 && isW(text[a - 1])) a--;
   while (b < text.length && isW(text[b])) b++;
   return cleanWord(text.slice(a, b));
+}
+// 한국어 낱말 끝의 조사를 뗀다 ("자기효능감이" → "자기효능감"). 찾아 둔 용어로 시작하면 그 용어를 쓴다.
+const JOSA = ["에서는", "에게서", "으로써", "으로서", "이라는", "에서", "에게", "으로", "라는", "부터", "까지", "이다", "은", "는", "이", "가", "을", "를", "의", "에", "로", "과", "와", "도", "만"];
+function stripJosa(w){
+  if (!/[가-힣]$/.test(w)) return w;
+  const known = [...termByKo.keys()].filter(k => w.startsWith(k)).sort((a, b) => b.length - a.length)[0];
+  if (known) return known;
+  for (const j of JOSA) if (w.endsWith(j) && w.length - j.length >= 2) return w.slice(0, -j.length);
+  return w;
 }
 const sentenceOf = el => { const at = el?.closest?.("[data-i], [data-t]"); return at ? +(at.dataset.i ?? at.dataset.t) : -1; };
 let ctx = null;
@@ -2007,18 +2029,18 @@ function openCtx(word, i, x, y){
 function saveWord(word, i){
   if (!word) return;
   if (inVocab(word)){ removeVocab(word); toast(`‘${word}’을(를) 단어장에서 뺐어요.`, false); return; }
-  const t = state.terms.get(word.toLowerCase()) || termByKo.get(word) || {en: word, ko: ""};
+  const t = state.terms.get(word.toLowerCase()) || termByKo.get(word) || (/[가-힣]/.test(word) ? {en: "", ko: word} : {en: word, ko: ""});
   const sentence = state.sentences[i]?.text || state.sentences.find(s => s.text.toLowerCase().includes(word.toLowerCase()))?.text || "";
   addVocab({t, sentence, info: null});
   vocabUndo = null;
-  toast(`‘${t.en}’을(를) 단어장에 넣었어요.` + (sampleFn && !termCache()[t.en.toLowerCase()] ? " 풀이는 뒤에서 받아 와요." : ""), true);
+  toast(`‘${termName(t)}’을(를) 단어장에 넣었어요.` + (sampleFn && !termCache()[termKey(t)] ? " 풀이는 뒤에서 받아 와요." : ""), true);
 }
 $("doc").addEventListener("contextmenu", e => {
   if (e.shiftKey) return;
   const sel = String(getSelection() || "").trim();
   const term = e.target.closest?.(".term");
   const tk = term && state.terms.get(term.dataset.term);
-  const word = cleanWord(sel && sel.length <= 80 && $("doc").contains(getSelection().anchorNode) ? sel : tk ? tk.en : wordAt(e.clientX, e.clientY));
+  const word = cleanWord(sel && sel.length <= 80 && $("doc").contains(getSelection().anchorNode) ? sel : tk ? termName(tk) : stripJosa(wordAt(e.clientX, e.clientY)));
   const i = sentenceOf(e.target);
   if (!word && i < 0) return;
   e.preventDefault();
@@ -2028,7 +2050,7 @@ $("doc").addEventListener("contextmenu", e => {
 $("cm-add").addEventListener("click", () => { const c = ctx; closeCtx(); if (c) saveWord(c.word, c.i); });
 $("cm-look").addEventListener("click", () => {
   const c = ctx; closeCtx(); if (!c) return;
-  const t = state.terms.get(c.word.toLowerCase()) || termByKo.get(c.word) || {en: c.word, ko: ""};
+  const t = state.terms.get(c.word.toLowerCase()) || termByKo.get(c.word) || (/[가-힣]/.test(c.word) ? {en: "", ko: c.word} : {en: c.word, ko: ""});
   showTerm(t, state.sentences[c.i]?.text || "");
 });
 $("ctxmenu").querySelectorAll(".sw").forEach(b => b.addEventListener("click", () => {
@@ -2065,7 +2087,7 @@ document.addEventListener("selectionchange", () => {
 $("sp-add").addEventListener("click", () => { const p = $("selpop"); saveWord(p.dataset.word, +p.dataset.i); getSelection()?.removeAllRanges(); hideSelbar2(); });
 $("sp-look").addEventListener("click", () => {
   const p = $("selpop"), w = p.dataset.word;
-  const t = state.terms.get(w.toLowerCase()) || termByKo.get(w) || {en: w, ko: ""};
+  const t = state.terms.get(w.toLowerCase()) || termByKo.get(w) || (/[가-힣]/.test(w) ? {en: "", ko: w} : {en: w, ko: ""});
   getSelection()?.removeAllRanges(); hideSelbar2();
   showTerm(t, state.sentences[+p.dataset.i]?.text || "");
 });
@@ -2286,18 +2308,21 @@ const inVocab = en => vocab().some(v => v.en.toLowerCase() === en.toLowerCase())
 let vocabUndo = null;
 function addVocab(cur){
   if (!cur) return;
-  const list = vocab().filter(v => v.en.toLowerCase() !== cur.t.en.toLowerCase());
-  const info = cur.info || termCache()[cur.t.en.toLowerCase()] || {};
-  list.unshift({en: cur.t.en, ko: cur.t.ko || info.koTerms?.[0] || "", koTerms: info.koTerms || [], easy: info.easy || "", example: info.example || "",
-    sentence: cur.sentence || "", title: docTitle() || state.fileName || "", at: Date.now(), done: false, pending: !info.easy});
+  // 단어장의 en 칸은 '찾은 말', ko 칸은 '짝이 되는 말': 영어 논문은 영어 · 한국어 번역어, 한국어 논문은 한국어 · 영어 원어
+  const word = termName(cur.t);
+  const list = vocab().filter(v => v.en.toLowerCase() !== word.toLowerCase());
+  const info = cur.info || termCache()[termKey(cur.t)] || {};
+  const pair = state.lang === "ko" ? (cur.t.ko && cur.t.en ? cur.t.en : info.en || "") : (cur.t.ko || info.koTerms?.[0] || "");
+  list.unshift({en: word, ko: pair, koTerms: info.koTerms || [], easy: info.easy || "", example: info.example || "",
+    sentence: cur.sentence || "", title: docTitle() || state.fileName || "", at: Date.now(), done: false, pending: !info.easy, lang: state.lang});
   saveVocab(list);
-  if (!info.easy) queueVocabInfo(cur.t.en);
+  if (!info.easy) queueVocabInfo(word);
 }
 function fillVocab(en, info){
   const list = vocab();
   const v = list.find(x => x.en.toLowerCase() === en.toLowerCase());
   if (!v || !v.pending) return;
-  Object.assign(v, {ko: v.ko || info.koTerms?.[0] || "", koTerms: info.koTerms || [], easy: info.easy || "", example: info.example || "", pending: false});
+  Object.assign(v, {ko: v.ko || (v.lang === "ko" ? info.en : info.koTerms?.[0]) || "", koTerms: info.koTerms || [], easy: info.easy || "", example: info.example || "", pending: false});
   saveVocab(list);
   if ($("vocab-dlg").open) renderVocab();
 }
@@ -2312,7 +2337,7 @@ async function runVocabQueue(){
     const en = vocabQueue[0];
     const v = vocab().find(x => x.en === en);
     if (v?.pending){
-      try { await fetchTermInfo({en: v.en, ko: v.ko}, v.sentence); }
+      try { await fetchTermInfo(v.lang === "ko" ? {en: v.ko, ko: v.en} : {en: v.en, ko: v.ko}, v.sentence); }
       catch (e){ if (e?.code === "rate_limited" || NO_CLAUDE.includes(e?.code)){ vocabQueue.length = 0; break; } }
     }
     vocabQueue.shift();
@@ -2487,7 +2512,7 @@ document.addEventListener("keydown", e => { if (e.key === "Escape") dds.forEach(
 document.querySelectorAll(".opt").forEach(b => b.addEventListener("click", () => { b.closest(".dd").open = false; }));
 $("cite-strip").addEventListener("click", () => { state.stripCites = true; seg("cite-strip", "cite-keep", true); stop(); render(); });
 $("cite-keep").addEventListener("click", () => { state.stripCites = false; seg("cite-strip", "cite-keep", false); stop(); render(); });
-function setView(v){ state.view = v; updateModeUi(); rebuild(); }
+function setView(v){ state.view = v; savePref("view", v); updateModeUi(); rebuild(); }
 ["orig", "side", "bi"].forEach(v => $("mode-" + v).addEventListener("click", () => setView(v)));
 function updateModeUi(){
   queueMicrotask(updateSummaries);
@@ -2649,6 +2674,46 @@ async function translateAll(){
   if (gen === state.trGen) state.running = false;
   updateTrUi();
 }
+// 한국어 논문: 번역은 하지 않고, 학술 용어만 찾아 밑줄을 긋는다 (30문장씩 차례로)
+const KO_TERM_RULES = `다음은 한국어 학술 논문(인문사회 분야)의 문장들입니다. 전공자가 아니면 낯설 만한 학술·전문 용어(통계 용어 포함)를 골라 주세요.
+규칙:
+- ko에는 문장에 적힌 그대로의 표기를 조사 없이 쓰세요. 문장에 없는 말은 고르지 마세요.
+- en에는 영어 원어를 쓰세요. 문장에 괄호로 적혀 있으면 그것을, 아니면 그 분야에서 널리 쓰는 원어를 쓰고, 원래 한국어 말이거나 모르면 빈 문자열로 두세요.
+- 흔한 낱말, 사람·기관 이름, 이미 쉬운 말은 빼고 최대 8개만 고르세요.`;
+async function findKoTerms(){
+  if (state.lang !== "ko" || !sampleFn || state.koRunning) return;
+  state.koRunning = true; state.koStarted = true; state.trStop = "";
+  const gen = state.trGen;
+  updateTrUi();
+  try {
+    while (state.koRunning && gen === state.trGen && state.koScanned < state.sentences.length){
+      const items = state.sentences.slice(state.koScanned, state.koScanned + 30);
+      const prompt = KO_TERM_RULES + `\n\n논문 제목: ${docTitle()}\n문장:\n${items.map(s => s.text).join("\n")}\n\n` +
+        `JSON으로만 답하세요. 형식: {"terms": [{"ko": "자기효능감", "en": "self-efficacy"}]}. 없으면 {"terms": []}`;
+      const out = await sampleFn.json(prompt, {modelTier: "default", cache: {gcTime: 86400000}});
+      if (gen !== state.trGen) break;
+      const text = items.map(s => s.text).join(" "), seen = new Set();
+      let added = false;
+      for (const t of Array.isArray(out?.terms) ? out.terms.slice(0, 10) : []){
+        const ko = String(t?.ko || "").trim(), en = String(t?.en || "").trim();
+        if (ko.length < 2 || ko.length > 40 || !text.includes(ko) || seen.has(ko) || termByKo.has(ko)) continue;
+        const obj = {en: en.length > 60 ? "" : en, ko}, key = termKey(obj);
+        if (state.terms.has(key)) continue;
+        seen.add(ko); state.terms.set(key, obj); added = true;
+      }
+      if (added){ buildTermRe(); redecorate(); }
+      state.koScanned += items.length;
+      saveTr(); updateTrUi();
+    }
+  } catch (e){
+    state.trStop = e?.code === "rate_limited" ? "요청이 많아 잠시 멈췄어요. 조금 뒤에 ‘이어서 찾기’를 눌러 주세요."
+      : NO_CLAUDE.includes(e?.code) ? "Claude를 쓸 수 없어 멈췄어요." : "용어를 찾지 못한 부분이 있어요. ‘이어서 찾기’를 눌러 주세요.";
+  } finally {
+    if (gen === state.trGen) state.koRunning = false;
+    updateTrUi();
+  }
+}
+
 // 읽기 중에 번역이 아직 없으면 잠깐 기다린다
 function waitTr(text, ms){
   if (state.translations.has(text) || state.failed.has(text)) return Promise.resolve();
@@ -2659,6 +2724,7 @@ function waitTr(text, ms){
 }
 function resetTr(){
   state.trGen++; state.running = false; state.trStop = ""; state.trCursor = 0; state.trLoaded = 0;
+  state.koScanned = 0; state.koRunning = false; state.koStarted = false;
   state.translations.clear(); state.fixed.clear(); state.warn.clear(); state.failed.clear(); state.inflight.clear();
   state.terms.clear(); buildTermRe();
   state.waiters.forEach(l => l.forEach(r => r())); state.waiters.clear();
@@ -2695,7 +2761,23 @@ function updateTrUi(){
   $("tr-cta-msg").textContent = EDITION === "web"
     ? "영어 논문이에요. claude.ai 버전에서는 본문을 문장 하나도 빼지 않고 한글로 옮겨 원문 옆에 나란히 놓아 드려요."
     : "영어 논문이에요. 본문을 문장 하나도 빼지 않고 한글로 옮겨 원문 옆에 나란히 놓을 수 있어요. Claude 사용량이 쓰입니다.";
-  $("trbar").hidden = !tv;
+  const koMode = !tv && state.lang === "ko" && state.sentences.length > 0 && !!sampleFn;
+  $("trbar").hidden = !tv && !koMode;
+  $("tr-docx").hidden = !tv;
+  if (koMode){
+    const n = state.sentences.length, done = Math.min(state.koScanned, n), terms = state.terms.size;
+    $("tr-fill").style.width = (n ? done / n * 100 : 0) + "%";
+    $("tr-msg").textContent = !state.koStarted && !done ? "한국어 논문이에요. 학술 용어를 찾아 점선 밑줄을 그어 드릴까요? 밑줄 친 용어를 누르면 쉬운 풀이가 나와요."
+      : (done >= n ? `학술 용어 ${terms}개를 찾았어요. 점선 밑줄 친 용어를 누르면 쉬운 풀이가 나와요.`
+        : `${state.koRunning ? "용어 찾는 중" : "용어 찾기 멈춤"} · ${done}/${n}문장 · 지금까지 ${terms}개`) + (state.trStop ? ` · ${state.trStop}` : "");
+    $("tr-toggle").hidden = done >= n;
+    $("tr-toggle").textContent = state.koRunning ? "멈추기" : !state.koStarted && !done ? "학술 용어 찾기" : "이어서 찾기";
+    $("o-src-wrap").hidden = true;
+    const nHl = state.sentences.filter(s => state.hl.has(s.text)).length;
+    $("hl-open").hidden = !nHl; $("hl-count").textContent = nHl;
+    $("tr-legend").hidden = true;
+    return;
+  }
   if (!tv) return;
   const S = state.sentences, n = S.length;
   let done = 0, fixed = 0, warn = 0, failed = 0;
@@ -2719,6 +2801,11 @@ function updateTrUi(){
   $("tr-legend").textContent = legend.join(" · ");
 }
 $("tr-toggle").addEventListener("click", () => {
+  if (state.lang === "ko" && !trView()){
+    if (state.koRunning){ state.koRunning = false; state.trGen++; updateTrUi(); }
+    else findKoTerms();
+    return;
+  }
   if (state.running){ state.running = false; state.trGen++; updateTrUi(); return; }
   state.failed.clear(); state.trCursor = state.idx;
   state.sentences.forEach((_, i) => showTranslation(i));
@@ -2754,9 +2841,9 @@ function saveTr(){
         const t = state.translations.get(s.text);
         if (t) tr[s.text] = [t, state.fixed.get(s.text) || "", state.warn.get(s.text) || ""];
       }
-      if (!Object.keys(tr).length) return;
+      if (!Object.keys(tr).length && !state.terms.size) return;
       if (state.hl.size) saveHl();
-      localStorage.setItem(docKey(), JSON.stringify({at: Date.now(), tr, terms: [...state.terms.values()]}));
+      localStorage.setItem(docKey(), JSON.stringify({at: Date.now(), tr, terms: [...state.terms.values()], koScanned: state.koScanned}));
       const keys = Object.keys(localStorage).filter(k => k.startsWith(LS));
       if (keys.length > 8){
         keys.map(k => { try { return [k, JSON.parse(localStorage.getItem(k)).at || 0]; } catch { return [k, 0]; } })
@@ -2776,7 +2863,8 @@ function loadTr(){
         if (why) state.fixed.set(en, why);
         if (warn) state.warn.set(en, warn);
       }
-      for (const t of Array.isArray(d?.terms) ? d.terms : []) if (t?.en && !state.terms.has(t.en.toLowerCase())) state.terms.set(t.en.toLowerCase(), {en: t.en, ko: t.ko || ""});
+      for (const t of Array.isArray(d?.terms) ? d.terms : []) if ((t?.en || t?.ko) && !state.terms.has(termKey(t))) state.terms.set(termKey(t), {en: t.en || "", ko: t.ko || ""});
+      if (d?.koScanned) state.koScanned = Math.max(state.koScanned, d.koScanned);
     } catch {}
   }
   state.trLoaded += state.translations.size - before;
@@ -3233,6 +3321,8 @@ if (!synth){
   synth.addEventListener ? synth.addEventListener("voiceschanged", loadVoices) : (synth.onvoiceschanged = loadVoices);
   window.addEventListener("pagehide", () => synth.cancel());
 }
+// 기본은 원문 · 번역 나란히. 사용자가 마지막으로 고른 보기를 기억한다
+state.view = ["orig", "side", "bi"].includes(loadPref("view")) ? loadPref("view") : "side";
 if (loadPref("src") === false) $("o-src").checked = false;
 if (loadPref("terms") === false) $("o-terms").checked = false;
 updateModeUi();
