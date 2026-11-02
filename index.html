@@ -3377,7 +3377,15 @@ function parseOcr(text){
   for (const m of t.matchAll(/\{[^{}]*"type"\s*:\s*"[^"]*"[^{}]*\}/g)){ const o = tryParse(m[0]); if (o) out.push(o); }
   return out.length ? out : null;
 }
-const OCR_WHY = {rate_limited: "요청이 많음", cancelled: "취소", invalid_request: "요청 형식", too_large: "이미지가 너무 큼", timeout: "시간 초과", bad: "응답을 읽지 못함", empty: "빈 응답"};
+const OCR_WHY = {rate_limited: "요청이 많음", cancelled: "취소", invalid_request: "요청 형식", too_large: "이미지가 너무 큼", timeout: "시간 초과", bad: "응답을 읽지 못함", empty: "빈 응답", wrongLang: "요약·번역으로 응답함"};
+// 영어 논문인데 한국어로 요약·번역해서 돌아온 경우를 걸러낸다 (받아쓰기 대신 요약을 한 경우)
+function ocrWrongLanguage(arr){
+  if (state.lang !== "en") return false;
+  const text = arr.filter(it => it?.type === "body" || it?.type === "heading").map(it => String(it?.text || "")).join(" ");
+  if (text.length < 30) return false;
+  const ko = (text.match(/[가-힣]/g) || []).length;
+  return ko > text.length * 0.2;
+}
 async function runOcr(){
   const src = state.source;
   if (!hasPages() || !sampleFn) return;
@@ -3412,7 +3420,8 @@ async function runOcr(){
       try {
         const res = await sampleFn(OCR_PROMPT, {images: blob, signal, cache: {gcTime: 86400000}});
         const arr = parseOcr(res?.text);
-        if (arr){
+        if (arr && ocrWrongLanguage(arr)){ lastWhy = OCR_WHY.wrongLang; }
+        else if (arr){
           src.ocrParts = src.ocrParts.filter(x => x.page !== p);
           addOcrPage(src, p, arr);
           src.ocrParts.sort((a, b) => a.page - b.page);
@@ -3459,6 +3468,7 @@ async function reOcrOnePage(p, btn){
     const res = await sampleFn(OCR_PROMPT, {images: blob, cache: {gcTime: 86400000}});
     const arr = parseOcr(res?.text);
     if (!arr) throw new Error("bad");
+    if (ocrWrongLanguage(arr)) throw {code: "wrongLang"};
     src.ocrParts = (src.ocrParts || []).filter(x => x.page !== p);
     addOcrPage(src, p, arr);
     src.ocrParts.sort((a, b) => a.page - b.page);
@@ -3467,7 +3477,9 @@ async function reOcrOnePage(p, btn){
     if (!state.playing) rebuild(); else state.rebuildLater = true;
     toast(`${p}쪽을 다시 인식했어요.`, false, false);
   } catch (e){
-    toast(e?.code === "rate_limited" ? "요청이 많아요. 조금 뒤에 다시 눌러 주세요." : `${p}쪽을 다시 인식하지 못했어요. 다시 눌러 주세요.`, false, false);
+    toast(e?.code === "rate_limited" ? "요청이 많아요. 조금 뒤에 다시 눌러 주세요."
+      : e?.code === "wrongLang" ? "이 쪽은 한국어로 요약돼서 와서 쓰지 않았어요. 다시 눌러 주세요."
+      : `${p}쪽을 다시 인식하지 못했어요. 다시 눌러 주세요.`, false, false);
     btn.disabled = false; btn.textContent = was;
   }
 }
