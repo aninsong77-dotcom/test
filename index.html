@@ -1639,6 +1639,12 @@ function render(){
           btn.setAttribute("aria-label", `${b.page}쪽 원본 보기`);
           btn.addEventListener("click", () => openPage(b.page));
           pg.appendChild(btn);
+          if (sampleFn && state.source?.ocrParts){
+            const re = document.createElement("button"); re.type = "button"; re.className = "pg-view"; re.textContent = "이 쪽 다시 인식";
+            re.setAttribute("aria-label", `${b.page}쪽 다시 인식`);
+            re.addEventListener("click", () => reOcrOnePage(b.page, re));
+            pg.appendChild(re);
+          }
         }
         doc.appendChild(pg);
       }
@@ -3441,6 +3447,30 @@ async function runOcr(){
   }
 }
 $("ocr").addEventListener("click", runOcr);
+// 본문 중 쪽 번호 옆 '이 쪽 다시 인식': 전체를 다시 돌리지 않고 그 쪽 하나만 새 지시문으로 다시 읽는다
+async function reOcrOnePage(p, btn){
+  const src = state.source;
+  if (!hasPages() || !sampleFn || ocrAbort) return;
+  const was = btn.textContent;
+  btn.disabled = true; btn.textContent = "인식 중…";
+  try {
+    const canvas = await pageCanvas(p, 2000);
+    const blob = await new Promise(r => canvas.toBlob(r, "image/jpeg", 0.85));
+    const res = await sampleFn(OCR_PROMPT, {images: blob, cache: {gcTime: 86400000}});
+    const arr = parseOcr(res?.text);
+    if (!arr) throw new Error("bad");
+    src.ocrParts = (src.ocrParts || []).filter(x => x.page !== p);
+    addOcrPage(src, p, arr);
+    src.ocrParts.sort((a, b) => a.page - b.page);
+    src.ocrFailed = (src.ocrFailed || []).filter(x => x !== p);
+    saveOcr(src);
+    if (!state.playing) rebuild(); else state.rebuildLater = true;
+    toast(`${p}쪽을 다시 인식했어요.`, false, false);
+  } catch (e){
+    toast(e?.code === "rate_limited" ? "요청이 많아요. 조금 뒤에 다시 눌러 주세요." : `${p}쪽을 다시 인식하지 못했어요. 다시 눌러 주세요.`, false, false);
+    btn.disabled = false; btn.textContent = was;
+  }
+}
 
 // ---- 음성 ----------------------------------------------------------------
 const isGood = v => /google|natural|online|neural|premium|enhanced|siri|yuna|samantha/i.test(v.name);
