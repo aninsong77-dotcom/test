@@ -275,6 +275,10 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
 .vc-ex{margin:0;font-size:.84rem;color:var(--muted);line-height:1.6}
 .vc-src{margin:0;font-size:.74rem;color:var(--muted)}
 .linkbtn{font:inherit;border:0;background:none;color:var(--accent);text-decoration:underline;cursor:pointer;padding:0}
+.tc-pron{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center}
+.tc-ipa{font-family:"IBM Plex Mono",monospace;color:var(--tr);font-size:.92rem}
+.vc-pron{margin:2px 0 0;display:flex;align-items:center;gap:8px}
+.vc-pron .btn{padding:3px 9px;font-size:.78rem}
 #tc-save{justify-self:start}
 /* 형광펜 모아 보기 */
 .hl-tools{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;padding:12px 16px 0}
@@ -586,7 +590,7 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
         <li><b>PC</b>: 모르는 단어 위에서 <b>우클릭</b>하고 <b>단어장에 넣기</b>를 누르세요. 여러 단어로 된 표현은 드래그로 고른 뒤 우클릭하세요.</li>
         <li><b>휴대폰</b>: 단어를 <b>길게 눌러 선택</b>하면 아래에 <b>단어장에 넣기</b> 버튼이 떠요.</li>
         <li>단어는 바로 들어가고, 쉬운 풀이와 예시는 뒤에서 받아 와 채워요.</li>
-        <li>단어장은 <b>파일 → 내 단어장</b>에서 봐요. 외운 단어 표시, 찾기, 복사, 엑셀 파일(CSV)로 저장이 돼요.</li>
+        <li>단어장은 <b>파일 → 내 단어장</b>에서 봐요. 단어마다 발음기호와 <b>🔊</b> 버튼이 있고, 외운 단어 표시, 찾기, 복사, 엑셀 파일(CSV)로 저장이 돼요.</li>
         <li>단어장 창 위쪽 칸에 단어를 써서 풀이를 바로 찾아볼 수도 있어요.</li>
       </ul>
       <p class="help-note">브라우저 기본 우클릭 메뉴가 필요하면 Shift를 누른 채 우클릭하세요.</p>
@@ -607,7 +611,7 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
       <ul>
         <li>번역하면서 낯선 학술 용어에 <span class="u-dot-accent">점선 밑줄</span>을 그어요. 누르면 풀이 카드가 떠요.</li>
         <li><b>한국어 논문</b>은 왼쪽에 본문, 오른쪽에 그 문단에 나온 학술 용어와 쉬운 풀이가 두 칸으로 나와요. 용어를 누르면 자세한 풀이 카드가 열리고, 영어 원어도 함께 나와요. 두 칸이 싫으면 <b>번역</b> 메뉴에서 <b>원문만</b>을 고르세요.</li>
-        <li>카드에는 쉬운 풀이, 구체적인 예, 이 논문에서의 뜻, 헷갈리기 쉬운 개념, 한국 학계에서 쓰는 번역어가 나와요.</li>
+        <li>카드에는 발음기호와 <b>🔊 발음 듣기</b> 버튼, 쉬운 풀이, 구체적인 예, 이 논문에서의 뜻, 헷갈리기 쉬운 개념, 한국 학계에서 쓰는 번역어가 나와요.</li>
         <li><b>출처 확인</b>의 링크는 APA 심리학 사전, 스탠퍼드 철학 백과사전 같은 공인 참고 자료로 연결돼요.</li>
       </ul>
       <p class="help-note">풀이는 Claude가 표준 정의를 바탕으로 쓴 것이고, 참고 자료의 글을 그대로 옮긴 것은 아니에요. 정확한 정의는 링크에서 확인하세요. Claude가 확신하지 못한 풀이에는 경고가 붙어요.</p>
@@ -1946,6 +1950,7 @@ const TERM_RULES = `당신은 인문사회 분야 영어 논문을 읽는 한국
 - 한국 학계 번역어는 실제로 널리 쓰이는 것만 적고, 확실하지 않으면 빈 배열로 두세요.
 - 책 제목, 쪽수, 인용문, 웹 주소를 쓰지 마세요. 출처는 아래 목록의 키로만 고르세요.
 - 확실하지 않거나 이 논문에서만 쓰는 말이면 "sure"를 false로 하고, easy에 그렇다고 밝히세요.
+- 영어 원어가 있으면 사전에 나오는 표준 발음기호(IPA)를 슬래시(/.../)와 함께 적으세요. 없거나 모르면 빈 문자열로 두세요.
 참고 자료 목록: apa(심리학), sep(철학), eric(교육학), wex(법학), econlib(경제학), nist(통계), britannica(일반 백과), stdict(국어사전: 한국어로 널리 쓰는 낱말)`;
 let termAsk = null, curTerm = null;
 function closeTerm(){ $("termcard").hidden = true; termAsk?.abort(); termAsk = null; curTerm = null; }
@@ -1977,6 +1982,15 @@ async function showTerm(t, sentence){
     body.replaceChildren();
     const sec = (title, ...nodes) => { const d = make("div", "tc-sec"); d.append(make("h4", "", title), ...nodes); body.append(d); };
     if (info.sure === false) body.append(make("p", "tc-warn", "Claude가 이 용어의 정의를 확신하지 못했어요. 아래 참고 자료에서 꼭 확인해 주세요."));
+    const pronWord = info.en || t.en || "";
+    if (/^[A-Za-z][A-Za-z\s.'-]*$/.test(pronWord)){
+      const row = make("p", "tc-pron");
+      if (info.ipa) row.append(make("span", "tc-ipa", info.ipa));
+      const say = make("button", "btn ghost", "🔊 발음 듣기"); say.type = "button";
+      say.addEventListener("click", () => sayWord(pronWord));
+      row.append(say);
+      sec("발음", row);
+    }
     sec("쉬운 풀이", make("p", "", info.easy || ""));
     if (info.example) sec("예를 들면", make("p", "", info.example));
     if (info.inPaper) sec("이 논문에서는", make("p", "", info.inPaper));
@@ -2034,6 +2048,7 @@ async function fetchTermInfo(t, sentence, signal){
     `"example": "구체적인 예 1~2문장", "inPaper": "이 문장에서 이 용어가 가리키는 것 1문장", ` +
     `"confusable": "헷갈리기 쉬운 비슷한 개념과의 차이 1문장, 없으면 빈 문자열", ` +
     `"en": "영어 원어(모르거나 원래 한국어 말이면 빈 문자열)", ` +
+    `"ipa": "영어 원어의 IPA 발음기호, 예: /self.ɪˈfɪkəsi/ (영어 원어가 없으면 빈 문자열)", ` +
     (isKo ? `"koTerms": ["같은 뜻으로 한국 학계에서 쓰는 다른 표현 0~3개"], ` : `"koTerms": ["한국 학계에서 쓰는 번역어, 가장 널리 쓰는 것부터 1~3개"], `) +
     `"sources": ["이 용어를 표제어나 주요 항목으로 다루는 참고 자료 키 1~2개"], "sure": true}`;
   const info = await sampleFn.json(prompt, {modelTier: "default", signal, cache: {gcTime: 86400000}});
@@ -2041,7 +2056,7 @@ async function fetchTermInfo(t, sentence, signal){
   if (!info || typeof info.easy !== "string") throw new Error("bad");
   const str = v => typeof v === "string" ? v.trim() : "";
   const clean = {
-    easy: info.easy.trim(), example: str(info.example), inPaper: str(info.inPaper), confusable: str(info.confusable), en: str(info.en),
+    easy: info.easy.trim(), example: str(info.example), inPaper: str(info.inPaper), confusable: str(info.confusable), en: str(info.en), ipa: str(info.ipa),
     koTerms: Array.isArray(info.koTerms) ? info.koTerms.filter(k => typeof k === "string" && k.trim()).map(k => k.trim()).slice(0, 3) : [],
     sources: Array.isArray(info.sources) ? info.sources.filter(k => TERM_SOURCES[k]) : [], sure: info.sure !== false,
   };
@@ -2241,13 +2256,15 @@ function buildDocumentXml(){
     `<w:tblGrid><w:gridCol w:w="4932"/><w:gridCol w:w="4932"/></w:tblGrid>${rows.join("")}</w:tbl>`;
   // 용어 풀이 (받아 둔 것만)
   const cache = termCache();
-  const terms = [...state.terms.values()].filter(t => cache[t.en.toLowerCase()]?.easy);
+  const terms = [...state.terms.values()].filter(t => cache[termKey(t)]?.easy);
   let gloss = "";
   if (terms.length){
+    const isKoDoc = state.lang === "ko";
     gloss = wPara(wRun("용어 풀이", {bold: true, size: 26}), {before: 360, after: 120, keep: true});
     for (const t of terms){
-      const info = cache[t.en.toLowerCase()];
-      gloss += wPara(wRun(t.en, {bold: true}) + wRun(t.ko || info.koTerms?.[0] ? ` · ${t.ko || info.koTerms[0]}` : ""), {after: 20, keep: true});
+      const info = cache[termKey(t)];
+      const nm = termName(t), sub = isKoDoc ? (t.en || info.en || "") : (t.ko || info.koTerms?.[0] || "");
+      gloss += wPara(wRun(nm, {bold: true}) + (info.ipa ? wRun(" " + info.ipa, {italic: true, color: "5D6A78"}) : "") + (sub ? wRun(" · " + sub) : ""), {after: 20, keep: true});
       gloss += wPara(wRun(info.easy), {after: info.example ? 20 : 120});
       if (info.example) gloss += wPara(wRun("예: " + info.example, {color: "5D6A78", size: 18}), {after: 120});
     }
@@ -2387,7 +2404,7 @@ function addVocab(cur){
   const list = vocab().filter(v => v.en.toLowerCase() !== word.toLowerCase());
   const info = cur.info || termCache()[termKey(cur.t)] || {};
   const pair = state.lang === "ko" ? (cur.t.ko && cur.t.en ? cur.t.en : info.en || "") : (cur.t.ko || info.koTerms?.[0] || "");
-  list.unshift({en: word, ko: pair, koTerms: info.koTerms || [], easy: info.easy || "", example: info.example || "",
+  list.unshift({en: word, ko: pair, koTerms: info.koTerms || [], easy: info.easy || "", example: info.example || "", ipa: info.ipa || "",
     sentence: cur.sentence || "", title: docTitle() || state.fileName || "", at: Date.now(), done: false, pending: !info.easy, lang: state.lang});
   saveVocab(list);
   if (!info.easy) queueVocabInfo(word);
@@ -2396,7 +2413,7 @@ function fillVocab(en, info){
   const list = vocab();
   const v = list.find(x => x.en.toLowerCase() === en.toLowerCase());
   if (!v || !v.pending) return;
-  Object.assign(v, {ko: v.ko || (v.lang === "ko" ? info.en : info.koTerms?.[0]) || "", koTerms: info.koTerms || [], easy: info.easy || "", example: info.example || "", pending: false});
+  Object.assign(v, {ko: v.ko || (v.lang === "ko" ? info.en : info.koTerms?.[0]) || "", koTerms: info.koTerms || [], easy: info.easy || "", example: info.example || "", ipa: v.ipa || info.ipa || "", pending: false});
   saveVocab(list);
   if ($("vocab-dlg").open) renderVocab();
 }
@@ -2456,6 +2473,15 @@ function renderVocab(){
     acts.append(done, look, del);
     head.append(name, acts);
     item.append(head);
+    const pw = v.lang === "ko" ? v.ko : v.en;
+    if (/^[A-Za-z][A-Za-z\s.'-]*$/.test(pw || "")){
+      const pron = make("p", "vc-pron");
+      if (v.ipa) pron.append(make("span", "tc-ipa", v.ipa));
+      const say = make("button", "btn ghost", "🔊"); say.type = "button"; say.setAttribute("aria-label", `${pw} 발음 듣기`);
+      say.addEventListener("click", () => sayWord(pw));
+      pron.append(say);
+      item.append(pron);
+    }
     if (v.easy) item.append(make("p", "vc-easy", v.easy));
     else if (v.pending){
       const wait = vocabQueue.includes(v.en);
@@ -2488,11 +2514,13 @@ $("vc-addall").addEventListener("click", () => {
   const list = vocab(), title = docTitle() || state.fileName || "";
   let n = 0;
   for (const t of state.terms.values()){
-    if (have.has(t.en.toLowerCase())) continue;
-    const info = termCache()[t.en.toLowerCase()] || {};
-    const s = state.sentences.find(s => s.text.toLowerCase().includes(t.en.toLowerCase()));
-    list.push({en: t.en, ko: t.ko || info.koTerms?.[0] || "", koTerms: info.koTerms || [], easy: info.easy || "", example: info.example || "",
-      sentence: s?.text || "", title, at: Date.now(), done: false, pending: !info.easy});
+    const word = termName(t);
+    if (!word || have.has(word.toLowerCase())) continue;
+    const info = termCache()[termKey(t)] || {};
+    const pair = state.lang === "ko" ? (t.en || info.en || "") : (t.ko || info.koTerms?.[0] || "");
+    const s = state.sentences.find(s => s.text.toLowerCase().includes(word.toLowerCase()));
+    list.push({en: word, ko: pair, koTerms: info.koTerms || [], easy: info.easy || "", example: info.example || "", ipa: info.ipa || "",
+      sentence: s?.text || "", title, at: Date.now(), done: false, pending: !info.easy, lang: state.lang});
     n++;
   }
   saveVocab(list);
@@ -2511,12 +2539,12 @@ $("vc-find").addEventListener("submit", e => {
 });
 const csvCell = t => `"${String(t || "").replace(/"/g, '""')}"`;
 function vocabCsv(){
-  const rows = [["영어", "한국어", "학계 번역어", "쉬운 풀이", "예", "논문", "논문의 문장", "외움"]];
-  for (const v of vocab()) rows.push([v.en, v.ko, (v.koTerms || []).join(", "), v.easy, v.example, v.title, v.sentence, v.done ? "O" : ""]);
+  const rows = [["영어", "발음기호", "한국어", "학계 번역어", "쉬운 풀이", "예", "논문", "논문의 문장", "외움"]];
+  for (const v of vocab()) rows.push([v.en, v.ipa || "", v.ko, (v.koTerms || []).join(", "), v.easy, v.example, v.title, v.sentence, v.done ? "O" : ""]);
   return "﻿" + rows.map(r => r.map(csvCell).join(",")).join("\r\n") + "\r\n";
 }
 $("vc-copy").addEventListener("click", () => {
-  const text = vocab().map(v => `${v.en}${v.ko ? " · " + v.ko : ""}\n${v.easy}${v.example ? "\n예: " + v.example : ""}`).join("\n\n");
+  const text = vocab().map(v => `${v.en}${v.ipa ? " " + v.ipa : ""}${v.ko ? " · " + v.ko : ""}\n${v.easy}${v.example ? "\n예: " + v.example : ""}`).join("\n\n");
   const fallback = () => { $("vc-note").textContent = "자동 복사가 막혀 있어요. ‘파일로 저장’을 써 주세요."; };
   try { navigator.clipboard.writeText(text).then(() => { $("vc-note").textContent = "복사했어요."; }, fallback); } catch { fallback(); }
 });
@@ -3305,6 +3333,16 @@ $("ocr").addEventListener("click", runOcr);
 
 // ---- 음성 ----------------------------------------------------------------
 const isGood = v => /google|natural|online|neural|premium|enhanced|siri|yuna|samantha/i.test(v.name);
+// 단어장·용어 카드의 '발음 듣기': 읽기와는 별개로, 그 영어 단어 하나만 영어 음성으로 읽는다
+function sayWord(word){
+  if (!synth || !word) return;
+  stop();
+  const u = new SpeechSynthesisUtterance(word);
+  const v = synth.getVoices().filter(v => /^en/i.test(v.lang)).sort((a, b) => isGood(b) - isGood(a))[0];
+  if (v){ u.voice = v; u.lang = v.lang; } else u.lang = "en-US";
+  u.rate = 0.9;
+  synth.speak(u);
+}
 function fillVoices(sel, lang){
   const all = synth.getVoices();
   const prev = sel.value;
