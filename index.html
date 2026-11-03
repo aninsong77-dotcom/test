@@ -284,6 +284,22 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
 .vc-pron{margin:2px 0 0;display:flex;align-items:center;gap:8px}
 .vc-pron .btn{padding:3px 9px;font-size:.78rem}
 #tc-save{justify-self:start}
+/* 책갈피·메모 */
+.s[data-bm]::before{content:"🔖";font-size:.8em;margin-right:3px}
+.memo-note{display:block;margin:4px 0 8px;padding:6px 10px;border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:4px;font-size:.85rem;line-height:1.6;color:var(--ink);white-space:pre-wrap;overflow-wrap:anywhere;cursor:pointer;text-indent:0;font-weight:400;font-style:normal}
+.memo-note::before{content:"메모  ";font-weight:600;color:var(--accent)}
+.memo-note:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.memo-dlg{width:min(520px, calc(100vw - 32px));border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);padding:16px}
+.memo-dlg::backdrop{background:rgba(10,15,20,.35)}
+.memo-title{margin:0 0 6px;font-weight:600}
+.memo-src{margin:0 0 10px;font-size:.85rem;color:var(--muted);max-height:6.5em;overflow:auto}
+#memo-text{width:100%;font:inherit;font-size:.92rem;line-height:1.6;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px;resize:vertical}
+.memo-btns{display:flex;gap:8px;align-items:center;margin-top:10px}
+.hr-mark[data-c="bm"]{background:var(--accent);left:3px;width:8px}
+.hr-mark[data-c="memo"]{background:var(--accent-soft);border-color:var(--accent)}
+.hl-item[data-c="none"]{border-left-color:var(--line)}
+.hl-item .bm{font-size:.76rem;color:var(--accent);font-weight:600}
+.hl-item .memo{font-size:.85rem;line-height:1.55;padding:4px 8px;margin-top:2px;background:var(--accent-soft);border-radius:4px;white-space:pre-wrap}
 /* 형광펜 모아 보기 */
 .hl-tools{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;padding:12px 16px 0}
 .tabs{display:inline-flex;border:1px solid var(--line);border-radius:8px;padding:2px;background:var(--bg)}
@@ -417,7 +433,7 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
         <label class="opt" for="file" id="file-btn" tabindex="0">내 파일 열기…</label>
         <button class="opt" id="library-open">내 논문 목록…</button>
         <button class="opt" id="paste-open">글 붙여넣기…</button>
-        <button class="opt" id="hl-open-menu">형광펜 모음…</button>
+        <button class="opt" id="hl-open-menu">형광펜·책갈피·메모 모음…</button>
         <button class="opt" id="vocab-open">내 단어장…</button>
         <button class="opt" id="save-docx">번역본 Word로 저장…</button>
         <button class="opt" id="ex-en">예시: 영어 논문 (PDF)</button>
@@ -493,7 +509,7 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
       <span class="tr-actions">
         <label class="tr-check" id="o-src-wrap"><input type="checkbox" id="o-src" checked> 원문 같이 보기</label>
         <label class="tr-check" data-tip="학술 용어에 점선 밑줄을 긋습니다. 누르면 쉬운 풀이와 참고 자료가 나옵니다."><input type="checkbox" id="o-terms" checked> 용어 풀이</label>
-        <button class="btn ghost" id="hl-open" hidden>형광펜 <span id="hl-count">0</span></button>
+        <button class="btn ghost" id="hl-open" hidden>형광펜·메모 <span id="hl-count">0</span></button>
         <button class="btn ghost" id="tr-docx">Word로 저장</button>
         <button class="btn ghost" id="tr-toggle">멈추기</button>
       </span>
@@ -530,6 +546,8 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
   <div class="cm-hl" id="cm-hl"><span>이 문장 형광펜</span>
     <button class="sw" data-c="y" aria-label="노랑" aria-pressed="false"></button><button class="sw" data-c="g" aria-label="초록" aria-pressed="false"></button><button class="sw" data-c="p" aria-label="분홍" aria-pressed="false"></button>
   </div>
+  <button class="cm-item" id="cm-bm" role="menuitem">책갈피 꽂기</button>
+  <button class="cm-item" id="cm-memo" role="menuitem">메모 쓰기</button>
   <p class="cm-tip">Shift+우클릭: 브라우저 기본 메뉴</p>
 </div>
 <div class="selpop" id="selpop" hidden>
@@ -538,7 +556,7 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
 </div>
 <div class="toast" id="toast" hidden role="status"></div>
 
-<nav class="hlrail" id="hlrail" hidden aria-label="형광펜 위치"><i class="hr-view" id="hr-view"></i></nav>
+<nav class="hlrail" id="hlrail" hidden aria-label="형광펜·책갈피·메모 위치"><i class="hr-view" id="hr-view"></i></nav>
 
 <aside class="termcard" id="termcard" hidden aria-label="용어 풀이">
   <div class="tc-head">
@@ -548,8 +566,19 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
   <div id="tc-body" aria-live="polite"></div>
 </aside>
 
-<dialog class="pageview" id="hl-dlg" aria-label="형광펜 모음">
-  <div class="pv-bar"><span>형광펜 모음</span><button class="btn ghost" id="hl-close">닫기</button></div>
+<dialog class="memo-dlg" id="memo-dlg" aria-labelledby="memo-title">
+  <p class="memo-title" id="memo-title">이 문장에 메모</p>
+  <p class="memo-src" id="memo-src"></p>
+  <textarea id="memo-text" rows="5" placeholder="생각, 질문, 나중에 확인할 것…" aria-labelledby="memo-title"></textarea>
+  <div class="memo-btns">
+    <button class="btn ghost" type="button" id="memo-del">메모 지우기</button>
+    <span class="sel-gap"></span>
+    <button class="btn ghost" type="button" id="memo-cancel">취소</button>
+    <button class="btn" type="button" id="memo-save">저장</button>
+  </div>
+</dialog>
+<dialog class="pageview" id="hl-dlg" aria-label="형광펜·책갈피·메모 모음">
+  <div class="pv-bar"><span>형광펜·책갈피·메모 모음</span><button class="btn ghost" id="hl-close">닫기</button></div>
   <div class="hl-tools">
     <span class="tabs" role="group" aria-label="모아 볼 범위">
       <button class="tab" id="hl-tab-doc" aria-pressed="true">이 논문</button>
@@ -610,12 +639,15 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
     </details>
 
     <details>
-      <summary>4. 형광펜</summary>
+      <summary>4. 형광펜 · 책갈피 · 메모</summary>
       <ul>
         <li>문장을 누르면 아래에 형광펜 도구가 떠요. 노랑, 초록, 분홍 중에 고르세요. 같은 색을 다시 누르면 지워져요. 한국어 논문에서도 돼요.</li>
         <li>우클릭 메뉴의 <b>이 문장 형광펜</b>으로도 칠할 수 있어요.</li>
         <li>화면 오른쪽 가장자리 막대에 칠한 자리가 색으로 표시돼요. 표시를 누르면 그 문장으로 가요.</li>
-        <li><b>파일 → 형광펜 모음</b>에서 칠한 문장만 모아 보고, 복사하거나 파일로 저장할 수 있어요. <b>모든 논문</b>을 누르면 다른 논문의 형광펜도 함께 보여요.</li>
+        <li><b>파일 → 형광펜·책갈피·메모 모음</b>에서 표시한 문장만 모아 보고, 복사하거나 파일로 저장할 수 있어요. <b>모든 논문</b>을 누르면 다른 논문 것도 함께 보여요.</li>
+        <li><b>책갈피</b>: 문장을 누르고 아래 도구의 <b>책갈피</b>를 누르면 문장 앞에 🔖가 붙어요. 아래 <b>시작 위치</b> 목록 맨 아래 ‘책갈피’에서 골라 바로 가거나 거기서부터 읽을 수 있어요.</li>
+        <li><b>메모</b>: 문장을 누르고 <b>메모</b>를 누르면 그 문장에 메모를 달 수 있어요. 메모는 문장 바로 아래 파란 상자로 보이고, 상자를 누르면 고칠 수 있어요.</li>
+        <li>우클릭 메뉴에도 <b>책갈피 꽂기</b>, <b>메모 쓰기</b>가 있어요. 책갈피와 메모는 번역본 Word 파일에도 들어가요.</li>
       </ul>
     </details>
 
@@ -725,6 +757,8 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
     <button class="sw" data-c="g" aria-label="초록" aria-pressed="false"></button>
     <button class="sw" data-c="p" aria-label="분홍" aria-pressed="false"></button>
     <button class="btn ghost" id="sel-clear">지우기</button>
+    <button class="btn ghost" id="sel-bm" aria-pressed="false">책갈피</button>
+    <button class="btn ghost" id="sel-memo">메모</button>
     <span class="sel-gap"></span>
     <button class="btn ghost" id="sel-play">여기서부터 읽기</button>
     <button class="btn ghost icon" id="sel-close" aria-label="문장 고르기 끝내기">×</button>
@@ -1308,6 +1342,8 @@ const state = {
   inflight: new Set(), failed: new Set(), waiters: new Map(),
   terms: new Map(),      // 학술 용어: 영어 소문자 → {en, ko}
   hl: new Map(),         // 형광펜: 원문 문장 → "y" | "g" | "p"
+  bm: new Set(),         // 책갈피: 원문 문장
+  memo: new Map(),       // 메모: 원문 문장 → 글
   running: false, trGen: 0, trCursor: 0, trStop: "", ctaClosed: false, trLoaded: 0,
   koScanned: 0, koRunning: false, koStarted: false,   // 한국어 논문 용어 찾기: 훑은 문장 수
 };
@@ -1486,7 +1522,7 @@ function rebuild(){
   updateModeUi();
   loadVoices();
   if (tv || state.lang === "ko") loadTr();
-  state.hl = loadHl();
+  loadMarks();
   render();
   if (tv) translateAll();
   if (state.lang === "ko" && (state.koStarted || state.view === "side")) findKoTerms();
@@ -1676,7 +1712,7 @@ function render(){
   }
   if (tv) state.sentences.forEach((_, i) => showTranslation(i));
   if (kside) refreshKoNotes();
-  state.sentences.forEach((s, i) => { if (state.hl.has(s.text)) applyHl(i); });
+  state.sentences.forEach((s, i) => { if (marked(s.text)) applyHl(i); });
   updateSelbar(); closeTerm(); queueRail();
   fillJump();
   mark();
@@ -1723,20 +1759,66 @@ $("doc").addEventListener("click", e => {
   }
   const term = e.target.closest?.(".term");
   if (term){ const at = term.closest("[data-i], [data-t]"); openTerm(term.dataset.term, at ? +(at.dataset.i ?? at.dataset.t) : -1); return; }
+  const note = e.target.closest?.(".memo-note");
+  if (note){ openMemo(+note.dataset.m); return; }
   const t = e.target.closest?.(".t"); if (t) pick(+t.dataset.t);
 });
 $("doc").addEventListener("keydown", e => {
   const term = e.target.closest?.(".term");
   if (term && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); term.click(); }
+  const note = e.target.closest?.(".memo-note");
+  if (note && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); openMemo(+note.dataset.m); }
 });
 
 // ---- 형광펜 ----------------------------------------------------------------
 // 원문 문장 글자를 열쇠로 이 브라우저에 문서마다 남긴다. 번역해서 볼 때 문장을 누르면 도구가 뜬다.
 const HL_NAME = {y: "노랑", g: "초록", p: "분홍"};
 function applyHl(i){
-  const c = state.hl.get(state.sentences[i]?.text);
+  const text = state.sentences[i]?.text, c = state.hl.get(text);
   pairEls(i).forEach(e => { if (c) e.dataset.hl = c; else delete e.dataset.hl; });
+  // 책갈피는 원문 문장 앞에 🔖, 메모는 그 문장(번역이 있으면 번역) 바로 아래 상자로
+  document.querySelectorAll(`#doc .s[data-i="${i}"]`).forEach(e => { if (state.bm.has(text)) e.dataset.bm = ""; else delete e.dataset.bm; });
+  document.querySelectorAll(`#doc .memo-note[data-m="${i}"]`).forEach(e => e.remove());
+  const m = state.memo.get(text);
+  const at = m && (document.querySelector(`#doc [data-t="${i}"]`) || document.querySelector(`#doc [data-i="${i}"]`));
+  if (at){
+    const n = make("span", "memo-note", m);
+    n.dataset.m = i; n.tabIndex = 0; n.setAttribute("role", "button"); n.title = "눌러서 메모 고치기";
+    at.after(n);
+  }
 }
+const marked = t => state.hl.has(t) || state.bm.has(t) || state.memo.has(t);
+function afterMark(i){ applyHl(i); saveHl(); updateSelbar(); updateTrUi(); queueRail(); fillJump(); syncJump(); }
+function toggleBm(i){
+  const t = state.sentences[i]?.text; if (!t) return;
+  if (state.bm.has(t)) state.bm.delete(t); else state.bm.add(t);
+  afterMark(i);
+  toast(state.bm.has(t) ? "책갈피를 꽂았어요. 아래 ‘시작 위치’ 목록 맨 아래에서 바로 갈 수 있어요." : "책갈피를 뺐어요.", false, false);
+}
+let memoI = null;
+function openMemo(i){
+  const t = state.sentences[i]?.text; if (!t) return;
+  memoI = i;
+  $("memo-src").textContent = state.translations.get(t) ? `${state.translations.get(t)}\n${t}` : t;
+  $("memo-text").value = state.memo.get(t) || "";
+  $("memo-del").hidden = !state.memo.has(t);
+  $("memo-dlg").showModal();
+  $("memo-text").focus();
+}
+function saveMemo(v){
+  const t = state.sentences[memoI]?.text;
+  $("memo-dlg").close();
+  if (t == null) return;
+  v = String(v || "").trim();
+  if (v) state.memo.set(t, v); else state.memo.delete(t);
+  afterMark(memoI);
+}
+$("memo-save").addEventListener("click", () => saveMemo($("memo-text").value));
+$("memo-del").addEventListener("click", () => saveMemo(""));
+$("memo-cancel").addEventListener("click", () => $("memo-dlg").close());
+$("memo-text").addEventListener("keydown", e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)){ e.preventDefault(); saveMemo($("memo-text").value); } });
+$("sel-bm").addEventListener("click", () => { if (pinI !== null) toggleBm(+pinI); });
+$("sel-memo").addEventListener("click", () => { if (pinI !== null) openMemo(+pinI); });
 function updateSelbar(){
   const on = pinI !== null;
   $("selbar").hidden = !on;
@@ -1744,6 +1826,10 @@ function updateSelbar(){
   const c = state.hl.get(state.sentences[+pinI]?.text) || "";
   document.querySelectorAll("#selbar .sw").forEach(b => b.setAttribute("aria-pressed", b.dataset.c === c));
   $("sel-clear").disabled = !c;
+  const t = state.sentences[+pinI]?.text;
+  $("sel-bm").setAttribute("aria-pressed", state.bm.has(t));
+  $("sel-bm").textContent = state.bm.has(t) ? "🔖 책갈피 빼기" : "책갈피";
+  $("sel-memo").textContent = state.memo.has(t) ? "메모 고치기" : "메모";
 }
 function setHl(c){
   if (pinI === null) return;
@@ -1763,17 +1849,27 @@ function loadHl(){
   }
   return m;
 }
+function loadMarks(){
+  state.hl = loadHl(); state.bm = new Set(); state.memo = new Map();
+  for (const key of ["jjk-hl:" + legacyKey(), hlKey()]){
+    try {
+      const d = JSON.parse(localStorage.getItem(key) || "{}");
+      for (const t of d.bm || []) state.bm.add(t);
+      for (const [t, m] of Object.entries(d.memo || {})) if (m) state.memo.set(t, m);
+    } catch {}
+  }
+}
 function saveHl(){
   try {
-    if (!state.hl.size){ localStorage.removeItem(hlKey()); return; }
+    if (!state.hl.size && !state.bm.size && !state.memo.size){ localStorage.removeItem(hlKey()); return; }
     // 모든 논문 모아 보기에 쓰도록 제목, 번역, 문서 안 순서도 같이 남긴다
     const ko = {}, pos = {};
     state.sentences.forEach((s, i) => {
-      if (!state.hl.has(s.text) || s.text in pos) return;
+      if (!marked(s.text) || s.text in pos) return;
       pos[s.text] = i;
       const t = state.translations.get(s.text); if (t) ko[s.text] = t;
     });
-    localStorage.setItem(hlKey(), JSON.stringify({at: Date.now(), title: docTitle(), file: state.fileName || "", hl: Object.fromEntries(state.hl), ko, pos}));
+    localStorage.setItem(hlKey(), JSON.stringify({at: Date.now(), title: docTitle(), file: state.fileName || "", hl: Object.fromEntries(state.hl), bm: [...state.bm], memo: Object.fromEntries(state.memo), ko, pos}));
   } catch {}
 }
 const canSave = () => EDITION === "web" || !!downloadsNs;
@@ -1782,7 +1878,10 @@ let hlTab = "doc", downloadsNs = null;
 const HL_LABEL = {y: "노랑", g: "초록", p: "분홍"};
 function currentHlDoc(){
   const items = [];
-  state.sentences.forEach((s, i) => { const c = state.hl.get(s.text); if (c && !items.some(x => x.en === s.text)) items.push({en: s.text, ko: state.translations.get(s.text) || "", c, i}); });
+  state.sentences.forEach((s, i) => {
+    if (!marked(s.text) || items.some(x => x.en === s.text)) return;
+    items.push({en: s.text, ko: state.translations.get(s.text) || "", c: state.hl.get(s.text) || "", bm: state.bm.has(s.text), memo: state.memo.get(s.text) || "", i});
+  });
   return {title: docTitle() || state.fileName || "지금 논문", items, current: true};
 }
 function allHlDocs(){
@@ -1791,7 +1890,9 @@ function allHlDocs(){
     for (const k of Object.keys(localStorage)){
       if (!k.startsWith("jjk-hl:") || k === cur) continue;
       const d = JSON.parse(localStorage.getItem(k));
-      const items = Object.entries(d?.hl || {}).map(([en, c]) => ({en, c, ko: d.ko?.[en] || "", pos: d.pos?.[en] ?? 0})).sort((a, b) => a.pos - b.pos);
+      const bm = new Set(d?.bm || []), memo = d?.memo || {};
+      const keys = new Set([...Object.keys(d?.hl || {}), ...bm, ...Object.keys(memo)]);
+      const items = [...keys].map(en => ({en, c: d.hl?.[en] || "", bm: bm.has(en), memo: memo[en] || "", ko: d.ko?.[en] || "", pos: d.pos?.[en] ?? 0})).sort((a, b) => a.pos - b.pos);
       if (items.length) out.push({title: d.title || d.file || "제목 없는 문서", at: d.at || 0, items});
     }
   } catch {}
@@ -1807,18 +1908,20 @@ function renderHlList(){
   $("hl-tab-all").setAttribute("aria-pressed", hlTab === "all");
   const docs = hlDocs();
   const n = docs.reduce((a, d) => a + d.items.length, 0);
-  $("hl-note").textContent = "형광펜은 이 브라우저에만 저장돼요. 다른 기기에서도 보거나 오래 두려면 ‘파일로 저장’을 눌러 주세요.";
+  $("hl-note").textContent = "형광펜·책갈피·메모는 이 브라우저에만 저장돼요. 다른 기기에서도 보거나 오래 두려면 ‘파일로 저장’을 눌러 주세요.";
   if (!n) list.append(make("p", "hl-empty", hlTab === "doc"
-    ? "이 논문에는 아직 형광펜 친 문장이 없어요. 번역 보기에서 문장을 누르고 색을 고르세요."
-    : "아직 형광펜 친 문장이 없어요."));
+    ? "이 논문에는 아직 표시한 문장이 없어요. 번역 보기에서 문장을 누르고 형광펜 색, 책갈피, 메모를 고르세요."
+    : "아직 표시한 문장이 없어요."));
   for (const d of docs){
     const box = make("section", "hl-doc");
     if (hlTab === "all"){ const h = make("h3", "", d.title); h.append(make("span", "", d.current ? `지금 논문 · ${d.items.length}문장` : `${d.items.length}문장`)); box.append(h); }
     for (const it of d.items){
-      const b = make("button", "hl-item"); b.type = "button"; b.dataset.c = it.c;
-      b.setAttribute("aria-label", `${HL_LABEL[it.c]} 형광펜: ${it.ko || it.en}`);
+      const b = make("button", "hl-item"); b.type = "button"; b.dataset.c = it.c || "none";
+      b.setAttribute("aria-label", [it.c && `${HL_LABEL[it.c]} 형광펜`, it.bm && "책갈피", it.memo && `메모 ${it.memo}`].filter(Boolean).join(", ") + `: ${it.ko || it.en}`);
+      if (it.bm) b.append(make("span", "bm", "🔖 책갈피"));
       if (it.ko) b.append(make("span", "ko", it.ko));
       b.append(make("span", "en", it.en));
+      if (it.memo) b.append(make("span", "memo", "메모  " + it.memo));
       if (d.current) b.addEventListener("click", () => { $("hl-dlg").close(); goToSentence(it.i); });
       else b.disabled = true;
       box.append(b);
@@ -1831,12 +1934,14 @@ function renderHlList(){
 function openHlList(){ renderHlList(); $("hl-dlg").showModal(); }
 function hlText(){
   const today = new Date().toISOString().slice(0, 10);
-  const lines = [`짹짹이 형광펜 모음 (${today})`, ""];
+  const lines = [`짹짹이 형광펜·책갈피·메모 모음 (${today})`, ""];
   for (const d of hlDocs()){
     lines.push(`■ ${d.title}`, "");
     for (const it of d.items){
-      lines.push(`[${HL_LABEL[it.c]}] ${it.ko || it.en}`);
+      const tag = [it.c && `[${HL_LABEL[it.c]}]`, it.bm && "[책갈피]"].filter(Boolean).join("");
+      lines.push(`${tag || "[메모]"} ${it.ko || it.en}`);
       if (it.ko) lines.push(`       ${it.en}`);
+      if (it.memo) lines.push(`       메모: ${it.memo.replace(/\n/g, "\n             ")}`);
       lines.push("");
     }
   }
@@ -1848,7 +1953,7 @@ function goToSentence(i){
   if (trView()) pick(i, true);
 }
 $("hl-open").addEventListener("click", openHlList);
-$("hl-open-menu").addEventListener("click", () => { hlTab = state.sentences.some(s => state.hl.has(s.text)) ? "doc" : "all"; openHlList(); });
+$("hl-open-menu").addEventListener("click", () => { hlTab = state.sentences.some(s => marked(s.text)) ? "doc" : "all"; openHlList(); });
 $("hl-tab-doc").addEventListener("click", () => { hlTab = "doc"; renderHlList(); });
 $("hl-tab-all").addEventListener("click", () => { hlTab = "all"; renderHlList(); });
 $("hl-close").addEventListener("click", () => $("hl-dlg").close());
@@ -1859,7 +1964,7 @@ $("hl-copy").addEventListener("click", () => {
 });
 $("hl-save").addEventListener("click", () => {
   const base = hlTab === "doc" ? (docTitle() || "논문").replace(/[\\/:*?"<>|]+/g, " ").slice(0, 60).trim() : "모든 논문";
-  saveFile(`형광펜 - ${base}.txt`, hlText(), $("hl-note"));
+  saveFile(`형광펜·메모 - ${base}.txt`, hlText(), $("hl-note"));
 });
 // 파일 저장: 웹 버전은 바로 내려받고, claude.ai 버전은 확인 창을 거친다
 async function saveFile(name, text, note){
@@ -1888,7 +1993,7 @@ function updateRail(){
   const rail = $("hlrail");
   rail.querySelectorAll(".hr-mark").forEach(m => m.remove());
   const doc = $("doc").getBoundingClientRect();
-  const items = state.sentences.map((s, i) => [s, i]).filter(([s]) => state.hl.has(s.text));
+  const items = state.sentences.map((s, i) => [s, i]).filter(([s]) => marked(s.text));
   rail.hidden = !items.length || !doc.height || $("doc").hidden;
   if (rail.hidden) return;
   rail.style.top = (document.querySelector(".topbar").getBoundingClientRect().bottom + 10) + "px";
@@ -1897,11 +2002,11 @@ function updateRail(){
     const el = document.querySelector(`#doc [data-t="${i}"]`) || document.querySelector(`#doc [data-i="${i}"]`);
     if (!el || !el.getClientRects().length) continue;
     const top = el.getBoundingClientRect().top - doc.top;
-    const b = make("button", "hr-mark"); b.type = "button"; b.dataset.c = state.hl.get(s.text);
+    const b = make("button", "hr-mark"); b.type = "button"; b.dataset.c = state.hl.get(s.text) || (state.bm.has(s.text) ? "bm" : "memo");
     b.style.top = Math.min(100, Math.max(0, top / doc.height * 100)) + "%";
     const label = (state.translations.get(s.text) || s.text);
     b.title = label.length > 70 ? label.slice(0, 70) + "…" : label;
-    b.setAttribute("aria-label", `${HL_LABEL[b.dataset.c]} 형광펜으로 가기: ${b.title}`);
+    b.setAttribute("aria-label", `${HL_LABEL[b.dataset.c] ? HL_LABEL[b.dataset.c] + " 형광펜" : b.dataset.c === "bm" ? "책갈피" : "메모"}로 가기: ${b.title}`);
     b.addEventListener("click", () => goToSentence(i));
     rail.append(b);
   }
@@ -2147,6 +2252,10 @@ function openCtx(word, i, x, y){
   $("cm-add").textContent = has ? "단어장에서 빼기" : "단어장에 넣기";
   $("cm-look").hidden = !word;
   $("cm-hl").hidden = i < 0;
+  const st = i >= 0 ? state.sentences[i]?.text : null;
+  $("cm-bm").hidden = $("cm-memo").hidden = i < 0;
+  $("cm-bm").textContent = state.bm.has(st) ? "책갈피 빼기" : "책갈피 꽂기";
+  $("cm-memo").textContent = state.memo.has(st) ? "메모 고치기" : "메모 쓰기";
   $("cm-head").hidden = !word;
   const c = i >= 0 ? state.hl.get(state.sentences[i]?.text) : "";
   m.querySelectorAll(".sw").forEach(b => b.setAttribute("aria-pressed", b.dataset.c === c));
@@ -2178,6 +2287,8 @@ $("doc").addEventListener("contextmenu", e => {
   openCtx(word, i, e.clientX, e.clientY);
 });
 $("cm-add").addEventListener("click", () => { const c = ctx; closeCtx(); if (c) saveWord(c.word, c.i); });
+$("cm-bm").addEventListener("click", () => { const c = ctx; closeCtx(); if (c && c.i >= 0) toggleBm(c.i); });
+$("cm-memo").addEventListener("click", () => { const c = ctx; closeCtx(); if (c && c.i >= 0) openMemo(c.i); });
 $("cm-look").addEventListener("click", () => {
   const c = ctx; closeCtx(); if (!c) return;
   const t = state.terms.get(c.word.toLowerCase()) || termByKo.get(c.word) || (/[가-힣]/.test(c.word) ? {en: "", ko: c.word} : {en: c.word, ko: ""});
@@ -2285,9 +2396,12 @@ function buildDocumentXml(){
     for (const t of parts){
       const tr = state.translations.get(t), c = state.hl.get(t), fill = c ? HL_FILL[c] : null;
       const u = state.warn.get(t) ? ["wave", "C07A00"] : state.fixed.get(t) ? ["dotted", "3D6B4F"] : null;
+      if (state.bm.has(t)) en += wRun("[책갈피] ", {...base, bold: true, color: "2B5C8A"});
       en += wRun(t + " ", {...base, fill});
       if (tr) ko += wRun(tr + " ", {...base, fill, u});
       else { ko += wRun("(번역 없음) ", {...base, color: "9A5B00", italic: true}); missing++; }
+      const memo = state.memo.get(t);
+      if (memo) ko += wRun(`[메모: ${memo.replace(/\s*\n\s*/g, " / ")}] `, {...base, color: "2B5C8A", italic: true});
     }
     rows.push(`<w:tr><w:trPr><w:cantSplit/></w:trPr>${docxCell(wPara(en, {keep: isHead}))}${docxCell(wPara(ko, {keep: isHead}))}</w:tr>`);
   }
@@ -2326,7 +2440,8 @@ function savedData(){
   const fc = figCache(), figs = {};
   for (const b of state.blocks) if (b.kind === "skip" && ASIDE[b.reason] === "caption" && fc[figKey(b)]) figs[b.text.slice(0, 120)] = fc[figKey(b)];
   return {v: 1, app: "jjakjjak", title: docTitle(), fileName: state.fileName || "", fileHash: state.fileHash || "", savedAt: Date.now(),
-    blocks, tr, terms: [...state.terms.values()], termInfo, figs, hl: Object.fromEntries([...state.hl].filter(([t]) => texts.has(t)))};
+    blocks, tr, terms: [...state.terms.values()], termInfo, figs, hl: Object.fromEntries([...state.hl].filter(([t]) => texts.has(t))),
+    bm: [...state.bm].filter(t => texts.has(t)), memo: Object.fromEntries([...state.memo].filter(([t]) => texts.has(t)))};
 }
 async function buildDocx(){
   await need("jszip");
@@ -2410,9 +2525,10 @@ function applySaved(d){
   buildTermRe();
   try {
     const tc = termCache(); Object.assign(tc, d.termInfo || {}); localStorage.setItem(TERM_CACHE, JSON.stringify(tc));
-    if (d.hl && Object.keys(d.hl).length){
+    if (Object.keys(d.hl || {}).length || (d.bm || []).length || Object.keys(d.memo || {}).length){
       const cur = JSON.parse(localStorage.getItem(hlKey()) || "{}");
-      localStorage.setItem(hlKey(), JSON.stringify({...cur, at: Date.now(), title: d.title || "", hl: {...(cur.hl || {}), ...d.hl}}));
+      localStorage.setItem(hlKey(), JSON.stringify({...cur, at: Date.now(), title: d.title || "",
+        hl: {...(cur.hl || {}), ...(d.hl || {})}, bm: [...new Set([...(cur.bm || []), ...(d.bm || [])])], memo: {...(cur.memo || {}), ...(d.memo || {})}}));
     }
     const fc = figCache();
     for (const [cap, info] of Object.entries(d.figs || {})) fc[docKey().slice(LS.length) + "|" + cap] = info;
@@ -2601,6 +2717,18 @@ function fillJump(){
     if (b.kind !== "heading" || b.first === 0) continue;
     add(b.first, (b.page ? `p.${b.page} · ` : "") + (b.text.length > 40 ? b.text.slice(0, 40) + "…" : b.text));
   }
+  // 책갈피 꽂은 문장: 값은 "b문장번호" (숫자 값만 보는 syncJump에 섞이지 않게)
+  const bms = state.sentences.map((s, i) => [s, i]).filter(([s]) => state.bm.has(s.text));
+  if (bms.length){
+    const g = document.createElement("optgroup"); g.label = "책갈피";
+    for (const [s, i] of bms){
+      const o = document.createElement("option"); o.value = "b" + i;
+      const t = state.translations.get(s.text) || s.text;
+      o.textContent = "🔖 " + (t.length > 40 ? t.slice(0, 40) + "…" : t);
+      g.appendChild(o);
+    }
+    sel.appendChild(g);
+  }
   add(-1, "직접 고른 문장");
   sel.lastChild.hidden = true;
 }
@@ -2612,12 +2740,14 @@ function syncJump(){
   sel.value = !state.playing && !exact && state.idx > 0 ? "-1" : v;
 }
 $("jump").addEventListener("change", e => {
-  const v = +e.target.value; if (v < 0) return;
+  const raw = e.target.value, v = raw[0] === "b" ? +raw.slice(1) : +raw;
+  if (!(v >= 0)) return;
   const wasPlaying = state.playing;
   stop();
   state.idx = v;
   if (wasPlaying) play();
-  else { mark(); document.querySelector(".s.start")?.scrollIntoView({block: "center", behavior: "smooth"}); }
+  else { mark(); (document.querySelector(".s.start") || document.querySelector(`#doc .s[data-i="${v}"]`))?.scrollIntoView({block: "center", behavior: "smooth"}); }
+  if (raw[0] === "b") syncJump();
 });
 
 function mark(){
@@ -2922,7 +3052,7 @@ function updateTrUi(){
     $("tr-toggle").hidden = done >= n;
     $("tr-toggle").textContent = state.koRunning ? "멈추기" : !state.koStarted && !done ? "학술 용어 찾기" : "이어서 찾기";
     $("o-src-wrap").hidden = true;
-    const nHl = state.sentences.filter(s => state.hl.has(s.text)).length;
+    const nHl = state.sentences.filter(s => marked(s.text)).length;
     $("hl-open").hidden = !nHl; $("hl-count").textContent = nHl;
     $("tr-legend").hidden = true;
     return;
@@ -2943,7 +3073,7 @@ function updateTrUi(){
   $("tr-toggle").hidden = done === n;
   $("tr-toggle").textContent = state.running ? "멈추기" : left ? "이어서 번역" : "실패한 문장 다시 번역";
   $("o-src-wrap").hidden = state.view !== "side";
-  const nHl = S.filter(s => state.hl.has(s.text)).length;
+  const nHl = S.filter(s => marked(s.text)).length;
   $("hl-open").hidden = !nHl; $("hl-count").textContent = nHl;
   const legend = [fixed && `점선 밑줄 ${fixed}문장: 검수에서 고친 번역`, warn && `물결 밑줄 ${warn}문장: 원문의 숫자가 번역에 없어요. 원문과 대조해 보세요.`].filter(Boolean);
   $("tr-legend").hidden = !legend.length;
