@@ -3429,7 +3429,7 @@ function parseOcr(text){
 }
 const OCR_WHY = {rate_limited: "요청이 많음", cancelled: "취소", invalid_request: "요청 형식", too_large: "이미지가 너무 큼",
   image_rejected: "이미지를 받지 않음", refused: "Claude가 거절함", empty_completion: "빈 응답", timeout: "시간 초과",
-  bad: "응답 형식이 깨짐", prose: "글자 대신 말로 답함", wrongLang: "요약·번역으로 응답함", truncated: "응답이 길이·시간 한도에서 끊김"};
+  bad: "응답 형식이 깨짐", prose: "글자 대신 말로 답함", copyright: "저작권 때문에 Claude가 옮겨 적지 않음", wrongLang: "요약·번역으로 응답함", truncated: "응답이 길이·시간 한도에서 끊김"};
 // 못 읽은 쪽을 이유별로 묶어서 보여 준다: "응답 형식이 깨짐 3·7쪽, 빈 응답 9쪽"
 function ocrFailText(src){
   const by = {};
@@ -3450,6 +3450,13 @@ function renderOcrDetail(){
     li.append(b);
     const raw = src.ocrRaw?.[p];
     if (raw){ const q = document.createElement("q"); q.textContent = "Claude가 보낸 답: " + raw; li.append(q); }
+    list.append(li);
+  }
+  if (bad.some(p => src.ocrWhy?.[p] === OCR_WHY.copyright)){
+    const li = document.createElement("li");
+    li.textContent = "‘저작권 때문에 옮겨 적지 않음’인 쪽은 다시 인식해도 같은 답이 나올 가능성이 커요(사용량만 들어요). " +
+      "내 컴퓨터에서 글자를 인식한 파일을 열어 주세요. 예: 구글 드라이브에 PDF를 올리고 ‘연결 앱 → Google 문서’로 열어 .docx로 내려받기, " +
+      "또는 아크로뱃의 ‘스캔 및 OCR’로 글자가 들어간 PDF 만들기. 그 파일은 Claude 글자 인식 없이 바로 읽고 번역해요.";
     list.append(li);
   }
 }
@@ -3475,6 +3482,8 @@ async function ocrOnePage(p, signal){
   const raw = String(res?.text || "");
   const {arr, cut, prose} = parseOcr(raw);
   if (res?.truncated || (!arr && cut)) return {why: "truncated", raw};
+  // 저작권을 이유로 옮겨 적기를 거절한 답: 다시 보내도 같은 답이 나오므로 따로 구분해 알린다
+  if (!arr && prose && /저작권|copyright|재현|reproduc/i.test(raw)) return {why: "copyright", raw};
   if (!arr) return {why: prose ? "prose" : "bad", raw};
   if (ocrWrongLanguage(arr)) return {why: "wrongLang", raw};
   return {arr};
