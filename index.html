@@ -59,6 +59,7 @@ h1{font-size:1.5rem;margin:0;text-wrap:balance}
 body.drag .doc{outline:2px dashed var(--accent);outline-offset:4px}
 .error{color:var(--warn);font-size:.9rem;margin:0}
 .scan{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;font-size:.85rem}
+.ocr-detail{flex-basis:100%}.ocr-detail summary{cursor:pointer;color:var(--accent)}.ocr-detail ul{margin:6px 0 0;padding-left:18px}.ocr-detail li{margin:4px 0}.ocr-detail q{display:block;color:var(--muted);font-size:.8rem;white-space:pre-wrap;overflow-wrap:anywhere;quotes:none}
 .busy{color:var(--muted);font-size:.78rem;white-space:nowrap}
 .busy:empty{display:none}
 .wrap{padding-block:18px 24px}
@@ -476,6 +477,7 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
     <a class="btn ghost" id="ocr-elsewhere" href="#" target="_blank" rel="noopener" hidden>claude.ai 버전에서 열기</a>
     <button class="btn" id="ocr" data-tip="쪽마다 이미지를 Claude에게 보내 본문 글자를 받아 옵니다.&#10;한 쪽에 10~30초쯤 걸리고 Claude 사용량이 듭니다.&#10;인식이 끝난 쪽부터 바로 들을 수 있습니다.">Claude로 글자 인식</button>
     <span class="busy" id="ocr-status" aria-live="polite"></span>
+    <details class="ocr-detail" id="ocr-detail" hidden><summary>못 읽은 쪽 자세히 보기</summary><ul id="ocr-detail-list"></ul></details>
   </div>
 
   <div class="tr-cta" id="tr-cta" hidden>
@@ -1369,7 +1371,7 @@ async function openFile(name, buf, images){
     }
     // 전에 이 파일을 글자 인식했으면 그 결과를 바로 쓴다
     const savedOcr = (state.source.type === "pdf" || state.source.type === "images") ? loadOcr() : null;
-    if (savedOcr?.parts?.length || savedOcr?.failed?.length){ state.source.ocrParts = savedOcr.parts || []; state.source.ocrNext = savedOcr.next || state.source.pages + 1; state.source.ocrWhy = savedOcr.why || {}; state.source.ocrFailed = savedOcr.failed ||
+    if (savedOcr?.parts?.length || savedOcr?.failed?.length){ state.source.ocrParts = savedOcr.parts || []; state.source.ocrNext = savedOcr.next || state.source.pages + 1; state.source.ocrWhy = savedOcr.why || {}; state.source.ocrRaw = savedOcr.raw || {}; state.source.ocrFailed = savedOcr.failed ||
       Array.from({length: Math.min(state.source.ocrNext - 1, state.source.pages)}, (_, k) => k + 1).filter(pg => !savedOcr.parts.some(x => x.page === pg)); }
     resetTr();
     ocrAbort?.abort();
@@ -3305,10 +3307,11 @@ function checkScan(){
   }
   $("ocr").textContent = ocrLabel();
   $("ocr").hidden = !sampleFn;
+  renderOcrDetail();
   $("ocr-elsewhere").hidden = !(off && EDITION === "web");
   $("ocr-elsewhere").href = CLAUDE_URL;
   $("ocr-status").textContent = !off && !sampleFn ? "글자 인식 기능을 확인하는 중…" : "";
-  if (sampleFn) sampleFn.limits().then(l => { if (!l?.images){ $("ocr").hidden = true; $("ocr-status").textContent = "이 화면에서는 이미지를 Claude에게 보낼 수 없어 글자 인식을 쓸 수 없습니다."; } }).catch(() => {});
+  if (sampleFn) sampleFn.limits().then(l => { ocrMaxImages = l?.images?.maxCount || 1; if (!l?.images){ $("ocr").hidden = true; $("ocr-status").textContent = "이 화면에서는 이미지를 Claude에게 보낼 수 없어 글자 인식을 쓸 수 없습니다."; } }).catch(() => {});
 }
 const ocrLabel = () => {
   const src = state.source;
@@ -3317,8 +3320,8 @@ const ocrLabel = () => {
   if ((src.ocrNext || 1) <= src.pages) return "이어서 인식하기";
   return src.ocrFailed?.length ? `못 읽은 ${src.ocrFailed.length}쪽 다시 인식` : "처음부터 다시 인식";
 };
-const OCR_PROMPT = `이 이미지는 학술 논문의 한 쪽을 스캔하거나 사진으로 찍은 것입니다. 오래된 인쇄물이라 글자가 흐리거나 기울어져 있을 수 있습니다.
-아주 중요: 이것은 받아쓰기입니다. 이 이미지에 실제로 인쇄되어 보이는 글자만 그대로 옮기세요.
+const OCR_PROMPT = `보내는 이미지는 학술 논문의 한 쪽을 스캔하거나 사진으로 찍은 것입니다. 오래된 인쇄물이라 글자가 흐리거나 기울어져 있을 수 있습니다.
+아주 중요: 이것은 받아쓰기입니다. 이 쪽에 실제로 인쇄되어 보이는 글자만 그대로 옮기세요.
 이 논문이 유명하거나 당신이 내용을 이미 알고 있더라도, 그 지식으로 문장을 채우거나 고쳐 쓰거나 다른 판본의 문장으로 바꾸지 마세요.
 이 사진 속 활자와 한 글자도 다르면 안 됩니다. 글자가 흐려서 추측이 들어갈 수밖에 없는 낱말은 추측 대신 [?]로 적으세요.
 text 안의 모든 글자는 원문과 같은 언어로만 쓰세요. 번역하지 마세요. 요약하지 마세요. 원문이 영어면 text는 전부 영어여야 하고, 한글은 단 한 글자도 들어가면 안 됩니다(원문에 실제로 한글이 적혀 있는 경우는 예외).
@@ -3327,15 +3330,40 @@ text 안의 모든 글자는 원문과 같은 언어로만 쓰세요. 번역하�
 종류: "heading"(논문 제목·소제목), "body"(본문 문단), "front"(저자·소속·학술지 정보), "header"(머리말·꼬리말·쪽 번호·다운로드/저작권 안내 문구), "footnote"(각주), "caption"(그림·표의 제목과 설명. 실제로 그림·표·그래프 바로 옆에 붙어 있을 때만 이 종류를 쓰세요), "table"(표 안 내용: 한 행을 한 줄로, 칸은 " | "로 나눔), "figure"(그래프·그림·사진이 있는 자리: text는 빈 문자열), "references"(참고문헌 목록).
 Hypothesis·Corollary·Theorem·Proposition·Postulate처럼 이름 붙은 명제·가설·정리 문단은 들여쓰기나 이탤릭체로 되어 있어도 "caption"이 아니라 "body"입니다. 그림이나 표 옆에 있지 않은 글은 모두 "body"로 분류하세요.
 한 쪽에 있는 본문 문단을 하나도 빼놓지 말고 모두 적으세요. 문단이 몇 개든 전부 배열에 넣으세요.
-figure와 table에는 "box"에 이 이미지 안의 위치를 [왼쪽, 위, 오른쪽, 아래]로, 이미지 전체를 0~1000으로 본 정수로 적으세요.
+figure와 table에는 "box"에 쪽 전체 이미지(첫 번째 이미지) 안의 위치를 [왼쪽, 위, 오른쪽, 아래]로, 그 이미지 전체를 0~1000으로 본 정수로 적으세요.
 규칙:
 - 읽는 순서대로 적으세요. 2단 편집이면 왼쪽 단을 끝까지 읽고 오른쪽 단으로 넘어가세요.
 - 문단 하나를 덩어리 하나로, 줄 끝 하이픈으로 나뉜 단어는 이어 붙이세요.
 - 고치거나 요약하지 마세요. 확실히 읽을 수 없는 글자나 낱말은 당신이 아는 내용으로 메우지 말고 [?]로 적으세요.
-- 기억이나 추측이 아니라 이 이미지 자체를 보고 옮겼는지 스스로 점검한 뒤 답하세요.
+- 기억이나 추측이 아니라 이 이미지들 자체를 보고 옮겼는지 스스로 점검한 뒤 답하세요.
 - 각주 번호 같은 작은 위첨자 숫자는 빼세요.
 JSON 배열로만 답하세요. 예: [{"type":"heading","text":"1. Introduction"},{"type":"body","text":"..."},{"type":"figure","text":"","box":[80,120,520,430]},{"type":"caption","text":"Figure 1. ..."}]
 글자가 없는 쪽이면 [] 로 답하세요.`;
+// 쪽을 위·아래로 나눠 확대한 이미지를 함께 보낼 때 덧붙이는 설명.
+// 플랫폼이 이미지마다 약 1.2메가픽셀로 줄이기 때문에, 쪽 전체 한 장만 보내면 오래된 흐린 활자가 더 뭉개진다.
+// 위·아래 절반을 따로 보내면 같은 글자가 두 배 가까운 해상도로 간다. 쪽 전체도 함께 보내 읽는 순서·배치·그림 위치는
+// 전체를 보고 정하게 하고, 두 확대본은 가운데 줄들이 겹치게 잘라 경계에서 잘려 나가는 줄이 없게 한다.
+const OCR_SPLIT_NOTE = `
+이미지를 3장 보냅니다. 첫 번째는 이 쪽 전체, 두 번째는 위쪽 절반, 세 번째는 아래쪽 절반을 크게 확대한 것입니다. 세 장 모두 같은 한 쪽입니다.
+가운데 몇 줄은 두 번째와 세 번째 이미지에 겹쳐 나옵니다. 겹친 줄은 한 번만 적으세요. 두 번째 이미지 끝에서 세 번째 이미지로 이어지는 문단은 하나로 이어 붙이세요.
+글자는 확대한 두 번째·세 번째 이미지에서 읽고, 읽는 순서와 배치는 첫 번째(쪽 전체) 이미지를 보고 정하세요. 확대본 가장자리에서 잘린 줄은 다른 이미지에서 온전히 보이는 쪽으로 읽으세요.
+쪽 전체를 위에서 아래까지 빠짐없이 옮겼는지, 특히 두 확대본이 겹치는 가운데 부분에서 빠지거나 두 번 들어간 문장이 없는지 확인한 뒤 답하세요.`;
+let ocrMaxImages = 1;
+// 한 쪽을 Claude에게 보낼 이미지들로: [쪽 전체] 또는 [쪽 전체, 위쪽 55%, 아래쪽 55%] (가운데 10%는 겹침)
+async function ocrImages(p){
+  const c = await pageCanvas(p, ocrMaxImages >= 3 ? 2800 : 2000);
+  const toJpg = cv => new Promise(r => cv.toBlob(r, "image/jpeg", 0.88));
+  const crop = (y0, y1, maxSide) => {
+    const sy = Math.round(c.height * y0), h = Math.round(c.height * (y1 - y0));
+    const k = Math.min(1, maxSide / Math.max(c.width, h));
+    const o = document.createElement("canvas");
+    o.width = Math.round(c.width * k); o.height = Math.round(h * k);
+    o.getContext("2d").drawImage(c, 0, sy, c.width, h, 0, 0, o.width, o.height);
+    return o;
+  };
+  if (ocrMaxImages < 3) return [await toJpg(crop(0, 1, 2000))];
+  return [await toJpg(crop(0, 1, 1600)), await toJpg(crop(0, 0.55, 2400)), await toJpg(crop(0.45, 1, 2400))];
+}
 const OCR_KIND = {front: "front", header: "header", footnote: "note", caption: "caption", references: "refs", table: "table"};
 // 인식한 쪽 하나를 조각으로: 그림·표 자리는 가장 가까운 캡션에 붙인다
 function addOcrPage(src, p, arr){
@@ -3361,7 +3389,7 @@ const OCR_LS = "jjk-ocr:";
 function loadOcr(){ try { return JSON.parse(localStorage.getItem(OCR_LS + state.fileHash) || "null"); } catch { return null; } }
 function saveOcr(src){
   try {
-    localStorage.setItem(OCR_LS + state.fileHash, JSON.stringify({at: Date.now(), next: src.ocrNext, parts: src.ocrParts, failed: src.ocrFailed || [], why: src.ocrWhy || {}}));
+    localStorage.setItem(OCR_LS + state.fileHash, JSON.stringify({at: Date.now(), next: src.ocrNext, parts: src.ocrParts, failed: src.ocrFailed || [], why: src.ocrWhy || {}, raw: src.ocrRaw || {}}));
     const keys = Object.keys(localStorage).filter(k => k.startsWith(OCR_LS));
     if (keys.length > 6) keys.map(k => { try { return [k, JSON.parse(localStorage.getItem(k)).at || 0]; } catch { return [k, 0]; } })
       .sort((a, b) => a[1] - b[1]).slice(0, keys.length - 6).forEach(([k]) => localStorage.removeItem(k));
@@ -3396,16 +3424,34 @@ function parseOcr(text){
   const a = t.search(/\[\s*\{/), b = t.lastIndexOf("]");
   const core = a >= 0 && b > a ? t.slice(a, b + 1) : t;
   for (const cand of [t, core, repairJson(core)]){ const v = asArr(tryParse(cand)); if (v) return {arr: v, cut: false}; }
-  return {arr: null, cut: !/[\]}]\s*$/.test(t)};
+  // JSON으로 시작했는데 닫히지 않았으면 끊김, 아예 JSON이 아니면 말로 답한 것(거절·설명 등)
+  return {arr: null, cut: /^[\[{]/.test(t) && !/[\]}]\s*$/.test(t), prose: !/[\[{]/.test(t)};
 }
 const OCR_WHY = {rate_limited: "요청이 많음", cancelled: "취소", invalid_request: "요청 형식", too_large: "이미지가 너무 큼",
   image_rejected: "이미지를 받지 않음", refused: "Claude가 거절함", empty_completion: "빈 응답", timeout: "시간 초과",
-  bad: "응답 형식이 깨짐", wrongLang: "요약·번역으로 응답함", truncated: "응답이 길이·시간 한도에서 끊김"};
+  bad: "응답 형식이 깨짐", prose: "글자 대신 말로 답함", wrongLang: "요약·번역으로 응답함", truncated: "응답이 길이·시간 한도에서 끊김"};
 // 못 읽은 쪽을 이유별로 묶어서 보여 준다: "응답 형식이 깨짐 3·7쪽, 빈 응답 9쪽"
 function ocrFailText(src){
   const by = {};
   for (const p of src.ocrFailed || []) (by[src.ocrWhy?.[p] || "이유 기록 없음"] ||= []).push(p);
   return Object.entries(by).map(([why, ps]) => `${why} ${ps.join("·")}쪽`).join(", ");
+}
+// '못 읽은 쪽 자세히 보기': 쪽마다 이유, Claude가 실제로 보낸 답의 앞부분, 원본 쪽 보기 버튼
+function renderOcrDetail(){
+  const src = state.source, list = $("ocr-detail-list"), bad = src?.ocrFailed || [];
+  $("ocr-detail").hidden = !bad.length;
+  list.textContent = "";
+  for (const p of bad){
+    const li = document.createElement("li");
+    li.append(`${p}쪽 — ${src.ocrWhy?.[p] || "이유 기록 없음"} `);
+    const b = document.createElement("button");
+    b.className = "btn ghost"; b.type = "button"; b.textContent = "원본 보기";
+    b.addEventListener("click", () => openPage(p));
+    li.append(b);
+    const raw = src.ocrRaw?.[p];
+    if (raw){ const q = document.createElement("q"); q.textContent = "Claude가 보낸 답: " + raw; li.append(q); }
+    list.append(li);
+  }
 }
 // 영어 논문인데 한국어로 요약·번역해서 돌아온 경우를 걸러낸다 (받아쓰기 대신 요약을 한 경우)
 function ocrWrongLanguage(arr){
@@ -3419,18 +3465,18 @@ function ocrWrongLanguage(arr){
 // 모델은 기본(균형) 단계: 받아쓰기는 깊은 추론이 필요 없고, '가장 꼼꼼한' 단계는 쪽마다 오래 생각하다
 // 시간 한도에 걸려 끊기는 일이 많았다(느리고 못 읽은 쪽이 늘어난 원인).
 async function ocrOnePage(p, signal){
-  const canvas = await pageCanvas(p, 2000);
-  const blob = await new Promise(r => canvas.toBlob(r, "image/jpeg", 0.85));
+  const images = await ocrImages(p);
   let res;
-  try { res = await sampleFn(OCR_PROMPT, {images: blob, signal, modelTier: "default", cache: {gcTime: 86400000}}); }
+  try { res = await sampleFn(images.length > 1 ? OCR_PROMPT + OCR_SPLIT_NOTE : OCR_PROMPT, {images, signal, modelTier: "default", cache: {gcTime: 86400000}}); }
   catch (e){
     if (e?.code === "cancelled" || signal?.aborted || e?.code === "rate_limited" || OCR_FATAL.includes(e?.code)) throw e;
-    return {why: OCR_WHY[e?.code] ? e.code : "bad", detail: e?.code};
+    return {why: OCR_WHY[e?.code] ? e.code : "bad", detail: e?.code, raw: String(e?.text || e?.message || "")};
   }
-  const {arr, cut} = parseOcr(res?.text);
-  if (res?.truncated || (!arr && cut)) return {why: "truncated"};
-  if (!arr) return {why: "bad"};
-  if (ocrWrongLanguage(arr)) return {why: "wrongLang"};
+  const raw = String(res?.text || "");
+  const {arr, cut, prose} = parseOcr(raw);
+  if (res?.truncated || (!arr && cut)) return {why: "truncated", raw};
+  if (!arr) return {why: prose ? "prose" : "bad", raw};
+  if (ocrWrongLanguage(arr)) return {why: "wrongLang", raw};
   return {arr};
 }
 const OCR_FATAL = ["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed", "images_unavailable", "session_expired"];
@@ -3442,10 +3488,14 @@ function putOcrPage(src, p, out){
     addOcrPage(src, p, out.arr);
     src.ocrParts.sort((a, b) => a.page - b.page);
     delete src.ocrWhy[p];
+    if (src.ocrRaw) delete src.ocrRaw[p];
   } else {
     src.ocrFailed.push(p);
     src.ocrFailed.sort((a, b) => a - b);
     src.ocrWhy[p] = OCR_WHY[out.why] || out.detail || out.why;
+    // 원인을 볼 수 있게 Claude가 실제로 보낸 답의 앞·뒤 부분을 남긴다
+    const r = String(out.raw || "").trim();
+    (src.ocrRaw ||= {})[p] = r.length > 420 ? r.slice(0, 300) + " … " + r.slice(-100) : r;
   }
 }
 async function runOcr(){
@@ -3463,7 +3513,7 @@ async function runOcr(){
   } else if ((src.ocrParts?.length || src.ocrFailed.length) && src.ocrFailed.length){
     pages = [...src.ocrFailed];
   } else {
-    src.ocrParts = []; src.ocrNext = 1; src.ocrFailed = []; src.ocrWhy = {};
+    src.ocrParts = []; src.ocrNext = 1; src.ocrFailed = []; src.ocrWhy = {}; src.ocrRaw = {};
     pages = Array.from({length: src.pages}, (_, k) => k + 1);
   }
   // 이어서 인식할 기준(ocrNext): 앞에서부터 끝난 쪽까지만 넘긴다. 두 쪽씩 동시에 읽어 끝나는 순서가 바뀌어도
@@ -3477,6 +3527,7 @@ async function runOcr(){
     const doneN = new Set([...(src.ocrParts || []).map(x => x.page), ...src.ocrFailed]).size;
     $("ocr-status").textContent = `글자 인식 중… ${doneN}/${src.pages}쪽 끝` + (busy.size ? ` (지금 ${[...busy].sort((a, b) => a - b).join("·")}쪽)` : "") +
       ` · 지금까지 ${n}문장` + (bad ? ` · 못 읽은 쪽: ${ocrFailText(src)}` : "");
+    renderOcrDetail();
   };
   const worker = async () => {
     while (!signal.aborted && !stopMsg && cursor < pages.length){
@@ -3531,6 +3582,7 @@ async function reOcrOnePage(p, btn){
     }
     putOcrPage(src, p, out);
     saveOcr(src);
+    renderOcrDetail();
     if (!state.playing) rebuild(); else state.rebuildLater = true;
     toast(`${p}쪽을 다시 인식했어요.`, false, false);
   } catch (e){
