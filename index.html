@@ -59,6 +59,7 @@ h1{font-size:1.5rem;margin:0;text-wrap:balance}
 body.drag .doc{outline:2px dashed var(--accent);outline-offset:4px}
 .error{color:var(--warn);font-size:.9rem;margin:0}
 .scan{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;font-size:.85rem}
+.pg-local{margin-left:6px;font-size:.72rem;color:var(--muted)}
 .ocr-detail{flex-basis:100%}.ocr-detail summary{cursor:pointer;color:var(--accent)}.ocr-detail ul{margin:6px 0 0;padding-left:18px}.ocr-detail li{margin:4px 0}.ocr-detail q{display:block;color:var(--muted);font-size:.8rem;white-space:pre-wrap;overflow-wrap:anywhere;quotes:none}
 .busy{color:var(--muted);font-size:.78rem;white-space:nowrap}
 .busy:empty{display:none}
@@ -1371,7 +1372,7 @@ async function openFile(name, buf, images){
     }
     // 전에 이 파일을 글자 인식했으면 그 결과를 바로 쓴다
     const savedOcr = (state.source.type === "pdf" || state.source.type === "images") ? loadOcr() : null;
-    if (savedOcr?.parts?.length || savedOcr?.failed?.length){ state.source.ocrParts = savedOcr.parts || []; state.source.ocrNext = savedOcr.next || state.source.pages + 1; state.source.ocrWhy = savedOcr.why || {}; state.source.ocrRaw = savedOcr.raw || {}; state.source.ocrFailed = savedOcr.failed ||
+    if (savedOcr?.parts?.length || savedOcr?.failed?.length){ state.source.ocrParts = savedOcr.parts || []; state.source.ocrNext = savedOcr.next || state.source.pages + 1; state.source.ocrWhy = savedOcr.why || {}; state.source.ocrRaw = savedOcr.raw || {}; state.source.ocrBy = savedOcr.by || {}; state.source.ocrLocal = !!savedOcr.local; state.source.ocrFailed = savedOcr.failed ||
       Array.from({length: Math.min(state.source.ocrNext - 1, state.source.pages)}, (_, k) => k + 1).filter(pg => !savedOcr.parts.some(x => x.page === pg)); }
     resetTr();
     ocrAbort?.abort();
@@ -1646,6 +1647,11 @@ function render(){
             re.setAttribute("aria-label", `${b.page}쪽 다시 인식`);
             re.addEventListener("click", () => reOcrOnePage(b.page, re));
             pg.appendChild(re);
+          }
+          if (state.source?.ocrBy?.[b.page] === "local"){
+            const tag = document.createElement("span"); tag.className = "pg-local"; tag.textContent = "브라우저로 인식";
+            tag.title = "Claude가 이 쪽을 옮겨 적지 않아 브라우저 안의 글자 인식기로 읽었어요. 흐린 글자는 틀릴 수 있으니 원본과 대조해 보세요.";
+            pg.appendChild(tag);
           }
         }
         doc.appendChild(pg);
@@ -3389,7 +3395,7 @@ const OCR_LS = "jjk-ocr:";
 function loadOcr(){ try { return JSON.parse(localStorage.getItem(OCR_LS + state.fileHash) || "null"); } catch { return null; } }
 function saveOcr(src){
   try {
-    localStorage.setItem(OCR_LS + state.fileHash, JSON.stringify({at: Date.now(), next: src.ocrNext, parts: src.ocrParts, failed: src.ocrFailed || [], why: src.ocrWhy || {}, raw: src.ocrRaw || {}}));
+    localStorage.setItem(OCR_LS + state.fileHash, JSON.stringify({at: Date.now(), next: src.ocrNext, parts: src.ocrParts, failed: src.ocrFailed || [], why: src.ocrWhy || {}, raw: src.ocrRaw || {}, by: src.ocrBy || {}, local: !!src.ocrLocal}));
     const keys = Object.keys(localStorage).filter(k => k.startsWith(OCR_LS));
     if (keys.length > 6) keys.map(k => { try { return [k, JSON.parse(localStorage.getItem(k)).at || 0]; } catch { return [k, 0]; } })
       .sort((a, b) => a[1] - b[1]).slice(0, keys.length - 6).forEach(([k]) => localStorage.removeItem(k));
@@ -3429,7 +3435,7 @@ function parseOcr(text){
 }
 const OCR_WHY = {rate_limited: "요청이 많음", cancelled: "취소", invalid_request: "요청 형식", too_large: "이미지가 너무 큼",
   image_rejected: "이미지를 받지 않음", refused: "Claude가 거절함", empty_completion: "빈 응답", timeout: "시간 초과",
-  bad: "응답 형식이 깨짐", prose: "글자 대신 말로 답함", copyright: "저작권 때문에 Claude가 옮겨 적지 않음", wrongLang: "요약·번역으로 응답함", truncated: "응답이 길이·시간 한도에서 끊김"};
+  bad: "응답 형식이 깨짐", prose: "글자 대신 말로 답함", copyright: "저작권 때문에 Claude가 옮겨 적지 않음", localEmpty: "브라우저 인식에서 본문을 찾지 못함", localFail: "브라우저 글자 인식기를 불러오지 못함", wrongLang: "요약·번역으로 응답함", truncated: "응답이 길이·시간 한도에서 끊김"};
 // 못 읽은 쪽을 이유별로 묶어서 보여 준다: "응답 형식이 깨짐 3·7쪽, 빈 응답 9쪽"
 function ocrFailText(src){
   const by = {};
@@ -3454,9 +3460,8 @@ function renderOcrDetail(){
   }
   if (bad.some(p => src.ocrWhy?.[p] === OCR_WHY.copyright)){
     const li = document.createElement("li");
-    li.textContent = "‘저작권 때문에 옮겨 적지 않음’인 쪽은 다시 인식해도 같은 답이 나올 가능성이 커요(사용량만 들어요). " +
-      "내 컴퓨터에서 글자를 인식한 파일을 열어 주세요. 예: 구글 드라이브에 PDF를 올리고 ‘연결 앱 → Google 문서’로 열어 .docx로 내려받기, " +
-      "또는 아크로뱃의 ‘스캔 및 OCR’로 글자가 들어간 PDF 만들기. 그 파일은 Claude 글자 인식 없이 바로 읽고 번역해요.";
+    li.textContent = canLocalOcr() ? "‘못 읽은 쪽 다시 인식’을 누르면 이 쪽들은 Claude 대신 브라우저 안의 글자 인식기로 읽어요(사용량 들지 않음)."
+      : "한국어 논문은 브라우저 글자 인식을 아직 못 해요. 내 컴퓨터에서 글자를 인식한 파일(구글 드라이브 → Google 문서로 열기 → .docx 내려받기)을 열어 주세요.";
     list.append(li);
   }
 }
@@ -3468,10 +3473,80 @@ function ocrWrongLanguage(arr){
   const ko = (text.match(/[가-힣]/g) || []).length;
   return ko > text.length * 0.2;
 }
+// ---- 브라우저 안 글자 인식(Tesseract) ---------------------------------------
+// Claude가 저작권 때문에 쪽 전체를 옮겨 적지 않는 논문(유명한 학술지 논문 등)을 위한 대안.
+// 내 컴퓨터(브라우저) 안에서만 돌아서 Claude 사용량이 들지 않는다. 엔진과 영어 글자 데이터는
+// 이 앱과 같은 곳의 tess/ 폴더에 있다(처음 한 번 약 8MB를 받는다). 지금은 영어 논문만.
+let tessWorker = null;
+const tessBase = () => new URL("tess/", document.baseURI).href;
+function tess(){
+  if (!tessWorker){
+    tessWorker = (async () => {
+      await loadScript(tessBase() + "tesseract.min.js");
+      const opt = {workerPath: tessBase() + "worker.min.js", corePath: tessBase(), langPath: tessBase(), gzip: false};
+      try { return await Tesseract.createWorker("eng", 1, {...opt, workerBlobURL: false}); }
+      catch { return await Tesseract.createWorker("eng", 1, opt); }
+    })();
+    tessWorker.catch(() => { tessWorker = null; });
+  }
+  return tessWorker;
+}
+const canLocalOcr = () => state.lang !== "ko";
+const localN = src => Object.values(src?.ocrBy || {}).filter(v => v === "local").length;
+// 한 쪽을 브라우저에서 인식해 Claude 응답과 같은 모양([{type, text}])으로 돌려준다.
+// 줄마다 위치·글자 크기를 보고 머리말(맨 위·맨 아래), 제목(본문보다 큰 글자), 각주(아래쪽 작은 글자), 그림·표 제목을 가른다.
+async function localOcrPage(p){
+  const w = await tess();
+  const c = await pageCanvas(p, 2600);
+  const r = await w.recognize(c, {}, {blocks: true, text: false});
+  const H = c.height, lines = [];
+  for (const bl of r.data.blocks || []) for (const pa of bl.paragraphs || []) for (const l of pa.lines || [])
+    lines.push({pa, text: String(l.text || "").replace(/\s+/g, " ").trim(), y0: l.bbox.y0, y1: l.bbox.y1, h: l.bbox.y1 - l.bbox.y0});
+  const hs = lines.filter(l => l.text.length > 40).map(l => l.h).sort((a, b) => a - b);
+  const med = hs.length ? hs[hs.length >> 1] : 0;
+  const kind = l => {
+    if (!l.text || !/[A-Za-z0-9]/.test(l.text)) return null;
+    if (l.y1 < H * 0.06 || (l.y0 > H * 0.93 && l.text.length < 70) || /^[\divxlc]{1,5}$/i.test(l.text)) return "header";
+    if (/^(fig(ure)?|table)\.?\s*[\dIVX]/i.test(l.text)) return "caption";
+    // 제목: 문장 끝 부호로 끝나지 않고 대문자·번호로 시작하며, 본문보다 큰 글자이거나 한 줄짜리 짧은 덩어리
+    const headLike = !/[.,;:!?)]$/.test(l.text) && /^((\d+|[IVX]+)(\.\d+)*\.?\s+)?[A-Z]/.test(l.text);
+    if (headLike && ((med && l.h > med * 1.3 && l.text.length < 120) || ((l.pa.lines || []).length === 1 && l.text.length < 70))) return "heading";
+    if (med && l.h < med * 0.82 && l.y0 > H * 0.6) return "footnote";
+    return "body";
+  };
+  const out = [];
+  let cur = null;
+  for (const l of lines){
+    const k = kind(l);
+    if (!k) continue;
+    if (cur && cur.pa === l.pa && cur.type === k) cur.text = /[a-z]-$/.test(cur.text) ? cur.text.slice(0, -1) + l.text : cur.text + " " + l.text;
+    else out.push(cur = {pa: l.pa, type: k, text: l.text});
+  }
+  return out.map(({type, text}) => ({type, text}));
+}
+async function localOcrResult(p){
+  try {
+    const arr = await localOcrPage(p);
+    return arr.some(it => it.type === "body") ? {arr, local: true} : {why: "localEmpty"};
+  } catch (e){ return {why: "localFail", raw: String(e?.message || e || "")}; }
+}
+
 // 한 쪽 인식: 성공하면 {arr}, 실패하면 {why}(이유 코드). Claude를 못 쓰거나 요청이 많으면 그대로 던진다.
 // 모델은 기본(균형) 단계: 받아쓰기는 깊은 추론이 필요 없고, '가장 꼼꼼한' 단계는 쪽마다 오래 생각하다
 // 시간 한도에 걸려 끊기는 일이 많았다(느리고 못 읽은 쪽이 늘어난 원인).
 async function ocrOnePage(p, signal){
+  const src = state.source;
+  // 이 논문은 Claude가 이미 저작권 때문에 거절했으면 Claude에게 다시 보내지 않고(사용량만 듦) 바로 브라우저로 읽는다
+  if (src?.ocrLocal && canLocalOcr()) return localOcrResult(p);
+  const out = await claudeOcrPage(p, signal);
+  if ((out.why === "copyright" || out.why === "wrongLang") && canLocalOcr()){
+    src.ocrLocal = true;
+    const loc = await localOcrResult(p);
+    return loc.arr ? loc : {...out, why: out.why, raw: (out.raw || "") + (loc.raw ? ` / 브라우저 인식도 실패: ${loc.raw}` : "")};
+  }
+  return out;
+}
+async function claudeOcrPage(p, signal){
   const images = await ocrImages(p);
   let res;
   try { res = await sampleFn(images.length > 1 ? OCR_PROMPT + OCR_SPLIT_NOTE : OCR_PROMPT, {images, signal, modelTier: "default", cache: {gcTime: 86400000}}); }
@@ -3498,6 +3573,8 @@ function putOcrPage(src, p, out){
     src.ocrParts.sort((a, b) => a.page - b.page);
     delete src.ocrWhy[p];
     if (src.ocrRaw) delete src.ocrRaw[p];
+    src.ocrBy ||= {};
+    if (out.local) src.ocrBy[p] = "local"; else delete src.ocrBy[p];
   } else {
     src.ocrFailed.push(p);
     src.ocrFailed.sort((a, b) => a - b);
@@ -3514,6 +3591,7 @@ async function runOcr(){
   ocrAbort = new AbortController();
   const signal = ocrAbort.signal;
   src.ocrFailed ||= []; src.ocrWhy ||= {};
+  if (Object.values(src.ocrWhy).includes(OCR_WHY.copyright)) src.ocrLocal = true;
   // 할 쪽: 중간에 멈췄으면 그다음부터 + 못 읽은 쪽, 다 했고 못 읽은 쪽이 있으면 그 쪽만, 아니면 처음부터
   let pages;
   if (src.ocrParts?.length && (src.ocrNext || 1) <= src.pages){
@@ -3522,7 +3600,7 @@ async function runOcr(){
   } else if ((src.ocrParts?.length || src.ocrFailed.length) && src.ocrFailed.length){
     pages = [...src.ocrFailed];
   } else {
-    src.ocrParts = []; src.ocrNext = 1; src.ocrFailed = []; src.ocrWhy = {}; src.ocrRaw = {};
+    src.ocrParts = []; src.ocrNext = 1; src.ocrFailed = []; src.ocrWhy = {}; src.ocrRaw = {}; src.ocrBy = {}; src.ocrLocal = false;
     pages = Array.from({length: src.pages}, (_, k) => k + 1);
   }
   // 이어서 인식할 기준(ocrNext): 앞에서부터 끝난 쪽까지만 넘긴다. 두 쪽씩 동시에 읽어 끝나는 순서가 바뀌어도
@@ -3567,7 +3645,8 @@ async function runOcr(){
     const bad = src.ocrFailed.length;
     // 멈췄을 때 남은 쪽은 ocrNext(안 끝난 가장 앞쪽)와 ocrFailed에 그대로 남아 있어 '이어서 인식하기'로 이어진다
     $("ocr-status").textContent = stopMsg || (signal.aborted ? "글자 인식을 멈췄습니다. ‘이어서 인식하기’로 계속할 수 있어요."
-      : bad ? `인식 끝 · 못 읽은 쪽 ${bad}개 — ${ocrFailText(src)}. ‘못 읽은 쪽 다시 인식’을 눌러 보세요.` : "글자 인식 완료");
+      : bad ? `인식 끝 · 못 읽은 쪽 ${bad}개 — ${ocrFailText(src)}. ‘못 읽은 쪽 다시 인식’을 눌러 보세요.` : "글자 인식 완료") +
+      (localN(src) ? ` · ${localN(src)}쪽은 Claude가 저작권 때문에 옮겨 적지 않아 브라우저로 인식했어요(흐린 글자는 틀릴 수 있어요).` : "");
     if (!state.playing) rebuild(); else state.rebuildLater = true;
     const status = $("ocr-status").textContent;
     checkScan();
