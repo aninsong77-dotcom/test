@@ -3476,16 +3476,22 @@ function ocrWrongLanguage(arr){
 // ---- 브라우저 안 글자 인식(Tesseract) ---------------------------------------
 // Claude가 저작권 때문에 쪽 전체를 옮겨 적지 않는 논문(유명한 학술지 논문 등)을 위한 대안.
 // 내 컴퓨터(브라우저) 안에서만 돌아서 Claude 사용량이 들지 않는다. 엔진과 영어 글자 데이터는
-// 이 앱과 같은 곳의 tess/ 폴더에 있다(처음 한 번 약 8MB를 받는다). 지금은 영어 논문만.
+// 이 앱과 같은 곳의 tess/ 폴더에 있다(처음 한 번 약 8MB를 받고, 그 뒤로는 브라우저 캐시에서 읽는다). 지금은 영어 논문만.
 let tessWorker = null;
 const tessBase = () => new URL("tess/", document.baseURI).href;
 function tess(){
   if (!tessWorker){
     tessWorker = (async () => {
       await loadScript(tessBase() + "tesseract.min.js");
-      const opt = {workerPath: tessBase() + "worker.min.js", corePath: tessBase(), langPath: tessBase(), gzip: false};
-      try { return await Tesseract.createWorker("eng", 1, {...opt, workerBlobURL: false}); }
-      catch { return await Tesseract.createWorker("eng", 1, opt); }
+      // 영어 글자 데이터는 압축본을 base64 글자로 바꿔 둔 .txt (아티팩트가 받아 주는 파일 종류라서). 엔진이 알아서 압축을 푼다.
+      const resp = await fetch(tessBase() + "eng.traineddata.gz.b64.txt");
+      if (!resp.ok) throw new Error(`영어 글자 데이터를 받지 못했어요 (${resp.status})`);
+      const bin = atob((await resp.text()).trim()), data = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) data[i] = bin.charCodeAt(i);
+      const langs = [{code: "eng", data}];
+      const opt = {workerPath: tessBase() + "worker.min.js", corePath: tessBase(), cacheMethod: "none"};
+      try { return await Tesseract.createWorker(langs, 1, {...opt, workerBlobURL: false}); }
+      catch { return await Tesseract.createWorker(langs, 1, opt); }
     })();
     tessWorker.catch(() => { tessWorker = null; });
   }
@@ -3591,7 +3597,8 @@ async function runOcr(){
   ocrAbort = new AbortController();
   const signal = ocrAbort.signal;
   src.ocrFailed ||= []; src.ocrWhy ||= {};
-  if (Object.values(src.ocrWhy).includes(OCR_WHY.copyright)) src.ocrLocal = true;
+  // 전에 저작권 때문에 거절당한 적이 있으면(이유 이름이 생기기 전 기록은 답 내용으로 확인) 바로 브라우저로 읽는다
+  if (Object.values(src.ocrWhy).includes(OCR_WHY.copyright) || Object.values(src.ocrRaw || {}).some(r => /저작권|copyright/i.test(r))) src.ocrLocal = true;
   // 할 쪽: 중간에 멈췄으면 그다음부터 + 못 읽은 쪽, 다 했고 못 읽은 쪽이 있으면 그 쪽만, 아니면 처음부터
   let pages;
   if (src.ocrParts?.length && (src.ocrNext || 1) <= src.pages){
