@@ -2518,7 +2518,8 @@ function applySaved(d){
     if (typeof ko !== "string") continue;
     state.translations.set(en, ko);
     if (why) state.fixed.set(en, why);
-    if (warn) state.warn.set(en, warn);
+    const m = missingNums(en, ko);   // 저장된 표시 대신 지금 기준으로 다시 확인
+    if (m.length) state.warn.set(en, m.join(", "));
   }
   state.trLoaded = state.translations.size;
   for (const t of Array.isArray(d.terms) ? d.terms : []) if (t?.en) state.terms.set(t.en.toLowerCase(), {en: t.en, ko: t.ko || ""});
@@ -2860,8 +2861,12 @@ function askTranslate(items, ctx){
     terms: Array.isArray(out?.terms) ? out.terms : [],
   }));
 }
-// 원문의 숫자가 번역에 다 있는지 (1,234와 1234는 같은 수로 본다)
-const numsOf = t => new Set((t.match(/\d+(?:[.,]\d+)*/g) || []).map(n => n.replace(/,(?=\d{3}(?!\d))/g, "")));
+// 원문의 숫자가 번역에 다 있는지. 같은 수로 보는 것: 1,234와 1234, .25와 0.25(APA식으로 앞의 0을 뺀 통계값).
+// 비교에서 빼는 것: 출처 표시([12], (Kim, 2020))와 단어 끝에 붙은 위첨자 참고문헌 번호(…parents.15, …growing12,13).
+// 이것들은 번역에서 빠지거나 자리가 바뀌는 게 정상이라, 세면 멀쩡한 번역에도 경고가 붙는다.
+const numText = t => String(t || "").replace(CITE_RE, " ").replace(/(?<=[A-Za-z][.,;:)”"’]?)\d{1,3}(?:\s?[,–-]\s?\d{1,3})*(?=[\s.,;:)]|$)/g, " ");
+const numNorm = n => { n = n.replace(/,(?=\d{3}(?!\d))/g, ""); if (n[0] === ".") n = "0" + n; return n.replace(/^0+(?=\d)/, ""); };
+const numsOf = t => new Set((numText(t).match(/\d*\.?\d+(?:[.,]\d+)*/g) || []).map(numNorm));
 const missingNums = (en, ko) => { const k = numsOf(ko); return [...numsOf(en)].filter(n => !k.has(n)); };
 async function reviewChunk(items){
   const pairs = items.map((s, k) => ({n: k + 1, en: s.text, ko: state.translations.get(s.text)}));
@@ -3218,7 +3223,8 @@ function loadTr(){
         if (state.translations.has(en) || typeof ko !== "string") continue;
         state.translations.set(en, ko);
         if (why) state.fixed.set(en, why);
-        if (warn) state.warn.set(en, warn);
+        const m = missingNums(en, ko);   // 저장된 표시 대신 지금 기준으로 다시 확인
+        if (m.length) state.warn.set(en, m.join(", "));
       }
       for (const t of Array.isArray(d?.terms) ? d.terms : []) if ((t?.en || t?.ko) && !state.terms.has(termKey(t))) state.terms.set(termKey(t), {en: t.en || "", ko: t.ko || "", gloss: t.gloss || ""});
       if (d?.koScanned) state.koScanned = Math.max(state.koScanned, d.koScanned);
