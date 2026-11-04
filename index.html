@@ -153,6 +153,20 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
 .wide .wrap,.wide .toolbar,.wide .player-in{max-width:1240px}
 .doc.side{gap:16px}
 .cols-head{display:none}
+/* 원본 쪽 그대로 · 번역 나란히 */
+.doc.pages{gap:0}
+.pgrow{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;padding:16px 0;border-top:1px solid var(--line)}
+.pgrow-head{font-family:"IBM Plex Mono",monospace;font-size:.75rem;color:var(--muted)}
+.pg-img{display:grid;place-items:center;width:100%;aspect-ratio:1 / 1.414;padding:0;border:1px solid var(--line);border-radius:4px;background:#fff;color:#5d6a78;font:inherit;font-size:.85rem;cursor:zoom-in;overflow:hidden;align-self:start}
+.pg-img.loaded{aspect-ratio:auto;display:block}
+.pg-img img{display:block;width:100%;height:auto}
+.pg-ko p,.pg-ko div{margin:0 0 .9em}
+.pg-ko .h{font-weight:700}
+.pg-empty{color:var(--muted);font-size:.85rem}
+@media (min-width:900px){
+  .pgrow{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px 32px}
+  .pgrow-head{grid-column:1 / -1}
+}
 .row{display:grid;grid-template-columns:minmax(0,1fr);gap:6px}
 .row>.ko{order:-1}
 .row>.src{color:var(--muted);font-size:.9rem;line-height:1.7;padding-left:12px;border-left:2px solid var(--line)}
@@ -454,6 +468,7 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
         <button class="opt" id="mode-orig" aria-pressed="true">원문만</button>
         <button class="opt" id="mode-side" aria-pressed="false">원문 · 번역 나란히</button>
         <button class="opt" id="mode-bi" aria-pressed="false">문장마다 번역 아래에</button>
+        <button class="opt" id="mode-page" aria-pressed="false">원본 쪽 그대로 · 번역 나란히</button>
         <p class="off-note" id="mode-off" hidden></p>
       </div>
     </details>
@@ -616,6 +631,7 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
         <li>영어 논문을 열면 처음부터 원문과 번역이 두 칸으로 나란히 나오고, 번역이 바로 시작돼요. 위쪽 <b>번역</b> 메뉴에서 보기를 바꿀 수 있고, 고른 보기는 다음에도 그대로예요.</li>
         <li><b>원문 · 번역 나란히</b>: PC는 왼쪽 원문, 오른쪽 번역이에요. 휴대폰은 번역 아래에 원문이 붙어요.</li>
         <li><b>문장마다 번역 아래에</b>: 영어 한 문장 바로 아래에 번역 한 문장이 나와요.</li>
+        <li><b>원본 쪽 그대로 · 번역 나란히</b>: 왼쪽에 PDF·사진 원본 쪽을 그림 그대로, 오른쪽에 그 쪽 번역을 놓아요. 쪽 구분과 원래 배치를 보면서 읽을 수 있고, 원본 쪽을 누르면 크게 보여요. 쪽을 넘어가는 문단은 시작한 쪽에 붙어요. 원본 파일을 열었을 때만 돼요.</li>
       </ol>
       <ul>
         <li>번역 문장에 마우스를 올리면 짝이 되는 원문 문장이 같이 노랗게 표시돼요. 휴대폰은 문장을 누르면 돼요.</li>
@@ -1368,7 +1384,7 @@ const state = {
   blocks: [], sentences: [],
   idx: 0, playing: false, paused: false, phase: "src",
   stripCites: true,
-  view: "orig",          // orig: 원문만 | side: 원문 · 번역 나란히 | bi: 문장마다 번역 아래에
+  view: "orig",          // orig: 원문만 | side: 원문 · 번역 나란히 | bi: 문장마다 번역 아래에 | page: 원본 쪽 그림 · 번역
   // 번역은 원문 문장 글자를 열쇠로 둔다 (설정을 바꿔 문장 번호가 달라져도 그대로 쓴다)
   translations: new Map(), fixed: new Map(), warn: new Map(),
   inflight: new Set(), failed: new Set(), waiters: new Map(),
@@ -1557,7 +1573,7 @@ function rebuild(){
   loadMarks();
   render();
   if (tv) translateAll();
-  if (state.lang === "ko" && (state.koStarted || state.view === "side")) findKoTerms();
+  if (state.lang === "ko" && (state.koStarted || state.view === "side" || state.view === "page")) findKoTerms();
 }
 ["o-front", "o-small", "o-caption", "o-refs"].forEach(id => $(id).addEventListener("change", () => { updateSummaries(); rebuild(); }));
 $("o-show").addEventListener("change", () => { stop(); render(); });
@@ -1644,7 +1660,7 @@ function figureEl(b, side){
   return fig;
 }
 // 한국어 논문 두 칸: 왼쪽 본문, 오른쪽 그 문단에 나온 학술 용어와 한 줄 풀이
-const koSide = () => !trView() && state.lang === "ko" && state.view === "side" && state.sentences.length > 0;
+const koSide = () => !trView() && state.lang === "ko" && (state.view === "side" || state.view === "page") && state.sentences.length > 0;
 function koRowEl(b, cls){
   const row = make("div", "row " + cls);
   row._b = b;
@@ -1682,26 +1698,78 @@ function refreshKoNotes(){
       : "위쪽 ‘학술 용어 찾기’를 누르면 오른쪽 칸에 문단마다 학술 용어와 쉬운 풀이가 붙어요.";
   }
 }
+// ---- 원본 쪽 그대로 보기: 왼쪽에 PDF·사진 쪽을 그림 그대로, 오른쪽에 그 쪽에서 시작하는 문단의 번역 ----
+// 번역은 이미 받아 둔 것을 쪽별로 다시 놓을 뿐이라 Claude 사용량이 따로 들지 않는다.
+// 쪽을 넘어가는 문단은 시작한 쪽에 놓는다.
+const pageMode = () => trView() && state.view === "page" && hasPages() && state.source?.pages > 0;
+let pageImgUrls = [];
+function revokePageImgs(){ pageImgUrls.forEach(u => URL.revokeObjectURL(u)); pageImgUrls = []; }
+const pageObs = "IntersectionObserver" in window
+  ? new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting){ pageObs.unobserve(e.target); drawPageImg(e.target); } }), {rootMargin: "900px 0px"})
+  : null;
+async function drawPageImg(el){
+  try {
+    const c = await pageCanvas(el._page, 1500);
+    const url = await new Promise((r, j) => c.toBlob(b => b ? r(URL.createObjectURL(b)) : j(), "image/jpeg", 0.88));
+    if (!el.isConnected){ URL.revokeObjectURL(url); return; }
+    pageImgUrls.push(url);
+    const im = new Image(); im.src = url; im.alt = `${el._page}쪽 원본`;
+    el.replaceChildren(im); el.classList.add("loaded");
+  } catch { el.textContent = "이 쪽을 그리지 못했어요. 눌러서 크게 보기"; }
+}
+function renderPages(doc){
+  const src = state.source, byPage = new Map();
+  for (const b of state.blocks){
+    if (!b.count || (b.kind === "skip" && !b.aside)) continue;
+    const p = Math.min(Math.max(b.page || 1, 1), src.pages);
+    (byPage.get(p) || byPage.set(p, []).get(p)).push(b);
+  }
+  for (let p = 1; p <= src.pages; p++){
+    const row = make("section", "pgrow");
+    row.setAttribute("aria-label", `${p}쪽`);
+    const head = make("div", "pgrow-head", `p. ${p}`);
+    if (src.ocrBy?.[p] === "local") head.append(make("span", "pg-local", "브라우저로 인식"));
+    const img = make("button", "pg-img", "쪽을 불러오는 중…");
+    img.type = "button"; img._page = p;
+    img.setAttribute("aria-label", `${p}쪽 원본 크게 보기`);
+    img.addEventListener("click", () => openPage(p));
+    if (pageObs) pageObs.observe(img); else drawPageImg(img);
+    const ko = make("div", "pg-ko");
+    ko.lang = "ko";
+    for (const b of byPage.get(p) || []){
+      const el = make(b.kind === "heading" ? "div" : "p", b.kind === "heading" ? "h" : b.aside === "caption" ? "cap" : b.aside === "note" ? "note" : "");
+      if (b.aside === "note") el.append(make("span", "tag", ASIDE_TAG.note));
+      for (let k = 0; k < b.count; k++) el.append(koEl(b.first + k), " ");
+      ko.append(el);
+    }
+    if (!ko.children.length) ko.append(make("p", "pg-empty", "이 쪽에서 시작하는 본문이 없어요."));
+    row.append(head, img, ko);
+    doc.appendChild(row);
+  }
+}
 function render(){
   const doc = $("doc");
   doc.innerHTML = "";
   hoverI = null; pinI = null;
-  const tv = trView(), side = tv && state.view === "side", kside = koSide();
-  document.body.classList.toggle("wide", side || kside);
+  const tv = trView(), pmode = pageMode(), side = tv && (state.view === "side" || state.view === "page") && !pmode, kside = koSide();
+  revokePageImgs();
+  document.body.classList.toggle("wide", side || kside || pmode);
   doc.classList.toggle("strip", state.stripCites);
   doc.classList.toggle("tview", tv);
-  doc.classList.toggle("side", side || kside);
+  doc.classList.toggle("side", side || kside || pmode);
+  doc.classList.toggle("pages", pmode);
   doc.classList.toggle("kos", kside);
   doc.classList.toggle("no-src", side && !$("o-src").checked);
   doc.classList.toggle("hide-skips", !$("o-show").checked);
-  if (side || kside){
+  if (side || kside || pmode){
     const hd = make("div", "cols-head");
-    hd.append(make("span", "", kside ? "본문" : "원문"), make("span", "", kside ? "용어 풀이" : "한국어 번역"));
+    hd.append(make("span", "", kside ? "본문" : pmode ? "원본 쪽" : "원문"), make("span", "", kside ? "용어 풀이" : "한국어 번역"));
     doc.appendChild(hd);
     if (kside){ const hint = make("p", "kn-hint"); hint.id = "kn-hint"; doc.appendChild(hint); }
   }
   let lastPage = null, seenTitle = false;
-  for (const b of state.blocks){
+  if (pmode) renderPages(doc);
+  else for (const b of state.blocks){
     if (b.page && b.page !== lastPage && (b.kind !== "skip" || b.aside || $("o-show").checked)){
       if (lastPage !== null){
         const pg = document.createElement("span"); pg.className = "pg"; pg.textContent = `p. ${b.page}`;
@@ -2779,7 +2847,7 @@ $("jump").addEventListener("change", e => {
   stop();
   state.idx = v;
   if (wasPlaying) play();
-  else { mark(); (document.querySelector(".s.start") || document.querySelector(`#doc .s[data-i="${v}"]`))?.scrollIntoView({block: "center", behavior: "smooth"}); }
+  else { mark(); (document.querySelector(".s.start") || document.querySelector(`#doc .s[data-i="${v}"]`) || document.querySelector(`#doc .t[data-t="${v}"]`))?.scrollIntoView({block: "center", behavior: "smooth"}); }
   if (raw[0] === "b") syncJump();
 });
 
@@ -2807,7 +2875,7 @@ function updateSummaries(){
   $("tip-file").dataset.tip = (state.fileName ? `지금 파일: ${state.fileName}\n${state.statsText || ""}\n\n` : "") +
     "PDF · Word(DOCX) · 한글(HWP, HWPX) · 엑셀(XLSX, XLS, CSV) · TXT · 사진(JPG, PNG, 여러 장 가능) 파일을 엽니다. 화면에 끌어다 놓아도 됩니다.\n복사한 글은 ‘글 붙여넣기’나 Ctrl+V로 넣을 수 있습니다.";
   $("sum-cite").textContent = state.stripCites ? "빼고" : "다 읽기";
-  $("sum-mode").textContent = koSide() ? "나란히" : claudeState === "off" ? "안 됨" : trView() ? (state.view === "side" ? "나란히" : "문장마다") : "끔";
+  $("sum-mode").textContent = koSide() ? "나란히" : claudeState === "off" ? "안 됨" : trView() ? (pageMode() ? "쪽 그대로" : state.view === "bi" ? "문장마다" : "나란히") : "끔";
   $("sum-skip").textContent = ["o-front", "o-small", "o-caption", "o-refs"].filter(id => $(id).checked).length + "개";
 }
 // 드롭다운: 하나만 열고, 바깥을 누르거나 항목을 고르면 닫는다
@@ -2819,7 +2887,7 @@ document.querySelectorAll(".opt").forEach(b => b.addEventListener("click", () =>
 $("cite-strip").addEventListener("click", () => { state.stripCites = true; seg("cite-strip", "cite-keep", true); stop(); render(); });
 $("cite-keep").addEventListener("click", () => { state.stripCites = false; seg("cite-strip", "cite-keep", false); stop(); render(); });
 function setView(v){ state.view = v; savePref("view", v); updateModeUi(); rebuild(); }
-["orig", "side", "bi"].forEach(v => $("mode-" + v).addEventListener("click", () => setView(v)));
+["orig", "side", "bi", "page"].forEach(v => $("mode-" + v).addEventListener("click", () => setView(v)));
 function updateModeUi(){
   queueMicrotask(updateSummaries);
   const isEn = state.lang === "en";
@@ -2829,11 +2897,15 @@ function updateModeUi(){
   if (off) $("mode-off").innerHTML = offReason() + (EDITION === "web" ? ` <a href="${CLAUDE_URL}" target="_blank" rel="noopener">claude.ai 버전 열기</a>` : "");
   const can = isEn && (!!sampleFn || state.source?.type === "saved");
   $("mode-side").disabled = $("mode-bi").disabled = !can;
+  // 원본 쪽 보기는 PDF·사진 원본이 열려 있을 때만 (목록에서 원본 없이 다시 연 논문은 안 됨)
+  $("mode-page").disabled = !can || !hasPages();
+  $("mode-page").title = can && !hasPages() ? "원본 PDF나 사진 파일을 열었을 때만 쓸 수 있어요." : "";
   const isKo = state.lang === "ko" && state.sentences.length > 0;
   $("mode-side").textContent = isKo ? "본문 · 용어 풀이 나란히" : "원문 · 번역 나란히";
-  $("mode-bi").hidden = isKo;
+  $("mode-bi").hidden = $("mode-page").hidden = isKo;
   if (isKo){ $("mode-side").disabled = !sampleFn && !state.terms.size; }
-  ["orig", "side", "bi"].forEach(v => $("mode-" + v).setAttribute("aria-pressed", (can || (isKo && !$("mode-side").disabled) ? state.view : "orig") === v));
+  const shown = can || (isKo && !$("mode-side").disabled) ? (state.view === "page" && !pageMode() && can ? "side" : state.view) : "orig";
+  ["orig", "side", "bi", "page"].forEach(v => $("mode-" + v).setAttribute("aria-pressed", shown === v));
   $("voice-ko-wrap").hidden = !trView();
   $("tip-mode").dataset.tip = off ? "번역: " + offReason()
     : !sampleFn ? "번역 기능을 확인하는 중입니다."
@@ -3109,7 +3181,7 @@ function updateTrUi(){
     : (state.running ? "번역하는 중" : "번역 멈춤") + ` · ${done}/${n}문장` + (failed ? ` · 실패 ${failed}` : "") + (state.trStop ? ` · ${state.trStop}` : "")) + loaded;
   $("tr-toggle").hidden = done === n;
   $("tr-toggle").textContent = state.running ? "멈추기" : left ? "이어서 번역" : "실패한 문장 다시 번역";
-  $("o-src-wrap").hidden = state.view !== "side";
+  $("o-src-wrap").hidden = state.view !== "side" && !(state.view === "page" && !pageMode());
   const nHl = S.filter(s => marked(s.text)).length;
   $("hl-open").hidden = !nHl; $("hl-count").textContent = nHl;
   const legend = [fixed && `점선 밑줄 ${fixed}문장: 검수에서 고친 번역`, warn && `물결 밑줄 ${warn}문장: 원문의 숫자가 번역에 없어요. 원문과 대조해 보세요.`].filter(Boolean);
@@ -3964,7 +4036,7 @@ if (!synth){
   window.addEventListener("pagehide", () => synth.cancel());
 }
 // 기본은 원문 · 번역 나란히. 사용자가 마지막으로 고른 보기를 기억한다
-state.view = ["orig", "side", "bi"].includes(loadPref("view")) ? loadPref("view") : "side";
+state.view = ["orig", "side", "bi", "page"].includes(loadPref("view")) ? loadPref("view") : "side";
 if (loadPref("src") === false) $("o-src").checked = false;
 if (loadPref("terms") === false) $("o-terms").checked = false;
 updateModeUi();
