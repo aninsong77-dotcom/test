@@ -735,7 +735,7 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
       <summary>9. 저장과 알아 둘 점</summary>
       <ul>
         <li>번역, 글자 인식 결과, 형광펜, 단어장은 <b>지금 쓰는 기기의 이 브라우저에만</b> 저장돼요. 다른 기기에서는 보이지 않고, 브라우저 기록을 지우면 함께 사라져요.</li>
-        <li><b>번역 대기열</b>: <b>파일 열기</b>에서 논문 파일을 여러 개 한꺼번에 고르면 대기열에 들어가요. <b>모두 번역 시작</b>을 누르면 한 편씩 (스캔본은 글자 인식부터) 끝까지 번역하고 저장해요. 창을 켜 두어야 하고, 요청이 많거나 사용량 한도에 닿으면 멈춰요. <b>시작 예약</b>에 사용량이 다시 채워지는 시각을 넣어 두면 그때 알아서 이어서 해요. 끝난 논문은 <b>내 논문 목록</b>에 있어요.</li>
+        <li><b>번역 대기열</b>: <b>파일 열기</b>에서 논문 파일을 여러 개 한꺼번에 고르면 대기열에 들어가요. <b>모두 번역 시작</b>을 누르면 한 편씩 (스캔본은 글자 인식부터) 끝까지 번역하고 저장해요. 창을 켜 두어야 하고, 요청이 많거나 사용량 한도에 닿으면 멈춰요. <b>자동 이어서 시각</b>에 사용량이 다시 채워지는 시각을 넣고 <b>예약</b>을 눌러 두면, 한도에 걸려 멈췄을 때 그 시각에 알아서 이어서 해요. 끝난 논문은 <b>내 논문 목록</b>에 있어요.</li>
         <li><b>논문 파일은 저장되지 않아요.</b> 다시 볼 때 같은 PDF를 다시 열면 저장해 둔 번역이 바로 나와요.</li>
         <li>번역은 최근 8편, 글자 인식은 최근 6개 파일까지 남아요. 그보다 많아지면 오래된 것부터 지워져요.</li>
         <li><b>파일 → 내 논문 목록</b>에서 전에 열어 본 논문을 목록으로 보고 눌러서 바로 다시 볼 수 있어요. 원본 파일은 다시 고르지 않아도 돼요. 최근 40편까지 남고, 넘으면 오래된 것부터 지워져요. 목록에서 ‘빼기’로 직접 지울 수도 있어요.</li>
@@ -773,10 +773,10 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
   </div>
   <p class="hl-note" id="queue-note" aria-live="polite"></p>
   <div class="q-sched">
-    <label for="queue-time">시작 예약</label>
+    <label for="queue-time">자동 이어서 시각</label>
     <input type="time" id="queue-time">
-    <button class="btn ghost" id="queue-sched">이 시각에 시작</button>
-    <span class="q-sched-note">Claude 사용량이 다시 채워지는 시각에 맞춰 두면, 그때 알아서 시작해요. 이 창과 컴퓨터를 켜 두세요.</span>
+    <button class="btn ghost" id="queue-sched">예약</button>
+    <span class="q-sched-note">Claude 사용량이 다시 채워지는 시각(예: 3:10)을 넣어 두세요. 번역하다 사용량 한도에 걸려 멈추면 이 시각에 알아서 이어서 해요. 멈춰 있지 않으면 이 시각에 시작하고요. 하루 한 번, 같은 시각에 다시 확인해요. 이 창과 컴퓨터를 켜 두세요.</span>
   </div>
   <div class="hl-list" id="queue-list"></div>
   <input type="file" id="queue-file" multiple hidden accept=".pdf,.docx,.hwp,.hwpx,.txt,application/pdf,text/plain">
@@ -3473,7 +3473,7 @@ async function renderQueue(){
   const left = items.filter(x => x.status === "wait" || x.status === "run").length;
   $("queue-run").textContent = qRunning ? "멈추기" : qBusy ? "멈추는 중…" : items.some(x => x.status !== "wait") && left ? "이어서 번역" : "모두 번역 시작";
   $("queue-run").disabled = (!qRunning && (!left || !sampleFn)) || (qBusy && !qRunning);
-  $("queue-sched").textContent = qAt ? "예약 취소" : "이 시각에 시작";
+  $("queue-sched").textContent = qAt ? "예약 취소" : "예약";
   $("queue-sched").disabled = !qAt && (!left || !sampleFn);
   $("queue-clear").disabled = !items.some(x => !["wait", "run"].includes(x.status));
   $("queue-note").textContent = (!sampleFn ? "Claude에 로그인한 claude.ai 버전에서만 번역할 수 있어요. " : "") + (qMsg ||
@@ -3485,11 +3485,11 @@ async function renderQueueBar(){
   const doneN = items.length - left;
   $("queue-bar").hidden = !qRunning && !left;
   $("queue-msg").textContent = qRunning
-    ? `번역 대기열 진행 중 · ${items.length}편 중 ${doneN + 1}번째: ${qCurrent?.name || ""}`
-    : `번역 대기열에 ${left}편이 남아 있어요.` + (qAt ? ` ${hhmm(qAt)}에 시작할 예정이에요. 이 창과 컴퓨터를 켜 두세요.` : qMsg ? ` ${qMsg}` : "");
+    ? `번역 대기열 진행 중 · ${items.length}편 중 ${doneN + 1}번째: ${qCurrent?.name || ""}` + (qAt ? ` (한도에 걸리면 ${hhmm(qAt)}에 이어서)` : "")
+    : `번역 대기열에 ${left}편이 남아 있어요.` + (qMsg ? ` ${qMsg}` : "") + (qAt ? ` ${hhmm(qAt)}에 이어서 할게요. 이 창과 컴퓨터를 켜 두세요.` : "");
   $("queue-bar-run").textContent = qRunning ? "멈추기" : qBusy ? "멈추는 중…" : qAt ? "지금 시작" : "이어서 번역";
   $("queue-bar-run").disabled = (!qRunning && !sampleFn) || (qBusy && !qRunning);
-  $("queue-bar-cancel").hidden = !qAt || qRunning;
+  $("queue-bar-cancel").hidden = !qAt;
 }
 const needsOcr = () => {
   const src = state.source;
@@ -3529,7 +3529,6 @@ async function translateQueued(it){
 async function runQueue(){
   if (qRunning || qBusy || !sampleFn) return;   // 멈추는 중(앞 작업이 아직 정리 중)이면 새로 시작하지 않는다
   await BIG.ready;
-  cancelSchedule();
   qRunning = qBusy = true; qMsg = "";
   try { qWake = await navigator.wakeLock?.request("screen"); } catch {}   // 화면이 켜져 있는 동안 잠자기 막기 (되는 브라우저만)
   if ($("queue-dlg").open) $("queue-dlg").close();
@@ -3547,7 +3546,7 @@ async function runQueue(){
       if (res.stop){ it.status = "wait"; it.note = ""; await BIG.qPut(it); qMsg = res.stop; break; }
       it.status = res.status; it.note = res.note || ""; await BIG.qPut(it);
     }
-    if (qRunning && !qMsg) qMsg = "대기열을 모두 번역했어요. ‘파일 → 내 논문 목록’에서 볼 수 있어요.";
+    if (qRunning && !qMsg){ qMsg = "대기열을 모두 번역했어요. ‘파일 → 내 논문 목록’에서 볼 수 있어요."; cancelSchedule(); }
   } finally {
     qRunning = qBusy = false; qCurrent = null;
     qWake?.release?.().catch(() => {}); qWake = null;
@@ -3558,12 +3557,14 @@ async function runQueue(){
 function stopQueue(){
   if (!qRunning) return;
   qRunning = false; qMsg = "멈췄어요. ‘이어서 번역’을 누르면 이 논문부터 다시 해요.";
+  cancelSchedule();   // 사람이 멈췄으면 예약도 거둔다
   ocrAbort?.abort();
   if (state.running){ state.running = false; state.trGen++; updateTrUi(); }
   renderQueue(); renderQueueBar();
 }
-// 시작 예약: 사람이 정한 시각에 한 번 '이어서 번역'을 누른 것처럼 시작한다 (실패해도 스스로 다시 시도하지 않음).
-// 20초마다 시계를 보므로 컴퓨터가 잠들었다 깨어나도 시각이 지났으면 바로 시작한다. 창을 닫으면 예약도 사라진다.
+// 자동 이어서 시각: 사람이 정한 시각(사용량이 다시 채워지는 시각)이 되면 '이어서 번역'을 누른 것처럼 시작한다.
+// 번역 중 한도에 걸려 멈춰 있으면 그 시각에 이어서 하고, 다음 날 같은 시각으로 넘어간다 (하루 한 번만, 그 사이엔 다시 시도하지 않음).
+// 20초마다 시계를 보므로 컴퓨터가 잠들었다 깨어나도 시각이 지났으면 바로 시작한다. 창을 닫거나 사람이 멈추면 예약도 사라진다.
 const hhmm = t => new Date(t).toLocaleTimeString("ko-KR", {hour: "numeric", minute: "2-digit"});
 function scheduleQueue(){
   const v = $("queue-time").value;
@@ -3573,9 +3574,14 @@ function scheduleQueue(){
   if (+t <= Date.now()) t.setDate(t.getDate() + 1);
   qAt = +t; qMsg = "";
   clearInterval(qTimer);
-  qTimer = setInterval(() => { if (qAt && Date.now() >= qAt && !qRunning && !qBusy) runQueue(); }, 20000);
+  qTimer = setInterval(() => {
+    if (!qAt || Date.now() < qAt) return;
+    while (qAt <= Date.now()) qAt += 86400000;   // 다음 날 같은 시각
+    if (!qRunning && !qBusy) runQueue();
+    renderQueue(); renderQueueBar();
+  }, 20000);
   renderQueue(); renderQueueBar();
-  toast(`${hhmm(qAt)}에 번역 대기열을 시작할게요. 이 창과 컴퓨터를 켜 두세요.`, false, false);
+  toast(`${hhmm(qAt)}에 남은 논문을 이어서 번역할게요. 그 전에 한도에 걸려 멈춰도 그 시각에 다시 해요. 이 창과 컴퓨터를 켜 두세요.`, false, false);
 }
 function cancelSchedule(){ clearInterval(qTimer); qTimer = 0; qAt = 0; }
 $("queue-sched").addEventListener("click", () => { if (qAt){ cancelSchedule(); renderQueue(); renderQueueBar(); } else scheduleQueue(); });
