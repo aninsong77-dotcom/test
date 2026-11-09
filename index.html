@@ -3887,7 +3887,9 @@ async function explainFig(b, box, panel, btn, isTable){
     `"findings": ["핵심 결과 2~4개, 숫자 포함"], "claim": "본문의 주장과 이 그림·표가 어떻게 이어지는지 1~2문장", ` +
     `"caution": "해석할 때 주의할 점(오차 막대, 통계적 유의성, 표본, 축 범위 등) 1~2문장, 없으면 빈 문자열"}`;
   try {
-    const info = await sampleFn.json(prompt, {modelTier: "complex", images, signal, cache: {gcTime: 86400000}});
+    // 이미 해석을 받은 그림이면 '다시 받기'를 누른 것이라, 보관된 같은 답 대신 새로 묻는다
+    const again = !!figCache()[figKey(b)];
+    const info = await sampleFn.json(prompt, {modelTier: "complex", images, signal, cache: again ? false : {gcTime: 86400000}});
     if (signal.aborted) return;
     if (!info || typeof info.what !== "string") throw new Error("bad");
     const str = v => typeof v === "string" ? v.trim() : "";
@@ -4205,7 +4207,9 @@ async function localOcrResult(p){
 // 한 쪽 인식: 성공하면 {arr}, 실패하면 {why}(이유 코드). Claude를 못 쓰거나 요청이 많으면 그대로 던진다.
 // 모델은 기본(균형) 단계: 받아쓰기는 깊은 추론이 필요 없고, '가장 꼼꼼한' 단계는 쪽마다 오래 생각하다
 // 시간 한도에 걸려 끊기는 일이 많았다(느리고 못 읽은 쪽이 늘어난 원인).
-async function ocrOnePage(p, signal){
+// fresh: 사람이 '다시 인식'을 눌러 다시 시킨 쪽. 하루 보관해 둔 답(같은 질문이면 그대로 돌려줌)을 쓰지 않고 새로 묻는다.
+// 그러지 않으면 같은 날 다시 눌러도 앞서 받은 잘못된 답(요약, 끊긴 답 등)이 그대로 돌아온다.
+async function ocrOnePage(p, signal, fresh){
   const src = state.source;
   // 이 논문은 Claude가 이미 저작권 때문에 거절했으면 Claude에게 다시 보내지 않고(사용량만 듦) 바로 브라우저로 읽는다
   if (src?.ocrLocal && canLocalOcr()){
@@ -4213,7 +4217,7 @@ async function ocrOnePage(p, signal){
     if (loc.why !== "localFail") return loc;
     src.ocrLocal = false;   // 브라우저 인식기를 못 불러오면 Claude로 되돌아간다
   }
-  const out = await claudeOcrPage(p, signal);
+  const out = await claudeOcrPage(p, signal, fresh);
   if ((out.why === "copyright" || out.why === "wrongLang") && canLocalOcr()){
     src.ocrLocal = true;
     const loc = await localOcrResult(p);
@@ -4221,10 +4225,10 @@ async function ocrOnePage(p, signal){
   }
   return out;
 }
-async function claudeOcrPage(p, signal){
+async function claudeOcrPage(p, signal, fresh){
   const images = await ocrImages(p);
   let res;
-  try { res = await sampleFn(images.length > 1 ? OCR_PROMPT + OCR_SPLIT_NOTE : OCR_PROMPT, {images, signal, modelTier: "default", cache: {gcTime: 86400000}}); }
+  try { res = await sampleFn(images.length > 1 ? OCR_PROMPT + OCR_SPLIT_NOTE : OCR_PROMPT, {images, signal, modelTier: "default", cache: fresh ? false : {gcTime: 86400000}}); }
   catch (e){
     if (e?.code === "cancelled" || signal?.aborted || e?.code === "rate_limited" || OCR_FATAL.includes(e?.code)) throw e;
     return {why: OCR_WHY[e?.code] ? e.code : "bad", detail: e?.code, raw: String(e?.text || e?.message || "")};
@@ -4270,6 +4274,9 @@ async function runOcr(){
   if (Object.values(src.ocrWhy).includes(OCR_WHY.copyright) || Object.values(src.ocrRaw || {}).some(r => /저작권|copyright/i.test(r))) src.ocrLocal = true;
   // 할 쪽: 중간에 멈췄으면 그다음부터 + 못 읽은 쪽, 다 했고 못 읽은 쪽이 있으면 그 쪽만, 아니면 처음부터
   let pages;
+  // 다시 시키는 쪽(전에 못 읽은 쪽, 다 끝난 뒤 '처음부터 다시 인식')은 보관된 답을 쓰지 않고 새로 묻는다
+  const retry = new Set(src.ocrFailed);
+  if (src.ocrParts?.length && (src.ocrNext || 1) > src.pages && !src.ocrFailed.length) for (let k = 1; k <= src.pages; k++) retry.add(k);
   if (src.ocrParts?.length && (src.ocrNext || 1) <= src.pages){
     const have = new Set(src.ocrParts.map(x => x.page));
     pages = [...src.ocrFailed, ...Array.from({length: src.pages - src.ocrNext + 1}, (_, k) => src.ocrNext + k).filter(x => !have.has(x))];
@@ -4297,7 +4304,7 @@ async function runOcr(){
       const p = pages[cursor++];
       busy.add(p); show();
       let out;
-      try { out = await ocrOnePage(p, signal); }
+      try { out = await ocrOnePage(p, signal, retry.has(p)); }
       catch (e){
         busy.delete(p);
         if (e?.code === "cancelled" || signal.aborted) return;
@@ -4337,7 +4344,7 @@ async function reOcrOnePage(p, btn){
   const was = btn.textContent;
   btn.disabled = true; btn.textContent = "인식 중…";
   try {
-    const out = await ocrOnePage(p);
+    const out = await ocrOnePage(p, undefined, true);
     if (!out.arr){
       // 실패해도 이미 있던 그 쪽 글은 지우지 않는다. 이유만 남겨 둔다.
       toast(`${p}쪽을 다시 인식하지 못했어요 (${OCR_WHY[out.why] || out.detail || out.why}). 다시 눌러 주세요.`, false, false);
