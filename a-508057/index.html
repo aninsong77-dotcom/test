@@ -1,0 +1,748 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>A-508057</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#06050d">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2306050d'/%3E%3Cpath d='M17 36c-2-9 6-17 16-17 9 0 15 6 14 14-1 9-8 14-16 14-7 0-13-4-14-11z' fill='%238a7468'/%3E%3Ccircle cx='28' cy='31' r='3.2' fill='%235b4a52'/%3E%3Ccircle cx='38' cy='39' r='2.2' fill='%235b4a52'/%3E%3Ccircle cx='49' cy='15' r='2.6' fill='%23ffd7a1'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* 화면 전체가 우주. 글자와 버튼은 가장자리에 작은 관측 표시처럼 떠 있음 */
+:root{
+  --void:#06050d;
+  --ink:#ece6f7;
+  --muted:#9a92b4;
+  --star:#ffd7a1;
+  --star-soft:rgba(255,215,161,.14);
+  --glass:rgba(236,230,247,.06);
+  --line:rgba(236,230,247,.16);
+  --f-display:"Nanum Myeongjo","AppleMyungjo","Batang",serif;
+  --f-body:"IBM Plex Sans KR",system-ui,-apple-system,"Malgun Gothic",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{
+  margin:0;overflow:hidden;background:var(--void);color:var(--ink);
+  font-family:var(--f-body);font-size:14px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  -webkit-tap-highlight-color:transparent;
+  word-break:keep-all;
+  -webkit-user-select:none;user-select:none;
+}
+#world{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+
+.fade{transition:opacity .9s ease}
+.is-hidden{opacity:0;pointer-events:none}
+
+button{
+  font:500 13px/1 var(--f-body);color:var(--ink);
+  background:var(--glass);border:1px solid var(--line);border-radius:999px;
+  padding:10px 15px;cursor:pointer;white-space:nowrap;flex-shrink:0;
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+}
+button:hover{border-color:rgba(236,230,247,.32)}
+button:focus-visible{outline:2px solid var(--star);outline-offset:2px}
+
+.hud{
+  position:fixed;left:0;right:0;top:0;z-index:5;
+  padding-top:calc(env(safe-area-inset-top,0px) + 14px);
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
+  pointer-events:none;
+}
+.hud > *{pointer-events:auto}
+.plate{display:grid;gap:5px;min-width:0}
+.plate .id{font:500 15px/1 var(--f-mono);letter-spacing:.2em}
+.plate .sub{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.plate .hint{font-size:12px;color:var(--muted);opacity:.8;max-width:30em;line-height:1.5}
+
+.star-btn{
+  position:fixed;z-index:5;
+  right:max(16px,calc(env(safe-area-inset-right,0px) + 16px));
+  bottom:calc(env(safe-area-inset-bottom,0px) + 22px);
+  padding:13px 18px;border-color:rgba(255,215,161,.45);background:var(--star-soft);color:var(--star);
+}
+
+.stick{
+  display:none;position:fixed;z-index:5;
+  left:max(20px,calc(env(safe-area-inset-left,0px) + 20px));
+  bottom:calc(env(safe-area-inset-bottom,0px) + 20px);
+  width:116px;height:116px;border-radius:50%;
+  border:1px solid var(--line);background:var(--glass);touch-action:none;
+}
+.stick .knob{
+  position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;
+  border-radius:50%;background:rgba(255,215,161,.32);border:1px solid rgba(255,215,161,.55);
+}
+@media (pointer:coarse){.stick{display:block}}
+
+.toast{
+  position:fixed;z-index:5;left:50%;transform:translateX(-50%);
+  bottom:calc(env(safe-area-inset-bottom,0px) + 150px);
+  font-size:13px;color:var(--ink);background:var(--glass);border:1px solid var(--line);
+  border-radius:999px;padding:9px 16px;white-space:nowrap;
+}
+
+.intro{position:fixed;inset:0;z-index:6;display:grid;place-items:center;pointer-events:none;text-align:center}
+.intro p{
+  margin:0;padding:0 16px;font:400 clamp(19px,4.6vw,28px)/1.5 var(--f-display);
+  letter-spacing:.03em;color:var(--ink);text-wrap:balance;transition:opacity .7s ease;
+}
+.intro .skip{
+  position:fixed;left:50%;transform:translateX(-50%);
+  bottom:calc(env(safe-area-inset-bottom,0px) + 26px);pointer-events:auto;color:var(--muted);
+}
+
+.title-card{position:fixed;inset:0;z-index:6;display:grid;place-content:center;gap:12px;text-align:center;pointer-events:none}
+.title-card .t-label{font:400 15px/1 var(--f-display);color:var(--muted);letter-spacing:.4em;padding-left:.4em}
+.title-card .t-id{font:500 clamp(34px,9vw,66px)/1 var(--f-mono);letter-spacing:.22em;padding-left:.22em;color:var(--ink)}
+
+.notice{position:fixed;inset:0;z-index:7;display:grid;place-items:center;text-align:center;padding:0 24px;color:var(--muted);line-height:1.7}
+
+@media (prefers-reduced-motion:reduce){.fade,.intro p{transition:none}}
+</style>
+</head>
+<body>
+<canvas id="world" aria-label="소행성 A-508057이 떠 있는 우주. 빛 한 점이 되어 소행성 위를 걸을 수 있습니다." tabindex="0"></canvas>
+
+<header class="hud fade is-hidden" id="hud">
+  <div class="plate">
+    <div class="id">A-508057</div>
+    <div class="sub"><span id="age">탄생 1일째</span> · <span id="found">빛나는 돌 0 / 9</span> · <span id="starCount">띄운 별 0개</span></div>
+    <div class="hint" id="hint"></div>
+  </div>
+  <button type="button" id="replay">태초부터 다시</button>
+</header>
+
+<div class="stick fade is-hidden" id="stick" aria-hidden="true"><div class="knob" id="knob"></div></div>
+<button type="button" class="star-btn fade is-hidden" id="makeStar">별 띄우기</button>
+<div class="toast fade is-hidden" id="toast" role="status"></div>
+
+<div class="intro fade" id="intro">
+  <p id="introLine" style="opacity:0"></p>
+  <button type="button" class="skip" id="skip">건너뛰기</button>
+</div>
+
+<div class="title-card fade is-hidden" id="titleCard">
+  <div class="t-label">소행성</div>
+  <div class="t-id">A-508057</div>
+</div>
+
+<div class="notice" id="notice" hidden></div>
+
+<script>
+// 3D 도구를 불러오지 못했을 때 안내
+setTimeout(function(){
+  if(!window.__a508ok){
+    var n=document.getElementById('notice');
+    n.textContent='3D 화면을 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요.';
+    n.hidden=false;
+  }
+},8000);
+</script>
+
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+const $ = id => document.getElementById(id);
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const coarse = matchMedia('(pointer: coarse)').matches;
+
+/* ---------- 렌더러 ---------- */
+const canvas = $('world');
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+} catch (e) {
+  const n = $('notice');
+  n.textContent = '이 기기나 브라우저에서는 3D 화면을 그릴 수 없어요. 크롬, 엣지, 사파리 최신 버전에서 열어 주세요.';
+  n.hidden = false;
+  window.__a508ok = true;
+  throw e;
+}
+window.__a508ok = true;
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setClearColor('#06050d');
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 3000);
+
+function resize() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resize);
+resize();
+camera.position.set(0, 7, 40);
+
+/* ---------- 늘 같은 모양이 나오도록 소행성 번호를 씨앗으로 쓰는 난수 ---------- */
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+const rand = mulberry32(508057);
+const randDir = () => new THREE.Vector3(rand() * 2 - 1, rand() * 2 - 1, rand() * 2 - 1).normalize();
+
+/* ---------- 울퉁불퉁한 표면을 만드는 노이즈 ---------- */
+const PERM = new Uint8Array(512);
+{
+  const p = [...Array(256).keys()];
+  for (let i = 255; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [p[i], p[j]] = [p[j], p[i]]; }
+  for (let i = 0; i < 512; i++) PERM[i] = p[i & 255];
+}
+const VAL = new Float32Array(256);
+for (let i = 0; i < 256; i++) VAL[i] = rand() * 2 - 1;
+const lat = (x, y, z) => VAL[PERM[PERM[PERM[x & 255] + (y & 255)] + (z & 255)]];
+const smooth = t => t * t * (3 - 2 * t);
+const mix = (a, b, t) => a + (b - a) * t;
+function vnoise(x, y, z) {
+  const xi = Math.floor(x), yi = Math.floor(y), zi = Math.floor(z);
+  const u = smooth(x - xi), v = smooth(y - yi), w = smooth(z - zi);
+  return mix(
+    mix(mix(lat(xi, yi, zi), lat(xi + 1, yi, zi), u), mix(lat(xi, yi + 1, zi), lat(xi + 1, yi + 1, zi), u), v),
+    mix(mix(lat(xi, yi, zi + 1), lat(xi + 1, yi, zi + 1), u), mix(lat(xi, yi + 1, zi + 1), lat(xi + 1, yi + 1, zi + 1), u), v),
+    w);
+}
+function fbm(x, y, z) {
+  let s = 0, a = 0.5, f = 1;
+  for (let i = 0; i < 4; i++) { s += a * vnoise(x * f, y * f, z * f); f *= 2.03; a *= 0.5; }
+  return s;
+}
+
+/* ---------- 소행성 모양 ---------- */
+const R = 10;
+const craters = [];
+for (let i = 0; i < 14; i++) craters.push({ c: randDir(), r: 0.16 + rand() * 0.3, d: 0.04 + rand() * 0.06 });
+
+function heightAt(d) {
+  let h = 0.16 * fbm(d.x * 1.5 + 3, d.y * 1.5, d.z * 1.5) + 0.05 * fbm(d.x * 5, d.y * 5, d.z * 5);
+  for (const k of craters) {
+    const t = Math.acos(Math.min(1, Math.max(-1, d.dot(k.c)))) / k.r;
+    if (t < 1) h -= k.d * (1 - t * t);
+    else if (t < 1.35) h += k.d * 0.35 * Math.sin((t - 1) / 0.35 * Math.PI);
+  }
+  return h;
+}
+const stretchAt = d => 1 + 0.18 * d.x * d.x - 0.06 * d.y * d.y;
+const surfaceR = d => R * stretchAt(d) * (1 + heightAt(d));
+
+const rockGeo = new THREE.IcosahedronGeometry(1, coarse ? 20 : 28);
+{
+  const pos = rockGeo.attributes.position;
+  const col = new Float32Array(pos.count * 3);
+  const v = new THREE.Vector3(), c = new THREE.Color();
+  const low = new THREE.Color('#2e2538'), mid = new THREE.Color('#76626b'), high = new THREE.Color('#cdb69c');
+  for (let i = 0; i < pos.count; i++) {
+    v.fromBufferAttribute(pos, i).normalize();
+    const h = heightAt(v);
+    const r = R * stretchAt(v) * (1 + h);
+    pos.setXYZ(i, v.x * r, v.y * r, v.z * r);
+    const t = Math.min(1, Math.max(0, (h + 0.1) / 0.28)) + 0.08 * vnoise(v.x * 18, v.y * 18, v.z * 18);
+    if (t < 0.5) c.lerpColors(low, mid, Math.max(0, t) / 0.5); else c.lerpColors(mid, high, Math.min(1, (t - 0.5) / 0.5));
+    col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
+  }
+  rockGeo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  rockGeo.computeVertexNormals();
+}
+const rockMat = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.95, metalness: 0, transparent: true, opacity: 0 });
+const rock = new THREE.Mesh(rockGeo, rockMat);
+rock.visible = false;
+scene.add(rock);
+
+/* ---------- 빛 ---------- */
+const sunDir = new THREE.Vector3(-0.6, 0.55, 0.58).normalize();
+scene.add(new THREE.AmbientLight('#5a4a8a', 0.5));
+const sun = new THREE.DirectionalLight('#ffd9b0', 2.4);
+sun.position.copy(sunDir).multiplyScalar(50);
+scene.add(sun);
+const rim = new THREE.DirectionalLight('#6f5cff', 0.7);
+rim.position.copy(sunDir).multiplyScalar(-50);
+scene.add(rim);
+
+/* ---------- 빛 번짐 그림 ---------- */
+function radialTexture(stops, size = 128) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const g = c.getContext('2d');
+  const gr = g.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  stops.forEach(([o, col]) => gr.addColorStop(o, col));
+  g.fillStyle = gr;
+  g.fillRect(0, 0, size, size);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+const dotTex = radialTexture([[0, 'rgba(255,255,255,1)'], [0.25, 'rgba(255,255,255,.85)'], [0.6, 'rgba(255,255,255,.12)'], [1, 'rgba(255,255,255,0)']], 64);
+const glowTex = radialTexture([[0, 'rgba(255,255,255,1)'], [0.1, 'rgba(255,255,255,.7)'], [0.35, 'rgba(255,255,255,.16)'], [1, 'rgba(255,255,255,0)']]);
+const glowMat = (color, opacity = 1) => new THREE.SpriteMaterial({ map: glowTex, color, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false });
+
+/* ---------- 별 바다 ---------- */
+const skyMats = [];
+function starLayer(n, rMin, rMax, size) {
+  const g = new THREE.BufferGeometry();
+  const p = new Float32Array(n * 3), c = new Float32Array(n * 3);
+  const tints = ['#ffffff', '#ffe9c9', '#cfd8ff', '#ffd7a1', '#e4d4ff'].map(h => new THREE.Color(h));
+  for (let i = 0; i < n; i++) {
+    const d = randDir(), r = rMin + rand() * (rMax - rMin);
+    p.set([d.x * r, d.y * r, d.z * r], i * 3);
+    const t = tints[Math.floor(rand() * tints.length)];
+    const b = 0.45 + rand() * 0.55;
+    c.set([t.r * b, t.g * b, t.b * b], i * 3);
+  }
+  g.setAttribute('position', new THREE.BufferAttribute(p, 3));
+  g.setAttribute('color', new THREE.BufferAttribute(c, 3));
+  const m = new THREE.PointsMaterial({ size, map: dotTex, vertexColors: true, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+  skyMats.push(m);
+  scene.add(new THREE.Points(g, m));
+}
+starLayer(coarse ? 2200 : 3600, 600, 950, 2.4);
+starLayer(260, 500, 700, 6);
+
+/* 성운 */
+function nebulaTexture(hue) {
+  const s = 256, c = document.createElement('canvas');
+  c.width = c.height = s;
+  const g = c.getContext('2d');
+  for (let i = 0; i < 7; i++) {
+    const x = s * (0.3 + rand() * 0.4), y = s * (0.3 + rand() * 0.4), r = s * (0.15 + rand() * 0.3);
+    const gr = g.createRadialGradient(x, y, 0, x, y, r);
+    const l = 55 + rand() * 15, h = hue + (rand() - 0.5) * 40;
+    gr.addColorStop(0, `hsla(${h},70%,${l}%,.35)`);
+    gr.addColorStop(1, `hsla(${h},70%,${l}%,0)`);
+    g.fillStyle = gr;
+    g.fillRect(0, 0, s, s);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+[[262, 1], [292, 0.8], [190, 0.6], [330, 0.55], [250, 0.7]].forEach(([hue, o]) => {
+  const m = new THREE.SpriteMaterial({ map: nebulaTexture(hue), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+  m.userData.full = 0.55 * o;
+  skyMats.push(m);
+  const sp = new THREE.Sprite(m);
+  sp.position.copy(randDir()).multiplyScalar(850);
+  sp.scale.setScalar(520 + rand() * 280);
+  scene.add(sp);
+});
+/* 멀리 있는 해 */
+{
+  const m = glowMat('#ffcf96', 0);
+  m.userData.full = 0.95;
+  skyMats.push(m);
+  const s = new THREE.Sprite(m);
+  s.position.copy(sunDir).multiplyScalar(900);
+  s.scale.setScalar(150);
+  scene.add(s);
+}
+function setSkyOpacity(k) {
+  for (const m of skyMats) m.opacity = (m.userData.full ?? 1) * k;
+}
+
+/* ---------- 빛나는 돌 ---------- */
+const crystals = [];
+{
+  const colors = ['#8fe3ff', '#b79cff', '#8fe3ff', '#b79cff', '#ffd7a1', '#8fe3ff', '#b79cff', '#8fe3ff', '#b79cff'];
+  const geo = new THREE.OctahedronGeometry(0.5, 0);
+  geo.scale(0.6, 1.9, 0.6);
+  const Y = new THREE.Vector3(0, 1, 0);
+  let tries = 0;
+  while (crystals.length < 9 && tries++ < 500) {
+    const d = randDir();
+    if (d.y > 0.82) continue; // 처음 서 있는 자리는 비워 둠
+    if (crystals.some(c => c.dir.angleTo(d) < 0.55)) continue;
+    const color = colors[crystals.length];
+    const mat = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.5, roughness: 0.3, metalness: 0.1, flatShading: true });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.quaternion.setFromUnitVectors(Y, d);
+    mesh.position.copy(d).multiplyScalar(surfaceR(d) + 0.55);
+    const glow = new THREE.Sprite(glowMat(color, 0.25));
+    glow.position.copy(mesh.position);
+    glow.scale.setScalar(3.2);
+    mesh.visible = glow.visible = false;
+    scene.add(mesh, glow);
+    crystals.push({ dir: d, mesh, glow, found: false, lit: 0 });
+  }
+}
+
+/* ---------- 나 (빛 한 점) ---------- */
+const orb = new THREE.Group();
+orb.add(new THREE.Mesh(new THREE.SphereGeometry(0.24, 24, 16), new THREE.MeshBasicMaterial({ color: '#ffe2b0' })));
+const halo = new THREE.Sprite(glowMat('#ffcf8a', 0.5));
+halo.scale.setScalar(2.6);
+orb.add(halo);
+orb.add(new THREE.PointLight('#ffc98a', 18, 14, 2));
+orb.visible = false;
+scene.add(orb);
+
+/* 지나간 자리에 남는 빛 */
+const trail = [];
+for (let i = 0; i < 36; i++) {
+  const s = new THREE.Sprite(glowMat('#ffd7a1', 0));
+  s.visible = false;
+  scene.add(s);
+  trail.push({ s, life: 0 });
+}
+let trailIdx = 0, trailTimer = 0;
+
+/* ---------- 내가 띄운 별 (이 기기에만 저장) ---------- */
+const KEY = 'a508057:stars';
+let myStars = [];
+try {
+  const a = JSON.parse(localStorage.getItem(KEY) || '[]');
+  if (Array.isArray(a)) myStars = a.filter(s => Array.isArray(s.d) && s.d.length === 3);
+} catch (e) { myStars = []; }
+const saveStars = () => { try { localStorage.setItem(KEY, JSON.stringify(myStars.slice(-300))); } catch (e) {} };
+
+const starTints = ['#ffe2b8', '#ffd7a1', '#d9e1ff', '#f2dcff', '#bff0ff'];
+const starSprites = [];
+function addStarSprite(st, born) {
+  const color = starTints[st.c % starTints.length];
+  const s = new THREE.Sprite(glowMat(color, 1));
+  s.position.set(st.d[0], st.d[1], st.d[2]).multiplyScalar(700);
+  scene.add(s);
+  const item = { s, base: 40 + (st.c % 3) * 10, phase: Math.random() * 6.28, age: born ? 0 : 99, flash: null };
+  if (born) {
+    const f = new THREE.Sprite(glowMat(color, 0.9));
+    f.position.copy(s.position);
+    scene.add(f);
+    item.flash = f;
+  }
+  s.visible = !inIntro;
+  starSprites.push(item);
+}
+function updateStarCount() { $('starCount').textContent = `띄운 별 ${myStars.length}개`; }
+function birthStar(dir) {
+  const st = { d: [+dir.x.toFixed(4), +dir.y.toFixed(4), +dir.z.toFixed(4)], c: Math.floor(Math.random() * 15) };
+  myStars.push(st);
+  if (myStars.length > 300) {
+    myStars.shift();
+    const old = starSprites.shift();
+    scene.remove(old.s);
+  }
+  saveStars();
+  addStarSprite(st, true);
+  updateStarCount();
+}
+
+/* ---------- 태초 장면: 빛 한 점 → 흩어짐 → 모여서 소행성 ---------- */
+const seed = new THREE.Sprite(glowMat('#fff6e6', 0));
+scene.add(seed);
+
+const N = coarse ? 1500 : 2600;
+const pGeo = new THREE.BufferGeometry();
+const pPos = new Float32Array(N * 3), pBurst = new Float32Array(N * 3), pTarget = new Float32Array(N * 3);
+for (let i = 0; i < N; i++) {
+  const b = randDir().multiplyScalar(22 + rand() * 60);
+  const d = randDir(), t = d.clone().multiplyScalar(surfaceR(d));
+  pBurst.set([b.x, b.y, b.z], i * 3);
+  pTarget.set([t.x, t.y, t.z], i * 3);
+}
+pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+const pMat = new THREE.PointsMaterial({ size: 0.6, map: dotTex, color: '#ffffff', transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
+const particles = new THREE.Points(pGeo, pMat);
+particles.visible = false;
+scene.add(particles);
+
+const WHITE = new THREE.Color('#ffffff'), GOLD = new THREE.Color('#ffd7a1'), DUST = new THREE.Color('#c9a98f');
+const easeOut = t => 1 - Math.pow(1 - t, 3);
+const easeInOut = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+const clamp01 = t => Math.min(1, Math.max(0, t));
+
+const LINES = [
+  [0.3, '아무것도 없던 곳.'],
+  [1.3, '빛 하나가 있었습니다.'],
+  [2.2, '빛이 터져 흩어지고,'],
+  [4.3, '흩어진 빛이 다시 모여'],
+  [6.0, '작은 돌 하나가 되었습니다.'],
+];
+const INTRO_END = 7.4;
+let inIntro = true, introT = 0, lineIdx = -1;
+const introLine = $('introLine');
+
+function showLine(text) {
+  introLine.style.opacity = 0;
+  setTimeout(() => { introLine.textContent = text; introLine.style.opacity = 1; }, reduceMotion ? 0 : 350);
+}
+
+function updateIntro(t) {
+  camera.position.set(Math.sin(t * 0.09) * 5, 7, 40);
+  camera.up.set(0, 1, 0);
+  camera.lookAt(0, 0, 0);
+
+  while (lineIdx + 1 < LINES.length && t >= LINES[lineIdx + 1][0]) showLine(LINES[++lineIdx][1]);
+
+  if (t < 2.2) {
+    seed.material.opacity = clamp01(t / 0.8);
+    seed.scale.setScalar((0.8 + clamp01(t / 1.8) * 2.6) * (1 + 0.12 * Math.sin(t * 6)));
+    particles.visible = false;
+    setSkyOpacity(0);
+  } else if (t < 4.4) {
+    const s = clamp01((t - 2.2) / 0.6);
+    seed.material.opacity = 1 - s;
+    seed.scale.setScalar(3.4 + s * 10);
+    const k = easeOut(clamp01((t - 2.2) / 2.2));
+    particles.visible = true;
+    pMat.opacity = 1;
+    pMat.color.lerpColors(WHITE, GOLD, k);
+    for (let i = 0; i < N * 3; i++) pPos[i] = pBurst[i] * k;
+    pGeo.attributes.position.needsUpdate = true;
+    setSkyOpacity(k);
+  } else {
+    seed.material.opacity = 0;
+    const k = easeInOut(clamp01((t - 4.4) / 2.8));
+    pMat.color.lerpColors(GOLD, DUST, k);
+    pMat.opacity = 1 - clamp01((t - 6.3) / 1.0);
+    for (let i = 0; i < N * 3; i++) pPos[i] = pBurst[i] * (1 - k) + pTarget[i] * k;
+    pGeo.attributes.position.needsUpdate = true;
+    rockMat.opacity = clamp01((t - 5.6) / 1.5);
+    rock.visible = rockMat.opacity > 0;
+    setSkyOpacity(1);
+  }
+  if (t >= INTRO_END) finishIntro();
+}
+
+let titleTimer = null;
+function finishIntro() {
+  inIntro = false;
+  seed.material.opacity = 0;
+  particles.visible = false;
+  rock.visible = true;
+  rockMat.opacity = 1;
+  rockMat.transparent = false;
+  rockMat.needsUpdate = true;
+  setSkyOpacity(1);
+  orb.visible = true;
+  for (const c of crystals) c.mesh.visible = c.glow.visible = true;
+  for (const s of starSprites) s.s.visible = true;
+  $('intro').classList.add('is-hidden');
+  ['hud', 'stick', 'makeStar'].forEach(id => $(id).classList.remove('is-hidden'));
+  const tc = $('titleCard');
+  tc.classList.remove('is-hidden');
+  clearTimeout(titleTimer);
+  titleTimer = setTimeout(() => tc.classList.add('is-hidden'), 2600);
+  followRate = reduceMotion ? 100 : 0.6;
+  lookTarget.set(0, 0, 0);
+}
+
+function startIntro() {
+  inIntro = true; introT = 0; lineIdx = -1;
+  introLine.style.opacity = 0;
+  rockMat.transparent = true; rockMat.opacity = 0; rockMat.needsUpdate = true; rock.visible = false;
+  orb.visible = false;
+  for (const c of crystals) c.mesh.visible = c.glow.visible = false;
+  for (const s of starSprites) s.s.visible = false;
+  for (const tr of trail) { tr.life = 0; tr.s.visible = false; }
+  up.set(0, 1, 0); fwd.set(0, 0, -1);
+  $('intro').classList.remove('is-hidden');
+  ['hud', 'stick', 'makeStar', 'titleCard'].forEach(id => $(id).classList.add('is-hidden'));
+  if (reduceMotion) finishIntro();
+}
+
+/* ---------- 걷기 ---------- */
+const up = new THREE.Vector3(0, 1, 0);
+const fwd = new THREE.Vector3(0, 0, -1);
+const axis = new THREE.Vector3(), tmp = new THREE.Vector3();
+const lookTarget = new THREE.Vector3(), camGoal = new THREE.Vector3(), camUp = new THREE.Vector3(0, 1, 0);
+let followRate = 4;
+const SPEED = 4.2, TURN = 1.9;
+
+const keys = new Set();
+window.addEventListener('keydown', e => {
+  if (e.target.closest && e.target.closest('button') && (e.key === ' ' || e.key === 'Enter')) return;
+  const k = e.key.toLowerCase();
+  if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) { keys.add(k); e.preventDefault(); }
+  if (k === ' ' && !inIntro) { e.preventDefault(); starFromButton(); }
+});
+window.addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
+window.addEventListener('blur', () => keys.clear());
+
+const joy = { x: 0, y: 0, id: null };
+{
+  const stick = $('stick'), knob = $('knob');
+  const setFrom = e => {
+    const r = stick.getBoundingClientRect();
+    let dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+    const m = Math.hypot(dx, dy), max = r.width / 2 - 12;
+    if (m > max) { dx *= max / m; dy *= max / m; }
+    knob.style.transform = `translate(${dx}px,${dy}px)`;
+    joy.x = dx / max; joy.y = dy / max;
+  };
+  const end = () => { joy.x = joy.y = 0; joy.id = null; knob.style.transform = ''; };
+  stick.addEventListener('pointerdown', e => { joy.id = e.pointerId; stick.setPointerCapture(e.pointerId); setFrom(e); e.preventDefault(); });
+  stick.addEventListener('pointermove', e => { if (e.pointerId === joy.id) setFrom(e); });
+  stick.addEventListener('pointerup', end);
+  stick.addEventListener('pointercancel', end);
+}
+
+function updateWalk(dt, t) {
+  let move = 0, turn = 0;
+  if (keys.has('w') || keys.has('arrowup')) move += 1;
+  if (keys.has('s') || keys.has('arrowdown')) move -= 1;
+  if (keys.has('a') || keys.has('arrowleft')) turn += 1;
+  if (keys.has('d') || keys.has('arrowright')) turn -= 1;
+  move += -joy.y; turn += -joy.x * 0.9;
+  move = Math.max(-1, Math.min(1, move));
+  turn = Math.max(-1, Math.min(1, turn));
+
+  if (turn) fwd.applyAxisAngle(up, turn * TURN * dt);
+  if (move) {
+    axis.crossVectors(up, fwd).normalize();
+    const ang = move * SPEED * dt / surfaceR(up);
+    up.applyAxisAngle(axis, ang);
+    fwd.applyAxisAngle(axis, ang);
+  }
+  up.normalize();
+  fwd.sub(tmp.copy(up).multiplyScalar(fwd.dot(up))).normalize();
+
+  const h = surfaceR(up) + 1.05 + Math.sin(t * 2.2) * 0.08;
+  orb.position.copy(up).multiplyScalar(h);
+  halo.material.opacity = 0.5 + Math.sin(t * 3) * 0.08;
+
+  // 빛 꼬리
+  trailTimer -= dt;
+  if (Math.abs(move) > 0.05 && trailTimer <= 0) {
+    trailTimer = 0.06;
+    const tr = trail[trailIdx++ % trail.length];
+    tr.s.position.copy(orb.position);
+    tr.life = 1;
+    tr.s.visible = true;
+  }
+  for (const tr of trail) {
+    if (tr.life <= 0) continue;
+    tr.life -= dt * 0.9;
+    tr.s.material.opacity = Math.max(0, tr.life) * 0.45;
+    tr.s.scale.setScalar(0.4 + tr.life * 1.4);
+    if (tr.life <= 0) tr.s.visible = false;
+  }
+
+  // 카메라: 뒤쪽 위에서 따라감
+  followRate = followRate > 4 ? followRate : Math.min(4, followRate + dt * 1.6);
+  const a = 1 - Math.exp(-dt * followRate);
+  camGoal.copy(orb.position).addScaledVector(up, 3.4).addScaledVector(fwd, -7.4);
+  const cd = tmp.copy(camGoal).normalize(), minR = surfaceR(cd) + 1.6;
+  if (camGoal.length() < minR) camGoal.setLength(minR);
+  camera.position.lerp(camGoal, a);
+  camUp.lerp(up, a).normalize();
+  camera.up.copy(camUp);
+  lookTarget.lerp(tmp.copy(orb.position).addScaledVector(fwd, 4).addScaledVector(up, 1.6), a);
+  camera.lookAt(lookTarget);
+
+  // 빛나는 돌
+  let foundNow = null;
+  for (const c of crystals) {
+    const near = orb.position.distanceTo(c.mesh.position) < 3.6;
+    c.lit += ((near ? 1 : 0) - c.lit) * Math.min(1, dt * 3);
+    c.mesh.material.emissiveIntensity = 0.5 + c.lit * 2.2 + (c.found ? 0.4 : 0);
+    c.glow.material.opacity = 0.22 + c.lit * 0.6 + (c.found ? 0.12 : 0) + Math.sin(t * 2 + c.dir.x * 9) * 0.05;
+    if (near && !c.found) { c.found = true; foundNow = c; }
+  }
+  if (foundNow) {
+    const n = crystals.filter(c => c.found).length;
+    $('found').textContent = `빛나는 돌 ${n} / ${crystals.length}`;
+    toast(n === crystals.length ? '빛나는 돌을 모두 찾았어요' : `빛나는 돌을 찾았어요 · ${n} / ${crystals.length}`);
+  }
+}
+
+/* ---------- 별 띄우기 ---------- */
+const raycaster = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+let downAt = null;
+canvas.addEventListener('pointerdown', e => { downAt = { x: e.clientX, y: e.clientY, t: performance.now() }; });
+canvas.addEventListener('pointerup', e => {
+  if (!downAt || inIntro) return;
+  const moved = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y);
+  const quick = performance.now() - downAt.t < 450;
+  downAt = null;
+  if (moved > 10 || !quick) return;
+  ndc.set(e.clientX / window.innerWidth * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
+  raycaster.setFromCamera(ndc, camera);
+  if (raycaster.intersectObject(rock, false).length) { toast('하늘 쪽을 눌러 주세요'); return; }
+  birthStar(raycaster.ray.direction.clone().normalize());
+});
+function starFromButton() {
+  const look = new THREE.Vector3();
+  camera.getWorldDirection(look);
+  const side = new THREE.Vector3().crossVectors(look, camera.up).normalize();
+  const d = look
+    .addScaledVector(camera.up, 0.18 + Math.random() * 0.3)
+    .addScaledVector(side, (Math.random() - 0.5) * 1.1)
+    .normalize();
+  birthStar(d);
+}
+$('makeStar').addEventListener('click', starFromButton);
+
+function updateStars(dt, t) {
+  for (const it of starSprites) {
+    it.age += dt;
+    const grow = it.age < 1.2 ? easeOut(it.age / 1.2) : 1;
+    const pop = it.age < 1.2 ? 1 + 1.4 * Math.sin(Math.PI * clamp01(it.age / 1.2)) : 1;
+    it.s.scale.setScalar(it.base * grow * pop * (1 + 0.12 * Math.sin(t * 1.7 + it.phase)));
+    if (it.flash) {
+      const k = clamp01(it.age / 1.6);
+      it.flash.scale.setScalar(20 + k * 140);
+      it.flash.material.opacity = 0.9 * (1 - k);
+      if (k >= 1) { scene.remove(it.flash); it.flash = null; }
+    }
+  }
+}
+
+/* ---------- 안내 ---------- */
+let toastTimer = null;
+function toast(msg) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.remove('is-hidden');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.add('is-hidden'), 2200);
+}
+$('hint').textContent = coarse
+  ? '왼쪽 아래 원을 밀어서 걷기 · 하늘을 눌러 별 띄우기'
+  : 'W A S D 또는 방향키로 걷기 · 하늘을 누르거나 스페이스바로 별 띄우기';
+
+{
+  const birth = new Date(2026, 10, 9);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const day = Math.max(1, Math.round((today - birth) / 864e5) + 1);
+  $('age').textContent = `탄생 ${day}일째`;
+}
+
+$('skip').addEventListener('click', () => { if (inIntro) finishIntro(); });
+$('replay').addEventListener('click', startIntro);
+
+myStars.forEach(st => addStarSprite(st, false));
+updateStarCount();
+
+/* ---------- 움직이기 ---------- */
+const clock = new THREE.Clock();
+function frame() {
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const t = clock.elapsedTime;
+  if (inIntro) { introT += dt; updateIntro(introT); }
+  else updateWalk(dt, t);
+  updateStars(dt, t);
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+if (reduceMotion) finishIntro();
+frame();
+</script>
+</body>
+</html>
