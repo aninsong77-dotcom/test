@@ -310,6 +310,9 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
 .vc-pron{margin:2px 0 0;display:flex;align-items:center;gap:8px}
 .vc-pron .btn{padding:3px 9px;font-size:.78rem}
 #tc-save{justify-self:start}
+/* 단어 짝: 고른 문장 안에서 짚은 말과 번역 속 짝을 같이 칠한다 (CSS Custom Highlight, 글자는 건드리지 않음) */
+::highlight(jjk-word){background-color:#ffb74d;color:#1b2430}
+.sel-word{font-size:.78rem;color:var(--muted)}
 /* 책갈피·메모 */
 .s[data-bm]::before{content:"🔖";font-size:.8em;margin-right:3px}
 .memo-note{display:block;margin:4px 0 8px;padding:6px 10px;border-left:3px solid var(--accent);background:var(--accent-soft);border-radius:4px;font-size:.85rem;line-height:1.6;color:var(--ink);white-space:pre-wrap;overflow-wrap:anywhere;cursor:pointer;text-indent:0;font-weight:400;font-style:normal}
@@ -678,6 +681,7 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
       <ul>
         <li>문장을 누르면 아래에 형광펜 도구가 떠요. 노랑, 초록, 분홍 중에 고르세요. 같은 색을 다시 누르면 지워져요. 한국어 논문에서도 돼요.</li>
         <li>우클릭 메뉴의 <b>이 문장 형광펜</b>으로도 칠할 수 있어요.</li>
+        <li><b>단어 짝</b>: 영어 논문 번역 보기에서 문장을 누르면 그 문장의 단어 짝을 Claude에게 한 번 물어봐요(처음 한 번만, 사용량 조금). 그다음 그 문장 안의 말에 마우스를 올리면(휴대폰은 누르면) 원문과 번역에서 짝인 말이 주황색으로 같이 칠해져요. 영어와 한국어는 어순이 달라 낱말보다 뜻 덩어리로 짝지어요.</li>
         <li>화면 오른쪽 가장자리 막대에 칠한 자리가 색으로 표시돼요. 표시를 누르면 그 문장으로 가요.</li>
         <li><b>파일 → 형광펜·책갈피·메모 모음</b>에서 표시한 문장만 모아 보고, 복사하거나 파일로 저장할 수 있어요. <b>모든 논문</b>을 누르면 다른 논문 것도 함께 보여요.</li>
         <li><b>책갈피</b>: 문장을 누르고 아래 도구의 <b>책갈피</b>를 누르면 문장 앞에 🔖가 붙어요. 아래 <b>시작 위치</b> 목록 맨 아래 ‘책갈피’에서 골라 바로 가거나 거기서부터 읽을 수 있어요.</li>
@@ -814,6 +818,7 @@ select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(-
     <button class="btn ghost" id="sel-clear">지우기</button>
     <button class="btn ghost" id="sel-bm" aria-pressed="false">책갈피</button>
     <button class="btn ghost" id="sel-memo">메모</button>
+    <span class="sel-word" id="sel-word" hidden aria-live="polite"></span>
     <span class="sel-gap"></span>
     <button class="btn ghost" id="sel-play">여기서부터 읽기</button>
     <button class="btn ghost icon" id="sel-close" aria-label="문장 고르기 끝내기">×</button>
@@ -1919,9 +1924,128 @@ function pick(i, keep){
   if (pinI !== null) pairEls(pinI).forEach(e => e.classList.remove("pin"));
   pinI = pinI === k && !keep ? null : k;
   if (pinI !== null) pairEls(pinI).forEach(e => e.classList.add("pin"));
+  clearWordHl();
+  if (pinI !== null) ensureAlign(+pinI); else $("sel-word").hidden = true;
   if (!state.playing){ state.idx = i; mark(); }
   updateSelbar();
 }
+// ---- 단어 짝 ------------------------------------------------------------------
+// 문장을 고르면 그 문장 하나만 Claude에게 '어느 말이 어느 말과 짝인지' 물어 저장해 두고(처음 한 번만),
+// 그 문장 안의 말에 마우스를 올리거나(휴대폰은 누르면) 원문과 번역에서 짝을 같이 칠한다.
+// 영어와 한국어는 어순과 말 구조가 달라 낱말보다 뜻 덩어리(구)로 짝짓는다. 짝이 없는 기능어(the, of…)는 칠하지 않는다.
+const canWordHl = typeof CSS !== "undefined" && "highlights" in CSS && typeof Highlight === "function";
+const alignMem = new Map();   // 원문 문장 → {ko, pairs: [[en, ko], ...]}
+let alignBusy = null;
+const alignTried = new Set();   // 저장소를 이미 찾아본 문장 (마우스를 움직일 때마다 다시 읽지 않게)
+const alignKey = () => "jjk-al:" + (state.fileHash || legacyKey());
+function alignStore(){ try { return JSON.parse(BIG.get(alignKey()) || "{}"); } catch { return {}; } }
+function alignFor(i){
+  const en = state.sentences[i]?.text, ko = state.translations.get(en);
+  if (!en || !ko) return null;
+  let a = alignMem.get(en);
+  if (!a && !alignTried.has(en)){ alignTried.add(en); a = alignStore()[en]; if (a) alignMem.set(en, a); }
+  return a && a.ko === ko ? a : null;   // 번역이 바뀌었으면 다시 받아야 한다
+}
+function setWordNote(t){ $("sel-word").textContent = t; $("sel-word").hidden = !t; }
+async function ensureAlign(i){
+  if (!canWordHl || !trView()) return setWordNote("");
+  const en = state.sentences[i]?.text, ko = state.translations.get(en);
+  if (!ko) return setWordNote("");
+  if (alignFor(i)) return setWordNote("말에 마우스를 올리면(휴대폰은 누르면) 번역 속 짝이 같이 칠해져요.");
+  if (!sampleFn) return setWordNote("");
+  if (alignBusy === en) return;
+  alignBusy = en;
+  setWordNote("단어 짝을 찾는 중…");
+  try {
+    const prompt = `다음은 영어 문장과 그 한국어 번역입니다. 뜻이 대응하는 부분을 짝지어 주세요.
+규칙:
+- en에는 영어 문장에 적힌 그대로의 연속된 부분을, ko에는 한국어 번역에 적힌 그대로의 연속된 부분을 쓰세요. 글자 하나도 바꾸지 마세요.
+- 한 짝은 짧게(보통 1~4낱말) 뜻 덩어리로. ko에서는 조사·어미를 빼고 핵심 말만 쓰세요.
+- 뜻이 있는 말은 빠짐없이 짝지으세요. the, a, of, is처럼 번역에 따로 대응하는 말이 없으면 빼세요.
+영어: ${en}
+번역: ${ko}
+JSON 배열로만 답하세요. 예: [["social comparison", "사회 비교"], ["increased", "증가했다"]]`;
+    const out = await sampleFn.json(prompt, {modelTier: "quick", cache: {gcTime: 86400000}});
+    const pairs = (Array.isArray(out) ? out : []).filter(p => Array.isArray(p) && typeof p[0] === "string" && typeof p[1] === "string" && p[0].trim() && p[1].trim() && en.includes(p[0]) && ko.includes(p[1])).map(p => [p[0], p[1]]);
+    const a = {ko, pairs};
+    alignMem.set(en, a);
+    const all = alignStore(); all[en] = a; BIG.set(alignKey(), JSON.stringify(all));
+    if (pinI !== null && state.sentences[+pinI]?.text === en)
+      setWordNote(pairs.length ? "말에 마우스를 올리면(휴대폰은 누르면) 번역 속 짝이 같이 칠해져요." : "이 문장은 단어 짝을 찾지 못했어요.");
+  } catch (e){
+    if (pinI !== null && state.sentences[+pinI]?.text === en)
+      setWordNote(e?.code === "rate_limited" ? "요청이 많아 단어 짝을 못 받았어요. 문장을 다시 눌러 주세요." : "단어 짝을 받지 못했어요. 문장을 다시 눌러 주세요.");
+  } finally { if (alignBusy === en) alignBusy = null; }
+}
+// 요소 안 글자 위치 ↔ Range
+function textRange(el, start, end){
+  const r = document.createRange(), w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  let pos = 0, n, setS = false;
+  while ((n = w.nextNode())){
+    const len = n.data.length;
+    if (!setS && start <= pos + len){ r.setStart(n, start - pos); setS = true; }
+    if (setS && end <= pos + len){ r.setEnd(n, end - pos); return r; }
+    pos += len;
+  }
+  return setS ? r : null;
+}
+function offsetIn(el, x, y){
+  let node, off;
+  if (document.caretPositionFromPoint){ const c = document.caretPositionFromPoint(x, y); node = c?.offsetNode; off = c?.offset; }
+  else if (document.caretRangeFromPoint){ const c = document.caretRangeFromPoint(x, y); node = c?.startContainer; off = c?.startOffset; }
+  if (!node || !el.contains(node)) return -1;
+  const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+  let pos = 0, n;
+  while ((n = w.nextNode())){ if (n === node) return pos + off; pos += n.data.length; }
+  return -1;
+}
+// 짝 덩어리들의 글자 위치: 영어는 앞에서부터 차례로, 한국어는 어순이 달라 처음 나오는 곳
+function spansOf(text, words, ordered){
+  let from = 0;
+  return words.map(w => {
+    let at = text.indexOf(w, ordered ? from : 0);
+    if (at < 0) at = text.indexOf(w);
+    if (at >= 0 && ordered) from = at + w.length;
+    return at < 0 ? null : [at, at + w.length];
+  });
+}
+let wordHlKey = "";
+function clearWordHl(){ if (canWordHl && wordHlKey){ CSS.highlights.delete("jjk-word"); wordHlKey = ""; } }
+function wordHlAt(el, x, y){
+  if (!canWordHl || pinI === null) return false;
+  const i = +(el.dataset.i ?? el.dataset.t);
+  if (String(i) !== pinI) return false;
+  const a = alignFor(i);
+  if (!a?.pairs.length) return false;
+  const isSrc = el.classList.contains("s");
+  const off = offsetIn(el, x, y);
+  if (off < 0){ clearWordHl(); return false; }
+  const enEl = document.querySelector(`#doc .s[data-i="${i}"]`), koEl2 = document.querySelector(`#doc .t[data-t="${i}"]`);
+  const enSp = enEl ? spansOf(enEl.textContent, a.pairs.map(p => p[0]), true) : [];
+  const koSp = koEl2 ? spansOf(koEl2.textContent, a.pairs.map(p => p[1]), false) : [];
+  const mine = isSrc ? enSp : koSp;
+  const k = mine.findIndex(sp => sp && off >= sp[0] && off < sp[1]);
+  if (k < 0){ clearWordHl(); return false; }
+  if (wordHlKey === i + ":" + k) return true;
+  const ranges = [enEl && enSp[k] && textRange(enEl, ...enSp[k]), koEl2 && koSp[k] && textRange(koEl2, ...koSp[k])].filter(Boolean);
+  CSS.highlights.set("jjk-word", new Highlight(...ranges));
+  wordHlKey = i + ":" + k;
+  return true;
+}
+$("doc").addEventListener("mousemove", e => {
+  if (pinI === null || !wordHlKey && !alignFor(+pinI)) return;
+  const el = e.target.closest?.(".s, .t");
+  if (!el){ clearWordHl(); return; }
+  wordHlAt(el, e.clientX, e.clientY);
+});
+$("doc").addEventListener("mouseleave", clearWordHl);
+// 고른 문장 안을 누르면(휴대폰) 문장 고르기를 풀지 않고 그 말의 짝을 칠한다
+$("doc").addEventListener("click", e => {
+  if (pinI === null || e.target.closest?.(".term, .memo-note, button")) return;
+  const el = e.target.closest?.(".s, .t");
+  if (!el || String(el.dataset.i ?? el.dataset.t) !== pinI || !alignFor(+pinI)) return;
+  if (wordHlAt(el, e.clientX, e.clientY)){ e.stopPropagation(); e.preventDefault(); }
+}, true);
 $("doc").addEventListener("mouseover", e => {
   if (!trView()) return;
   const el = e.target.closest?.("[data-i], [data-t]");
@@ -3297,7 +3421,7 @@ $("o-src").addEventListener("change", () => { savePref("src", $("o-src").checked
 const BIG = (() => {
   const cache = new Map();
   let db = null;
-  const isBig = k => k.startsWith("jjk-tr:") || k.startsWith("jjk-ocr:");
+  const isBig = k => k.startsWith("jjk-tr:") || k.startsWith("jjk-ocr:") || k.startsWith("jjk-al:");
   const req = r => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
   const store = (name, mode) => db.transaction(name, mode).objectStore(name);
   const ready = (async () => {
