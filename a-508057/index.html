@@ -179,7 +179,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
     <div class="sub">수심 30 m · <span id="found">빛나는 생물 0 / 9</span> · <span id="lightCount">띄운 빛 0개</span> · <span id="together">혼자 있어요</span></div>
     <div class="hint" id="hint"></div>
   </div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button type="button" id="toDome" hidden>돔으로 가기</button><button type="button" id="galleryBtn" hidden>기록 사진</button><span id="hostRow" hidden style="display:contents"><button type="button" id="linksBtn">링크 넣기</button></span><button type="button" id="replay">바다 위부터 다시</button></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button type="button" id="toDome" hidden>돔으로 가기</button><button type="button" id="galleryBtn" hidden>기록 사진</button><span id="hostRow" hidden style="display:contents"><button type="button" id="linksBtn">링크 넣기</button></span><button type="button" id="viewBtn">내 모습 보기</button><button type="button" id="replay">바다 위부터 다시</button></div>
 </header>
 
 <div class="stick fade is-hidden" id="stick" aria-hidden="true"><div class="knob" id="knob"></div></div>
@@ -300,7 +300,7 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.15;
 
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 600);
+const camera = new THREE.PerspectiveCamera(60, 1, 0.04, 600);
 const resizeHooks = [];
 function resize() {
   const w = window.innerWidth, h = window.innerHeight;
@@ -1354,7 +1354,7 @@ function beginMyTea(c) {
   const sp = teaSpot(c);
   pos2.set(sp.x, sp.z);
   heading = sp.heading;
-  camYaw = sp.heading + 1.75;
+  camYaw = firstPerson ? sp.heading : sp.heading + 1.75;
   camPitchOff = 0;
   lastLookAt = performance.now();
   teaSitting = c;
@@ -1579,6 +1579,7 @@ function makeTravelBubble() {
 }
 function wobbleBubble(b, t) {
   if (!b.visible) return;
+  b.children.forEach(c => { c.visible = !b.userData.hideForEyes; });
   b.userData.minis.forEach((m, i) => {
     const o = m.userData.base;
     m.position.set(o.x + Math.sin(t * 1.3 + i * 2) * 0.12, o.y + Math.sin(t * 1.7 + i) * 0.14, o.z + Math.cos(t * 1.1 + i * 3) * 0.12);
@@ -2072,6 +2073,14 @@ let heading = 0;
 const fwd = new THREE.Vector3(0, 0, -1);
 const camDir = new THREE.Vector3(0, 0, -1);
 let teaView = 0;
+let firstPerson = true, fpBlend = 1, fpPitch = -0.12;
+const tpCam = new THREE.Vector3();
+function setView(fp) {
+  firstPerson = fp;
+  if (!fp) camZoom = 1;
+  const b = document.getElementById('viewBtn');
+  if (b) b.textContent = fp ? '내 모습 보기' : '눈으로 보기';
+}
 let camYaw = 0, camPitchOff = 0, camZoom = 1, lastLookAt = -1e9;
 let moveTarget = null;
 const targetRing = noRay(new THREE.Mesh(new THREE.RingGeometry(0.22, 0.3, 32), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.8, depthWrite: false, side: THREE.DoubleSide })));
@@ -2099,6 +2108,7 @@ window.addEventListener('keydown', e => {
     else if (k === '4') teaFrom();
     else if (k === 'f') $('seatBtn').click();
     else if (k === 'p') $('snapBtn').click();
+    else if (k === 'v') setView(!firstPerson);
   }
 });
 window.addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
@@ -2221,8 +2231,9 @@ function updateWalk(dt, t) {
   camGoal.copy(orb.position).addScaledVector(camDir, -D * Math.cos(pitch));
   camGoal.y += D * Math.sin(pitch) + (seated ? 0 : 0.3);
   camGoal.y = Math.min(Math.max(camGoal.y, groundH(camGoal.x, camGoal.z) + 1.3), SURF - 1.5);
-  camera.position.lerp(camGoal, a);
-  const wantFov = mySeat !== null && camera.aspect < 1 ? 84 : 60;
+  tpCam.lerp(camGoal, a);
+  camera.position.copy(tpCam);
+  const wantFov = firstPerson ? (camera.aspect < 1 ? 80 : 70) : mySeat !== null && camera.aspect < 1 ? 84 : 60;
   if (Math.abs(camera.fov - wantFov) > 0.1) { camera.fov += (wantFov - camera.fov) * Math.min(1, dt * 4); camera.updateProjectionMatrix(); }
   camera.up.set(0, 1, 0);
   const ahead = Math.min(1, camZoom * camZoom);
@@ -2232,7 +2243,30 @@ function updateWalk(dt, t) {
   lookBase.lerp(new THREE.Vector3((orb.position.x + DOME_CENTER.x + TEA_POS.x) / 2, orb.position.y + 0.4, (orb.position.z + DOME_CENTER.z + TEA_POS.z) / 2), tv);
   lookBase.y += Math.min(1.6, lookUp) * 9;
   lookTarget.lerp(lookBase, a);
-  camera.lookAt(lookTarget);
+  // 아바타의 눈으로 보기: 머리 자리에서, 바라보는 쪽(끌어서 돌림)과 위아래(끌어서 올려다봄)
+  fpBlend += ((firstPerson ? 1 : 0) - fpBlend) * Math.min(1, dt * 5);
+  const fb = smooth(fpBlend);
+  myFig.head.visible = fb < 0.6;
+  myBub.userData.hideForEyes = fb > 0.6;
+  if (fb > 0.001) {
+    const eyeH = mix(0.86, 0.76, myFig.sit);
+    let yaw = camYaw, pitchFP = fpPitch;
+    let eyeBack = 0;
+    if (teaView > 0.01) {
+      // 따를 때는 찻상을 내려다보고, 잔을 들어 마실 때는 고개를 들어 잔 너머 바다를 봄
+      const mr = teaRituals.find(r => r.fig === myFig);
+      const hold = mr ? teaPhase((performance.now() - mr.at) / 1000).hold : 0;
+      yaw = mix(yaw, heading, smooth(teaView));
+      pitchFP = mix(pitchFP, mix(-0.62, -0.32, hold), smooth(teaView));
+      eyeBack = 0.2 * hold;
+    }
+    if (mySeat !== null && performance.now() - lastLookAt > 4000 && teaView < 0.01) camYaw += Math.atan2(Math.sin(heading - camYaw), Math.cos(heading - camYaw)) * Math.min(1, dt * 0.8);
+    const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
+    const eye = new THREE.Vector3(orb.position.x + fwdX * (0.12 - eyeBack), orb.position.y + eyeH + eyeBack * 0.4, orb.position.z + fwdZ * (0.12 - eyeBack));
+    const fpLook = eye.clone().add(new THREE.Vector3(fwdX * Math.cos(pitchFP), Math.sin(pitchFP), fwdZ * Math.cos(pitchFP)).multiplyScalar(5));
+    camera.position.lerpVectors(tpCam, eye, fb);
+    camera.lookAt(new THREE.Vector3().lerpVectors(lookTarget, fpLook, fb));
+  } else camera.lookAt(lookTarget);
 
   let foundNow = null;
   for (const c of creatures) {
@@ -2275,6 +2309,7 @@ const raycaster = new THREE.Raycaster();
 const ndc = new THREE.Vector2();
 let downAt = null;
 let dragLook = null;
+let lastTap = null, lastTapPrevTarget = null;
 canvas.addEventListener('pointerdown', e => {
   if (mode !== 'outside') return;
   downAt = { x: e.clientX, y: e.clientY, t: performance.now() };
@@ -2288,6 +2323,7 @@ canvas.addEventListener('pointermove', e => {
   dragLook.x = e.clientX; dragLook.y = e.clientY;
   camYaw -= dx * 0.006;
   camPitchOff = Math.max(-1.6, Math.min(1.0, camPitchOff + dy * 0.004));
+  fpPitch = Math.max(-1.2, Math.min(1.35, fpPitch - dy * 0.004));
   lastLookAt = performance.now();
 });
 const endLook = () => { dragLook = null; };
@@ -2296,6 +2332,8 @@ canvas.addEventListener('pointerup', endLook);
 canvas.addEventListener('wheel', e => {
   if (travel || atBeach) return;
   e.preventDefault();
+  if (firstPerson) { if (e.deltaY > 0) setView(false); return; }
+  if (e.deltaY < 0 && camZoom <= 0.52) { setView(true); return; }
   camZoom = Math.max(0.5, Math.min(1.9, camZoom * Math.exp(e.deltaY * 0.0012)));
 }, { passive: false });
 canvas.addEventListener('pointerup', e => {
@@ -2311,7 +2349,14 @@ canvas.addEventListener('pointerup', e => {
     const hp = orb.position.clone().add(new THREE.Vector3(0, 0.55, 0)).project(camera);
     const sx = r0.left + (hp.x + 1) / 2 * r0.width, sy = r0.top + (1 - hp.y) / 2 * r0.height;
     const rad = Math.max(40, 0.5 / Math.max(0.5, camera.position.distanceTo(orb.position)) * r0.height);
-    if (Math.hypot(e.clientX - sx, e.clientY - sy) < rad) { greet(held >= 550 ? 'bow' : 'hello'); return; }
+    if (!firstPerson && Math.hypot(e.clientX - sx, e.clientY - sy) < rad) { greet(held >= 550 ? 'bow' : 'hello'); return; }
+    if (firstPerson && held >= 550 && domeUiShown) { greet('bow'); return; }
+    const now = performance.now();
+    if (firstPerson && domeUiShown && lastTap && now - lastTap.t < 320 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 40) {
+      lastTap = null; moveTarget = lastTapPrevTarget; greet('hello'); return;
+    }
+    lastTapPrevTarget = moveTarget;
+    lastTap = { t: now, x: e.clientX, y: e.clientY };
   }
   if (!quick) return;
   ndc.set(e.clientX / window.innerWidth * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
@@ -2497,7 +2542,7 @@ function updatePeers(dt, t) {
     showBubble(v.bubbles, v.gesture, base.add(new THREE.Vector3(0, top + (v.label ? 0.3 : 0.14), 0)));
   }
   const me = orb.position.clone();
-  showBubble(myBubbles, myGesture, me.add(new THREE.Vector3(0, mix(1.13, 1.04, myFig.sit) + 0.14, 0)));
+  showBubble(myBubbles, fpBlend > 0.6 && !travel && !atBeach ? null : myGesture, me.add(new THREE.Vector3(0, mix(1.13, 1.04, myFig.sit) + 0.14, 0)));
   updateBellLook();
 }
 
@@ -2520,7 +2565,7 @@ function sitAt(i) {
   if (takenSeats.has(i)) { toast('다른 분이 앉아 있는 방석이에요'); return; }
   mySeat = i;
   moveTarget = null;
-  camYaw = SEATS[i].heading; camPitchOff = 0;
+  camYaw = SEATS[i].heading; camPitchOff = 0; fpPitch = -0.12;
   unlockAudio();
   $('seatBtn').textContent = '일어나기';
   sendPresence();
@@ -2551,6 +2596,7 @@ function greet(k) {
 $('helloBtn').addEventListener('click', () => greet('hello'));
 $('bowBtn').addEventListener('click', () => greet('bow'));
 $('teaBtn').addEventListener('click', () => teaFrom());
+$('viewBtn').addEventListener('click', () => setView(!firstPerson));
 $('toDome').addEventListener('click', () => {
   if (atBeach) { $('toDome').textContent = '돔으로 가기'; startDive(false); return; }
   if (inIntro) return;
@@ -2570,7 +2616,7 @@ function updateDomeUi(near) {
   $('toDome').hidden = near;
   $('toDome').textContent = '돔으로 가기';
   $('hint').textContent = near
-    ? (coarse ? '바닥을 누르면 걸어가요 · 방석을 누르면 앉아요 · 내 모습을 누르면 인사, 꾹 누르면 합장 · 끌어서 둘러보기, 위로 끌면 바다 위쪽' : '바닥 누르기·방향키로 움직여요 · 방석을 누르거나 F로 앉기 · 1 안녕하세요, 2 합장, 3 종, 4 차, P 사진 · 끌어서 둘러보기, 위로 끌면 바다 위쪽')
+    ? (coarse ? '바닥을 누르면 걸어가요 · 방석을 누르면 앉아요 · 두 번 톡 인사, 꾹 누르면 합장 · 끌어서 둘러보기, 위로 끌면 바다 위쪽' : '바닥 누르기·방향키로 움직여요 · 방석을 누르거나 F로 앉기 · 1 안녕하세요, 2 합장, 3 종, 4 차, P 사진, V 시점 · 끌어서 둘러보기, 위로 끌면 바다 위쪽')
     : (coarse ? '바닥을 누르거나 왼쪽 아래 원으로 움직여요 · 끌어서 둘러보기' : '바닥을 누르거나 방향키로 움직여요 · 끌어서 둘러보기 · 휠로 가까이·멀리');
 }
 
@@ -2982,6 +3028,7 @@ function frame() {
   const dt = Math.min(clock.getDelta(), 0.05);
   const t = clock.elapsedTime;
   {
+    if (travel || atBeach) { tpCam.copy(camera.position); myFig.head.visible = true; myBub.userData.hideForEyes = false; fpBlend = 0; }
     if (travel) updateTravel(dt, t);
     else if (atBeach) updateBeach(dt, t);
     else updateWalk(dt, t);
