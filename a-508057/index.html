@@ -965,8 +965,8 @@ let centerGlow = null, centerCore = null;
     g.position.set(x, 0.17, z);
     g.rotation.y = -a + Math.PI / 2;
     const mat = std(cushionCols[i]);
-    const base = add(new THREE.BoxGeometry(1.25, 0.14, 1.25), mat, 0, 0.07, 0, g);
-    const top = add(new THREE.CylinderGeometry(0.42, 0.46, 0.26, 28), std(new THREE.Color(cushionCols[i]).offsetHSL(0, 0, -0.08).getStyle()), 0, 0.27, 0, g);
+    const base = add(new THREE.BoxGeometry(1.3, 0.09, 1.3), mat, 0, 0.045, 0, g);
+    const top = add(new THREE.CylinderGeometry(0.4, 0.43, 0.07, 28), std(new THREE.Color(cushionCols[i]).offsetHSL(0, 0, -0.08).getStyle()), 0, 0.125, 0, g);
     const ring = noRay(new THREE.Mesh(new THREE.RingGeometry(0.7, 0.78, 40), new THREE.MeshBasicMaterial({ color: '#ffe9a8', transparent: true, opacity: 0, depthWrite: false })));
     ring.rotation.x = -Math.PI / 2;
     ring.position.y = 0.02;
@@ -1059,102 +1059,145 @@ function updateHouseBits(dt, t) {
   });
 }
 
-/* ---------- 모습: 관절이 있는 작은 더미 인형. 걸을 때는 서고, 방석과 물방울 안에서는 가부좌 ---------- */
+/* ---------- 모습: 머리가 크고 동글동글한 작은 더미 인형. 걸을 때는 서고, 방석·물방울·해변에서는 책상다리 ---------- */
 function makeFigure(color) {
   const g = new THREE.Group();
-  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.62 });                                                   // 몸 조각
-  const soft = new THREE.MeshStandardMaterial({ color: new THREE.Color(color).offsetHSL(0, -0.12, -0.14), roughness: 0.55 }); // 관절 구슬
+  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.55 });                                                    // 몸
+  const soft = new THREE.MeshStandardMaterial({ color: new THREE.Color(color).offsetHSL(0, -0.08, -0.1), roughness: 0.5 });   // 관절 구슬
+  const headMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(color).offsetHSL(0, -0.04, 0.05), roughness: 0.5 });
+  const eyeMat = new THREE.MeshStandardMaterial({ color: '#2b2a33', roughness: 0.3 });
+  const blushMat = new THREE.MeshStandardMaterial({ color: '#ff9fb2', roughness: 0.8, transparent: true, opacity: 0.75 });
   const M = (geo, m, x, y, z, parent, sx = 1, sy = 1, sz = 1) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.scale.set(sx, sy, sz); parent.add(o); return o; };
-  const ball = r => new THREE.SphereGeometry(r, 16, 12);
+  const ball = r => new THREE.SphereGeometry(r, 18, 14);
   const limb = (rt, rb, h) => new THREE.CylinderGeometry(rt, rb, h, 14);
+  /* 두 점 사이를 잇는 둥근 막대 (양 끝 구슬) */
+  const bar = (a, b, r, m, parent) => {
+    const d = new THREE.Vector3().subVectors(b, a), len = d.length();
+    const c = M(limb(r, r, len), m, (a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2, parent);
+    c.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize());
+    M(ball(r), m, b.x, b.y, b.z, parent);
+  };
   const pelvis = new THREE.Group();
   g.add(pelvis);
-  M(ball(0.17), mat, 0, 0, 0, pelvis, 1.05, 0.72, 0.8);                     // 골반
-  // 다리: 엉덩이 구슬 → 허벅지 → 무릎 구슬 → 종아리 → 발목 구슬 → 발
+  M(ball(0.14), mat, 0, 0, 0, pelvis, 1.05, 0.72, 0.88);
+  // 서 있을 때 다리 (짧고 통통)
   const legs = [];
+  const standLegs = new THREE.Group();
+  pelvis.add(standLegs);
   [-1, 1].forEach(side => {
     const yaw = new THREE.Group();
-    yaw.position.set(side * 0.095, -0.07, 0);
-    pelvis.add(yaw);
+    yaw.position.set(side * 0.075, -0.05, 0);
+    standLegs.add(yaw);
     const pitch = new THREE.Group();
     yaw.add(pitch);
-    M(ball(0.072), soft, 0, 0, 0, pitch);
-    M(limb(0.068, 0.052, 0.2), mat, 0, -0.15, 0, pitch);
+    M(ball(0.06), soft, 0, 0, 0, pitch);
+    M(limb(0.058, 0.05, 0.13), mat, 0, -0.085, 0, pitch);
     const knee = new THREE.Group();
-    knee.position.y = -0.28;
+    knee.position.y = -0.17;
     pitch.add(knee);
-    M(ball(0.055), soft, 0, 0, 0, knee);
-    M(limb(0.055, 0.04, 0.17), mat, 0, -0.125, 0, knee);
-    M(ball(0.04), soft, 0, -0.235, 0, knee);
-    M(ball(0.06), mat, 0, -0.265, 0.045, knee, 0.8, 0.5, 1.55);
+    M(ball(0.048), soft, 0, 0, 0, knee);
+    M(limb(0.05, 0.044, 0.12), mat, 0, -0.075, 0, knee);
+    M(ball(0.06), mat, 0, -0.165, 0.03, knee, 0.95, 0.6, 1.4);
     legs.push({ yaw, pitch, knee, side });
   });
-  // 허리 구슬에서 위쪽이 숙여짐
-  M(ball(0.07), soft, 0, 0.13, 0, pelvis);
+  // 책상다리로 앉았을 때 다리 (정강이가 앞에서 엇갈림)
+  const crossLegs = new THREE.Group();
+  pelvis.add(crossLegs);
+  const V = (x, y, z) => new THREE.Vector3(x, y, z);
+  [[-1, -0.07, 0], [1, -0.04, 0.035]].forEach(([side, y, lift]) => {
+    const hip = V(side * 0.075, -0.05, 0.02), knee = V(side * 0.235, y, 0.15), ankle = V(-side * 0.09, y + lift, 0.22);
+    M(ball(0.06), soft, hip.x, hip.y, hip.z, crossLegs);
+    bar(hip, knee, 0.056, mat, crossLegs);
+    M(ball(0.05), soft, knee.x, knee.y, knee.z, crossLegs);
+    bar(knee, ankle, 0.048, mat, crossLegs);
+    M(ball(0.055), mat, ankle.x - side * 0.03, ankle.y, ankle.z + 0.01, crossLegs, 1.3, 0.65, 0.9);
+  });
+  // 몸통: 허리 구슬 위에 동글동글한 콩 모양
+  M(ball(0.06), soft, 0, 0.07, 0, pelvis);
   const torso = new THREE.Group();
-  torso.position.y = 0.13;
+  torso.position.y = 0.07;
   pelvis.add(torso);
-  M(ball(0.2), mat, 0, 0.215, 0, torso, 0.98, 0.98, 0.7);                   // 가슴
-  M(ball(0.045), soft, 0, 0.435, 0, torso);                                 // 목 구슬
+  const body = M(ball(0.165), mat, 0, 0.14, 0, torso, 1, 1.18, 0.86);
+  M(ball(0.04), soft, 0, 0.33, 0, torso);
+  // 큰 머리, 작은 점 눈, 볼터치
   const head = new THREE.Group();
-  head.position.y = 0.62;
+  head.position.y = 0.5;
   torso.add(head);
-  M(ball(0.155), mat, 0, 0, 0, head, 0.9, 1.12, 0.96);                      // 얼굴 없는 달걀 모양 머리
-  // 팔: 어깨 구슬 → 위팔 → 팔꿈치 구슬 → 아래팔 → 손목 구슬 → 손
+  M(ball(0.205), headMat, 0, 0, 0, head, 1.04, 0.98, 1);
+  [-1, 1].forEach(sd => {
+    M(ball(0.02), eyeMat, sd * 0.07, 0.01, 0.192, head, 1, 1.3, 0.55);
+    M(ball(0.034), blushMat, sd * 0.118, -0.055, 0.165, head, 1, 0.55, 0.35);
+  });
+  // 팔 (짧고 동그란 손)
   const arms = [];
   [-1, 1].forEach(side => {
     const pivot = new THREE.Group();
-    pivot.position.set(side * 0.235, 0.33, 0);
+    pivot.position.set(side * 0.165, 0.25, 0);
     torso.add(pivot);
-    M(ball(0.062), soft, 0, 0, 0, pivot);
-    M(limb(0.05, 0.04, 0.17), mat, 0, -0.135, 0, pivot);
+    M(ball(0.048), soft, 0, 0, 0, pivot);
+    M(limb(0.042, 0.036, 0.11), mat, 0, -0.07, 0, pivot);
     const elbow = new THREE.Group();
-    elbow.position.y = -0.25;
+    elbow.position.y = -0.135;
     pivot.add(elbow);
-    M(ball(0.045), soft, 0, 0, 0, elbow);
-    M(limb(0.042, 0.032, 0.15), mat, 0, -0.11, 0, elbow);
-    M(ball(0.033), soft, 0, -0.2, 0, elbow);
-    M(ball(0.05), mat, 0, -0.255, 0, elbow, 0.55, 1.05, 0.85);
+    M(ball(0.037), soft, 0, 0, 0, elbow);
+    M(limb(0.036, 0.032, 0.1), mat, 0, -0.06, 0, elbow);
+    M(ball(0.048), mat, 0, -0.13, 0, elbow, 0.85, 1, 0.9);
     arms.push({ pivot, elbow, side });
   });
   g.traverse(o => { if (o.isMesh) noRay(o); });
-  const fig = { g, pelvis, torso, head, legs, arms, mat, soft, sit: 1 };
+  const fig = { g, pelvis, torso, body, head, legs, standLegs, crossLegs, arms, mat, soft, headMat, sit: 1 };
   applyPose(fig, null, 0, 1, 0);
   return fig;
 }
-/* 인사 몸짓: 안녕하세요는 오른손 흔들기, 합장 인사는 두 손 모으고 고개 숙이기 */
+/* 인사 몸짓: 안녕하세요는 오른손을 들어 흔들기, 합장 인사는 두 손을 모은 뒤 천천히 고개 숙였다 일어나기 */
 function gesturePose(g) {
   if (!g || !g.at) return null;
   const e = (performance.now() - g.at) / 1000;
-  if (e > 2.6) return null;
-  const k = Math.min(1, e / 0.35) * Math.min(1, Math.max(0, (2.6 - e) / 0.45));
-  return { k: g.k, a: k };
+  const T = g.k === 'bow' ? 3.0 : 2.4;
+  if (e > T) return null;
+  const a = smooth(Math.min(1, e / 0.35)) * smooth(Math.min(1, Math.max(0, (T - e) / 0.45)));
+  const dip = g.k === 'bow' ? Math.sin(Math.min(1, Math.max(0, (e - 0.55) / 1.7)) * Math.PI) : 0;
+  return { k: g.k, a, dip, e };
 }
-/* sit: 1이면 가부좌, 0이면 서 있음. walk: 걷는 정도 */
+/* sit: 1이면 책상다리, 0이면 서 있음. walk: 걷는 정도 */
 function applyPose(fig, pose, t, sit = 1, walk = 0) {
   const wave = pose && pose.k === 'hello' ? pose.a : 0;
-  const bow = pose && pose.k === 'bow' ? pose.a : 0;
-  fig.sit += (sit - fig.sit) * 0.18;
+  const hands = pose && pose.k === 'bow' ? pose.a : 0;
+  const dip = pose && pose.k === 'bow' ? pose.dip : 0;
+  fig.sit += (sit - fig.sit) * 0.2;
   const s = fig.sit, up = 1 - s;
-  const sw = Math.sin(t * 9) * 0.6 * walk * up;
-  fig.pelvis.position.y = mix(0.63, 0.14, s) + Math.abs(Math.cos(t * 9)) * 0.025 * walk * up;
-  fig.torso.rotation.x = bow * 0.45 + 0.06 * walk * up;
-  fig.head.rotation.x = bow * 0.25;
+  fig.crossLegs.visible = s > 0.5;
+  fig.standLegs.visible = s <= 0.5;
+  const sw = Math.sin(t * 10) * 0.65 * walk * up;
+  const breathe = Math.sin(t * 1.6) * 0.012;
+  fig.pelvis.position.y = mix(0.4, 0.085, s) + Math.abs(Math.cos(t * 10)) * 0.03 * walk * up;
+  fig.body.scale.set(1 + breathe, 1.18 - breathe, 0.86 + breathe);
+  fig.torso.rotation.x = dip * 0.7 + 0.05 * walk * up;
+  fig.head.rotation.x = dip * 0.3;
+  fig.head.rotation.z = wave * Math.sin(t * 5) * 0.12;
   for (const leg of fig.legs) {
-    leg.yaw.rotation.y = leg.side * 0.82 * s;
-    leg.pitch.rotation.x = -1.48 * s + leg.side * sw;
-    leg.knee.rotation.z = -leg.side * 2.1 * s;
+    leg.yaw.rotation.y = 0;
+    leg.pitch.rotation.x = leg.side * sw;
+    leg.knee.rotation.z = 0;
     leg.knee.rotation.x = up * Math.max(0, -leg.side * sw) * 0.9;
   }
   for (const arm of fig.arms) {
     const w = arm.side === 1 ? wave : 0;
-    const restPX = mix(0.05, -0.42, s) - arm.side * sw * 0.8;
-    const restEX = mix(-0.2, -0.95, s);
-    const restEZ = mix(0, 0.35, s);
-    arm.pivot.rotation.x = mix(restPX, -0.9, bow) * (1 - w);
-    arm.pivot.rotation.z = arm.side * (0.1 + 0.12 * s + 2.2 * w) - arm.side * 0.12 * bow;
-    arm.elbow.rotation.x = mix(restEX, -1.75, bow) * (1 - w) - 0.25 * w;
-    arm.elbow.rotation.z = -arm.side * mix(restEZ, 1.0, bow) * (1 - w) + (w ? Math.sin(t * 9) * 0.4 * w : 0);
+    // 쉬는 자세: 서 있으면 팔을 내리고, 앉아 있으면 손을 무릎 위에
+    const restPX = mix(0.05 - arm.side * sw * 0.8, -0.55, s);
+    const restPZ = mix(0.2, 0.42, s);
+    const restEX = mix(-0.15, -0.55, s);
+    const restEZ = mix(0, -0.05, s);
+    // 합장: 두 손을 가슴 앞에 모음
+    const gPX = -0.95, gPZ = -0.18, gEX = -1.65, gEZ = 0.62;
+    // 손 흔들기: 오른손을 머리 옆으로 들기
+    const wPX = -0.2, wPZ = 2.55, wEX = -0.35, wEZ = Math.sin(t * 11) * 0.55;
+    let px = mix(restPX, gPX, hands), pz = mix(restPZ, gPZ, hands), ex = mix(restEX, gEX, hands), ez = mix(restEZ, gEZ, hands);
+    px = mix(px, wPX, w); pz = mix(pz, wPZ, w); ex = mix(ex, wEX, w); ez = mix(ez, wEZ, w);
+    arm.pivot.rotation.x = px;
+    arm.pivot.rotation.z = arm.side * pz;
+    arm.elbow.rotation.x = ex;
+    arm.elbow.rotation.z = -arm.side * ez;
   }
 }
 /* 물방울 */
@@ -1225,7 +1268,8 @@ function setMyColor(color) {
   if (myFig.color === color) return;
   myFig.color = color;
   myFig.mat.color.set(color);
-  myFig.soft.color.set(new THREE.Color(color).offsetHSL(0, -0.12, -0.14));
+  myFig.soft.color.set(new THREE.Color(color).offsetHSL(0, -0.08, -0.1));
+  myFig.headMat.color.set(new THREE.Color(color).offsetHSL(0, -0.04, 0.05));
 }
 
 /* ---------- 효과: 팝! 터지기, 바닷물 첨벙 ---------- */
@@ -1248,20 +1292,6 @@ const ringTex = (() => {
   const g = c.getContext('2d');
   g.strokeStyle = '#ffffff'; g.lineWidth = 7;
   g.beginPath(); g.arc(64, 64, 56, 0, Math.PI * 2); g.stroke();
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace;
-  return t;
-})();
-const popTextTex = (() => {
-  const c = document.createElement('canvas');
-  c.width = 256; c.height = 128;
-  const g = c.getContext('2d');
-  g.font = '900 92px "IBM Plex Sans KR", "Malgun Gothic", sans-serif';
-  g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.lineJoin = 'round'; g.lineWidth = 16; g.strokeStyle = '#1f86b6';
-  g.strokeText('팝!', 128, 68);
-  g.fillStyle = '#ffffff';
-  g.fillText('팝!', 128, 68);
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   return t;
@@ -1322,13 +1352,6 @@ function popAt(p, mine = true) {
     sp.scale.setScalar(1.9 + (1 - Math.pow(1 - kk, 3)) * (i ? 2.2 : 3.4));
     sp.material.opacity = kk > 0 ? 0.95 * (1 - kk) : 0;
   }));
-  // '팝!' 글자
-  oneShot(new THREE.SpriteMaterial({ map: popTextTex, transparent: true, opacity: 1, depthWrite: false, depthTest: false }), 0.9, (sp, k) => {
-    const s = k < 0.18 ? (k / 0.18) * 1.35 : 1.35 - Math.min(1, (k - 0.18) / 0.15) * 0.35;
-    sp.position.set(c0.x, c0.y + 1.1 + k * 0.5, c0.z);
-    sp.scale.set(1.5 * s, 0.75 * s, 1);
-    sp.material.opacity = k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4;
-  });
   // 사방으로 튀는 물방울
   const bits = [];
   for (let i = 0; i < 34; i++) {
@@ -1570,7 +1593,7 @@ function depthText(y) {
 let inIntro = true, travel = null, atBeach = false, lineIdx = -1, firstDive = true;
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 const beachSpot = () => V3(0, BEACH_TOP + 0.03, 72);
-const seatPoint = i => V3(SEATS[i].x, HOUSE_BASE + 0.53, SEATS[i].z);
+const seatPoint = i => V3(SEATS[i].x, HOUSE_BASE + 0.33, SEATS[i].z);
 function freeSeat() {
   const free = [0, 1, 2].filter(i => !takenSeats.has(i));
   return free.length ? free[Math.floor(Math.random() * free.length)] : null;
@@ -1810,7 +1833,7 @@ function updateWalk(dt, t) {
   if (pos2.y > 32) pos2.y = 32;
   const gy = groundH(pos2.x, pos2.y);
   if (mySeat !== null) {
-    orb.position.set(pos2.x, HOUSE_BASE + 0.53, pos2.y);
+    orb.position.set(pos2.x, HOUSE_BASE + 0.33, pos2.y);
     orb.rotation.y = Math.atan2(DOME_CENTER.x - pos2.x, DOME_CENTER.z - pos2.y);
   } else {
     const onFloor = Math.hypot(pos2.x - DOME_CENTER.x, pos2.y - DOME_CENTER.z) < DOME_R + 0.3;
@@ -1979,8 +2002,8 @@ function textSprite(text, bg, fg, h = 0.5) {
   s.scale.set(h * w / 72, h, 1);
   return s;
 }
-const BUBBLE = { hello: '안녕하세요', bow: '(합장)' };
-function makeBubble(k) { const b = textSprite(BUBBLE[k] || '', 'rgba(255,255,255,.92)', '#123447', 0.5); b.visible = false; return b; }
+const BUBBLE = { hello: '안녕하세요', bow: '합장' };
+function makeBubble(k) { const b = textSprite(BUBBLE[k] || '', 'rgba(255,255,255,.85)', '#123447', 0.13); b.visible = false; return b; }
 const myBubbles = { hello: makeBubble('hello'), bow: makeBubble('bow') };
 Object.values(myBubbles).forEach(b => scene.add(b));
 function showBubble(bubbles, g, pos) {
@@ -1988,11 +2011,9 @@ function showBubble(bubbles, g, pos) {
     const on = g && g.k === k && performance.now() - g.at < 2600;
     b.visible = on;
     if (on) {
-      b.position.copy(pos).add(tmp.set(0, 1.0, 0));
+      b.position.copy(pos);
       if (!b.userData.base) b.userData.base = b.scale.clone();
-      const k = Math.max(0.3, Math.min(1.15, camera.position.distanceTo(b.position) / 7));
-      b.scale.copy(b.userData.base).multiplyScalar(k);
-      b.position.y -= (1 - k) * 0.55;
+      b.scale.copy(b.userData.base).multiplyScalar(Math.max(0.7, Math.min(1.6, camera.position.distanceTo(b.position) / 5)));
     }
   }
 }
@@ -2033,7 +2054,7 @@ async function renderPeers(peers) {
     if (seat !== null) takenSeats.add(seat);
     let x = Number.isFinite(pr.x) ? pr.x : DOME_CENTER.x + 3, z = Number.isFinite(pr.z) ? pr.z : DOME_CENTER.z + 5;
     let y = Number.isFinite(pr.y) ? pr.y : groundH(x, z) + 0.35;
-    if (seat !== null) { x = SEATS[seat].x; z = SEATS[seat].z; y = HOUSE_BASE + 0.53; }
+    if (seat !== null) { x = SEATS[seat].x; z = SEATS[seat].z; y = HOUSE_BASE + 0.33; }
     x = Math.max(-120, Math.min(120, x)); z = Math.max(-100, Math.min(130, z)); y = Math.max(-10, Math.min(SURF + 20, y));
     v.seat = seat;
     v.target.set(x, y, z);
@@ -2065,7 +2086,7 @@ async function renderPeers(peers) {
       const name = (v.by && ps[v.by] && ps[v.by].name) || '함께하는 사람';
       if (name !== v.labelText) {
         if (v.label) scene.remove(v.label);
-        v.label = textSprite(name, 'rgba(4,36,58,.6)', '#ffffff', 0.42);
+        v.label = textSprite(name, 'rgba(4,36,58,.55)', '#ffffff', 0.17);
         v.labelText = name;
         scene.add(v.label);
       }
@@ -2086,16 +2107,16 @@ function updatePeers(dt, t) {
     if (v.prevY !== undefined && (v.prevY > SURF) !== (py > SURF)) splashAt(v.g.position.x, v.g.position.z, py < SURF, false);
     v.prevY = py;
     const base = tmp.copy(v.g.position);
-    const top = mix(1.62, 1.18, v.fig.sit);
+    const top = mix(1.2, 0.88, v.fig.sit);
     if (v.label) {
-      v.label.position.copy(base).add(new THREE.Vector3(0, top + 0.28, 0));
+      v.label.position.copy(base).add(new THREE.Vector3(0, top + 0.14, 0));
       if (!v.label.userData.base) v.label.userData.base = v.label.scale.clone();
-      v.label.scale.copy(v.label.userData.base).multiplyScalar(Math.max(0.35, Math.min(1.15, camera.position.distanceTo(v.label.position) / 7)));
+      v.label.scale.copy(v.label.userData.base).multiplyScalar(Math.max(0.7, Math.min(1.6, camera.position.distanceTo(v.label.position) / 5)));
     }
-    showBubble(v.bubbles, v.gesture, base.add(new THREE.Vector3(0, top - 0.25, 0)));
+    showBubble(v.bubbles, v.gesture, base.add(new THREE.Vector3(0, top + (v.label ? 0.3 : 0.14), 0)));
   }
   const me = orb.position.clone();
-  showBubble(myBubbles, myGesture, me.add(new THREE.Vector3(0, mix(1.62, 1.18, myFig.sit) - 0.2, 0)));
+  showBubble(myBubbles, myGesture, me.add(new THREE.Vector3(0, mix(1.2, 0.88, myFig.sit) + 0.14, 0)));
   updateBellLook();
 }
 
