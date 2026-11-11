@@ -1999,7 +1999,7 @@ function noiseBurst(dur, freq, q, gain) {
   f.frequency.exponentialRampToValueAtTime(Math.max(120, freq * 0.3), c.currentTime + dur);
   const g = c.createGain();
   g.gain.value = gain;
-  src.connect(f); f.connect(g); g.connect(c.destination);
+  src.connect(f); f.connect(g); g.connect(sfxBus(c));
   src.start();
 }
 /* 물방울이 살짝 부풀었다가 팝! 하고 터짐 */
@@ -2059,7 +2059,7 @@ function popAt(p, mine = true) {
       g.gain.setValueAtTime(0.0001, t0);
       g.gain.exponentialRampToValueAtTime(0.4, t0 + 0.008);
       g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.2);
-      o.connect(g); g.connect(c.destination);
+      o.connect(g); g.connect(sfxBus(c));
       o.start(t0); o.stop(t0 + 0.22);
     }
     noiseBurst(0.09, 3200, 0.8, 0.35);
@@ -3068,32 +3068,48 @@ function ensureCtx() {
   return actx;
 }
 /* 종소리: 싱잉볼처럼 '웅~' 하고 길게 울리며 퍼짐 (소리 파일 없이 브라우저에서 만듦) */
-let bellVerb = null;
+/* 소리 출구: 모든 효과음은 한 줄로 모아 리미터를 거쳐 나감 (겹쳐도 찢어지지 않게) */
+let sfxOut = null, bellVerb = null;
+function sfxBus(c) {
+  if (sfxOut && sfxOut.context === c) return sfxOut;
+  const lim = c.createDynamicsCompressor();
+  lim.threshold.value = -14; lim.knee.value = 6; lim.ratio.value = 12;
+  lim.attack.value = 0.003; lim.release.value = 0.3;
+  const out = c.createGain();
+  out.gain.value = 0.9;
+  out.connect(lim); lim.connect(c.destination);
+  sfxOut = out;
+  bellVerb = null;
+  return out;
+}
+/* 가벼운 울림: 짧은 지연 몇 개를 되먹임 (휴대폰에서도 부담이 적음) */
 function bellReverb(c) {
   if (bellVerb) return bellVerb;
-  // 넓은 공간에 퍼지는 울림 (6초 꼬리)
-  const len = Math.floor(c.sampleRate * 6), ir = c.createBuffer(2, len, c.sampleRate);
-  for (let ch = 0; ch < 2; ch++) {
-    const d = ir.getChannelData(ch);
-    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2);
-  }
-  const conv = c.createConvolver();
-  conv.buffer = ir;
-  const wet = c.createGain();
-  wet.gain.value = 0.55;
-  conv.connect(wet); wet.connect(c.destination);
-  bellVerb = conv;
-  return conv;
+  const input = c.createGain(), wet = c.createGain();
+  wet.gain.value = 0.28;
+  [[0.113, 0.42], [0.171, 0.38], [0.263, 0.34], [0.379, 0.3]].forEach(([dt, fb]) => {
+    const d = c.createDelay(1), g = c.createGain(), lp = c.createBiquadFilter();
+    d.delayTime.value = dt; g.gain.value = fb;
+    lp.type = 'lowpass'; lp.frequency.value = 1800;
+    input.connect(d); d.connect(lp); lp.connect(g); g.connect(d);
+    lp.connect(wet);
+  });
+  wet.connect(sfxBus(c));
+  bellVerb = input;
+  return input;
 }
+let lastBellAt = -10;
 function ringBell(strong) {
   bellFlash = performance.now();
   const c = actx;
   if (!c || c.state !== 'running') return;
   const t0 = c.currentTime;
   const ring = strong ? 22 : 15;                       // 울림 길이(초)
+  if (c.currentTime - lastBellAt < 0.35) return;            // 같은 순간에 두 번 울리지 않게
+  lastBellAt = c.currentTime;
   const master = c.createGain();
-  master.gain.value = strong ? 0.36 : 0.26;
-  master.connect(c.destination);
+  master.gain.value = strong ? 0.2 : 0.14;
+  master.connect(sfxBus(c));
   master.connect(bellReverb(c));
   const base = 174.6;                                  // 낮고 부드러운 음 (F3 근처)
   // 배음마다 살짝 어긋난 두 음을 겹쳐 '웅~웅~' 하고 넘실대게 함
