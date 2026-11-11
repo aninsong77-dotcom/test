@@ -932,20 +932,39 @@ let centerGlow = null, centerCore = null;
   // 바닥
   add(new THREE.CylinderGeometry(DOME_R + 0.3, DOME_R + 0.55, 0.4, 56), std('#efe7da'), 0, -0.05, 0);
   add(new THREE.CylinderGeometry(2.9, 2.9, 0.03, 56), std('#d9cbb5'), 0, 0.165, 0);
-  // 유리
-  const glass = noRay(new THREE.Mesh(new THREE.SphereGeometry(DOME_R, 56, 28, 0, Math.PI * 2, 0, Math.PI / 2),
-    new THREE.MeshStandardMaterial({ color: '#e9fbff', transparent: true, opacity: 0.13, roughness: 0.05, metalness: 0.4, side: THREE.DoubleSide, depthWrite: false })));
+  // 유리: 가운데는 거의 안 보이고 가장자리만 은은하게 빛나는 맑은 유리
+  const glassMat = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, side: THREE.DoubleSide,
+    vertexShader: `
+      varying vec3 vN; varying vec3 vV;
+      void main() {
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        vN = normalize(normalMatrix * normal);
+        vV = normalize(-mv.xyz);
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: `
+      varying vec3 vN; varying vec3 vV;
+      void main() {
+        float f = 1.0 - abs(dot(normalize(vN), normalize(vV)));
+        float rim = pow(f, 3.0);
+        float hl = pow(max(dot(normalize(vN), normalize(vec3(-0.4, 0.75, 0.5))), 0.0), 60.0);
+        gl_FragColor = vec4(mix(vec3(0.88, 0.97, 1.0), vec3(1.0), hl), 0.025 + rim * 0.32 + hl * 0.35);
+      }`,
+  });
+  const glass = noRay(new THREE.Mesh(new THREE.SphereGeometry(DOME_R, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2), glassMat));
   glass.position.y = 0.15;
   dome.add(glass);
-  const ribMat = new THREE.MeshStandardMaterial({ color: '#f4fbff', roughness: 0.3, metalness: 0.5, transparent: true, opacity: 0.7 });
+  // 아주 가는 은빛 뼈대
+  const ribMat = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.2, metalness: 0.6, transparent: true, opacity: 0.42 });
   for (let i = 0; i < 4; i++) {
-    const rib = noRay(new THREE.Mesh(new THREE.TorusGeometry(DOME_R, 0.035, 6, 64, Math.PI), ribMat));
+    const rib = noRay(new THREE.Mesh(new THREE.TorusGeometry(DOME_R, 0.011, 6, 96, Math.PI), ribMat));
     rib.rotation.y = i * Math.PI / 4;
     rib.position.y = 0.15;
     dome.add(rib);
   }
-  [0, 0.45, 0.85, 1.2].forEach(phi => {
-    const ring = noRay(new THREE.Mesh(new THREE.TorusGeometry(DOME_R * Math.cos(phi), phi === 0 ? 0.08 : 0.03, 6, 72), ribMat));
+  [0, 0.62].forEach(phi => {
+    const ring = noRay(new THREE.Mesh(new THREE.TorusGeometry(DOME_R * Math.cos(phi), phi === 0 ? 0.03 : 0.011, 6, 120), ribMat));
     ring.rotation.x = Math.PI / 2;
     ring.position.y = 0.15 + DOME_R * Math.sin(phi);
     dome.add(ring);
@@ -1062,90 +1081,99 @@ function updateHouseBits(dt, t) {
 /* ---------- 모습: 머리가 크고 동글동글한 작은 더미 인형. 걸을 때는 서고, 방석·물방울·해변에서는 책상다리 ---------- */
 function makeFigure(color) {
   const g = new THREE.Group();
-  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.55 });                                                    // 몸
-  const soft = new THREE.MeshStandardMaterial({ color: new THREE.Color(color).offsetHSL(0, -0.08, -0.1), roughness: 0.5 });   // 관절 구슬
-  const headMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(color).offsetHSL(0, -0.04, 0.05), roughness: 0.5 });
+  const top = new THREE.MeshStandardMaterial({ color, roughness: 0.92 });                                                     // 헐렁한 윗옷 (사람마다 색이 다름)
+  const trim = new THREE.MeshStandardMaterial({ color: new THREE.Color(color).offsetHSL(0, -0.1, -0.14), roughness: 0.9 });   // 허리끈, 소매 끝, 깃
+  const pants = new THREE.MeshStandardMaterial({ color: '#f3eee4', roughness: 0.95 });                                        // 통 넓은 바지 (무명)
+  const skin = new THREE.MeshStandardMaterial({ color: '#f2e3d1', roughness: 0.5 });                                          // 더미 몸 (머리, 손, 발)
+  const joint = new THREE.MeshStandardMaterial({ color: '#e2cfb9', roughness: 0.5 });
   const eyeMat = new THREE.MeshStandardMaterial({ color: '#2b2a33', roughness: 0.3 });
   const blushMat = new THREE.MeshStandardMaterial({ color: '#ff9fb2', roughness: 0.8, transparent: true, opacity: 0.75 });
   const M = (geo, m, x, y, z, parent, sx = 1, sy = 1, sz = 1) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.scale.set(sx, sy, sz); parent.add(o); return o; };
   const ball = r => new THREE.SphereGeometry(r, 18, 14);
-  const limb = (rt, rb, h) => new THREE.CylinderGeometry(rt, rb, h, 14);
-  /* 두 점 사이를 잇는 둥근 막대 (양 끝 구슬) */
+  const tube = (rt, rb, h) => new THREE.CylinderGeometry(rt, rb, h, 16);
+  /* 두 점 사이를 잇는 둥근 천 막대 (끝은 둥글게) */
   const bar = (a, b, r, m, parent) => {
     const d = new THREE.Vector3().subVectors(b, a), len = d.length();
-    const c = M(limb(r, r, len), m, (a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2, parent);
+    const c = M(tube(r, r, len), m, (a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2, parent);
     c.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize());
     M(ball(r), m, b.x, b.y, b.z, parent);
   };
   const pelvis = new THREE.Group();
   g.add(pelvis);
-  M(ball(0.14), mat, 0, 0, 0, pelvis, 1.05, 0.72, 0.88);
-  // 서 있을 때 다리 (짧고 통통)
+  M(ball(0.165), pants, 0, -0.01, 0, pelvis, 1.12, 0.72, 0.95);             // 바지 엉덩이
+  // 서 있을 때 다리: 통 넓은 바지, 발목 아래로 맨발
   const legs = [];
   const standLegs = new THREE.Group();
   pelvis.add(standLegs);
   [-1, 1].forEach(side => {
     const yaw = new THREE.Group();
-    yaw.position.set(side * 0.075, -0.05, 0);
+    yaw.position.set(side * 0.08, -0.05, 0);
     standLegs.add(yaw);
     const pitch = new THREE.Group();
     yaw.add(pitch);
-    M(ball(0.06), soft, 0, 0, 0, pitch);
-    M(limb(0.058, 0.05, 0.13), mat, 0, -0.085, 0, pitch);
+    M(ball(0.082), pants, 0, 0, 0, pitch);
+    M(tube(0.08, 0.085, 0.15), pants, 0, -0.085, 0, pitch);
     const knee = new THREE.Group();
     knee.position.y = -0.17;
     pitch.add(knee);
-    M(ball(0.048), soft, 0, 0, 0, knee);
-    M(limb(0.05, 0.044, 0.12), mat, 0, -0.075, 0, knee);
-    M(ball(0.06), mat, 0, -0.165, 0.03, knee, 0.95, 0.6, 1.4);
+    M(ball(0.085), pants, 0, 0, 0, knee);
+    M(tube(0.087, 0.098, 0.12), pants, 0, -0.065, 0, knee);                // 아래로 갈수록 넓어지는 바짓단
+    M(tube(0.099, 0.099, 0.02), trim, 0, -0.13, 0, knee);
+    M(ball(0.055), skin, 0, -0.165, 0.035, knee, 0.95, 0.6, 1.45);          // 맨발
     legs.push({ yaw, pitch, knee, side });
   });
   // 책상다리로 앉았을 때 다리 (정강이가 앞에서 엇갈림)
   const crossLegs = new THREE.Group();
   pelvis.add(crossLegs);
   const V = (x, y, z) => new THREE.Vector3(x, y, z);
-  [[-1, -0.07, 0], [1, -0.04, 0.035]].forEach(([side, y, lift]) => {
-    const hip = V(side * 0.075, -0.05, 0.02), knee = V(side * 0.235, y, 0.15), ankle = V(-side * 0.09, y + lift, 0.22);
-    M(ball(0.06), soft, hip.x, hip.y, hip.z, crossLegs);
-    bar(hip, knee, 0.056, mat, crossLegs);
-    M(ball(0.05), soft, knee.x, knee.y, knee.z, crossLegs);
-    bar(knee, ankle, 0.048, mat, crossLegs);
-    M(ball(0.055), mat, ankle.x - side * 0.03, ankle.y, ankle.z + 0.01, crossLegs, 1.3, 0.65, 0.9);
+  [[-1, -0.07, 0], [1, -0.035, 0.045]].forEach(([side, y, lift]) => {
+    const hip = V(side * 0.08, -0.05, 0.02), knee = V(side * 0.245, y, 0.15), ankle = V(-side * 0.1, y + lift, 0.23);
+    M(ball(0.085), pants, hip.x, hip.y, hip.z, crossLegs);
+    bar(hip, knee, 0.08, pants, crossLegs);
+    bar(knee, ankle, 0.075, pants, crossLegs);
+    M(ball(0.05), skin, ankle.x - side * 0.075, ankle.y - 0.005, ankle.z + 0.01, crossLegs, 1.35, 0.6, 0.9);
   });
-  // 몸통: 허리 구슬 위에 동글동글한 콩 모양
-  M(ball(0.06), soft, 0, 0.07, 0, pelvis);
+  // 윗몸: 헐렁한 윗옷과 허리끈
   const torso = new THREE.Group();
-  torso.position.y = 0.07;
+  torso.position.y = 0.06;
   pelvis.add(torso);
-  const body = M(ball(0.165), mat, 0, 0.14, 0, torso, 1, 1.18, 0.86);
-  M(ball(0.04), soft, 0, 0.33, 0, torso);
+  const body = new THREE.Group();
+  torso.add(body);
+  M(tube(0.185, 0.27, 0.34), top, 0, 0.13, 0, body, 1, 1, 0.84);          // 품이 넉넉한 윗옷 (아래로 퍼짐)
+  M(ball(0.19), top, 0, 0.29, 0, body, 1.05, 0.55, 0.84);                  // 둥근 어깨
+  M(new THREE.TorusGeometry(0.205, 0.022, 8, 28), trim, 0, 0.06, 0, body, 1.15, 1, 0.92).rotation.x = Math.PI / 2;  // 허리끈
+  M(ball(0.03), trim, 0.09, 0.05, 0.2, body, 1, 1.4, 0.7);                // 끈 매듭
+  const collar = M(new THREE.TorusGeometry(0.075, 0.018, 8, 20), trim, 0, 0.345, 0.01, body);
+  collar.rotation.x = Math.PI / 2;
+  M(ball(0.04), joint, 0, 0.37, 0, torso);
   // 큰 머리, 작은 점 눈, 볼터치
   const head = new THREE.Group();
-  head.position.y = 0.5;
+  head.position.y = 0.54;
   torso.add(head);
-  M(ball(0.205), headMat, 0, 0, 0, head, 1.04, 0.98, 1);
+  M(ball(0.205), skin, 0, 0, 0, head, 1.04, 0.98, 1);
   [-1, 1].forEach(sd => {
     M(ball(0.02), eyeMat, sd * 0.07, 0.01, 0.192, head, 1, 1.3, 0.55);
     M(ball(0.034), blushMat, sd * 0.118, -0.055, 0.165, head, 1, 0.55, 0.35);
   });
-  // 팔 (짧고 동그란 손)
+  // 팔: 넓은 소매, 소매 끝으로 동그란 손
   const arms = [];
   [-1, 1].forEach(side => {
     const pivot = new THREE.Group();
-    pivot.position.set(side * 0.165, 0.25, 0);
+    pivot.position.set(side * 0.19, 0.27, 0);
     torso.add(pivot);
-    M(ball(0.048), soft, 0, 0, 0, pivot);
-    M(limb(0.042, 0.036, 0.11), mat, 0, -0.07, 0, pivot);
+    M(ball(0.07), top, 0, 0, 0, pivot);
+    M(tube(0.066, 0.078, 0.13), top, 0, -0.07, 0, pivot);
     const elbow = new THREE.Group();
-    elbow.position.y = -0.135;
+    elbow.position.y = -0.14;
     pivot.add(elbow);
-    M(ball(0.037), soft, 0, 0, 0, elbow);
-    M(limb(0.036, 0.032, 0.1), mat, 0, -0.06, 0, elbow);
-    M(ball(0.048), mat, 0, -0.13, 0, elbow, 0.85, 1, 0.9);
+    M(ball(0.077), top, 0, 0, 0, elbow);
+    M(tube(0.078, 0.1, 0.1), top, 0, -0.05, 0, elbow);                      // 넓게 퍼지는 소매
+    M(tube(0.101, 0.101, 0.018), trim, 0, -0.1, 0, elbow);
+    M(ball(0.048), skin, 0, -0.14, 0, elbow, 0.85, 1, 0.9);
     arms.push({ pivot, elbow, side });
   });
   g.traverse(o => { if (o.isMesh) noRay(o); });
-  const fig = { g, pelvis, torso, body, head, legs, standLegs, crossLegs, arms, mat, soft, headMat, sit: 1 };
+  const fig = { g, pelvis, torso, body, head, legs, standLegs, crossLegs, arms, mat: top, soft: trim, sit: 1 };
   applyPose(fig, null, 0, 1, 0);
   return fig;
 }
@@ -1170,8 +1198,8 @@ function applyPose(fig, pose, t, sit = 1, walk = 0) {
   fig.standLegs.visible = s <= 0.5;
   const sw = Math.sin(t * 10) * 0.65 * walk * up;
   const breathe = Math.sin(t * 1.6) * 0.012;
-  fig.pelvis.position.y = mix(0.4, 0.085, s) + Math.abs(Math.cos(t * 10)) * 0.03 * walk * up;
-  fig.body.scale.set(1 + breathe, 1.18 - breathe, 0.86 + breathe);
+  fig.pelvis.position.y = mix(0.42, 0.1, s) + Math.abs(Math.cos(t * 10)) * 0.03 * walk * up;
+  fig.body.scale.set(1 + breathe, 1 - breathe * 0.6, 1 + breathe);
   fig.torso.rotation.x = dip * 0.7 + 0.05 * walk * up;
   fig.head.rotation.x = dip * 0.3;
   fig.head.rotation.z = wave * Math.sin(t * 5) * 0.12;
@@ -1231,7 +1259,7 @@ const bubbleMat = new THREE.ShaderMaterial({
 function makeTravelBubble() {
   const b = new THREE.Group();
   const main = noRay(new THREE.Mesh(new THREE.SphereGeometry(0.98, 40, 28), bubbleMat));
-  main.position.y = 0.55;
+  main.position.y = 0.62;
   b.add(main);
   // 곁에 붙어 다니는 작은 물방울 셋
   const minis = [];
@@ -1268,8 +1296,7 @@ function setMyColor(color) {
   if (myFig.color === color) return;
   myFig.color = color;
   myFig.mat.color.set(color);
-  myFig.soft.color.set(new THREE.Color(color).offsetHSL(0, -0.08, -0.1));
-  myFig.headMat.color.set(new THREE.Color(color).offsetHSL(0, -0.04, 0.05));
+  myFig.soft.color.set(new THREE.Color(color).offsetHSL(0, -0.1, -0.14));
 }
 
 /* ---------- 효과: 팝! 터지기, 바닷물 첨벙 ---------- */
@@ -1341,7 +1368,7 @@ function popBubble(bub, anchor, mine) {
   });
 }
 function popAt(p, mine = true) {
-  const c0 = new THREE.Vector3(p.x, p.y + 0.55, p.z);
+  const c0 = new THREE.Vector3(p.x, p.y + 0.62, p.z);
   const inAir = c0.y > SURF;
   // 번쩍
   oneShot(glowMat('#ffffff', 0.9), 0.22, (sp, k) => { sp.position.copy(c0); sp.scale.setScalar(1.6 + k * 2.6); sp.material.opacity = 0.9 * (1 - k); });
@@ -1651,7 +1678,7 @@ function updateTravel(dt, t) {
   orb.position.y += Math.sin(t * 2.2) * 0.05;
   if (Math.hypot(travelDir.x, travelDir.z) > 0.08) orb.rotation.y = Math.atan2(travelDir.x, travelDir.z);
   myBub.scale.setScalar(tr.kind === 'rise' ? Math.min(1, tr.t / 1.0) : 1);
-  applyPose(myFig, null, t);
+  applyPose(myFig, null, t, 0, 0);
   if ((tr.prevY > SURF) !== (p.y > SURF)) splashAt(p.x, p.z, tr.kind === 'dive', true);
   tr.prevY = p.y;
   while (lineIdx + 1 < tr.lines.length && u >= tr.lines[lineIdx + 1][0]) showLine(tr.lines[++lineIdx][1]);
@@ -2126,7 +2153,7 @@ function sendPresence(force) {
   if (!room) return;
   const now = performance.now();
   if (!force && now - lastPresenceAt < 100) return;
-  const obj = { p: (mySeat !== null || travel || atBeach) ? 1 : 0, x: +orb.position.x.toFixed(2), y: +orb.position.y.toFixed(2), z: +orb.position.z.toFixed(2), h: +orb.rotation.y.toFixed(2), b: travel ? 1 : 0, s: mySeat, g: { k: myGesture.k, n: myGesture.n }, r: { n: myRing.n, at: myRing.at } };
+  const obj = { p: (mySeat !== null || atBeach) ? 1 : 0, x: +orb.position.x.toFixed(2), y: +orb.position.y.toFixed(2), z: +orb.position.z.toFixed(2), h: +orb.rotation.y.toFixed(2), b: travel ? 1 : 0, s: mySeat, g: { k: myGesture.k, n: myGesture.n }, r: { n: myRing.n, at: myRing.at } };
   const str = JSON.stringify(obj);
   if (str === lastPresence) return;
   lastPresence = str; lastPresenceAt = now;
