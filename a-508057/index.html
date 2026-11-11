@@ -1361,7 +1361,7 @@ let centerGlow = null, centerCore = null;
   pot.userData.tap = { kind: 'tea', c: -1 };
   domeTap.push(pot);
   // 찻물 줄기
-  const stream = noRay(new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 1, 6), new THREE.MeshStandardMaterial({ color: '#d9b26a', transparent: true, opacity: 0.85, roughness: 0.2 })));
+  const stream = noRay(new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.007, 1, 8), new THREE.MeshStandardMaterial({ color: '#d6a95a', transparent: true, opacity: 0.9, roughness: 0.15, emissive: '#8a5a1a', emissiveIntensity: 0.2 })));
   stream.visible = false;
   dome.add(stream);
   TEA_CUP_ANGLES.forEach((a, i) => {
@@ -1459,6 +1459,8 @@ function updateSteam(st, dt, t) {
 }
 /* ---------- 차 마시기: 찻상 앞에 앉아 주전자로 따르고, 잔을 들어 마시고, 다시 내려놓음 ---------- */
 const TEA_T = 8.6;
+// 주전자 꼭지 끝 (주전자 안쪽 좌표): 꼭지 가운데 (0.12, 0.12) + 길이 반 × 꼭지 방향
+const SPOUT_TIP = new THREE.Vector3(0.12 + 0.06 * Math.sin(0.9), 0.12 + 0.06 * Math.cos(0.9), 0);
 // 시간표(초): 주전자 들기 0~0.8, 따르기 0.8~2.6, 주전자 내려놓기 2.6~3.4, 잔 들기 3.4~4.1, 마시기 4.1~6.6, 내려놓기 6.6~7.3, 손 거두기 ~8.6
 function teaPhase(e) {
   const sm = x => smooth(Math.min(1, Math.max(0, x)));
@@ -1503,17 +1505,20 @@ function updateTea(dt, t) {
     const ph = teaPhase(e);
     // 주전자: 들어서 잔 위로 가져가 기울이고, 다시 가운데로
     const pot = teaSet.potGroup;
-    const over = cup.home.clone().multiplyScalar(0.55).add(new THREE.Vector3(0, 0.17, 0));
     const k = e < 0.8 ? smooth(e / 0.8) : e < 2.6 ? 1 : e < 3.4 ? 1 - smooth((e - 2.6) / 0.8) : 0;
-    pot.position.lerpVectors(new THREE.Vector3(0, TEA_TOP, 0), over, k);
     pot.rotation.set(0, -TEA_CUP_ANGLES[r.c], 0);
-    pot.rotateZ(-ph.pour * 0.75);
+    pot.rotateZ(-ph.pour * 0.8);
+    // 꼭지 끝이 잔 한가운데 바로 위에 오도록 주전자 자리를 맞춤
+    const tipOff = SPOUT_TIP.clone().applyQuaternion(pot.quaternion);
+    const target = cup.home.clone().add(new THREE.Vector3(0, 0.065 + 0.07, 0)).sub(tipOff);
+    pot.position.lerpVectors(new THREE.Vector3(0, TEA_TOP, 0), target, k);
+    pot.position.y += Math.sin(k * Math.PI) * 0.06 * (e < 0.8 || e > 2.6 ? 1 : 0);
     // 찻물 줄기와 잔 채우기
     const pouring = ph.pour > 0.35;
     teaSet.stream.visible = pouring;
     if (pouring) {
-      tv3.set(0.17, 0.15, 0); pot.localToWorld(tv3); teaSet.stream.parent.worldToLocal(tv3);
-      tv4.copy(cup.home).add(new THREE.Vector3(0, 0.06, 0)); teaSet.table.localToWorld(tv4); teaSet.stream.parent.worldToLocal(tv4);
+      tv3.copy(SPOUT_TIP); pot.localToWorld(tv3); teaSet.stream.parent.worldToLocal(tv3);
+      tv4.copy(cup.home).add(new THREE.Vector3(0, 0.012 + cup.level * 0.045, 0)); teaSet.table.localToWorld(tv4); teaSet.stream.parent.worldToLocal(tv4);
       teaSet.stream.position.lerpVectors(tv3, tv4, 0.5);
       teaSet.stream.scale.set(1, Math.max(0.01, tv3.distanceTo(tv4)), 1);
       teaSet.stream.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tv4.clone().sub(tv3).normalize());
@@ -1606,7 +1611,7 @@ function updateViewCup(dt, t) {
   // 화면 아래 가운데 → 마실 때 입가(화면 가운데 아래)로 다가오며 기울어짐
   // 들고 있을 때는 화면 아래, 마실 때는 얼굴 바로 앞까지 와서 기울어져 찻물이 보임
   const s2 = smooth(sip);
-  viewCup.position.set(0, mix(-0.2, -0.085, s2), mix(-0.5, -0.17, s2));
+  viewCup.position.set(0, mix(-0.2, -0.1, s2), mix(-0.5, -0.24, s2));
   const tilt = mix(0.55, 1.15, s2);
   viewCup.rotation.set(tilt, 0, 0);
   // 찻물은 잔이 기울어도 수평을 유지하고 입 쪽 가장자리로 쏠림
@@ -1621,14 +1626,16 @@ function updateViewCup(dt, t) {
   viewCup.updateMatrix();
   const hp = new THREE.Vector3(), sh = new THREE.Vector3(), d = new THREE.Vector3();
   for (const a of va.arms) {
-    hp.set(a.sd * 0.07, -0.025, 0.012).applyMatrix4(viewCup.matrix);
-    sh.set(a.sd * 0.27, -0.36, -0.1);
+    hp.set(a.sd * 0.062, -0.02, 0.01).applyMatrix4(viewCup.matrix);
+    // 어깨는 화면 아래 바깥, 손보다 늘 앞쪽(화면 안쪽)에 두어 팔이 화면 아래에서 손까지 이어져 보이게
+    sh.set(a.sd * 0.3, -0.5, Math.min(-0.3, hp.z - 0.12));
     d.subVectors(hp, sh);
     const len = d.length();
-    a.sleeve.scale.set(1, Math.max(0.05, len - 0.07), 1);
-    a.sleeve.position.copy(sh).addScaledVector(d, 0.5 - 0.035 / len);
+    const wristAt = Math.max(0, len - 0.045);
+    a.wrist.position.copy(sh).addScaledVector(d, wristAt / len);
+    a.sleeve.scale.set(1, Math.max(0.05, wristAt), 1);
+    a.sleeve.position.copy(sh).addScaledVector(d, wristAt / 2 / len);
     a.sleeve.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.clone().normalize());
-    a.wrist.position.copy(hp).addScaledVector(d, -0.06 / len);
   }
   const st = viewCup.userData.steam;
   st.strength = 1 - sip * 0.85;
