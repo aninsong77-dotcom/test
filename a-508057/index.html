@@ -193,6 +193,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
     <button type="button" class="primary" id="seatBtn">방석에 앉기</button>
     <button type="button" id="helloBtn">안녕하세요</button>
     <button type="button" id="bowBtn">합장 인사</button>
+    <button type="button" id="teaBtn">차 마시기</button>
     <button type="button" class="primary" id="bellBtn">종 치기</button>
   </div>
   <div class="row">
@@ -1078,12 +1079,16 @@ function updateHouseBits(dt, t) {
   });
 }
 
-/* ---------- 모습: 머리가 크고 동글동글한 작은 더미 인형. 걸을 때는 서고, 방석·물방울·해변에서는 책상다리 ---------- */
+/* ---------- 모습: 개량한복을 입은 동글동글한 작은 더미 인형. 걸을 때와 물방울 안에서는 서고, 방석과 해변에서는 책상다리 ---------- */
 function makeFigure(color) {
   const g = new THREE.Group();
-  const top = new THREE.MeshStandardMaterial({ color, roughness: 0.92 });                                                     // 헐렁한 윗옷 (사람마다 색이 다름)
-  const trim = new THREE.MeshStandardMaterial({ color: new THREE.Color(color).offsetHSL(0, -0.1, -0.14), roughness: 0.9 });   // 허리끈, 소매 끝, 깃
-  const pants = new THREE.MeshStandardMaterial({ color: '#f3eee4', roughness: 0.95 });                                        // 통 넓은 바지 (무명)
+  const base = new THREE.Color(color);
+  const top = new THREE.MeshStandardMaterial({ color: base.clone().offsetHSL(0, -0.18, -0.06), roughness: 0.92 });   // 저고리 (사람마다 색이 다름, 차분한 빛깔)
+  const trim = new THREE.MeshStandardMaterial({ color: base.clone().offsetHSL(0, -0.3, -0.3), roughness: 0.85 });   // 깃, 끝동, 고름, 대님
+  const dongjeong = new THREE.MeshStandardMaterial({ color: '#f7f4ec', roughness: 0.8 });                          // 깃 위의 하얀 동정
+  const pants = new THREE.MeshStandardMaterial({ color: '#e6ddcc', roughness: 0.95 });                             // 넉넉한 무명 바지
+  const hairCols = ['#2f2622', '#463326', '#5a4433'];
+  const hairMat = new THREE.MeshStandardMaterial({ color: hairCols[Math.floor(base.getHSL({}).h * 3) % 3], roughness: 0.75 });
   const skin = new THREE.MeshStandardMaterial({ color: '#f2e3d1', roughness: 0.5 });                                          // 더미 몸 (머리, 손, 발)
   const joint = new THREE.MeshStandardMaterial({ color: '#e2cfb9', roughness: 0.5 });
   const eyeMat = new THREE.MeshStandardMaterial({ color: '#2b2a33', roughness: 0.3 });
@@ -1117,8 +1122,9 @@ function makeFigure(color) {
     knee.position.y = -0.17;
     pitch.add(knee);
     M(ball(0.085), pants, 0, 0, 0, knee);
-    M(tube(0.087, 0.098, 0.12), pants, 0, -0.065, 0, knee);                // 아래로 갈수록 넓어지는 바짓단
-    M(tube(0.099, 0.099, 0.02), trim, 0, -0.13, 0, knee);
+    M(tube(0.087, 0.098, 0.1), pants, 0, -0.055, 0, knee);                 // 아래로 갈수록 넓어지는 바짓단
+    M(ball(0.095), pants, 0, -0.11, 0, knee, 1, 0.45, 1);                  // 발목에서 오므린 자락
+    M(tube(0.066, 0.066, 0.026), trim, 0, -0.135, 0, knee);                // 대님
     M(ball(0.055), skin, 0, -0.165, 0.035, knee, 0.95, 0.6, 1.45);          // 맨발
     legs.push({ yaw, pitch, knee, side });
   });
@@ -1133,18 +1139,34 @@ function makeFigure(color) {
     bar(knee, ankle, 0.075, pants, crossLegs);
     M(ball(0.05), skin, ankle.x - side * 0.075, ankle.y - 0.005, ankle.z + 0.01, crossLegs, 1.35, 0.6, 0.9);
   });
-  // 윗몸: 헐렁한 윗옷과 허리끈
+  // 윗몸: 개량한복 저고리
   const torso = new THREE.Group();
   torso.position.y = 0.06;
   pelvis.add(torso);
   const body = new THREE.Group();
   torso.add(body);
-  M(tube(0.185, 0.27, 0.34), top, 0, 0.13, 0, body, 1, 1, 0.84);          // 품이 넉넉한 윗옷 (아래로 퍼짐)
+  M(tube(0.185, 0.27, 0.34), top, 0, 0.13, 0, body, 1, 1, 0.84);          // 품이 넉넉한 저고리 (아래로 퍼짐)
   M(ball(0.19), top, 0, 0.29, 0, body, 1.05, 0.55, 0.84);                  // 둥근 어깨
-  M(new THREE.TorusGeometry(0.205, 0.022, 8, 28), trim, 0, 0.06, 0, body, 1.15, 1, 0.92).rotation.x = Math.PI / 2;  // 허리끈
-  M(ball(0.03), trim, 0.09, 0.05, 0.2, body, 1, 1.4, 0.7);                // 끈 매듭
-  const collar = M(new THREE.TorusGeometry(0.075, 0.018, 8, 20), trim, 0, 0.345, 0.01, body);
-  collar.rotation.x = Math.PI / 2;
+  M(tube(0.272, 0.272, 0.025), trim, 0, -0.035, 0, body, 1, 1, 0.84);     // 아랫단
+  /* 앞섶: 왼쪽 깃이 오른쪽 위로 덮이며 V자로 엇갈림, 깃 위에 하얀 동정 */
+  const strip = (a, b, w, m, dz) => {
+    const d = new THREE.Vector3().subVectors(b, a);
+    const o = M(new THREE.BoxGeometry(w, d.length(), 0.014), m, (a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2 + dz, body);
+    o.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize());
+    return o;
+  };
+  strip(new THREE.Vector3(0.105, 0.325, 0.11), new THREE.Vector3(-0.02, 0.2, 0.185), 0.045, trim, 0);
+  strip(new THREE.Vector3(-0.105, 0.325, 0.11), new THREE.Vector3(0.075, 0.13, 0.205), 0.05, trim, 0.006);
+  strip(new THREE.Vector3(-0.1, 0.335, 0.112), new THREE.Vector3(-0.03, 0.27, 0.168), 0.022, dongjeong, 0.016);
+  strip(new THREE.Vector3(0.1, 0.335, 0.112), new THREE.Vector3(0.05, 0.285, 0.15), 0.02, dongjeong, 0.008);
+  // 고름: 오른쪽 가슴에 매듭과 길고 짧은 두 가닥
+  M(ball(0.026), trim, 0.07, 0.15, 0.218, body, 1.3, 1, 0.6);
+  const ribbon = (len, ang, x) => {
+    const r = M(new THREE.BoxGeometry(0.036, len, 0.008), trim, x + Math.sin(ang) * len / 2, 0.15 - Math.cos(ang) * len / 2, 0.222, body);
+    r.rotation.z = ang;
+  };
+  ribbon(0.2, 0.12, 0.07);
+  ribbon(0.13, -0.18, 0.07);
   M(ball(0.04), joint, 0, 0.37, 0, torso);
   // 큰 머리, 작은 점 눈, 볼터치
   const head = new THREE.Group();
@@ -1154,6 +1176,20 @@ function makeFigure(color) {
   [-1, 1].forEach(sd => {
     M(ball(0.02), eyeMat, sd * 0.07, 0.01, 0.192, head, 1, 1.3, 0.55);
     M(ball(0.034), blushMat, sd * 0.118, -0.055, 0.165, head, 1, 0.55, 0.35);
+  });
+  // 머리카락: 정수리와 뒷머리를 덮고, 앞머리는 이마에 살짝 내려옴
+  const hair = new THREE.Group();
+  head.add(hair);
+  const cap = M(new THREE.SphereGeometry(0.222, 28, 18, 0, Math.PI * 2, 0, Math.PI * 0.52), hairMat, 0, 0.012, -0.012, hair, 1.04, 1, 1);
+  cap.rotation.x = -0.38;
+  M(ball(0.2), hairMat, 0, -0.035, -0.075, hair, 1.06, 0.92, 0.72);         // 뒷머리
+  [[-0.13, 0.095, 0.15, 0.5], [-0.065, 0.12, 0.175, 0.2], [0, 0.125, 0.182, 0], [0.065, 0.12, 0.175, -0.2], [0.13, 0.095, 0.15, -0.5]].forEach(([x, y, z, rz]) => {
+    const b = M(ball(0.06), hairMat, x, y, z, hair, 1.05, 0.62, 0.5);      // 앞머리
+    b.rotation.z = rz;
+  });
+  [-1, 1].forEach(sd => {
+    const lock = M(ball(0.06), hairMat, sd * 0.19, -0.04, 0.03, hair, 0.5, 1.25, 0.85);   // 귀 옆으로 내려오는 머리
+    lock.rotation.z = sd * 0.12;
   });
   // 팔: 넓은 소매, 소매 끝으로 동그란 손
   const arms = [];
@@ -1173,7 +1209,17 @@ function makeFigure(color) {
     arms.push({ pivot, elbow, side });
   });
   g.traverse(o => { if (o.isMesh) noRay(o); });
-  const fig = { g, pelvis, torso, body, head, legs, standLegs, crossLegs, arms, mat: top, soft: trim, sit: 1 };
+  const cup = new THREE.Group();
+  torso.add(cup);
+  const celadon = new THREE.MeshStandardMaterial({ color: '#b9d3c3', roughness: 0.35 });
+  M(new THREE.CylinderGeometry(0.052, 0.04, 0.065, 18), celadon, 0, 0, 0, cup);
+  M(new THREE.CylinderGeometry(0.046, 0.046, 0.004, 18), new THREE.MeshStandardMaterial({ color: '#c8a35a', roughness: 0.4 }), 0, 0.026, 0, cup);
+  const steamSp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: '#ffffff', transparent: true, opacity: 0, depthWrite: false }));
+  steamSp.position.y = 0.11;
+  steamSp.scale.setScalar(0.12);
+  cup.add(steamSp);
+  cup.visible = false;
+  const fig = { g, pelvis, torso, body, head, legs, standLegs, crossLegs, arms, cup, steamSp, mat: top, soft: trim, hairMat, sit: 1 };
   applyPose(fig, null, 0, 1, 0);
   return fig;
 }
@@ -1181,17 +1227,29 @@ function makeFigure(color) {
 function gesturePose(g) {
   if (!g || !g.at) return null;
   const e = (performance.now() - g.at) / 1000;
-  const T = g.k === 'bow' ? 3.0 : 2.4;
+  const T = g.k === 'bow' ? 3.0 : g.k === 'tea' ? 5.2 : 2.4;
   if (e > T) return null;
-  const a = smooth(Math.min(1, e / 0.35)) * smooth(Math.min(1, Math.max(0, (T - e) / 0.45)));
+  const a = smooth(Math.min(1, e / 0.45)) * smooth(Math.min(1, Math.max(0, (T - e) / 0.55)));
   const dip = g.k === 'bow' ? Math.sin(Math.min(1, Math.max(0, (e - 0.55) / 1.7)) * Math.PI) : 0;
-  return { k: g.k, a, dip, e };
+  // 차: 두 번 홀짝 (1.0~2.0초, 2.8~3.8초)
+  const sipAt = x => Math.sin(Math.min(1, Math.max(0, x)) * Math.PI);
+  const sip = g.k === 'tea' ? Math.max(sipAt((e - 1.0) / 1.0), sipAt((e - 2.8) / 1.0)) : 0;
+  return { k: g.k, a, dip, sip, e };
 }
 /* sit: 1이면 책상다리, 0이면 서 있음. walk: 걷는 정도 */
 function applyPose(fig, pose, t, sit = 1, walk = 0) {
   const wave = pose && pose.k === 'hello' ? pose.a : 0;
   const hands = pose && pose.k === 'bow' ? pose.a : 0;
   const dip = pose && pose.k === 'bow' ? pose.dip : 0;
+  const tea = pose && pose.k === 'tea' ? pose.a : 0;
+  const sip = pose && pose.k === 'tea' ? pose.sip : 0;
+  fig.cup.visible = tea > 0.35;
+  if (fig.cup.visible) {
+    fig.cup.position.set(0, mix(0.2, 0.36, sip), mix(0.24, 0.27, sip));
+    fig.cup.rotation.x = -sip * 0.55;
+    fig.steamSp.material.opacity = (1 - sip) * 0.5 * (0.6 + Math.sin(t * 3) * 0.4);
+    fig.steamSp.position.y = 0.1 + (t * 0.08 % 0.06);
+  }
   fig.sit += (sit - fig.sit) * 0.2;
   const s = fig.sit, up = 1 - s;
   fig.crossLegs.visible = s > 0.5;
@@ -1201,7 +1259,7 @@ function applyPose(fig, pose, t, sit = 1, walk = 0) {
   fig.pelvis.position.y = mix(0.42, 0.1, s) + Math.abs(Math.cos(t * 10)) * 0.03 * walk * up;
   fig.body.scale.set(1 + breathe, 1 - breathe * 0.6, 1 + breathe);
   fig.torso.rotation.x = dip * 0.7 + 0.05 * walk * up;
-  fig.head.rotation.x = dip * 0.3;
+  fig.head.rotation.x = dip * 0.3 - sip * 0.22;
   fig.head.rotation.z = wave * Math.sin(t * 5) * 0.12;
   for (const leg of fig.legs) {
     leg.yaw.rotation.y = 0;
@@ -1221,6 +1279,9 @@ function applyPose(fig, pose, t, sit = 1, walk = 0) {
     // 손 흔들기: 오른손을 머리 옆으로 들기
     const wPX = -0.2, wPZ = 2.55, wEX = -0.35, wEZ = Math.sin(t * 11) * 0.55;
     let px = mix(restPX, gPX, hands), pz = mix(restPZ, gPZ, hands), ex = mix(restEX, gEX, hands), ez = mix(restEZ, gEZ, hands);
+    // 차 마시기: 두 손으로 잔을 감싸 들고, 홀짝일 때 입가로
+    const tPX = mix(-0.85, -1.3, sip), tPZ = -0.08, tEX = mix(-1.25, -1.75, sip), tEZ = 0.5;
+    px = mix(px, tPX, tea); pz = mix(pz, tPZ, tea); ex = mix(ex, tEX, tea); ez = mix(ez, tEZ, tea);
     px = mix(px, wPX, w); pz = mix(pz, wPZ, w); ex = mix(ex, wEX, w); ez = mix(ez, wEZ, w);
     arm.pivot.rotation.x = px;
     arm.pivot.rotation.z = arm.side * pz;
@@ -1295,8 +1356,10 @@ scene.add(orb);
 function setMyColor(color) {
   if (myFig.color === color) return;
   myFig.color = color;
-  myFig.mat.color.set(color);
-  myFig.soft.color.set(new THREE.Color(color).offsetHSL(0, -0.1, -0.14));
+  const base = new THREE.Color(color);
+  myFig.mat.color.copy(base.clone().offsetHSL(0, -0.18, -0.06));
+  myFig.soft.color.copy(base.clone().offsetHSL(0, -0.3, -0.3));
+  myFig.hairMat.color.set(['#2f2622', '#463326', '#5a4433'][Math.floor(base.getHSL({}).h * 3) % 3]);
 }
 
 /* ---------- 효과: 팝! 터지기, 바닷물 첨벙 ---------- */
@@ -1790,6 +1853,7 @@ window.addEventListener('keydown', e => {
     if (k === '1') greet('hello');
     else if (k === '2') greet('bow');
     else if (k === '3') ringFromMe();
+    else if (k === '4') greet('tea');
   }
 });
 window.addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
@@ -1971,7 +2035,8 @@ canvas.addEventListener('pointerup', e => {
       if (!inDome()) { toast('돔 안으로 들어가면 앉을 수 있어요'); return; }
       sitAt(tap.i);
     } else if (tap.kind === 'tea') {
-      toast('따뜻한 차 한 잔');
+      if (!inDome()) { toast('돔 안에서 차를 마실 수 있어요'); return; }
+      greet('tea');
     } else if (tap.kind === 'bell') {
       ringFromMe();
     } else {
@@ -2029,13 +2094,13 @@ function textSprite(text, bg, fg, h = 0.5) {
   s.scale.set(h * w / 72, h, 1);
   return s;
 }
-const BUBBLE = { hello: '안녕하세요', bow: '합장' };
+const BUBBLE = { hello: '안녕하세요', bow: '합장', tea: '차 한 잔' };
 function makeBubble(k) { const b = textSprite(BUBBLE[k] || '', 'rgba(255,255,255,.85)', '#123447', 0.13); b.visible = false; return b; }
-const myBubbles = { hello: makeBubble('hello'), bow: makeBubble('bow') };
+const myBubbles = { hello: makeBubble('hello'), bow: makeBubble('bow'), tea: makeBubble('tea') };
 Object.values(myBubbles).forEach(b => scene.add(b));
 function showBubble(bubbles, g, pos) {
   for (const [k, b] of Object.entries(bubbles)) {
-    const on = g && g.k === k && performance.now() - g.at < 2600;
+    const on = g && g.k === k && performance.now() - g.at < (k === 'tea' ? 4800 : 2600);
     b.visible = on;
     if (on) {
       b.position.copy(pos);
@@ -2057,7 +2122,7 @@ function makePeerView(p) {
   const bub = makeTravelBubble();
   g.add(bub);
   scene.add(g);
-  const v = { g, fig, bub, color, target: new THREE.Vector3(), yaw: 0, label: null, labelText: '', bubbles: { hello: makeBubble('hello'), bow: makeBubble('bow') }, gesture: { k: '', n: 0, at: 0 }, seen: false };
+  const v = { g, fig, bub, color, target: new THREE.Vector3(), yaw: 0, label: null, labelText: '', bubbles: { hello: makeBubble('hello'), bow: makeBubble('bow'), tea: makeBubble('tea') }, gesture: { k: '', n: 0, at: 0 }, seen: false };
   Object.values(v.bubbles).forEach(b => scene.add(b));
   return v;
 }
@@ -2093,7 +2158,7 @@ async function renderPeers(peers) {
     v.bubOn = wantBub;
     if (!v.seen) { v.g.position.copy(v.target); v.seen = true; }
     const g = pr.g && typeof pr.g === 'object' ? pr.g : null;
-    if (g && (g.k === 'hello' || g.k === 'bow') && Number.isFinite(g.n) && g.n !== v.gesture.n) {
+    if (g && (g.k === 'hello' || g.k === 'bow' || g.k === 'tea') && Number.isFinite(g.n) && g.n !== v.gesture.n) {
       v.gesture = { k: g.k, n: g.n, at: v.gesture.n === 0 && !v.gestureInit ? 0 : performance.now() };
     }
     v.gestureInit = true;
@@ -2195,6 +2260,7 @@ function greet(k) {
 }
 $('helloBtn').addEventListener('click', () => greet('hello'));
 $('bowBtn').addEventListener('click', () => greet('bow'));
+$('teaBtn').addEventListener('click', () => greet('tea'));
 $('toDome').addEventListener('click', () => {
   if (atBeach) { $('toDome').textContent = '돔으로 가기'; startDive(false); return; }
   if (inIntro) return;
@@ -2214,7 +2280,7 @@ function updateDomeUi(near) {
   $('toDome').hidden = near;
   $('toDome').textContent = '돔으로 가기';
   $('hint').textContent = near
-    ? (coarse ? '바닥을 누르면 그곳으로 걸어가요 · 끌어서 둘러보기' : '바닥을 누르거나 방향키로 움직여요 · 끌어서 둘러보기 · 휠로 가까이·멀리 · 1 안녕하세요, 2 합장, 3 종')
+    ? (coarse ? '바닥을 누르면 그곳으로 걸어가요 · 끌어서 둘러보기' : '바닥을 누르거나 방향키로 움직여요 · 끌어서 둘러보기 · 휠로 가까이·멀리 · 1 안녕하세요, 2 합장, 3 종, 4 차')
     : (coarse ? '바닥을 누르거나 왼쪽 아래 원으로 움직여요 · 끌어서 둘러보기' : '바닥을 누르거나 방향키로 움직여요 · 끌어서 둘러보기 · 휠로 가까이·멀리');
 }
 
