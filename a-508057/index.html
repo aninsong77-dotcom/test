@@ -2246,7 +2246,9 @@ function updateWalk(dt, t) {
   // 아바타의 눈으로 보기: 머리 자리에서, 바라보는 쪽(끌어서 돌림)과 위아래(끌어서 올려다봄)
   fpBlend += ((firstPerson ? 1 : 0) - fpBlend) * Math.min(1, dt * 5);
   const fb = smooth(fpBlend);
+  // 눈으로 볼 때는 내 몸을 숨김 (차 마실 때만 잔을 든 두 손이 보임)
   myFig.head.visible = fb < 0.6;
+  myFig.g.visible = fb < 0.6 || teaView > 0.05;
   myBub.userData.hideForEyes = fb > 0.6;
   if (fb > 0.001) {
     const eyeH = mix(0.86, 0.76, myFig.sit);
@@ -3028,7 +3030,7 @@ function frame() {
   const dt = Math.min(clock.getDelta(), 0.05);
   const t = clock.elapsedTime;
   {
-    if (travel || atBeach) { tpCam.copy(camera.position); myFig.head.visible = true; myBub.userData.hideForEyes = false; fpBlend = 0; }
+    if (travel || atBeach) { tpCam.copy(camera.position); myFig.head.visible = true; myFig.g.visible = true; myBub.userData.hideForEyes = false; fpBlend = 0; }
     if (travel) updateTravel(dt, t);
     else if (atBeach) updateBeach(dt, t);
     else updateWalk(dt, t);
