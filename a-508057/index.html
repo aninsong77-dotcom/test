@@ -1059,77 +1059,62 @@ function updateHouseBits(dt, t) {
   });
 }
 
-/* ---------- 모습: 단순한 사람. 걸을 때는 서고, 방석과 물방울 안에서는 가부좌 ---------- */
+/* ---------- 모습: 관절이 있는 작은 더미 인형. 걸을 때는 서고, 방석과 물방울 안에서는 가부좌 ---------- */
 function makeFigure(color) {
   const g = new THREE.Group();
-  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.75 });                       // 윗옷
-  const soft = new THREE.MeshStandardMaterial({ color: new THREE.Color(color).offsetHSL(0, -0.05, 0.08), roughness: 0.7 }); // 허리끈, 깃
-  const skin = new THREE.MeshStandardMaterial({ color: '#f0c9a8', roughness: 0.7 });
-  const hairMat = new THREE.MeshStandardMaterial({ color: '#3f3531', roughness: 0.85 });
-  const pants = new THREE.MeshStandardMaterial({ color: '#eef1ef', roughness: 0.8 });
-  const shoe = new THREE.MeshStandardMaterial({ color: '#7a6558', roughness: 0.8 });
-  const dark = new THREE.MeshStandardMaterial({ color: '#2a2422', roughness: 0.6 });
-  const M = (geo, m, x, y, z, parent) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); parent.add(o); return o; };
+  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.62 });                                                   // 몸 조각
+  const soft = new THREE.MeshStandardMaterial({ color: new THREE.Color(color).offsetHSL(0, -0.12, -0.14), roughness: 0.55 }); // 관절 구슬
+  const M = (geo, m, x, y, z, parent, sx = 1, sy = 1, sz = 1) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.scale.set(sx, sy, sz); parent.add(o); return o; };
+  const ball = r => new THREE.SphereGeometry(r, 16, 12);
+  const limb = (rt, rb, h) => new THREE.CylinderGeometry(rt, rb, h, 14);
   const pelvis = new THREE.Group();
   g.add(pelvis);
-  // 다리: 엉덩이(벌림) → 허벅지(들기) → 무릎 → 종아리, 발
+  M(ball(0.17), mat, 0, 0, 0, pelvis, 1.05, 0.72, 0.8);                     // 골반
+  // 다리: 엉덩이 구슬 → 허벅지 → 무릎 구슬 → 종아리 → 발목 구슬 → 발
   const legs = [];
   [-1, 1].forEach(side => {
     const yaw = new THREE.Group();
-    yaw.position.set(side * 0.09, 0, 0);
+    yaw.position.set(side * 0.095, -0.07, 0);
     pelvis.add(yaw);
     const pitch = new THREE.Group();
     yaw.add(pitch);
-    M(new THREE.CylinderGeometry(0.07, 0.065, 0.26, 10), pants, 0, -0.13, 0, pitch);
+    M(ball(0.072), soft, 0, 0, 0, pitch);
+    M(limb(0.068, 0.052, 0.2), mat, 0, -0.15, 0, pitch);
     const knee = new THREE.Group();
-    knee.position.y = -0.26;
+    knee.position.y = -0.28;
     pitch.add(knee);
-    M(new THREE.SphereGeometry(0.066, 10, 8), pants, 0, 0, 0, knee);
-    M(new THREE.CylinderGeometry(0.062, 0.055, 0.24, 10), pants, 0, -0.12, 0, knee);
-    const foot = M(new THREE.SphereGeometry(0.07, 12, 8), shoe, 0, -0.25, 0.035, knee);
-    foot.scale.set(0.9, 0.6, 1.5);
+    M(ball(0.055), soft, 0, 0, 0, knee);
+    M(limb(0.055, 0.04, 0.17), mat, 0, -0.125, 0, knee);
+    M(ball(0.04), soft, 0, -0.235, 0, knee);
+    M(ball(0.06), mat, 0, -0.265, 0.045, knee, 0.8, 0.5, 1.55);
     legs.push({ yaw, pitch, knee, side });
   });
-  // 몸통
+  // 허리 구슬에서 위쪽이 숙여짐
+  M(ball(0.07), soft, 0, 0.13, 0, pelvis);
   const torso = new THREE.Group();
+  torso.position.y = 0.13;
   pelvis.add(torso);
-  M(new THREE.CylinderGeometry(0.2, 0.225, 0.2, 20), mat, 0, -0.04, 0, torso);
-  M(new THREE.CylinderGeometry(0.15, 0.2, 0.42, 20), mat, 0, 0.26, 0, torso);
-  const sash = M(new THREE.TorusGeometry(0.19, 0.032, 8, 24), soft, 0, 0.1, 0, torso);
-  sash.rotation.x = Math.PI / 2;
-  const knot = M(new THREE.SphereGeometry(0.045, 10, 8), soft, 0.06, 0.09, 0.2, torso);
-  knot.scale.set(1, 1.3, 0.7);
-  const sh = M(new THREE.SphereGeometry(0.17, 16, 12), mat, 0, 0.45, 0, torso);
-  sh.scale.set(1.3, 0.62, 0.92);
-  const collar = M(new THREE.TorusGeometry(0.085, 0.028, 8, 20), soft, 0, 0.52, 0.01, torso);
-  collar.rotation.x = Math.PI / 2;
-  M(new THREE.CylinderGeometry(0.05, 0.055, 0.1, 10), skin, 0, 0.56, 0, torso);
-  // 머리
+  M(ball(0.2), mat, 0, 0.215, 0, torso, 0.98, 0.98, 0.7);                   // 가슴
+  M(ball(0.045), soft, 0, 0.435, 0, torso);                                 // 목 구슬
   const head = new THREE.Group();
-  head.position.y = 0.79;
+  head.position.y = 0.62;
   torso.add(head);
-  M(new THREE.SphereGeometry(0.215, 24, 18), skin, 0, 0, 0, head);
-  const hair = M(new THREE.SphereGeometry(0.228, 24, 14, 0, Math.PI * 2, 0, Math.PI * 0.53), hairMat, 0, 0.005, -0.012, head);
-  hair.rotation.x = -0.6;
-  [-1, 1].forEach(sd => {
-    const eye = M(new THREE.SphereGeometry(0.024, 8, 6), dark, sd * 0.078, -0.02, 0.198, head);
-    eye.scale.set(1.25, 0.45, 0.6);
-    const ear = M(new THREE.SphereGeometry(0.04, 8, 6), skin, sd * 0.21, -0.02, 0, head);
-    ear.scale.set(0.5, 1, 0.8);
-  });
-  // 팔
+  M(ball(0.155), mat, 0, 0, 0, head, 0.9, 1.12, 0.96);                      // 얼굴 없는 달걀 모양 머리
+  // 팔: 어깨 구슬 → 위팔 → 팔꿈치 구슬 → 아래팔 → 손목 구슬 → 손
   const arms = [];
   [-1, 1].forEach(side => {
     const pivot = new THREE.Group();
-    pivot.position.set(side * 0.215, 0.45, 0);
+    pivot.position.set(side * 0.235, 0.33, 0);
     torso.add(pivot);
-    M(new THREE.CylinderGeometry(0.055, 0.06, 0.26, 10), mat, 0, -0.13, 0, pivot);
+    M(ball(0.062), soft, 0, 0, 0, pivot);
+    M(limb(0.05, 0.04, 0.17), mat, 0, -0.135, 0, pivot);
     const elbow = new THREE.Group();
-    elbow.position.y = -0.26;
+    elbow.position.y = -0.25;
     pivot.add(elbow);
-    M(new THREE.SphereGeometry(0.058, 10, 8), mat, 0, 0, 0, elbow);
-    M(new THREE.CylinderGeometry(0.055, 0.062, 0.2, 10), mat, 0, -0.1, 0, elbow);
-    M(new THREE.SphereGeometry(0.05, 10, 8), skin, 0, -0.235, 0, elbow);
+    M(ball(0.045), soft, 0, 0, 0, elbow);
+    M(limb(0.042, 0.032, 0.15), mat, 0, -0.11, 0, elbow);
+    M(ball(0.033), soft, 0, -0.2, 0, elbow);
+    M(ball(0.05), mat, 0, -0.255, 0, elbow, 0.55, 1.05, 0.85);
     arms.push({ pivot, elbow, side });
   });
   g.traverse(o => { if (o.isMesh) noRay(o); });
@@ -1152,7 +1137,7 @@ function applyPose(fig, pose, t, sit = 1, walk = 0) {
   fig.sit += (sit - fig.sit) * 0.18;
   const s = fig.sit, up = 1 - s;
   const sw = Math.sin(t * 9) * 0.6 * walk * up;
-  fig.pelvis.position.y = mix(0.56, 0.12, s) + Math.abs(Math.cos(t * 9)) * 0.025 * walk * up;
+  fig.pelvis.position.y = mix(0.63, 0.14, s) + Math.abs(Math.cos(t * 9)) * 0.025 * walk * up;
   fig.torso.rotation.x = bow * 0.45 + 0.06 * walk * up;
   fig.head.rotation.x = bow * 0.25;
   for (const leg of fig.legs) {
@@ -1240,7 +1225,7 @@ function setMyColor(color) {
   if (myFig.color === color) return;
   myFig.color = color;
   myFig.mat.color.set(color);
-  myFig.soft.color.set(new THREE.Color(color).offsetHSL(0, -0.05, 0.08));
+  myFig.soft.color.set(new THREE.Color(color).offsetHSL(0, -0.12, -0.14));
 }
 
 /* ---------- 효과: 팝! 터지기, 바닷물 첨벙 ---------- */
@@ -1732,7 +1717,12 @@ const pos2 = new THREE.Vector2(0, 0);
 let heading = 0;
 const fwd = new THREE.Vector3(0, 0, -1);
 const camDir = new THREE.Vector3(0, 0, -1);
-let camYaw = 0;
+let camYaw = 0, camPitchOff = 0, camZoom = 1, lastLookAt = -1e9;
+let moveTarget = null;
+const targetRing = noRay(new THREE.Mesh(new THREE.RingGeometry(0.22, 0.3, 32), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.8, depthWrite: false, side: THREE.DoubleSide })));
+targetRing.rotation.x = -Math.PI / 2;
+targetRing.visible = false;
+scene.add(targetRing);
 const tmp = new THREE.Vector3();
 const lookTarget = new THREE.Vector3(), camGoal = new THREE.Vector3();
 let followRate = 4, snapCam = false;
@@ -1746,6 +1736,11 @@ window.addEventListener('keydown', e => {
   if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) { keys.add(k); e.preventDefault(); }
   if (k === ' ' && !inIntro && mode === 'outside') { e.preventDefault(); lightFromButton(); }
   if (k === 'escape') closeSheets();
+  if (!travel && !atBeach && domeUiShown) {
+    if (k === '1') greet('hello');
+    else if (k === '2') greet('bow');
+    else if (k === '3') ringFromMe();
+  }
 });
 window.addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
 canvas.addEventListener('pointerdown', () => { try { canvas.focus({ preventScroll: true }); } catch (e) {} });
@@ -1779,9 +1774,23 @@ function updateWalk(dt, t) {
   if (keys.has('d') || keys.has('arrowright')) ix += 1;
   ix += joy.x; iy -= joy.y;
   let mag = Math.min(1, Math.hypot(ix, iy));
-  if (mySeat !== null && mag > 0.15) { standUp(); camYaw = heading; }
-  if (mySeat !== null) { const st = SEATS[mySeat]; pos2.set(st.x, st.z); heading = st.heading; camYaw = heading; mag = 0; }
-  const move = mag;
+  if (mySeat !== null && mag > 0.15) standUp();
+  if (mySeat !== null) { const st = SEATS[mySeat]; pos2.set(st.x, st.z); heading = st.heading; mag = 0; moveTarget = null; }
+  let move = mag;
+  if (mag > 0.05) moveTarget = null;
+  else if (moveTarget) {
+    const dx = moveTarget.x - pos2.x, dz = moveTarget.y - pos2.y, dist = Math.hypot(dx, dz);
+    if (dist < 0.12) moveTarget = null;
+    else {
+      const step = Math.min(dist, SPEED * dt);
+      pos2.x += dx / dist * step; pos2.y += dz / dist * step;
+      const want = Math.atan2(-dx, -dz);
+      heading += Math.atan2(Math.sin(want - heading), Math.cos(want - heading)) * Math.min(1, dt * 10);
+      move = 1;
+    }
+  }
+  targetRing.visible = !!moveTarget;
+  if (moveTarget) { targetRing.position.set(moveTarget.x, moveTarget.h + 0.04, moveTarget.y); targetRing.scale.setScalar(1 + Math.sin(t * 6) * 0.12); }
   if (mag > 0.05) {
     const cfx = -Math.sin(camYaw), cfz = -Math.cos(camYaw);
     let dx = cfx * iy - cfz * ix, dz = cfz * iy + cfx * ix;
@@ -1792,7 +1801,7 @@ function updateWalk(dt, t) {
     pos2.x += dx * mag * SPEED * dt;
     pos2.y += dz * mag * SPEED * dt;
     // 카메라는 앞이나 옆으로 갈 때만 천천히 뒤로 따라 돎 (나를 향해 걸어오면 그대로 둠)
-    if (iy > -0.3) camYaw += Math.atan2(Math.sin(heading - camYaw), Math.cos(heading - camYaw)) * Math.min(1, dt * 1.6);
+    if (iy > -0.3 && performance.now() - lastLookAt > 6000) camYaw += Math.atan2(Math.sin(heading - camYaw), Math.cos(heading - camYaw)) * Math.min(1, dt * 1.6);
   }
   fwd.set(-Math.sin(heading), 0, -Math.cos(heading));
   camDir.set(-Math.sin(camYaw), 0, -Math.cos(camYaw));
@@ -1832,19 +1841,19 @@ function updateWalk(dt, t) {
   const a = snapCam ? 1 : 1 - Math.exp(-dt * followRate);
   snapCam = false;
   const near = inDome();
-  if (mySeat !== null) {
-    const st = SEATS[mySeat];
-    const ox = st.x - DOME_CENTER.x, oz = st.z - DOME_CENTER.z, ol = Math.hypot(ox, oz) || 1;
-    const back = camera.aspect < 1 ? 2.0 : 2.3, high = camera.aspect < 1 ? 4.0 : 4.3;
-    camGoal.set(st.x + ox / ol * back, HOUSE_BASE + high, st.z + oz / ol * back);
-  } else camGoal.copy(orb.position).add(tmp.set(0, near ? 2.4 : 3, 0)).addScaledVector(camDir, near ? -5.2 : -7.5);
+  const seated = mySeat !== null;
+  const D = (seated ? (camera.aspect < 1 ? 4.5 : 4.9) : near ? 5.7 : 8.1) * camZoom;
+  const pitch = Math.max(0.08, Math.min(1.4, (seated ? 1.07 : near ? 0.43 : 0.38) + camPitchOff));
+  camGoal.copy(orb.position).addScaledVector(camDir, -D * Math.cos(pitch));
+  camGoal.y += D * Math.sin(pitch) + (seated ? 0 : 0.3);
   camGoal.y = Math.min(Math.max(camGoal.y, groundH(camGoal.x, camGoal.z) + 1.3), SURF - 1.5);
   camera.position.lerp(camGoal, a);
   const wantFov = mySeat !== null && camera.aspect < 1 ? 84 : 60;
   if (Math.abs(camera.fov - wantFov) > 0.1) { camera.fov += (wantFov - camera.fov) * Math.min(1, dt * 4); camera.updateProjectionMatrix(); }
   camera.up.set(0, 1, 0);
-  if (mySeat !== null) lookTarget.lerp(tmp.set(DOME_CENTER.x, HOUSE_BASE + 0.6, DOME_CENTER.z), a);
-  else lookTarget.lerp(tmp.copy(orb.position).addScaledVector(camDir, 4).add(new THREE.Vector3(0, 1.1, 0)), a);
+  const ahead = Math.min(1, camZoom * camZoom);
+  if (seated) lookTarget.lerp(tmp.copy(orb.position).addScaledVector(camDir, 1.9 * ahead).add(new THREE.Vector3(0, 0.1 + (1 - ahead) * 0.5, 0)), a);
+  else lookTarget.lerp(tmp.copy(orb.position).addScaledVector(camDir, 4 * Math.cos(pitch) * ahead).add(new THREE.Vector3(0, 1.1 - (1 - ahead) * 0.3, 0)), a);
   camera.lookAt(lookTarget);
 
   let foundNow = null;
@@ -1873,7 +1882,30 @@ function updateCreatures(t) {
 const raycaster = new THREE.Raycaster();
 const ndc = new THREE.Vector2();
 let downAt = null;
-canvas.addEventListener('pointerdown', e => { if (mode === 'outside') downAt = { x: e.clientX, y: e.clientY, t: performance.now() }; });
+let dragLook = null;
+canvas.addEventListener('pointerdown', e => {
+  if (mode !== 'outside') return;
+  downAt = { x: e.clientX, y: e.clientY, t: performance.now() };
+  dragLook = { id: e.pointerId, x: e.clientX, y: e.clientY, on: false };
+});
+canvas.addEventListener('pointermove', e => {
+  if (!dragLook || e.pointerId !== dragLook.id || travel || atBeach) return;
+  const dx = e.clientX - dragLook.x, dy = e.clientY - dragLook.y;
+  if (!dragLook.on && Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) < 8) return;
+  if (!dragLook.on) { dragLook.on = true; try { canvas.setPointerCapture(e.pointerId); } catch (err) {} }
+  dragLook.x = e.clientX; dragLook.y = e.clientY;
+  camYaw -= dx * 0.006;
+  camPitchOff = Math.max(-0.5, Math.min(1.0, camPitchOff + dy * 0.004));
+  lastLookAt = performance.now();
+});
+const endLook = () => { dragLook = null; };
+canvas.addEventListener('pointercancel', endLook);
+canvas.addEventListener('pointerup', endLook);
+canvas.addEventListener('wheel', e => {
+  if (travel || atBeach) return;
+  e.preventDefault();
+  camZoom = Math.max(0.5, Math.min(1.9, camZoom * Math.exp(e.deltaY * 0.0012)));
+}, { passive: false });
 canvas.addEventListener('pointerup', e => {
   if (mode !== 'outside' || !downAt || inIntro) return;
   const moved = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y);
@@ -1897,12 +1929,21 @@ canvas.addEventListener('pointerup', e => {
     }
     return;
   }
-  const hit = raycaster.intersectObject(floor, false)[0];
-  const p = hit && hit.distance < 34
-    ? hit.point.clone().add(tmp.set(0, 0.7 + Math.random() * 1.4, 0))
-    : raycaster.ray.at(16, new THREE.Vector3());
-  p.y = Math.max(p.y, groundH(p.x, p.z) + 0.6);
-  birthLight(p);
+  // 바닥을 누르면 그곳으로 걸어감
+  if (travel || atBeach) return;
+  let gx = null, gz = null, gh = 0;
+  const fp = raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -(HOUSE_BASE + 0.17)), new THREE.Vector3());
+  if (fp && Math.hypot(fp.x - DOME_CENTER.x, fp.z - DOME_CENTER.z) < DOME_R + 0.3) { gx = fp.x; gz = fp.z; gh = HOUSE_BASE + 0.17; }
+  else {
+    const hit = raycaster.intersectObject(floor, false)[0];
+    if (hit && hit.distance < 60) { gx = hit.point.x; gz = hit.point.z; gh = hit.point.y; }
+  }
+  if (gx === null) return;
+  const gl = Math.hypot(gx, gz);
+  if (gl > LIMIT) { gx *= LIMIT / gl; gz *= LIMIT / gl; }
+  gz = Math.min(gz, 32);
+  if (mySeat !== null) { mySeat = null; $('seatBtn').textContent = '방석에 앉기'; }
+  moveTarget = { x: gx, y: gz, h: gh };
 });
 function lightFromButton() {
   const side = tmp.set(-fwd.z, 0, fwd.x);
@@ -1946,7 +1987,13 @@ function showBubble(bubbles, g, pos) {
   for (const [k, b] of Object.entries(bubbles)) {
     const on = g && g.k === k && performance.now() - g.at < 2600;
     b.visible = on;
-    if (on) b.position.copy(pos).add(tmp.set(0, 1.0, 0));
+    if (on) {
+      b.position.copy(pos).add(tmp.set(0, 1.0, 0));
+      if (!b.userData.base) b.userData.base = b.scale.clone();
+      const k = Math.max(0.3, Math.min(1.15, camera.position.distanceTo(b.position) / 7));
+      b.scale.copy(b.userData.base).multiplyScalar(k);
+      b.position.y -= (1 - k) * 0.55;
+    }
   }
 }
 
@@ -2040,7 +2087,11 @@ function updatePeers(dt, t) {
     v.prevY = py;
     const base = tmp.copy(v.g.position);
     const top = mix(1.62, 1.18, v.fig.sit);
-    if (v.label) v.label.position.copy(base).add(new THREE.Vector3(0, top + 0.28, 0));
+    if (v.label) {
+      v.label.position.copy(base).add(new THREE.Vector3(0, top + 0.28, 0));
+      if (!v.label.userData.base) v.label.userData.base = v.label.scale.clone();
+      v.label.scale.copy(v.label.userData.base).multiplyScalar(Math.max(0.35, Math.min(1.15, camera.position.distanceTo(v.label.position) / 7)));
+    }
     showBubble(v.bubbles, v.gesture, base.add(new THREE.Vector3(0, top - 0.25, 0)));
   }
   const me = orb.position.clone();
@@ -2065,6 +2116,8 @@ function sendPresence(force) {
 function sitAt(i) {
   if (takenSeats.has(i)) { toast('다른 분이 앉아 있는 방석이에요'); return; }
   mySeat = i;
+  moveTarget = null;
+  camYaw = SEATS[i].heading; camPitchOff = 0;
   unlockAudio();
   $('seatBtn').textContent = '일어나기';
   sendPresence();
@@ -2113,8 +2166,8 @@ function updateDomeUi(near) {
   $('toDome').hidden = near;
   $('toDome').textContent = '돔으로 가기';
   $('hint').textContent = near
-    ? (coarse ? '방석에 앉아 함께 기다려요 · 원을 밀면 일어나 움직여요' : '방석에 앉아 함께 기다려요 · 방향키를 누르면 일어나 움직여요 · 안내판을 누르면 링크가 열려요')
-    : (coarse ? '왼쪽 아래 원을 미는 쪽으로 움직여요' : '방향키로 내 모습을 움직여요 (화면을 한 번 누른 뒤) · 위 앞으로, 아래 뒤로, 왼쪽·오른쪽은 그쪽으로');
+    ? (coarse ? '바닥을 누르면 그곳으로 걸어가요 · 끌어서 둘러보기' : '바닥을 누르거나 방향키로 움직여요 · 끌어서 둘러보기 · 휠로 가까이·멀리 · 1 안녕하세요, 2 합장, 3 종')
+    : (coarse ? '바닥을 누르거나 왼쪽 아래 원으로 움직여요 · 끌어서 둘러보기' : '바닥을 누르거나 방향키로 움직여요 · 끌어서 둘러보기 · 휠로 가까이·멀리');
 }
 
 /* 링크 */
@@ -2463,9 +2516,7 @@ function toast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.add('is-hidden'), 2200);
 }
-$('hint').textContent = coarse
-  ? '왼쪽 아래 원을 밀어서 다니기 · 앞에 보이는 투명 돔 안으로 들어가 보세요'
-  : 'W A S D 또는 방향키로 다니기 · 앞에 보이는 투명 돔 안으로 들어가 보세요';
+$('hint').textContent = coarse ? '바닥을 누르거나 왼쪽 아래 원으로 움직여요 · 끌어서 둘러보기' : '바닥을 누르거나 방향키로 움직여요 · 끌어서 둘러보기 · 휠로 가까이·멀리';
 
 $('skip').addEventListener('click', () => { if (travel) finishTravel(); });
 $('replay').addEventListener('click', () => { if (travel) return; atBeach = false; startDive(true); });
