@@ -1347,7 +1347,6 @@ function startDive(withLines) {
   myBub.scale.setScalar(1);
   orb.position.copy(pts[0]);
   showTravelUi(travel.lines);
-  if (reduceMotion) finishTravel();
 }
 function startRise() {
   if (travel || atBeach) return;
@@ -1361,7 +1360,6 @@ function startRise() {
   myBub.visible = true;
   myBub.scale.setScalar(0.01);
   showTravelUi(travel.lines);
-  if (reduceMotion) finishTravel();
 }
 const travelDir = new THREE.Vector3();
 function updateTravel(dt, t) {
