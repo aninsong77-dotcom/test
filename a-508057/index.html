@@ -163,6 +163,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 .gallery a{display:grid;gap:4px;color:var(--muted);font-size:12px;text-decoration:none;min-width:0}
 .gallery img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;background:rgba(255,255,255,.06);max-width:100%}
 .gallery a:focus-visible{outline:2px solid var(--glow);outline-offset:2px;border-radius:10px}
+.end-menu{display:grid;gap:10px}
 .sheet a.go{
   display:block;text-align:center;font:500 15px/1 var(--f-body);color:#0b3550;background:var(--glow);
   border-radius:999px;padding:13px 16px;text-decoration:none;
@@ -210,7 +211,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 <div class="sheet" id="linkSheet" hidden>
   <div class="card" role="dialog" aria-labelledby="linkSheetTitle">
     <h2 id="linkSheetTitle">링크 넣기</h2>
-    <p>돔 안에 있는 사람 모두에게 이 링크가 보여요. https:// 로 시작하는 주소를 붙여 넣어 주세요.</p>
+    <p>나가기를 누른 뒤 끝 화면 메뉴에 이 링크가 보여요. https:// 로 시작하는 주소를 붙여 넣어 주세요.</p>
     <label>구글 폼 주소<input id="formInput" type="url" inputmode="url" placeholder="https://forms.gle/..." autocomplete="off"></label>
     <label>패들렛 주소<input id="padletInput" type="url" inputmode="url" placeholder="https://padlet.com/..." autocomplete="off"></label>
     <p id="linkMsg"></p>
@@ -233,9 +234,14 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 <div class="sheet" id="endSheet" hidden>
   <div class="card" role="dialog" aria-labelledby="endTitle">
     <h2 id="endTitle">함께해 주셔서 고마워요</h2>
-    <p>빛을 타고 돌아갔어요. 창을 닫으면 끝나요.</p>
+    <p>빛을 타고 돌아갔어요. 오늘의 마음을 남겨 주세요. 창을 닫으면 끝나요.</p>
+    <nav class="end-menu" id="endMenu" aria-label="나간 뒤 메뉴">
+      <a class="go" id="endForm" href="#" target="_blank" rel="noopener" hidden>구글 폼 쓰기 ↗</a>
+      <a class="go" id="endPadlet" href="#" target="_blank" rel="noopener" hidden>패들렛에 남기기 ↗</a>
+      <p id="endNoLinks" hidden>아직 넣은 링크가 없어요.</p>
+    </nav>
     <div class="actions">
-      <button type="button" class="primary" id="endDive">다시 들어오기</button>
+      <button type="button" id="endDive">다시 들어오기</button>
     </div>
   </div>
 </div>
@@ -1382,17 +1388,7 @@ let centerGlow = null, centerCore = null;
     t.colorSpace = THREE.SRGBColorSpace;
     return t;
   }
-  [['form', '구글 폼', -4.0, -1.6], ['padlet', '패들렛', -4.0, 1.4]].forEach(([kind, title, x, z]) => {
-    const g = new THREE.Group();
-    g.position.set(x, 0.17, z);
-    g.rotation.y = Math.atan2(-x, -z);
-    const legMat = std('#8a6648');
-    [-0.5, 0.5].forEach(lx => add(new THREE.CylinderGeometry(0.04, 0.05, 1.6, 8), legMat, lx, 0.8, -0.05, g));
-    const board = add(new THREE.PlaneGeometry(1.4, 0.875), new THREE.MeshStandardMaterial({ map: boardTexture(title, '눌러서 열기'), roughness: 0.9 }), 0, 1.25, 0, g);
-    const back = add(new THREE.BoxGeometry(1.48, 0.95, 0.05), legMat, 0, 1.25, -0.035, g);
-    dome.add(g);
-    [board, back].forEach(m => { m.userData.tap = { kind }; domeTap.push(m); });
-  });
+  // 구글 폼과 패들렛은 돔 밖으로 나간 뒤 끝 화면 메뉴에 보임 (돔 안에서는 명상에 집중)
   dome.updateMatrixWorld(true);
 }
 const DOME_CENTER = new THREE.Vector3(HOUSE_POS.x, HOUSE_BASE, HOUSE_POS.z);
@@ -1564,7 +1560,7 @@ camera.add(viewCup);
   const steamHolder = new THREE.Group();
   steamHolder.position.y = 0.03;
   viewCup.add(steamHolder);
-  viewCup.userData.steam = makeSteam(steamHolder, 0.1);
+  viewCup.userData.steam = makeSteam(steamHolder, 0.08);
 }
 function updateViewCup(dt, t) {
   const r = teaRituals.find(x => x.fig === myFig);
@@ -1578,12 +1574,19 @@ function updateViewCup(dt, t) {
   myFig.cup.visible = false;
   const sip = ph.sip;
   // 화면 아래 가운데 → 마실 때 입가(화면 가운데 아래)로 다가오며 기울어짐
-  viewCup.position.set(0, mix(-0.24, -0.15, sip), mix(-0.62, -0.4, sip));
-  viewCup.rotation.set(mix(0.35, 0.95, sip), 0, 0);
+  // 들고 있을 때는 화면 아래, 마실 때는 얼굴 바로 앞까지 와서 기울어져 찻물이 보임
+  const s2 = smooth(sip);
+  viewCup.position.set(0, mix(-0.2, -0.085, s2), mix(-0.5, -0.17, s2));
+  const tilt = mix(0.55, 1.15, s2);
+  viewCup.rotation.set(tilt, 0, 0);
+  // 찻물은 잔이 기울어도 수평을 유지하고 입 쪽 가장자리로 쏠림
+  const teaM = viewCup.userData.tea;
+  teaM.rotation.x = -Math.PI / 2 - tilt * 0.85;
+  teaM.position.z = 0.012 * s2;
   const cup = teaCups[r.c];
   const lvl = cup ? cup.level : 0.6;
   viewCup.userData.tea.visible = lvl > 0.05;
-  viewCup.userData.tea.position.y = -0.03 + lvl * 0.05;
+  viewCup.userData.tea.position.y = -0.03 + lvl * 0.05 + 0.008 * s2;
   const st = viewCup.userData.steam;
   st.strength = 1 - sip * 0.85;
   updateSteam(st, dt, t);
@@ -2524,7 +2527,7 @@ function updateWalk(dt, t) {
       const mr = teaRituals.find(r => r.fig === myFig);
       const hold = mr ? teaPhase((performance.now() - mr.at) / 1000).hold : 0;
       yaw = mix(yaw, heading, smooth(teaView));
-      pitchFP = mix(pitchFP, mix(-0.62, -0.18, hold), smooth(teaView));
+      pitchFP = mix(pitchFP, mix(-0.62, -0.25, hold), smooth(teaView));
       eyeBack = 0;
     }
     if (mySeat !== null && performance.now() - lastLookAt > 4000 && teaView < 0.01) camYaw += Math.atan2(Math.sin(heading - camYaw), Math.cos(heading - camYaw)) * Math.min(1, dt * 0.8);
@@ -2898,6 +2901,12 @@ function updateDomeUi(near) {
 /* 링크 */
 const SAFE_URL = u => typeof u === 'string' && /^https:\/\/[^\s"'<>]+$/i.test(u.trim()) && u.length < 600;
 function applyLinks() {
+  let any = false;
+  [['form', 'endForm'], ['padlet', 'endPadlet']].forEach(([k, id]) => {
+    const a = $(id);
+    if (SAFE_URL(links[k])) { a.href = links[k].trim(); a.hidden = false; any = true; } else { a.removeAttribute('href'); a.hidden = true; }
+  });
+  $('endNoLinks').hidden = any;
   [['form', 'formLink'], ['padlet', 'padletLink']].forEach(([k, id]) => {
     const a = $(id);
     if (SAFE_URL(links[k])) { a.href = links[k].trim(); a.hidden = false; } else { a.removeAttribute('href'); a.hidden = true; }
@@ -3388,6 +3397,7 @@ function updateLeave(dt, t) {
   if (e > 6.4 && !L.done) {
     L.done = true;
     iAmOut = true;
+    applyLinks();
     $('endSheet').hidden = false;
     sendPresence(true);
   }
