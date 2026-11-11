@@ -860,6 +860,7 @@ function updateWater(t) {
     r.s.material.rotation = 0.12 + Math.sin(t * 0.15 + r.ph) * 0.06;
   }
   updatePretty(t);
+  updateReefFish(t);
 }
 
 const smokes = [], worms = [];
@@ -1065,6 +1066,177 @@ function updatePretty(t) {
   for (const an of anemones) an.tents.forEach((pv, k) => { pv.children[0].rotation.x = Math.sin(t * 1.4 + an.ph + k * 0.5) * 0.25; });
 }
 
+/* ---------- 예쁜 물고기: 흰동가리(말미잘 집)와 쏠배감펭 ---------- */
+const reefFish = [];
+function stripeSphere(r, sx, sy, sz, colorAt) {
+  const g = new THREE.SphereGeometry(r, 40, 24);
+  g.scale(sx, sy, sz);
+  const pos = g.attributes.position, col = new Float32Array(pos.count * 3), c = new THREE.Color();
+  for (let i = 0; i < pos.count; i++) {
+    colorAt(pos.getX(i), pos.getY(i), pos.getZ(i), c);
+    col.set([c.r, c.g, c.b], i * 3);
+  }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  return g;
+}
+function fanGeometry(radius, a0, a1, rays, colorA, colorB) {
+  // 부채꼴 지느러미: 줄무늬가 번갈아 있는 얇은 막
+  const n = rays * 2, verts = [0, 0, 0], cols = [], idx = [];
+  const cA = new THREE.Color(colorA), cB = new THREE.Color(colorB);
+  cols.push(cA.r, cA.g, cA.b);
+  for (let i = 0; i <= n; i++) {
+    const a = a0 + (a1 - a0) * i / n, rr = radius * (i % 2 ? 1 : 0.86);
+    verts.push(Math.cos(a) * rr, Math.sin(a) * rr, 0);
+    const cc = i % 4 < 2 ? cA : cB;
+    cols.push(cc.r, cc.g, cc.b);
+    if (i > 0) idx.push(0, i, i + 1);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  return g;
+}
+function makeClownfish() {
+  const g = new THREE.Group();
+  const ORANGE = new THREE.Color('#ff7a1a'), WHITE = new THREE.Color('#ffffff'), BLACK = new THREE.Color('#1a1414');
+  const body = noRay(new THREE.Mesh(stripeSphere(0.1, 0.8, 1, 1.75, (x, y, z, c) => {
+    // 머리 뒤, 몸 가운데, 꼬리 앞 세 줄의 흰 띠와 까만 테두리
+    const bands = [[0.09, 0.03], [-0.01, 0.035], [-0.13, 0.02]];
+    c.copy(ORANGE);
+    for (const [bz, w] of bands) {
+      const d = Math.abs(z - bz);
+      if (d < w) c.copy(WHITE); else if (d < w + 0.009) c.copy(BLACK);
+    }
+  }), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.45, emissive: '#ff6a00', emissiveIntensity: 0.12 })));
+  g.add(body);
+  const finMat = new THREE.MeshStandardMaterial({ vertexColors: true, side: THREE.DoubleSide, roughness: 0.5 });
+  const tail = noRay(new THREE.Mesh(fanGeometry(0.1, Math.PI * 0.72, Math.PI * 1.28, 3, '#ff7a1a', '#ff7a1a'), finMat));
+  tail.rotation.y = Math.PI / 2; tail.position.z = -0.17;
+  g.add(tail);
+  const dorsal = noRay(new THREE.Mesh(fanGeometry(0.075, Math.PI * 0.15, Math.PI * 0.85, 4, '#ff7a1a', '#1a1414'), finMat));
+  dorsal.rotation.y = Math.PI / 2; dorsal.position.set(0, 0.08, -0.02);
+  g.add(dorsal);
+  const side = [];
+  [-1, 1].forEach(sd => {
+    const f = noRay(new THREE.Mesh(fanGeometry(0.06, -0.5, 0.5, 3, '#ff8a2a', '#1a1414'), finMat));
+    f.position.set(sd * 0.075, -0.02, 0.05);
+    f.rotation.y = sd > 0 ? 0.2 : Math.PI - 0.2;
+    g.add(f); side.push(f);
+  });
+  const eyeM = new THREE.MeshStandardMaterial({ color: '#111', roughness: 0.2 });
+  [-1, 1].forEach(sd => { const e = noRay(new THREE.Mesh(new THREE.SphereGeometry(0.017, 10, 8), eyeM)); e.position.set(sd * 0.06, 0.025, 0.13); g.add(e); });
+  g.scale.setScalar(1.6);
+  scene.add(g);
+  return { g, tail, side };
+}
+function makeLionfish() {
+  const g = new THREE.Group();
+  const RED = new THREE.Color('#a8322b'), CREAM = new THREE.Color('#fff1df');
+  const body = noRay(new THREE.Mesh(stripeSphere(0.16, 0.72, 0.95, 1.9, (x, y, z, c) => {
+    const v = Math.sin(z * 34 + y * 9);
+    c.copy(v > 0.15 ? RED : CREAM);
+  }), new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55 })));
+  g.add(body);
+  const finMat = new THREE.MeshStandardMaterial({ vertexColors: true, side: THREE.DoubleSide, roughness: 0.6, transparent: true, opacity: 0.85 });
+  const spineMat = new THREE.MeshStandardMaterial({ color: '#f3d9c8', roughness: 0.6 });
+  // 등의 긴 가시
+  for (let i = 0; i < 9; i++) {
+    const h = 0.16 + Math.sin(i / 8 * Math.PI) * 0.16;
+    const sp = noRay(new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.008, h, 5), i % 2 ? spineMat : new THREE.MeshStandardMaterial({ color: '#a8322b' })));
+    sp.position.set(0, 0.14 + h / 2 - 0.02, 0.17 - i * 0.04);
+    sp.rotation.x = -0.35;
+    g.add(sp);
+  }
+  // 사자 갈기처럼 펼친 커다란 가슴지느러미 (흰 가시와 줄무늬 막)
+  const fans = [];
+  [-1, 1].forEach(sd => {
+    const pv = new THREE.Group();
+    pv.position.set(sd * 0.09, -0.02, 0.1);
+    g.add(pv);
+    const fan = noRay(new THREE.Mesh(fanGeometry(0.42, -2.3, -0.35, 7, '#b5463c', '#fff1df'), finMat));
+    fan.rotation.y = sd > 0 ? 0.35 : Math.PI - 0.35;
+    pv.add(fan);
+    for (let k = 0; k < 7; k++) {
+      const a = -2.3 + (2.3 - 0.35) * (k + 0.5) / 7;
+      const sp = noRay(new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.005, 0.46, 4), spineMat));
+      sp.position.set(Math.cos(a) * 0.23, Math.sin(a) * 0.23, 0);
+      sp.rotation.z = a - Math.PI / 2;
+      fan.add(sp);
+    }
+    fans.push({ pv, sd });
+  });
+  const tail = noRay(new THREE.Mesh(fanGeometry(0.14, Math.PI * 0.75, Math.PI * 1.25, 4, '#b5463c', '#fff1df'), finMat));
+  tail.rotation.y = Math.PI / 2; tail.position.z = -0.3;
+  g.add(tail);
+  const eyeM = new THREE.MeshStandardMaterial({ color: '#2a0d0a', roughness: 0.2 });
+  [-1, 1].forEach(sd => { const e = noRay(new THREE.Mesh(new THREE.SphereGeometry(0.022, 10, 8), eyeM)); e.position.set(sd * 0.095, 0.05, 0.22); g.add(e); });
+  g.scale.setScalar(1.7);
+  scene.add(g);
+  return { g, tail, fans };
+}
+// 돔 둘레 세 곳에 큰 말미잘 집과 흰동가리 한 쌍씩
+{
+  const homes = [[-0.4, 8.2], [1.9, 8.6], [3.6, 8.0]];
+  homes.forEach(([a, r], hi) => {
+    const x = HOUSE_POS.x + Math.cos(a) * r, z = HOUSE_POS.z + Math.sin(a) * r, y = groundH(x, z);
+    const color = ['#c56bd6', '#ff8fb0', '#8fd6c8'][hi];
+    const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.6, emissive: color, emissiveIntensity: 0.18 });
+    const base = new THREE.Group();
+    base.position.set(x, y, z);
+    scene.add(base);
+    const disc = noRay(new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.62, 0.22, 20), mat));
+    disc.position.y = 0.11;
+    base.add(disc);
+    const tents = [];
+    for (let k = 0; k < 46; k++) {
+      const ta = k * 2.4, tr = 0.12 + (k % 5) * 0.09;
+      const pv = new THREE.Group();
+      pv.position.set(Math.cos(ta) * tr, 0.2, Math.sin(ta) * tr);
+      pv.rotation.set(Math.sin(ta) * tr * 0.9, 0, -Math.cos(ta) * tr * 0.9);
+      const tn = noRay(new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.03, 0.42, 5), mat));
+      tn.position.y = 0.2;
+      const tip = noRay(new THREE.Mesh(new THREE.SphereGeometry(0.03, 6, 5), new THREE.MeshStandardMaterial({ color: '#fff3f7', emissive: '#fff3f7', emissiveIntensity: 0.2 })));
+      tip.position.y = 0.21;
+      tn.add(tip);
+      pv.add(tn);
+      base.add(pv);
+      tents.push(pv);
+    }
+    anemones.push({ tents, ph: hi * 2 });
+    for (let f = 0; f < 2; f++) reefFish.push({ kind: 'clown', ...makeClownfish(), home: new THREE.Vector3(x, y + 0.55, z), r: 0.55 + f * 0.25, w: (f ? -1 : 1) * (0.7 + Math.random() * 0.3), ph: Math.random() * 6 });
+  });
+  // 쏠배감펭 둘: 돔 앞 바위 근처를 천천히 떠다님
+  [[0.9, 9.5, 1.3], [2.8, 10.5, 1.9]].forEach(([a, r, h], i) => {
+    const x = HOUSE_POS.x + Math.cos(a) * r, z = HOUSE_POS.z + Math.sin(a) * r;
+    reefFish.push({ kind: 'lion', ...makeLionfish(), home: new THREE.Vector3(x, groundH(x, z) + h, z), r: 1.2 + i * 0.5, w: 0.12 + i * 0.05, ph: i * 3 });
+  });
+}
+const rfA = new THREE.Vector3(), rfB = new THREE.Vector3();
+function reefPos(f, t, out) {
+  const a = f.ph + t * f.w;
+  if (f.kind === 'clown') return out.set(f.home.x + Math.cos(a) * f.r, f.home.y + Math.sin(a * 2.3) * 0.15, f.home.z + Math.sin(a) * f.r * 0.8);
+  return out.set(f.home.x + Math.cos(a) * f.r, f.home.y + Math.sin(a * 1.7) * 0.25, f.home.z + Math.sin(a) * f.r * 0.6);
+}
+function updateReefFish(t) {
+  for (const f of reefFish) {
+    reefPos(f, t, rfA);
+    reefPos(f, t + 0.2, rfB);
+    f.g.position.copy(rfA);
+    f.g.lookAt(rfB);
+    if (f.kind === 'clown') {
+      f.g.rotateY(Math.sin(t * 9 + f.ph) * 0.12);
+      f.tail.rotation.x = Math.sin(t * 14 + f.ph) * 0.4;
+      f.side.forEach((s, i) => { s.rotation.x = Math.sin(t * 10 + i * 2) * 0.4; });
+    } else {
+      f.g.rotateY(Math.sin(t * 1.2 + f.ph) * 0.05);
+      f.tail.rotation.x = Math.sin(t * 3 + f.ph) * 0.25;
+      f.fans.forEach(fn => { fn.pv.rotation.y = fn.sd * (0.15 + Math.sin(t * 1.1 + f.ph) * 0.12); fn.pv.rotation.x = Math.sin(t * 0.9 + f.ph) * 0.08; });
+    }
+  }
+}
+
 /* ---------- 투명 돔 ---------- */
 const DOME_R = 6;
 const dome = new THREE.Group();
@@ -1244,6 +1416,38 @@ function updateHouseBits(dt, t) {
   });
 }
 
+/* 김: 잔 위로 하얀 김이 몇 가닥 피어올라 흩어짐 */
+const steamTex = (() => {
+  const c = document.createElement('canvas');
+  c.width = 64; c.height = 128;
+  const g = c.getContext('2d');
+  const gr = g.createRadialGradient(32, 64, 2, 32, 64, 30);
+  gr.addColorStop(0, 'rgba(255,255,255,.9)'); gr.addColorStop(0.5, 'rgba(255,255,255,.35)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = gr;
+  g.save(); g.scale(1, 2); g.beginPath(); g.arc(32, 32, 30, 0, Math.PI * 2); g.fill(); g.restore();
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+})();
+function makeSteam(parent, size) {
+  const puffs = [];
+  for (let i = 0; i < 6; i++) {
+    const sp = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: steamTex, color: '#ffffff', transparent: true, opacity: 0, depthWrite: false })));
+    parent.add(sp);
+    puffs.push({ sp, life: i / 6, w: Math.random() * 6 });
+  }
+  return { puffs, size, strength: 0 };
+}
+function updateSteam(st, dt, t) {
+  for (const p of st.puffs) {
+    p.life += dt * 0.45;
+    if (p.life > 1) { p.life -= 1; p.w = Math.random() * 6; }
+    const L = p.life, sz = st.size;
+    p.sp.position.set(Math.sin(t * 1.3 + p.w + L * 4) * sz * 0.35 * L, sz * (0.3 + L * 2.6), Math.cos(t * 1.1 + p.w) * sz * 0.2 * L);
+    p.sp.scale.set(sz * (0.5 + L * 1.2), sz * (0.9 + L * 1.8), 1);
+    p.sp.material.opacity = Math.min(1, st.strength * Math.min(1, L * 5) * (1 - L) * 1.1);
+  }
+}
 /* ---------- 차 마시기: 찻상 앞에 앉아 주전자로 따르고, 잔을 들어 마시고, 다시 내려놓음 ---------- */
 const TEA_T = 8.6;
 // 시간표(초): 주전자 들기 0~0.8, 따르기 0.8~2.6, 주전자 내려놓기 2.6~3.4, 잔 들기 3.4~4.1, 마시기 4.1~6.6, 내려놓기 6.6~7.3, 손 거두기 ~8.6
@@ -1256,7 +1460,7 @@ function teaPhase(e) {
   else if (e < 7.2) { hold = 1 - sm((e - 6.6) / 0.6); reach = sm((e - 6.6) / 0.6); }
   else reach = 1 - sm((e - 7.2) / 1.0);
   const sipAt = x => Math.sin(Math.min(1, Math.max(0, x)) * Math.PI);
-  const sip = Math.max(sipAt((e - 4.3) / 1.0), sipAt((e - 5.5) / 1.0));
+  const sip = Math.max(sipAt((e - 4.25) / 1.15), sipAt((e - 5.45) / 1.15));
   const pour = e > 0.8 && e < 2.6 ? Math.sin((e - 0.8) / 1.8 * Math.PI) : 0;
   return { reach, hold, sip, pour, held: e > 4.0 && e < 6.7 };
 }
@@ -1313,17 +1517,76 @@ function updateTea(dt, t) {
     if (!ph.held) {
       const lift = e > 3.4 && e < 4.0 ? smooth((e - 3.4) / 0.6) : e > 6.7 && e < 7.3 ? 1 - smooth((e - 6.7) / 0.6) : 0;
       if (lift > 0) {
-        r.fig.cup.getWorldPosition(tv3); teaSet.table.worldToLocal(tv3);
+        if (r.fig === myFig && fpBlend > 0.6) { viewCup.position.set(0, -0.24, -0.62); viewCup.updateMatrixWorld(true); viewCup.getWorldPosition(tv3); }
+        else r.fig.cup.getWorldPosition(tv3);
+        teaSet.table.worldToLocal(tv3);
         cup.g.position.lerpVectors(cup.home, tv3.add(new THREE.Vector3(0, -0.03, 0)), lift);
       } else cup.g.position.copy(cup.home);
     }
     r.fig.cupTea.visible = cup.level > 0.05;
   }
   for (const cup of teaCups) {
+    if (!cup.steam) cup.steam = makeSteam(cup.g, 0.05);
+    cup.steam.strength = cup.level > 0.05 && cup.g.visible ? 0.8 : 0;
+    updateSteam(cup.steam, dt, t);
     cup.tea.visible = cup.level > 0.05;
     cup.tea.position.y = 0.012 + cup.level * 0.045;
     if (!cupInUse(teaCups.indexOf(cup)) && cup.level > 0) cup.level = Math.max(0, cup.level - dt * 0.004);
   }
+}
+/* 눈으로 볼 때 두 손에 든 잔 (화면 아래쪽에 보이고, 마실 때 입가로 다가오며 기울어짐) */
+scene.add(camera);
+const viewCup = new THREE.Group();
+viewCup.visible = false;
+camera.add(viewCup);
+{
+  const celadon = new THREE.MeshStandardMaterial({ color: '#b9d3c3', roughness: 0.3, emissive: '#b9d3c3', emissiveIntensity: 0.25 });
+  const body = noRay(new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.04, 0.065, 28, 1, true), celadon));
+  body.material.side = THREE.DoubleSide;
+  viewCup.add(body);
+  const bottom = noRay(new THREE.Mesh(new THREE.CircleGeometry(0.04, 24), celadon));
+  bottom.rotation.x = -Math.PI / 2; bottom.position.y = -0.032;
+  viewCup.add(bottom);
+  const rim = noRay(new THREE.Mesh(new THREE.TorusGeometry(0.052, 0.004, 6, 32), celadon));
+  rim.rotation.x = Math.PI / 2; rim.position.y = 0.0325;
+  viewCup.add(rim);
+  const tea = noRay(new THREE.Mesh(new THREE.CircleGeometry(0.049, 28), new THREE.MeshStandardMaterial({ color: '#c99a45', roughness: 0.15, emissive: '#8a5a1a', emissiveIntensity: 0.25 })));
+  tea.rotation.x = -Math.PI / 2;
+  viewCup.add(tea);
+  viewCup.userData.tea = tea;
+  const skin = new THREE.MeshStandardMaterial({ color: '#fde6d2', roughness: 0.55, emissive: '#f6d2b8', emissiveIntensity: 0.42 });
+  [-1, 1].forEach(sd => {
+    const h = noRay(new THREE.Mesh(new THREE.SphereGeometry(0.05, 16, 12), skin));
+    h.position.set(sd * 0.064, -0.012, 0.01);
+    h.scale.set(0.55, 0.85, 0.75);
+    viewCup.add(h);
+  });
+  const steamHolder = new THREE.Group();
+  steamHolder.position.y = 0.03;
+  viewCup.add(steamHolder);
+  viewCup.userData.steam = makeSteam(steamHolder, 0.1);
+}
+function updateViewCup(dt, t) {
+  const r = teaRituals.find(x => x.fig === myFig);
+  const on = !!r && fpBlend > 0.6 && !leaving;
+  let ph = null;
+  if (on) ph = teaPhase((performance.now() - r.at) / 1000);
+  // 잔을 들고 있는 동안만 (집어 올리고 내려놓는 순간도 부드럽게)
+  const k = ph ? (ph.held ? 1 : 0) : 0;
+  viewCup.visible = on && k > 0;
+  if (!viewCup.visible) return;
+  myFig.cup.visible = false;
+  const sip = ph.sip;
+  // 화면 아래 가운데 → 마실 때 입가(화면 가운데 아래)로 다가오며 기울어짐
+  viewCup.position.set(0, mix(-0.24, -0.15, sip), mix(-0.62, -0.4, sip));
+  viewCup.rotation.set(mix(0.35, 0.95, sip), 0, 0);
+  const cup = teaCups[r.c];
+  const lvl = cup ? cup.level : 0.6;
+  viewCup.userData.tea.visible = lvl > 0.05;
+  viewCup.userData.tea.position.y = -0.03 + lvl * 0.05;
+  const st = viewCup.userData.steam;
+  st.strength = 1 - sip * 0.85;
+  updateSteam(st, dt, t);
 }
 let teaPending = null, teaSitting = null;
 function teaFrom(c) {
@@ -1447,9 +1710,7 @@ function makeFigure(color) {
   const celadon = new THREE.MeshStandardMaterial({ color: '#b9d3c3', roughness: 0.35 });
   M(new THREE.CylinderGeometry(0.052, 0.04, 0.065, 18), celadon, 0, 0, 0, cup);
   const cupTea = M(new THREE.CylinderGeometry(0.046, 0.046, 0.004, 18), new THREE.MeshStandardMaterial({ color: '#c8a35a', roughness: 0.4 }), 0, 0.026, 0, cup);
-  const steamSp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: '#ffffff', transparent: true, opacity: 0, depthWrite: false }));
-  steamSp.position.y = 0.11;
-  steamSp.scale.setScalar(0.16);
+  const steamSp = new THREE.Group();
   cup.add(steamSp);
   cup.visible = false;
   const fig = { g, pelvis, torso, body, head, legs, standLegs, crossLegs, arms, cup, cupTea, steamSp, eyesOpen, eyesClosed, mat, soft, sit: 1, blinkPh: Math.random() * 5 };
@@ -1477,10 +1738,12 @@ function applyPose(fig, pose, t, sit = 1, walk = 0) {
   const tea = tp ? tp.hold : 0, reach = tp ? tp.reach : 0, sip = tp ? tp.sip : 0, pourK = tp ? tp.pour : 0;
   if (!tp) fig.cup.visible = false;
   {
-    fig.cup.position.set(0, mix(0.2, 0.42, sip), mix(0.27, 0.32, sip));
-    fig.cup.rotation.x = -sip * 0.55;
-    fig.steamSp.material.opacity = (1 - sip) * 0.5 * (0.6 + Math.sin(t * 3) * 0.4);
-    fig.steamSp.position.y = 0.1 + (t * 0.08 % 0.06);
+    // 두 손으로 감싼 잔을 입가로 가져가 살짝 기울여 마심
+    fig.cup.position.set(0, mix(0.22, 0.47, sip), mix(0.28, 0.25, sip));
+    fig.cup.rotation.x = sip * 0.7;
+    if (!fig.steam) fig.steam = makeSteam(fig.steamSp, 0.05);
+    fig.steam.strength = (1 - sip * 0.8);
+    updateSteam(fig.steam, 1 / 60, t);
   }
   fig.sit += (sit - fig.sit) * 0.2;
   const s = fig.sit, up = 1 - s;
@@ -2261,8 +2524,8 @@ function updateWalk(dt, t) {
       const mr = teaRituals.find(r => r.fig === myFig);
       const hold = mr ? teaPhase((performance.now() - mr.at) / 1000).hold : 0;
       yaw = mix(yaw, heading, smooth(teaView));
-      pitchFP = mix(pitchFP, mix(-0.62, -0.32, hold), smooth(teaView));
-      eyeBack = 0.2 * hold;
+      pitchFP = mix(pitchFP, mix(-0.62, -0.18, hold), smooth(teaView));
+      eyeBack = 0;
     }
     if (mySeat !== null && performance.now() - lastLookAt > 4000 && teaView < 0.01) camYaw += Math.atan2(Math.sin(heading - camYaw), Math.cos(heading - camYaw)) * Math.min(1, dt * 0.8);
     const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
@@ -3161,6 +3424,7 @@ function frame() {
     updateSnow(dt, t);
     updateHouseBits(dt, t);
     updateTea(dt, t);
+    updateViewCup(dt, t);
     updateCreatures(t);
     updateLights(dt, t);
     updatePeers(dt, t);
