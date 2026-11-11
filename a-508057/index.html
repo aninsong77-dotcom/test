@@ -1213,6 +1213,11 @@ function makeLionfish() {
     anemones.push({ tents, ph: hi * 2 });
     for (let f = 0; f < 2; f++) reefFish.push({ kind: 'clown', ...makeClownfish(), home: new THREE.Vector3(x, y + 0.55, z), r: 0.55 + f * 0.25, w: (f ? -1 : 1) * (0.7 + Math.random() * 0.3), ph: Math.random() * 6 });
   });
+  // 돔 둘레를 크게 돌며 헤엄치는 흰동가리 넷 (유리 너머로 지나감)
+  for (let i = 0; i < 4; i++) {
+    const r = 7.2 + (i % 2) * 1.4;
+    reefFish.push({ kind: 'roam', ...makeClownfish(), home: new THREE.Vector3(0, HOUSE_BASE + 1.1 + i * 0.45, 0), r, w: (i % 2 ? -1 : 1) * (0.16 + i * 0.03), ph: i * 1.6 });
+  }
   // 쏠배감펭 둘: 돔 앞 바위 근처를 천천히 떠다님
   [[0.9, 9.5, 1.3], [2.8, 10.5, 1.9]].forEach(([a, r, h], i) => {
     const x = HOUSE_POS.x + Math.cos(a) * r, z = HOUSE_POS.z + Math.sin(a) * r;
@@ -1222,7 +1227,15 @@ function makeLionfish() {
 const rfA = new THREE.Vector3(), rfB = new THREE.Vector3();
 function reefPos(f, t, out) {
   const a = f.ph + t * f.w;
-  if (f.kind === 'clown') return out.set(f.home.x + Math.cos(a) * f.r, f.home.y + Math.sin(a * 2.3) * 0.15, f.home.z + Math.sin(a) * f.r * 0.8);
+  if (f.kind === 'clown') {
+    // 가끔 말미잘을 떠나 크게 한 바퀴 돌고 돌아옴
+    const ex = Math.pow(Math.max(0, Math.sin(t * 0.13 + f.ph * 1.7)), 2);
+    const R = f.r + ex * 3.2;
+    return out.set(f.home.x + Math.cos(a) * R, f.home.y + Math.sin(a * 2.3) * 0.15 + ex * (1.2 + Math.sin(a * 1.3) * 0.5), f.home.z + Math.sin(a) * R * 0.85);
+  }
+  if (f.kind === 'roam') {
+    return out.set(DOME_CENTER.x + Math.cos(a) * f.r, f.home.y + Math.sin(a * 2.1 + f.ph) * 0.6, DOME_CENTER.z + Math.sin(a) * f.r * 0.92);
+  }
   return out.set(f.home.x + Math.cos(a) * f.r, f.home.y + Math.sin(a * 1.7) * 0.25, f.home.z + Math.sin(a) * f.r * 0.6);
 }
 function updateReefFish(t) {
@@ -1231,7 +1244,7 @@ function updateReefFish(t) {
     reefPos(f, t + 0.2, rfB);
     f.g.position.copy(rfA);
     f.g.lookAt(rfB);
-    if (f.kind === 'clown') {
+    if (f.kind === 'clown' || f.kind === 'roam') {
       f.g.rotateY(Math.sin(t * 9 + f.ph) * 0.12);
       f.tail.rotation.x = Math.sin(t * 14 + f.ph) * 0.4;
       f.side.forEach((s, i) => { s.rotation.x = Math.sin(t * 10 + i * 2) * 0.4; });
@@ -1560,6 +1573,19 @@ camera.add(viewCup);
   const steamHolder = new THREE.Group();
   steamHolder.position.y = 0.03;
   viewCup.add(steamHolder);
+  viewCup.userData.hands = viewCup.children.filter(o => o.geometry && o.geometry.type === 'SphereGeometry');
+  // 화면 아래 양쪽에서 올라와 잔을 감싸는 내 두 팔 (옷 색 소매 + 손목)
+  const viewArms = new THREE.Group();
+  camera.add(viewArms);
+  viewArms.visible = false;
+  const sleeveMat = new THREE.MeshStandardMaterial({ color: '#9fd8c8', roughness: 0.75, emissive: '#9fd8c8', emissiveIntensity: 0.22 });
+  const arms = [-1, 1].map(sd => {
+    const sleeve = noRay(new THREE.Mesh(new THREE.CapsuleGeometry(0.042, 1, 8, 16), sleeveMat));
+    const wrist = noRay(new THREE.Mesh(new THREE.SphereGeometry(0.036, 14, 10), skin));
+    viewArms.add(sleeve, wrist);
+    return { sd, sleeve, wrist };
+  });
+  viewCup.userData.arms = { group: viewArms, arms, sleeveMat };
   viewCup.userData.steam = makeSteam(steamHolder, 0.08);
 }
 function updateViewCup(dt, t) {
@@ -1570,8 +1596,12 @@ function updateViewCup(dt, t) {
   // 잔을 들고 있는 동안만 (집어 올리고 내려놓는 순간도 부드럽게)
   const k = ph ? (ph.held ? 1 : 0) : 0;
   viewCup.visible = on && k > 0;
+  const va = viewCup.userData.arms;
+  va.group.visible = viewCup.visible;
   if (!viewCup.visible) return;
   myFig.cup.visible = false;
+  va.sleeveMat.color.copy(myFig.mat.color);
+  va.sleeveMat.emissive.copy(myFig.mat.color);
   const sip = ph.sip;
   // 화면 아래 가운데 → 마실 때 입가(화면 가운데 아래)로 다가오며 기울어짐
   // 들고 있을 때는 화면 아래, 마실 때는 얼굴 바로 앞까지 와서 기울어져 찻물이 보임
@@ -1587,6 +1617,19 @@ function updateViewCup(dt, t) {
   const lvl = cup ? cup.level : 0.6;
   viewCup.userData.tea.visible = lvl > 0.05;
   viewCup.userData.tea.position.y = -0.03 + lvl * 0.05 + 0.008 * s2;
+  // 팔: 화면 아래 바깥(어깨 쪽)에서 손까지
+  viewCup.updateMatrix();
+  const hp = new THREE.Vector3(), sh = new THREE.Vector3(), d = new THREE.Vector3();
+  for (const a of va.arms) {
+    hp.set(a.sd * 0.07, -0.025, 0.012).applyMatrix4(viewCup.matrix);
+    sh.set(a.sd * 0.27, -0.36, -0.1);
+    d.subVectors(hp, sh);
+    const len = d.length();
+    a.sleeve.scale.set(1, Math.max(0.05, len - 0.07), 1);
+    a.sleeve.position.copy(sh).addScaledVector(d, 0.5 - 0.035 / len);
+    a.sleeve.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.clone().normalize());
+    a.wrist.position.copy(hp).addScaledVector(d, -0.06 / len);
+  }
   const st = viewCup.userData.steam;
   st.strength = 1 - sip * 0.85;
   updateSteam(st, dt, t);
