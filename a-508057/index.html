@@ -1458,11 +1458,14 @@ function updateSteam(st, dt, t) {
   }
 }
 /* ---------- 차 마시기: 찻상 앞에 앉아 주전자로 따르고, 잔을 들어 마시고, 다시 내려놓음 ---------- */
-const TEA_T = 8.6;
+const TEA_T = 9.8;
+// 실제 시간을 예전 시간표로: 주전자 들기 0~1.0초, 따르기 1.0~3.8초(넉넉하게), 나머지는 1.2초 뒤로
+function teaClock(e) { return e < 1.0 ? e * 0.8 : e < 3.8 ? 0.8 + (e - 1.0) * (1.8 / 2.8) : e - 1.2; }
 // 주전자 꼭지 끝 (주전자 안쪽 좌표): 꼭지 가운데 (0.12, 0.12) + 길이 반 × 꼭지 방향
 const SPOUT_TIP = new THREE.Vector3(0.12 + 0.06 * Math.sin(0.9), 0.12 + 0.06 * Math.cos(0.9), 0);
 // 시간표(초): 주전자 들기 0~0.8, 따르기 0.8~2.6, 주전자 내려놓기 2.6~3.4, 잔 들기 3.4~4.1, 마시기 4.1~6.6, 내려놓기 6.6~7.3, 손 거두기 ~8.6
 function teaPhase(e) {
+  e = teaClock(e);
   const sm = x => smooth(Math.min(1, Math.max(0, x)));
   let reach = 0, hold = 0;
   if (e < 3.4) reach = sm(e / 0.6);
@@ -1499,22 +1502,23 @@ function endTeaRitual(r) {
 const tv3 = new THREE.Vector3(), tv4 = new THREE.Vector3();
 function updateTea(dt, t) {
   for (const r of [...teaRituals]) {
-    const e = (performance.now() - r.at) / 1000;
+    let e = (performance.now() - r.at) / 1000;
     const cup = teaCups[r.c];
     if (e > TEA_T) { cup.level = Math.min(cup.level, 0.35); endTeaRitual(r); continue; }
     const ph = teaPhase(e);
+    e = teaClock(e);
     // 주전자: 들어서 잔 위로 가져가 기울이고, 다시 가운데로
     const pot = teaSet.potGroup;
     const k = e < 0.8 ? smooth(e / 0.8) : e < 2.6 ? 1 : e < 3.4 ? 1 - smooth((e - 2.6) / 0.8) : 0;
     pot.rotation.set(0, -TEA_CUP_ANGLES[r.c], 0);
-    pot.rotateZ(-ph.pour * 0.8);
+    pot.rotateZ(-Math.min(1, ph.pour * 1.4) * 0.85);
     // 꼭지 끝이 잔 한가운데 바로 위에 오도록 주전자 자리를 맞춤
     const tipOff = SPOUT_TIP.clone().applyQuaternion(pot.quaternion);
     const target = cup.home.clone().add(new THREE.Vector3(0, 0.065 + 0.07, 0)).sub(tipOff);
     pot.position.lerpVectors(new THREE.Vector3(0, TEA_TOP, 0), target, k);
     pot.position.y += Math.sin(k * Math.PI) * 0.06 * (e < 0.8 || e > 2.6 ? 1 : 0);
     // 찻물 줄기와 잔 채우기
-    const pouring = ph.pour > 0.35;
+    const pouring = ph.pour > 0.12;
     teaSet.stream.visible = pouring;
     if (pouring) {
       tv3.copy(SPOUT_TIP); pot.localToWorld(tv3); teaSet.stream.parent.worldToLocal(tv3);
@@ -1523,7 +1527,7 @@ function updateTea(dt, t) {
       teaSet.stream.scale.set(1, Math.max(0.01, tv3.distanceTo(tv4)), 1);
       teaSet.stream.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tv4.clone().sub(tv3).normalize());
     }
-    if (e > 0.9 && e < 2.6) cup.level = Math.max(cup.level, Math.min(1, (e - 0.9) / 1.5));
+    if (e > 0.9 && e < 2.5) cup.level = Math.max(cup.level, Math.min(1, (e - 0.9) / 1.5));
     if (e > 4.6 && e < 6.6) cup.level = Math.min(cup.level, mix(1, 0.35, (e - 4.6) / 2));
     // 잔: 찻상 ↔ 두 손
     r.fig.cup.visible = ph.held;
@@ -1602,7 +1606,30 @@ function updateViewCup(dt, t) {
   const k = ph ? (ph.held ? 1 : 0) : 0;
   viewCup.visible = on && k > 0;
   const va = viewCup.userData.arms;
-  va.group.visible = viewCup.visible;
+  const potHands = on && !ph.held && ph.reach > 0.25 && (performance.now() - r.at) / 1000 < 5.2;
+  va.group.visible = viewCup.visible || potHands;
+  if (potHands) {
+    va.sleeveMat.color.copy(myFig.mat.color);
+    va.sleeveMat.emissive.copy(myFig.mat.color);
+    const pot = teaSet.potGroup;
+    pot.updateMatrixWorld(true);
+    camera.updateMatrixWorld(true);
+    // 손잡이와 뚜껑 중 화면 왼쪽에 있는 것을 왼손이, 오른쪽에 있는 것을 오른손이 잡음 (팔이 엇갈리지 않게)
+    const grips = [new THREE.Vector3(0.0, 0.2, 0), new THREE.Vector3(-0.13, 0.1, 0)].map(g => camera.worldToLocal(pot.localToWorld(g)));
+    grips.sort((p1, p2) => p1.x - p2.x);
+    const hp = new THREE.Vector3(), sh = new THREE.Vector3(), d = new THREE.Vector3();
+    for (const a of va.arms) {
+      hp.copy(grips[a.sd < 0 ? 0 : 1]);
+      sh.set(a.sd * 0.3, -0.5, Math.min(-0.3, hp.z * 0.4));
+      d.subVectors(hp, sh);
+      const len = d.length();
+      const wristAt = Math.max(0, len - 0.03);
+      a.wrist.position.copy(sh).addScaledVector(d, wristAt / len);
+      a.sleeve.scale.set(1, Math.max(0.05, wristAt - 0.05), 1);
+      a.sleeve.position.copy(sh).addScaledVector(d, (wristAt - 0.05) / 2 / len);
+      a.sleeve.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.clone().normalize());
+    }
+  }
   if (!viewCup.visible) return;
   myFig.cup.visible = false;
   va.sleeveMat.color.copy(myFig.mat.color);
@@ -2566,7 +2593,7 @@ function updateWalk(dt, t) {
   const fb = smooth(fpBlend);
   // 눈으로 볼 때는 내 몸을 숨김 (차 마실 때만 잔을 든 두 손이 보임)
   myFig.head.visible = fb < 0.6;
-  myFig.g.visible = fb < 0.6 || teaView > 0.05;
+  myFig.g.visible = fb < 0.6;
   myBub.userData.hideForEyes = fb > 0.6;
   if (fb > 0.001) {
     const eyeH = mix(0.86, 0.76, myFig.sit);
