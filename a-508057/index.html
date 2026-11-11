@@ -159,6 +159,10 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 }
 .sheet input:focus-visible{outline:2px solid var(--glow);outline-offset:1px}
 .sheet .actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;max-height:52vh;overflow-y:auto}
+.gallery a{display:grid;gap:4px;color:var(--muted);font-size:12px;text-decoration:none;min-width:0}
+.gallery img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;background:rgba(255,255,255,.06);max-width:100%}
+.gallery a:focus-visible{outline:2px solid var(--glow);outline-offset:2px;border-radius:10px}
 .sheet a.go{
   display:block;text-align:center;font:500 15px/1 var(--f-body);color:#0b3550;background:var(--glow);
   border-radius:999px;padding:13px 16px;text-decoration:none;
@@ -189,12 +193,16 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
     <button type="button" class="primary" id="seatBtn">방석에 앉기</button>
     <button type="button" id="helloBtn">안녕하세요</button>
     <button type="button" id="bowBtn">합장 인사</button>
+    <button type="button" class="primary" id="bellBtn">종 치기</button>
+  </div>
+  <div class="row">
     <a class="linkbtn" id="formLink" href="#" target="_blank" rel="noopener" hidden>구글 폼 ↗</a>
     <a class="linkbtn" id="padletLink" href="#" target="_blank" rel="noopener" hidden>패들렛 ↗</a>
+    <button type="button" id="galleryBtn" hidden>기록 사진</button>
+    <button type="button" id="stopBellBtn" hidden>명상 그만하기</button>
   </div>
   <div class="row" id="hostRow" hidden>
-    <button type="button" class="primary" id="startBtn">명상 시작</button>
-    <button type="button" id="stopBtn" hidden>명상 멈추기</button>
+    <button type="button" id="snapBtn">지금 사진 남기기</button>
     <button type="button" id="linksBtn">링크 넣기</button>
   </div>
   <div class="row" id="soundRow" hidden>
@@ -213,6 +221,15 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
       <button type="button" id="linkCancel">닫기</button>
       <button type="button" class="primary" id="linkSave">저장</button>
     </div>
+  </div>
+</div>
+
+<div class="sheet" id="gallerySheet" hidden>
+  <div class="card" role="dialog" aria-labelledby="galleryTitle">
+    <h2 id="galleryTitle">기록 사진</h2>
+    <p id="galleryNote">매일 오전 9시 명상이 시작되고 15초 뒤, 끝나기 직전에 한 장씩 남아요. 사진을 누르면 새 창에서 크게 열려요.</p>
+    <div class="gallery" id="galleryList"></div>
+    <div class="actions"><button type="button" id="galleryClose">닫기</button></div>
   </div>
 </div>
 
@@ -1295,6 +1312,8 @@ canvas.addEventListener('pointerup', e => {
       sitAt(tap.i);
     } else if (tap.kind === 'tea') {
       toast('따뜻한 차 한 잔');
+    } else if (tap.kind === 'bell') {
+      ringFromMe();
     } else {
       openLink(tap.kind);
     }
@@ -1320,7 +1339,6 @@ let room = null, db = null, user = null, isHost = false;
 let mySeat = null;
 const takenSeats = new Set();
 let myGesture = { k: '', n: 0, at: 0 };
-let session = { state: 'idle', startAt: 0 };
 let links = { form: '', padlet: '' };
 let domeUiShown = null;
 
@@ -1405,6 +1423,7 @@ async function renderPeers(peers) {
       v.gesture = { k: g.k, n: g.n, at: v.gesture.n === 0 && !v.gestureInit ? 0 : performance.now() };
     }
     v.gestureInit = true;
+    checkRing(p.peer, pr.r);
     v.by = p.by;
     v.guest = p.guest;
   }
@@ -1440,15 +1459,16 @@ function updatePeers(dt, t) {
   }
   const me = orb.position.clone();
   showBubble(myBubbles, myGesture, me.add(new THREE.Vector3(0, 0.45, 0)));
+  updateBellLook();
 }
 
 /* 내 상태 보내기 (자리, 위치, 인사) */
 let lastPresence = '', lastPresenceAt = 0;
-function sendPresence() {
+function sendPresence(force) {
   if (!room) return;
   const now = performance.now();
-  if (now - lastPresenceAt < 100) return;
-  const obj = { x: +pos2.x.toFixed(2), z: +pos2.y.toFixed(2), s: mySeat, g: { k: myGesture.k, n: myGesture.n } };
+  if (!force && now - lastPresenceAt < 100) return;
+  const obj = { x: +pos2.x.toFixed(2), z: +pos2.y.toFixed(2), s: mySeat, g: { k: myGesture.k, n: myGesture.n }, r: { n: myRing.n, at: myRing.at } };
   const str = JSON.stringify(obj);
   if (str === lastPresence) return;
   lastPresence = str; lastPresenceAt = now;
@@ -1531,7 +1551,7 @@ function openLink(kind) {
   }
   $('openSheet').hidden = false;
 }
-function closeSheets() { $('openSheet').hidden = true; $('linkSheet').hidden = true; }
+function closeSheets() { $('openSheet').hidden = true; $('linkSheet').hidden = true; $('gallerySheet').hidden = true; }
 $('openSheetClose').addEventListener('click', closeSheets);
 $('openSheetGo').addEventListener('click', () => setTimeout(closeSheets, 300));
 $('linksBtn').addEventListener('click', () => {
@@ -1559,29 +1579,144 @@ $('linkSave').addEventListener('click', async () => {
 });
 document.querySelectorAll('.sheet').forEach(sh => sh.addEventListener('click', e => { if (e.target === sh) closeSheets(); }));
 
-/* 명상 음성: 같은 시각에 시작해서 같은 곳을 듣기 */
+/* 명상 시간표: 매일 오전 9시(한국 시각)에 모두 함께 시작, 그 밖의 시간에는 종을 치면 시작 */
+const KST = 9 * 3600 * 1000;
+const DEFAULT_DUR = 20 * 60;
 const audio = new Audio();
 audio.preload = 'auto';
 audio.src = 'meditation.mp3';
 let audioOk = null, audioUnlocked = false;
-audio.addEventListener('loadedmetadata', () => { audioOk = true; updateSessionText(); });
-audio.addEventListener('error', () => { audioOk = false; updateSessionText(); });
+audio.addEventListener('loadedmetadata', () => { audioOk = true; tick(); });
+audio.addEventListener('error', () => { audioOk = false; tick(); });
+const durSec = () => Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : DEFAULT_DUR;
+/* 그날 오전 9시(한국 시각) = 그날 0시(세계 표준시) */
+function nineOf(now) { const k = new Date(now + KST); return Date.UTC(k.getUTCFullYear(), k.getUTCMonth(), k.getUTCDate()); }
+function dayKey(ms) { const k = new Date(ms + KST); return `${k.getUTCFullYear()}-${String(k.getUTCMonth() + 1).padStart(2, '0')}-${String(k.getUTCDate()).padStart(2, '0')}`; }
+function kstLabel(ms) { const k = new Date(ms + KST); const h = k.getUTCHours(); return `${k.getUTCMonth() + 1}월 ${k.getUTCDate()}일 ${h < 12 ? '오전' : '오후'} ${h % 12 || 12}:${String(k.getUTCMinutes()).padStart(2, '0')}`; }
+
+let bellSession = null;
+let myRing = { n: 0, at: 0 };
+const seenRings = new Map();
+let session = { state: 'idle', startAt: 0, kind: 'after', next: 0 };
+let chimedFor = 0;
+function computeSession(now) {
+  const nine = nineOf(now), d = durSec() * 1000;
+  if (now >= nine && now < nine + d) return { state: 'playing', startAt: nine, kind: 'nine' };
+  if (bellSession && now < bellSession.startAt + d) return { state: 'playing', startAt: bellSession.startAt, kind: 'bell' };
+  bellSession = null;
+  return now < nine ? { state: 'idle', startAt: 0, kind: 'before', next: nine } : { state: 'idle', startAt: 0, kind: 'after', next: nine + 86400000 };
+}
+
+/* 종소리: 파일 없이 브라우저에서 만듦 */
+let actx = null, bellFlash = -1e9;
+function ensureCtx() {
+  if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { actx = null; } }
+  if (actx && actx.state === 'suspended') actx.resume().catch(() => {});
+  return actx;
+}
+function ringBell(strong) {
+  bellFlash = performance.now();
+  const c = actx;
+  if (!c || c.state !== 'running') return;
+  const t0 = c.currentTime;
+  const master = c.createGain();
+  master.gain.value = strong ? 0.45 : 0.3;
+  master.connect(c.destination);
+  [[1, 1], [2.76, 0.5], [5.4, 0.25], [8.93, 0.12]].forEach(([m, a]) => {
+    const o = c.createOscillator();
+    o.type = 'sine';
+    o.frequency.value = 196 * m;
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(a, t0 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + (strong ? 7 : 5) / Math.sqrt(m));
+    o.connect(g); g.connect(master);
+    o.start(t0); o.stop(t0 + 8);
+  });
+}
+/* 돔 안 싱잉볼 */
+const bowlGroup = new THREE.Group();
+bowlGroup.position.set(0, 0.17, -3.5);
+dome.add(bowlGroup);
+let bowlGlow, bowlRipple;
+{
+  const cushion = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.4, 0.12, 28), new THREE.MeshStandardMaterial({ color: '#9b3b3b', roughness: 0.9 }));
+  cushion.position.y = 0.06;
+  const prof = [];
+  for (let i = 0; i <= 12; i++) { const a = i / 12 * Math.PI / 2; prof.push(new THREE.Vector2(0.06 + Math.sin(a) * 0.28, 0.02 + (1 - Math.cos(a)) * 0.22)); }
+  const bowl = new THREE.Mesh(new THREE.LatheGeometry(prof, 32), new THREE.MeshStandardMaterial({ color: '#b08d57', metalness: 0.75, roughness: 0.32, side: THREE.DoubleSide }));
+  bowl.position.y = 0.1;
+  const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.42, 8), new THREE.MeshStandardMaterial({ color: '#7a5636', roughness: 0.8 }));
+  stick.rotation.z = Math.PI / 2;
+  stick.position.set(0.05, 0.14, 0.42);
+  bowlGroup.add(cushion, bowl, stick);
+  [cushion, bowl, stick].forEach(m => { m.userData.tap = { kind: 'bell' }; domeTap.push(m); });
+  bowlGlow = noRay(new THREE.Sprite(glowMat('#ffd9a0', 0)));
+  bowlGlow.position.y = 0.3;
+  bowlGlow.scale.setScalar(1.6);
+  bowlGroup.add(bowlGlow);
+  bowlRipple = noRay(new THREE.Mesh(new THREE.RingGeometry(0.42, 0.5, 48), new THREE.MeshBasicMaterial({ color: '#fff3d0', transparent: true, opacity: 0, depthWrite: false })));
+  bowlRipple.rotation.x = -Math.PI / 2;
+  bowlRipple.position.y = 0.02;
+  bowlGroup.add(bowlRipple);
+}
+function updateBellLook() {
+  const e = (performance.now() - bellFlash) / 1000;
+  const on = e >= 0 && e < 3;
+  bowlRipple.material.opacity = on ? 0.75 * (1 - e / 3) : 0;
+  bowlRipple.scale.setScalar(1 + e * 3.5);
+  bowlGlow.material.opacity = on ? 0.9 * (1 - e / 3) : 0.12;
+}
+function ringFromMe() {
+  if (inIntro) return;
+  if (!inDome()) { toast('돔 안에서 종을 칠 수 있어요'); return; }
+  unlockAudio();
+  ringBell(true);
+  if (session.state === 'playing') { toast(session.kind === 'nine' ? '지금은 오전 9시 명상 중이에요' : '명상 중이에요'); return; }
+  if (audioOk === false) { toast('명상 음성을 아직 넣지 않았어요'); return; }
+  const at = Date.now() + 4000;
+  bellSession = { startAt: at };
+  myRing = { n: myRing.n + 1, at };
+  sendPresence(true);
+  tick();
+}
+/* 다른 사람이 종을 치면: 들리고, 돔 안에 있으면 함께 시작 */
+function checkRing(peer, r) {
+  if (!r || typeof r !== 'object' || !Number.isFinite(r.n) || !Number.isFinite(r.at)) return;
+  const prev = seenRings.get(peer);
+  seenRings.set(peer, r.n);
+  if (prev === undefined || r.n === prev) return;
+  ringBell(true);
+  const now = Date.now();
+  if (session.state !== 'playing' && Math.abs(r.at - now) < 20000 && audioOk !== false) {
+    if (inDome()) { bellSession = { startAt: r.at }; tick(); }
+    else toast('돔에서 누군가 종을 쳤어요');
+  }
+}
+$('bellBtn').addEventListener('click', ringFromMe);
+$('stopBellBtn').addEventListener('click', () => { bellSession = null; tick(); });
+
 function unlockAudio() {
+  ensureCtx();
   if (audioUnlocked || audioOk === false) return;
   audio.muted = true;
   const p = audio.play();
-  if (p && p.then) p.then(() => { if (!(session.state === 'playing')) audio.pause(); audio.muted = false; audioUnlocked = true; syncAudio(); updateSessionText(); })
+  if (p && p.then) p.then(() => { if (session.state !== 'playing') audio.pause(); audio.muted = false; audioUnlocked = true; syncAudio(); updateSessionText(); })
     .catch(() => { audio.muted = false; });
   else { audio.muted = false; audioUnlocked = true; }
 }
 $('soundBtn').addEventListener('click', unlockAudio);
 const fmt = sec => { sec = Math.max(0, Math.floor(sec)); return `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`; };
+function fmtLeft(ms) {
+  const m = Math.ceil(ms / 60000);
+  if (m <= 60) return ms < 60000 ? `${Math.ceil(ms / 1000)}초 남음` : `${m}분 남음`;
+  return `${Math.floor(m / 60)}시간 ${m % 60}분 남음`;
+}
 function syncAudio() {
   if (audioOk === false) return;
   if (session.state !== 'playing') { if (!audio.paused) audio.pause(); return; }
   const el = (Date.now() - session.startAt) / 1000;
-  const dur = audio.duration;
-  if (el < 0 || (Number.isFinite(dur) && el >= dur)) { if (!audio.paused) audio.pause(); return; }
+  if (el < 0 || el >= durSec()) { if (!audio.paused) audio.pause(); return; }
   if (!audioUnlocked) return;
   if (audio.paused) {
     try { audio.currentTime = el; } catch (e) {}
@@ -1592,62 +1727,136 @@ function syncAudio() {
 }
 function updateSessionText() {
   const box = $('session');
+  const now = Date.now();
   let txt;
-  const n = $('together').textContent;
   if (audioOk === false) txt = '명상 음성을 아직 넣지 않았어요';
   else if (session.state === 'playing') {
-    const el = (Date.now() - session.startAt) / 1000;
-    const dur = audio.duration;
-    if (el < 0) txt = `곧 시작해요 · ${Math.ceil(-el)}`;
-    else if (Number.isFinite(dur) && el >= dur) txt = '명상이 끝났어요';
-    else txt = `명상 중 · ${fmt(el)}${Number.isFinite(dur) ? ' / ' + fmt(dur) : ''}`;
-  } else txt = `명상 기다리는 중 · ${n}`;
+    const el = (now - session.startAt) / 1000;
+    if (el < 0) txt = `종이 울렸어요 · 곧 시작해요 ${Math.ceil(-el)}`;
+    else txt = `${session.kind === 'nine' ? '오전 9시 명상 중' : '종소리 명상 중'} · ${fmt(el)} / ${fmt(durSec())}`;
+  } else if (session.kind === 'before') txt = `오늘 오전 9시에 함께 시작해요 · ${fmtLeft(session.next - now)}`;
+  else txt = '오늘 9시 명상은 끝났어요 · 종을 치면 언제든 시작해요';
   if (box.textContent !== txt) box.textContent = txt;
   const playing = session.state === 'playing';
   $('soundRow').hidden = !(playing && !audioUnlocked && audioOk !== false);
-  $('startBtn').hidden = playing;
-  $('stopBtn').hidden = !playing;
-  $('startBtn').disabled = audioOk === false;
+  $('stopBellBtn').hidden = !(playing && session.kind === 'bell');
+  $('bellBtn').textContent = playing ? '종 치기' : '종 치고 시작';
 }
-async function setSession(next) {
-  if (!db) { session = next; syncAudio(); updateSessionText(); return; }
-  try { await db.doc('live/session').set(next); }
-  catch (e) { toast('지금은 바꿀 수 없어요. 잠시 뒤에 다시 눌러 주세요.'); }
+function tick() {
+  const now = Date.now();
+  const before = session;
+  session = computeSession(now);
+  if (session.state === 'playing' && now >= session.startAt && chimedFor !== session.startAt && now - session.startAt < 2500) {
+    chimedFor = session.startAt;
+    if (session.kind === 'nine') ringBell(true); else ringBell(false);
+  }
+  if (before.state === 'playing' && session.state !== 'playing') ringBell(false);
+  if (session.state === 'playing' && domeUiShown === false) $('session').classList.remove('is-hidden');
+  syncAudio();
+  updateSessionText();
+  autoCapture(now);
 }
-$('startBtn').addEventListener('click', () => {
-  if (audioOk === false) { toast('명상 음성을 먼저 넣어야 해요'); return; }
-  unlockAudio();
-  setSession({ state: 'playing', startAt: Date.now() + 6000 });
-});
-$('stopBtn').addEventListener('click', () => setSession({ state: 'idle', startAt: 0 }));
-setInterval(() => { syncAudio(); updateSessionText(); }, 500);
+setInterval(tick, 250);
 
-/* claude.ai 안에서 열었을 때만 함께하기가 켜짐 */
+/* 기록 사진: 오전 9시 명상이 시작되고 15초 뒤, 끝나기 8초 전에 진행자 화면에서 한 장씩 */
+let assets = null, photos = [];
+const snapCanvas = document.createElement('canvas');
+const captured = new Set();
+function captureBlob(label) {
+  return new Promise(res => {
+    renderer.render(scene, camera);
+    const src = renderer.domElement, w = src.width, h = src.height;
+    snapCanvas.width = w; snapCanvas.height = h;
+    const g = snapCanvas.getContext('2d');
+    g.drawImage(src, 0, 0);
+    const fs = Math.max(14, Math.round(Math.min(w, h) * 0.032));
+    g.font = `500 ${fs}px "IBM Plex Sans KR", "Malgun Gothic", sans-serif`;
+    const text = `A-508057 · ${label}`;
+    const tw = g.measureText(text).width;
+    g.fillStyle = 'rgba(4,36,58,.55)';
+    g.fillRect(fs * 0.6, h - fs * 2.4, tw + fs * 1.2, fs * 1.7);
+    g.fillStyle = '#ffffff';
+    g.fillText(text, fs * 1.2, h - fs * 1.15);
+    snapCanvas.toBlob(b => res(b), 'image/jpeg', 0.9);
+  });
+}
+async function saveCapture(kind, key) {
+  if (!assets || !db) return false;
+  try {
+    const now = Date.now();
+    const blob = await captureBlob(`${kstLabel(now)}${kind === 'start' ? ' · 오전 9시 명상' : kind === 'end' ? ' · 명상 마침' : ''}`);
+    if (!blob) return false;
+    const r = await assets.upload(blob, { type: 'image/jpeg' });
+    await db.doc('photos/' + key).set({ id: r.id, at: now, kind });
+    return true;
+  } catch (e) { return false; }
+}
+function autoCapture(now) {
+  if (!isHost || !assets || !db || session.state !== 'playing' || session.kind !== 'nine') return;
+  const el = now - session.startAt, key = dayKey(session.startAt);
+  if (el > 15000 && !captured.has(key + '-start')) { captured.add(key + '-start'); saveCapture('start', key + '-start'); }
+  if (el > durSec() * 1000 - 8000 && !captured.has(key + '-end')) { captured.add(key + '-end'); saveCapture('end', key + '-end'); }
+}
+$('snapBtn').addEventListener('click', async () => {
+  $('snapBtn').disabled = true;
+  const ok = await saveCapture('manual', `${dayKey(Date.now())}-m${Date.now()}`);
+  $('snapBtn').disabled = false;
+  toast(ok ? '사진을 남겼어요 · 기록 사진에서 볼 수 있어요' : '사진을 남기지 못했어요. 잠시 뒤에 다시 눌러 주세요.');
+});
+const SAFE_ID = id => typeof id === 'string' && /^[A-Za-z0-9_-]{8,64}$/.test(id);
+function renderGallery() {
+  const list = $('galleryList');
+  list.replaceChildren();
+  if (!photos.length) {
+    const p = document.createElement('p');
+    p.textContent = '아직 남은 사진이 없어요.';
+    list.appendChild(p);
+    return;
+  }
+  for (const ph of photos) {
+    const a = document.createElement('a');
+    a.href = '/_blob/' + ph.id;
+    a.target = '_blank'; a.rel = 'noopener';
+    const img = document.createElement('img');
+    img.src = '/_blob/' + ph.id;
+    img.alt = `${kstLabel(ph.at)} 사진`;
+    img.loading = 'lazy';
+    img.addEventListener('error', () => { img.alt = '사진을 볼 수 없어요'; });
+    const cap = document.createElement('span');
+    cap.textContent = `${kstLabel(ph.at)}${ph.kind === 'start' ? ' · 9시 명상' : ph.kind === 'end' ? ' · 마침' : ''}`;
+    a.append(img, cap);
+    list.appendChild(a);
+  }
+}
+$('galleryBtn').addEventListener('click', () => { renderGallery(); $('gallerySheet').hidden = false; });
+$('galleryClose').addEventListener('click', () => { $('gallerySheet').hidden = true; });
+
+/* claude.ai 안에서 열었을 때만 함께하기, 링크, 기록 사진이 켜짐 */
 (async () => {
   const c = window.claude;
-  if (!c || typeof c.use !== 'function') { isHost = true; $('hostRow').hidden = false; updateSessionText(); return; }
-  const [r, d, u] = await Promise.all([c.use('room'), c.use('db'), c.use('user')]);
-  room = r; db = d; user = u;
-  isHost = user ? await user.canEdit() : !room;
+  if (!c || typeof c.use !== 'function') { isHost = false; tick(); return; }
+  const [r, d, u, a] = await Promise.all([c.use('room'), c.use('db'), c.use('user'), c.use('assets')]);
+  room = r; db = d; user = u; assets = a;
+  isHost = user ? await user.canEdit() : false;
   $('hostRow').hidden = !isHost;
+  $('snapBtn').hidden = !(assets && db);
   if (room) {
     room.onPeers(ch => { renderPeers(ch.peers); }, () => { $('together').textContent = '혼자 있어요'; });
-    sendPresence();
+    sendPresence(true);
   }
   if (db) {
-    db.doc('live/session').onSnapshot(snap => {
-      const v = snap.exists ? snap.data() : null;
-      session = v && v.state === 'playing' && Number.isFinite(v.startAt) ? { state: 'playing', startAt: v.startAt } : { state: 'idle', startAt: 0 };
-      if (session.state === 'playing') $('session').classList.remove('is-hidden');
-      syncAudio(); updateSessionText();
-    }, () => {});
+    $('galleryBtn').hidden = false;
     db.doc('live/links').onSnapshot(snap => {
       const v = snap.exists ? snap.data() : {};
       links = { form: typeof v.form === 'string' ? v.form : '', padlet: typeof v.padlet === 'string' ? v.padlet : '' };
       applyLinks();
     }, () => {});
+    db.collection('photos').onSnapshot(snap => {
+      photos = snap.docs.map(doc => doc.data()).filter(v => v && SAFE_ID(v.id) && Number.isFinite(v.at)).sort((x, y) => y.at - x.at).slice(0, 60);
+      if (!$('gallerySheet').hidden) renderGallery();
+    }, () => {});
   }
-  updateSessionText();
+  tick();
 })();
 
 /* ---------- 안내 ---------- */
