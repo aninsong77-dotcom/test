@@ -863,7 +863,7 @@ function beachH(z) {
   if (z < 70) return mix(-3, SURF + 1.2, smooth((z - 38) / 32));
   return SURF + 1.2 + (z - 70) * 0.05;
 }
-const BEACH_TOP = beachH(72);
+const BEACH_TOP = beachH(72) + 0.35 * vnoise(0, 9, 72 * 0.18);
 {
   const geo = new THREE.PlaneGeometry(260, 84, 96, 44);
   geo.rotateX(-Math.PI / 2);
@@ -1059,53 +1059,82 @@ function updateHouseBits(dt, t) {
   });
 }
 
-/* ---------- 모습: 얼굴 없이 단순한, 가부좌로 앉은 사람 ---------- */
+/* ---------- 모습: 단순한 사람. 걸을 때는 서고, 방석과 물방울 안에서는 가부좌 ---------- */
 function makeFigure(color) {
   const g = new THREE.Group();
-  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.65 });
-  const soft = new THREE.MeshStandardMaterial({ color: new THREE.Color(color).offsetHSL(0, -0.05, 0.08), roughness: 0.6 });
-  const legs = new THREE.Mesh(new THREE.TorusGeometry(0.27, 0.11, 10, 28), mat);
-  legs.rotation.x = Math.PI / 2;
-  legs.scale.set(1.15, 0.85, 1);
-  legs.position.y = 0.11;
-  const lap = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.32, 0.12, 24), mat);
-  lap.position.y = 0.08;
-  g.add(legs, lap);
+  const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.75 });                       // 윗옷
+  const soft = new THREE.MeshStandardMaterial({ color: new THREE.Color(color).offsetHSL(0, -0.05, 0.08), roughness: 0.7 }); // 허리끈, 깃
+  const skin = new THREE.MeshStandardMaterial({ color: '#f0c9a8', roughness: 0.7 });
+  const hairMat = new THREE.MeshStandardMaterial({ color: '#3f3531', roughness: 0.85 });
+  const pants = new THREE.MeshStandardMaterial({ color: '#eef1ef', roughness: 0.8 });
+  const shoe = new THREE.MeshStandardMaterial({ color: '#7a6558', roughness: 0.8 });
+  const dark = new THREE.MeshStandardMaterial({ color: '#2a2422', roughness: 0.6 });
+  const M = (geo, m, x, y, z, parent) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); parent.add(o); return o; };
+  const pelvis = new THREE.Group();
+  g.add(pelvis);
+  // 다리: 엉덩이(벌림) → 허벅지(들기) → 무릎 → 종아리, 발
+  const legs = [];
+  [-1, 1].forEach(side => {
+    const yaw = new THREE.Group();
+    yaw.position.set(side * 0.09, 0, 0);
+    pelvis.add(yaw);
+    const pitch = new THREE.Group();
+    yaw.add(pitch);
+    M(new THREE.CylinderGeometry(0.07, 0.065, 0.26, 10), pants, 0, -0.13, 0, pitch);
+    const knee = new THREE.Group();
+    knee.position.y = -0.26;
+    pitch.add(knee);
+    M(new THREE.SphereGeometry(0.066, 10, 8), pants, 0, 0, 0, knee);
+    M(new THREE.CylinderGeometry(0.062, 0.055, 0.24, 10), pants, 0, -0.12, 0, knee);
+    const foot = M(new THREE.SphereGeometry(0.07, 12, 8), shoe, 0, -0.25, 0.035, knee);
+    foot.scale.set(0.9, 0.6, 1.5);
+    legs.push({ yaw, pitch, knee, side });
+  });
+  // 몸통
   const torso = new THREE.Group();
-  torso.position.y = 0.16;
-  g.add(torso);
-  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.24, 0.48, 20), mat);
-  body.position.y = 0.24;
-  const shoulders = new THREE.Mesh(new THREE.SphereGeometry(0.17, 16, 12), mat);
-  shoulders.scale.set(1.25, 0.7, 0.9);
-  shoulders.position.y = 0.47;
-  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.08, 10), soft);
-  neck.position.y = 0.56;
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.135, 20, 16), soft);
-  head.position.y = 0.7;
-  torso.add(body, shoulders, neck, head);
+  pelvis.add(torso);
+  M(new THREE.CylinderGeometry(0.2, 0.225, 0.2, 20), mat, 0, -0.04, 0, torso);
+  M(new THREE.CylinderGeometry(0.15, 0.2, 0.42, 20), mat, 0, 0.26, 0, torso);
+  const sash = M(new THREE.TorusGeometry(0.19, 0.032, 8, 24), soft, 0, 0.1, 0, torso);
+  sash.rotation.x = Math.PI / 2;
+  const knot = M(new THREE.SphereGeometry(0.045, 10, 8), soft, 0.06, 0.09, 0.2, torso);
+  knot.scale.set(1, 1.3, 0.7);
+  const sh = M(new THREE.SphereGeometry(0.17, 16, 12), mat, 0, 0.45, 0, torso);
+  sh.scale.set(1.3, 0.62, 0.92);
+  const collar = M(new THREE.TorusGeometry(0.085, 0.028, 8, 20), soft, 0, 0.52, 0.01, torso);
+  collar.rotation.x = Math.PI / 2;
+  M(new THREE.CylinderGeometry(0.05, 0.055, 0.1, 10), skin, 0, 0.56, 0, torso);
+  // 머리
+  const head = new THREE.Group();
+  head.position.y = 0.79;
+  torso.add(head);
+  M(new THREE.SphereGeometry(0.215, 24, 18), skin, 0, 0, 0, head);
+  const hair = M(new THREE.SphereGeometry(0.228, 24, 14, 0, Math.PI * 2, 0, Math.PI * 0.53), hairMat, 0, 0.005, -0.012, head);
+  hair.rotation.x = -0.6;
+  [-1, 1].forEach(sd => {
+    const eye = M(new THREE.SphereGeometry(0.024, 8, 6), dark, sd * 0.078, -0.02, 0.198, head);
+    eye.scale.set(1.25, 0.45, 0.6);
+    const ear = M(new THREE.SphereGeometry(0.04, 8, 6), skin, sd * 0.21, -0.02, 0, head);
+    ear.scale.set(0.5, 1, 0.8);
+  });
+  // 팔
   const arms = [];
   [-1, 1].forEach(side => {
     const pivot = new THREE.Group();
-    pivot.position.set(side * 0.2, 0.47, 0);
+    pivot.position.set(side * 0.215, 0.45, 0);
     torso.add(pivot);
-    const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.3, 8), mat);
-    upper.position.y = -0.15;
-    pivot.add(upper);
+    M(new THREE.CylinderGeometry(0.055, 0.06, 0.26, 10), mat, 0, -0.13, 0, pivot);
     const elbow = new THREE.Group();
-    elbow.position.y = -0.3;
+    elbow.position.y = -0.26;
     pivot.add(elbow);
-    const fore = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.045, 0.26, 8), mat);
-    fore.position.y = -0.13;
-    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 6), soft);
-    hand.position.y = -0.27;
-    elbow.add(fore, hand);
+    M(new THREE.SphereGeometry(0.058, 10, 8), mat, 0, 0, 0, elbow);
+    M(new THREE.CylinderGeometry(0.055, 0.062, 0.2, 10), mat, 0, -0.1, 0, elbow);
+    M(new THREE.SphereGeometry(0.05, 10, 8), skin, 0, -0.235, 0, elbow);
     arms.push({ pivot, elbow, side });
   });
-  g.scale.setScalar(1.15);
   g.traverse(o => { if (o.isMesh) noRay(o); });
-  const fig = { g, torso, arms, mat, soft };
-  applyPose(fig, null, 0);
+  const fig = { g, pelvis, torso, head, legs, arms, mat, soft, sit: 1 };
+  applyPose(fig, null, 0, 1, 0);
   return fig;
 }
 /* 인사 몸짓: 안녕하세요는 오른손 흔들기, 합장 인사는 두 손 모으고 고개 숙이기 */
@@ -1116,29 +1145,85 @@ function gesturePose(g) {
   const k = Math.min(1, e / 0.35) * Math.min(1, Math.max(0, (2.6 - e) / 0.45));
   return { k: g.k, a: k };
 }
-function applyPose(fig, pose, t) {
+/* sit: 1이면 가부좌, 0이면 서 있음. walk: 걷는 정도 */
+function applyPose(fig, pose, t, sit = 1, walk = 0) {
   const wave = pose && pose.k === 'hello' ? pose.a : 0;
   const bow = pose && pose.k === 'bow' ? pose.a : 0;
-  fig.torso.rotation.x = bow * 0.45;
+  fig.sit += (sit - fig.sit) * 0.18;
+  const s = fig.sit, up = 1 - s;
+  const sw = Math.sin(t * 9) * 0.6 * walk * up;
+  fig.pelvis.position.y = mix(0.56, 0.12, s) + Math.abs(Math.cos(t * 9)) * 0.025 * walk * up;
+  fig.torso.rotation.x = bow * 0.45 + 0.06 * walk * up;
+  fig.head.rotation.x = bow * 0.25;
+  for (const leg of fig.legs) {
+    leg.yaw.rotation.y = leg.side * 0.82 * s;
+    leg.pitch.rotation.x = -1.48 * s + leg.side * sw;
+    leg.knee.rotation.z = -leg.side * 2.1 * s;
+    leg.knee.rotation.x = up * Math.max(0, -leg.side * sw) * 0.9;
+  }
   for (const arm of fig.arms) {
     const w = arm.side === 1 ? wave : 0;
-    arm.pivot.rotation.x = -0.35 * (1 - w) - 0.55 * bow;
-    arm.pivot.rotation.z = arm.side * (0.12 + 2.25 * w) - arm.side * 0.1 * bow;
-    arm.elbow.rotation.x = -1.05 * (1 - w) - 0.25 * w - 0.75 * bow;
-    arm.elbow.rotation.z = -arm.side * (0.45 * (1 - w) + 0.55 * bow) + (w ? Math.sin(t * 9) * 0.4 * w : 0);
+    const restPX = mix(0.05, -0.42, s) - arm.side * sw * 0.8;
+    const restEX = mix(-0.2, -0.95, s);
+    const restEZ = mix(0, 0.35, s);
+    arm.pivot.rotation.x = mix(restPX, -0.9, bow) * (1 - w);
+    arm.pivot.rotation.z = arm.side * (0.1 + 0.12 * s + 2.2 * w) - arm.side * 0.12 * bow;
+    arm.elbow.rotation.x = mix(restEX, -1.75, bow) * (1 - w) - 0.25 * w;
+    arm.elbow.rotation.z = -arm.side * mix(restEZ, 1.0, bow) * (1 - w) + (w ? Math.sin(t * 9) * 0.4 * w : 0);
   }
 }
 /* 물방울 */
+const bubbleMat = new THREE.ShaderMaterial({
+  transparent: true, depthWrite: false,
+  uniforms: { uTime: { value: 0 } },
+  vertexShader: `
+    uniform float uTime; varying vec3 vN; varying vec3 vV;
+    void main() {
+      float w = sin(uTime * 2.3 + position.y * 3.0) * 0.045 + sin(uTime * 1.7 + position.x * 4.0) * 0.03 + sin(uTime * 2.9 + position.z * 3.5) * 0.02;
+      vec4 mv = modelViewMatrix * vec4(position + normal * w, 1.0);
+      vN = normalize(normalMatrix * normal);
+      vV = normalize(-mv.xyz);
+      gl_Position = projectionMatrix * mv;
+    }`,
+  fragmentShader: `
+    uniform float uTime; varying vec3 vN; varying vec3 vV;
+    void main() {
+      vec3 n = normalize(vN);
+      float f = 1.0 - max(dot(n, normalize(vV)), 0.0);
+      float rim = pow(f, 2.0);
+      vec3 rainbow = 0.5 + 0.5 * cos(6.2831 * (f * 1.4 + vec3(0.0, 0.33, 0.67)) + uTime * 0.7);
+      vec3 col = mix(vec3(0.86, 0.97, 1.0), rainbow, 0.4 * rim);
+      float h1 = pow(max(dot(n, normalize(vec3(-0.45, 0.62, 0.64))), 0.0), 70.0);
+      float h1b = pow(max(dot(n, normalize(vec3(-0.3, 0.74, 0.6))), 0.0), 220.0);
+      float h2 = pow(max(dot(n, normalize(vec3(0.5, -0.58, 0.64))), 0.0), 26.0) * 0.3;
+      col += vec3(h1 + h1b + h2);
+      gl_FragColor = vec4(col, clamp(0.06 + rim * 0.8 + h1 + h1b + h2, 0.0, 1.0));
+    }`,
+});
 function makeTravelBubble() {
   const b = new THREE.Group();
-  const fill = noRay(new THREE.Mesh(new THREE.SphereGeometry(0.95, 32, 20), new THREE.MeshStandardMaterial({ color: '#e8fbff', transparent: true, opacity: 0.16, roughness: 0.05, metalness: 0.2, depthWrite: false })));
-  fill.position.y = 0.55;
-  const rim = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: bubbleTex, transparent: true, opacity: 0.85, depthWrite: false })));
-  rim.scale.setScalar(2.05);
-  rim.position.y = 0.55;
-  b.add(fill, rim);
+  const main = noRay(new THREE.Mesh(new THREE.SphereGeometry(0.98, 40, 28), bubbleMat));
+  main.position.y = 0.55;
+  b.add(main);
+  // 곁에 붙어 다니는 작은 물방울 셋
+  const minis = [];
+  [[1.15, 1.2, 0.2, 0.13], [-1.2, 0.3, 0.4, 0.09], [0.5, -0.35, -1.0, 0.07]].forEach(([x, y, z, r]) => {
+    const m = noRay(new THREE.Mesh(new THREE.SphereGeometry(r, 16, 12), bubbleMat));
+    m.position.set(x, y, z);
+    m.userData.base = m.position.clone();
+    b.add(m);
+    minis.push(m);
+  });
+  b.userData.minis = minis;
   b.visible = false;
   return b;
+}
+function wobbleBubble(b, t) {
+  if (!b.visible) return;
+  b.userData.minis.forEach((m, i) => {
+    const o = m.userData.base;
+    m.position.set(o.x + Math.sin(t * 1.3 + i * 2) * 0.12, o.y + Math.sin(t * 1.7 + i) * 0.14, o.z + Math.cos(t * 1.1 + i * 3) * 0.12);
+  });
 }
 const myFig = makeFigure('#ffe9a8');
 const orb = new THREE.Group();
@@ -1158,46 +1243,231 @@ function setMyColor(color) {
   myFig.soft.color.set(new THREE.Color(color).offsetHSL(0, -0.05, 0.08));
 }
 
-/* 물방울 터지기 */
-const popBits = [];
-for (let i = 0; i < 26; i++) {
-  const sp = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: bubbleTex, transparent: true, opacity: 0, depthWrite: false })));
-  sp.visible = false;
+/* ---------- 효과: 팝! 터지기, 바닷물 첨벙 ---------- */
+const fx = [];
+function updateFx(dt, t) {
+  bubbleMat.uniforms.uTime.value = t;
+  wobbleBubble(myBub, t);
+  for (let i = fx.length - 1; i >= 0; i--) if (!fx[i](dt, t)) fx.splice(i, 1);
+  if (bounceAt) {
+    const e = (performance.now() - bounceAt) / 1000;
+    const k = e < 0.7 ? Math.sin(e * 16) * Math.exp(-e * 6) : 0;
+    myFig.g.scale.set(1 + 0.16 * k, 1 - 0.22 * k, 1 + 0.16 * k);
+    if (e >= 0.7) bounceAt = 0;
+  }
+}
+let bounceAt = 0;
+const ringTex = (() => {
+  const c = document.createElement('canvas');
+  c.width = c.height = 128;
+  const g = c.getContext('2d');
+  g.strokeStyle = '#ffffff'; g.lineWidth = 7;
+  g.beginPath(); g.arc(64, 64, 56, 0, Math.PI * 2); g.stroke();
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+})();
+const popTextTex = (() => {
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 128;
+  const g = c.getContext('2d');
+  g.font = '900 92px "IBM Plex Sans KR", "Malgun Gothic", sans-serif';
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.lineJoin = 'round'; g.lineWidth = 16; g.strokeStyle = '#1f86b6';
+  g.strokeText('팝!', 128, 68);
+  g.fillStyle = '#ffffff';
+  g.fillText('팝!', 128, 68);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+})();
+const dropMat = new THREE.SpriteMaterial({ map: dotTex, color: '#f4fdff', transparent: true, opacity: 0.95, depthWrite: false });
+const plumeMat = new THREE.SpriteMaterial({ map: bubbleTex, transparent: true, opacity: 0.85, depthWrite: false });
+function oneShot(mat, life, step) {
+  const sp = noRay(new THREE.Sprite(mat));
   scene.add(sp);
-  popBits.push({ s: sp, v: new THREE.Vector3(), life: 0, size: 0.1 });
+  let e = 0;
+  fx.push(dt => {
+    e += dt;
+    const k = e / life;
+    if (k >= 1) { scene.remove(sp); mat.dispose(); return false; }
+    step(sp, k);
+    return true;
+  });
+  return sp;
 }
-function popAt(p) {
-  for (const b of popBits) {
-    const d = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.3, Math.random() - 0.5).normalize();
-    b.s.position.copy(p).add(new THREE.Vector3(0, 0.55, 0)).addScaledVector(d, 0.9);
-    b.v.copy(d).multiplyScalar(1.5 + Math.random() * 2);
-    b.life = 1;
-    b.size = 0.06 + Math.random() * 0.16;
-    b.s.visible = true;
-  }
+function noiseBurst(dur, freq, q, gain) {
   const c = typeof ensureCtx === 'function' ? ensureCtx() : null;
-  if (c && c.state === 'running') {
-    const t0 = c.currentTime, o = c.createOscillator(), g = c.createGain();
-    o.type = 'sine';
-    o.frequency.setValueAtTime(900, t0);
-    o.frequency.exponentialRampToValueAtTime(260, t0 + 0.12);
-    g.gain.setValueAtTime(0.0001, t0);
-    g.gain.exponentialRampToValueAtTime(0.3, t0 + 0.01);
-    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.18);
-    o.connect(g); g.connect(c.destination);
-    o.start(t0); o.stop(t0 + 0.2);
+  if (!c || c.state !== 'running') return;
+  const n = Math.floor(c.sampleRate * dur);
+  const buf = c.createBuffer(1, n, c.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 2);
+  const src = c.createBufferSource();
+  src.buffer = buf;
+  const f = c.createBiquadFilter();
+  f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q;
+  f.frequency.exponentialRampToValueAtTime(Math.max(120, freq * 0.3), c.currentTime + dur);
+  const g = c.createGain();
+  g.gain.value = gain;
+  src.connect(f); f.connect(g); g.connect(c.destination);
+  src.start();
+}
+/* 물방울이 살짝 부풀었다가 팝! 하고 터짐 */
+function popBubble(bub, anchor, mine) {
+  let e = 0;
+  fx.push(dt => {
+    e += dt;
+    if (e < 0.11) { bub.scale.setScalar(1 + (e / 0.11) * 0.32); return true; }
+    bub.visible = false;
+    bub.scale.setScalar(1);
+    popAt(anchor.position, mine);
+    return false;
+  });
+}
+function popAt(p, mine = true) {
+  const c0 = new THREE.Vector3(p.x, p.y + 0.55, p.z);
+  const inAir = c0.y > SURF;
+  // 번쩍
+  oneShot(glowMat('#ffffff', 0.9), 0.22, (sp, k) => { sp.position.copy(c0); sp.scale.setScalar(1.6 + k * 2.6); sp.material.opacity = 0.9 * (1 - k); });
+  // 퍼지는 고리 둘
+  [0, 0.07].forEach((delay, i) => oneShot(new THREE.SpriteMaterial({ map: ringTex, transparent: true, opacity: 0, depthWrite: false }), 0.5 + delay, (sp, k) => {
+    const kk = Math.max(0, (k * (0.5 + delay) - delay) / 0.5);
+    sp.position.copy(c0);
+    sp.scale.setScalar(1.9 + (1 - Math.pow(1 - kk, 3)) * (i ? 2.2 : 3.4));
+    sp.material.opacity = kk > 0 ? 0.95 * (1 - kk) : 0;
+  }));
+  // '팝!' 글자
+  oneShot(new THREE.SpriteMaterial({ map: popTextTex, transparent: true, opacity: 1, depthWrite: false, depthTest: false }), 0.9, (sp, k) => {
+    const s = k < 0.18 ? (k / 0.18) * 1.35 : 1.35 - Math.min(1, (k - 0.18) / 0.15) * 0.35;
+    sp.position.set(c0.x, c0.y + 1.1 + k * 0.5, c0.z);
+    sp.scale.set(1.5 * s, 0.75 * s, 1);
+    sp.material.opacity = k < 0.6 ? 1 : 1 - (k - 0.6) / 0.4;
+  });
+  // 사방으로 튀는 물방울
+  const bits = [];
+  for (let i = 0; i < 34; i++) {
+    const sp = noRay(new THREE.Sprite(dropMat));
+    const d = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.35, Math.random() - 0.5).normalize();
+    sp.position.copy(c0).addScaledVector(d, 0.95);
+    sp.scale.setScalar(0.07 + Math.random() * 0.15);
+    scene.add(sp);
+    bits.push({ sp, v: d.multiplyScalar(3.5 + Math.random() * 4.5), s0: sp.scale.x });
+  }
+  let e = 0;
+  fx.push(dt => {
+    e += dt;
+    const k = e / 0.75;
+    for (const b of bits) {
+      if (inAir) b.v.y -= 12 * dt; else { b.v.multiplyScalar(1 - Math.min(1, dt * 5)); b.v.y += 1.2 * dt; }
+      b.sp.position.addScaledVector(b.v, dt);
+      b.sp.scale.setScalar(b.s0 * Math.max(0, 1 - k * k));
+    }
+    if (k >= 1) { bits.forEach(b => scene.remove(b.sp)); return false; }
+    return true;
+  });
+  if (mine) {
+    bounceAt = performance.now();
+    const c = typeof ensureCtx === 'function' ? ensureCtx() : null;
+    if (c && c.state === 'running') {
+      const t0 = c.currentTime, o = c.createOscillator(), g = c.createGain();
+      o.type = 'sine';
+      o.frequency.setValueAtTime(1300, t0);
+      o.frequency.exponentialRampToValueAtTime(220, t0 + 0.13);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.4, t0 + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.2);
+      o.connect(g); g.connect(c.destination);
+      o.start(t0); o.stop(t0 + 0.22);
+    }
+    noiseBurst(0.09, 3200, 0.8, 0.35);
   }
 }
-function updatePop(dt) {
-  for (const b of popBits) {
-    if (b.life <= 0) continue;
-    b.life -= dt * 1.6;
-    b.s.position.addScaledVector(b.v, dt);
-    b.v.multiplyScalar(0.92);
-    b.s.material.opacity = Math.max(0, b.life);
-    b.s.scale.setScalar(b.size);
-    if (b.life <= 0) b.s.visible = false;
+/* 바닷물 첨벙: 물기둥처럼 솟는 물방울, 왕관 모양으로 퍼지는 물방울, 수면에 퍼지는 물결, 물속으로 딸려 들어가는 공기 방울 */
+function splashAt(x, z, entering, mine = true) {
+  const drops = [];
+  const N = coarse ? 60 : 90;
+  for (let i = 0; i < N; i++) {
+    const sp = noRay(new THREE.Sprite(dropMat));
+    const a = Math.random() * Math.PI * 2;
+    const crown = i % 3 !== 0;
+    const out = crown ? 1.6 + Math.random() * 2.6 : Math.random() * 0.7;
+    const upv = crown ? 4 + Math.random() * 4 : 7 + Math.random() * 7;
+    sp.position.set(x + Math.cos(a) * (crown ? 0.9 : 0.3), SURF + 0.05, z + Math.sin(a) * (crown ? 0.9 : 0.3));
+    sp.scale.setScalar(crown ? 0.14 + Math.random() * 0.3 : 0.22 + Math.random() * 0.45);
+    scene.add(sp);
+    drops.push({ sp, v: new THREE.Vector3(Math.cos(a) * out, upv * (entering ? 1 : 1.15), Math.sin(a) * out), delay: crown ? 0 : Math.random() * 0.12, done: false });
   }
+  let e = 0;
+  fx.push(dt => {
+    e += dt;
+    let alive = 0;
+    for (const d of drops) {
+      if (d.done) continue;
+      alive++;
+      if (e < d.delay) continue;
+      d.v.y -= 15 * dt;
+      d.sp.position.addScaledVector(d.v, dt);
+      if (d.sp.position.y < SURF - 0.05 && d.v.y < 0) { d.done = true; scene.remove(d.sp); }
+    }
+    return alive > 0 && e < 4;
+  });
+  // 수면의 하얀 거품과 물결 고리
+  const foam = noRay(new THREE.Mesh(new THREE.CircleGeometry(1, 32), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide })));
+  foam.rotation.x = -Math.PI / 2;
+  foam.position.set(x, SURF + 0.04, z);
+  scene.add(foam);
+  const rings = [0, 0.28, 0.6].map(delay => {
+    const m = noRay(new THREE.Mesh(new THREE.RingGeometry(0.9, 1, 56), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide })));
+    m.rotation.x = -Math.PI / 2;
+    m.position.set(x, SURF + 0.05, z);
+    scene.add(m);
+    return { m, delay };
+  });
+  let re = 0;
+  fx.push(dt => {
+    re += dt;
+    const y = above ? SURF + 0.05 : SURF - 0.06;
+    foam.position.y = y;
+    const fk = Math.min(1, re / 1.1);
+    foam.scale.setScalar(0.8 + fk * 2.4);
+    foam.material.opacity = 0.85 * (1 - fk);
+    for (const r of rings) {
+      const k = (re - r.delay) / 2.2;
+      r.m.position.y = y;
+      if (k <= 0) continue;
+      r.m.scale.setScalar(1 + (1 - Math.pow(1 - Math.min(1, k), 2)) * 8);
+      r.m.material.opacity = k < 1 ? 0.8 * (1 - k) : 0;
+    }
+    if (re > 2.9) { scene.remove(foam); rings.forEach(r => scene.remove(r.m)); return false; }
+    return true;
+  });
+  // 물속으로 딸려 들어가는 공기 방울
+  if (entering) {
+    const bubs = [];
+    for (let i = 0; i < (coarse ? 30 : 46); i++) {
+      const sp = noRay(new THREE.Sprite(plumeMat));
+      sp.position.set(x + (Math.random() - 0.5) * 1.6, SURF - 0.2 - Math.random() * 0.8, z + (Math.random() - 0.5) * 1.6);
+      scene.add(sp);
+      bubs.push({ sp, v: new THREE.Vector3((Math.random() - 0.5) * 2.2, -(3 + Math.random() * 6), -1.5 - Math.random() * 2), s0: 0.08 + Math.random() * 0.3, w: Math.random() * 6 });
+    }
+    let be = 0;
+    fx.push((dt, t) => {
+      be += dt;
+      const k = be / 3.2;
+      for (const b of bubs) {
+        b.v.multiplyScalar(1 - Math.min(1, dt * 2.2));
+        b.v.y += 3.2 * dt;
+        b.sp.position.addScaledVector(b.v, dt);
+        b.sp.position.x += Math.sin(t * 4 + b.w) * 0.25 * dt;
+        const gone = b.sp.position.y > SURF - 0.1 && b.v.y > 0;
+        b.sp.scale.setScalar(gone ? 0 : b.s0 * Math.max(0, 1 - k * k * k));
+      }
+      if (k >= 1) { bubs.forEach(b => scene.remove(b.sp)); return false; }
+      return true;
+    });
+  }
+  if (mine) { noiseBurst(0.9, 1500, 0.6, 0.5); noiseBurst(0.25, 500, 0.9, 0.45); }
 }
 
 /* 지나간 자리에 남는 물방울 */
@@ -1282,14 +1552,14 @@ function splashBurst(withFlash = true) {
   }
   if (withFlash && !reduceMotion) {
     flash.style.transition = 'none';
-    flash.style.opacity = '0.85';
+    flash.style.opacity = '0.6';
     void flash.offsetWidth;
     flash.style.transition = 'opacity .9s ease';
     flash.style.opacity = '0';
   }
 }
 function updateBurst(dt, t) {
-  updatePop(dt);
+  updateFx(dt, t);
   for (const b of burst) {
     if (b.life <= 0) continue;
     b.life -= dt * 0.42;
@@ -1314,8 +1584,8 @@ function depthText(y) {
 /* 물방울을 타고 해변 → 바다 → 돔, 돔 → 바다 위 → 해변 */
 let inIntro = true, travel = null, atBeach = false, lineIdx = -1, firstDive = true;
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
-const beachSpot = () => V3(0, BEACH_TOP + 0.35, 72);
-const seatPoint = i => V3(SEATS[i].x, HOUSE_BASE + 0.57, SEATS[i].z);
+const beachSpot = () => V3(0, BEACH_TOP + 0.03, 72);
+const seatPoint = i => V3(SEATS[i].x, HOUSE_BASE + 0.53, SEATS[i].z);
 function freeSeat() {
   const free = [0, 1, 2].filter(i => !takenSeats.has(i));
   return free.length ? free[Math.floor(Math.random() * free.length)] : null;
@@ -1341,6 +1611,7 @@ function startDive(withLines) {
   const pts = [beachSpot(), V3(0, SURF + 3.6, 60), V3(0, SURF + 2.4, 46), V3(0, SURF + 0.6, 36), V3(0, SURF - 5, 26),
     V3(0, HOUSE_BASE + 6, 10), V3(0, HOUSE_BASE + 3.2, -1.5), V3(dest.x * 0.6, HOUSE_BASE + 1.8, (dest.z + DOME_CENTER.z + 3) / 2), dest];
   travel = { kind: 'dive', curve: new THREE.CatmullRomCurve3(pts, false, 'centripetal'), t: 0, T: 16, seat, lines: withLines ? DIVE_LINES : [], prevY: pts[0].y };
+  fx.length = 0;
   inIntro = true; lineIdx = -1;
   orb.visible = true;
   myBub.visible = true;
@@ -1373,7 +1644,7 @@ function updateTravel(dt, t) {
   if (Math.hypot(travelDir.x, travelDir.z) > 0.08) orb.rotation.y = Math.atan2(travelDir.x, travelDir.z);
   myBub.scale.setScalar(tr.kind === 'rise' ? Math.min(1, tr.t / 1.0) : 1);
   applyPose(myFig, null, t);
-  if ((tr.prevY > SURF) !== (p.y > SURF)) splashBurst(tr.kind === 'dive');
+  if ((tr.prevY > SURF) !== (p.y > SURF)) splashAt(p.x, p.z, tr.kind === 'dive', true);
   tr.prevY = p.y;
   while (lineIdx + 1 < tr.lines.length && u >= tr.lines[lineIdx + 1][0]) showLine(tr.lines[++lineIdx][1]);
   const h = tmp.set(travelDir.x, 0, travelDir.z);
@@ -1387,7 +1658,9 @@ function updateTravel(dt, t) {
   lookTarget.lerp(V3(p.x, p.y + 0.6, p.z), 1 - Math.exp(-dt * 4));
   camera.up.set(0, 1, 0);
   camera.lookAt(lookTarget);
+  const camWasAbove = above;
   setLook(camera.position.y);
+  if (camWasAbove !== above) splashBurst(tr.kind === 'dive' && !above);
   $('depthNum').textContent = depthText(p.y);
   sendPresence();
   if (tr.t >= tr.T) finishTravel();
@@ -1401,8 +1674,8 @@ function finishTravel() {
   const end = tr.curve.getPointAt(1);
   const skipped = tr.t < tr.T;
   orb.position.copy(end);
-  myBub.visible = false;
-  popAt(end);
+  if (skipped) { myBub.visible = false; popAt(end, true); }
+  else popBubble(myBub, orb, true);
   $('intro').classList.add('is-hidden');
   introLine.hidden = false;
   if (tr.kind === 'dive') {
@@ -1441,7 +1714,7 @@ function finishTravel() {
   sendPresence(true);
 }
 function updateBeach(dt, t) {
-  orb.position.y = BEACH_TOP + 0.35 + Math.sin(t * 1.5) * 0.02;
+  orb.position.y = BEACH_TOP + 0.03;
   orb.rotation.y = Math.PI;
   applyPose(myFig, gesturePose(myGesture), t);
   camGoal.set(0, BEACH_TOP + 2.4, 79.5);
@@ -1528,19 +1801,20 @@ function updateWalk(dt, t) {
   if (pos2.y > 32) pos2.y = 32;
   const gy = groundH(pos2.x, pos2.y);
   if (mySeat !== null) {
-    orb.position.set(pos2.x, HOUSE_BASE + 0.57, pos2.y);
+    orb.position.set(pos2.x, HOUSE_BASE + 0.53, pos2.y);
     orb.rotation.y = Math.atan2(DOME_CENTER.x - pos2.x, DOME_CENTER.z - pos2.y);
   } else {
-    orb.position.set(pos2.x, gy + 0.35 + Math.sin(t * 2) * 0.06, pos2.y);
+    const onFloor = Math.hypot(pos2.x - DOME_CENTER.x, pos2.y - DOME_CENTER.z) < DOME_R + 0.3;
+    orb.position.set(pos2.x, onFloor ? HOUSE_BASE + 0.17 : gy + 0.03, pos2.y);
     orb.rotation.y = Math.atan2(fwd.x, fwd.z);
   }
-  applyPose(myFig, gesturePose(myGesture), t);
+  applyPose(myFig, gesturePose(myGesture), t, mySeat !== null ? 1 : 0, move);
 
   trailTimer -= dt;
   if (move > 0.05 && trailTimer <= 0) {
     trailTimer = 0.09;
     const tr = trail[trailIdx++ % trail.length];
-    tr.s.position.copy(orb.position).add(tmp.set((Math.random() - 0.5) * 0.3, -0.1, (Math.random() - 0.5) * 0.3));
+    tr.s.position.copy(orb.position).add(tmp.set((Math.random() - 0.5) * 0.3, 0.5, (Math.random() - 0.5) * 0.3));
     tr.life = 1;
     tr.size = 0.05 + Math.random() * 0.07;
     tr.s.visible = true;
@@ -1570,7 +1844,7 @@ function updateWalk(dt, t) {
   if (Math.abs(camera.fov - wantFov) > 0.1) { camera.fov += (wantFov - camera.fov) * Math.min(1, dt * 4); camera.updateProjectionMatrix(); }
   camera.up.set(0, 1, 0);
   if (mySeat !== null) lookTarget.lerp(tmp.set(DOME_CENTER.x, HOUSE_BASE + 0.6, DOME_CENTER.z), a);
-  else lookTarget.lerp(tmp.copy(orb.position).addScaledVector(camDir, 4).add(new THREE.Vector3(0, 0.8, 0)), a);
+  else lookTarget.lerp(tmp.copy(orb.position).addScaledVector(camDir, 4).add(new THREE.Vector3(0, 1.1, 0)), a);
   camera.lookAt(lookTarget);
 
   let foundNow = null;
@@ -1712,12 +1986,16 @@ async function renderPeers(peers) {
     if (seat !== null) takenSeats.add(seat);
     let x = Number.isFinite(pr.x) ? pr.x : DOME_CENTER.x + 3, z = Number.isFinite(pr.z) ? pr.z : DOME_CENTER.z + 5;
     let y = Number.isFinite(pr.y) ? pr.y : groundH(x, z) + 0.35;
-    if (seat !== null) { x = SEATS[seat].x; z = SEATS[seat].z; y = HOUSE_BASE + 0.57; }
+    if (seat !== null) { x = SEATS[seat].x; z = SEATS[seat].z; y = HOUSE_BASE + 0.53; }
     x = Math.max(-120, Math.min(120, x)); z = Math.max(-100, Math.min(130, z)); y = Math.max(-10, Math.min(SURF + 20, y));
     v.seat = seat;
     v.target.set(x, y, z);
     v.yaw = seat !== null ? Math.atan2(DOME_CENTER.x - x, DOME_CENTER.z - z) : (Number.isFinite(pr.h) ? pr.h : v.yaw);
-    v.bub.visible = pr.b === 1;
+    v.sitWant = pr.p === 0 ? 0 : 1;
+    const wantBub = pr.b === 1;
+    if (wantBub && !v.bubOn) { v.bub.visible = true; v.bub.scale.setScalar(1); }
+    else if (!wantBub && v.bubOn) popBubble(v.bub, v.g, false);
+    v.bubOn = wantBub;
     if (!v.seen) { v.g.position.copy(v.target); v.seen = true; }
     const g = pr.g && typeof pr.g === 'object' ? pr.g : null;
     if (g && (g.k === 'hello' || g.k === 'bow') && Number.isFinite(g.n) && g.n !== v.gesture.n) {
@@ -1750,17 +2028,23 @@ async function renderPeers(peers) {
 }
 function updatePeers(dt, t) {
   for (const v of peerViews.values()) {
+    const gap = Math.hypot(v.target.x - v.g.position.x, v.target.z - v.g.position.z);
     v.g.position.lerp(v.target, Math.min(1, dt * 6));
     let dy = v.yaw - v.g.rotation.y;
     dy = Math.atan2(Math.sin(dy), Math.cos(dy));
     v.g.rotation.y += dy * Math.min(1, dt * 6);
-    applyPose(v.fig, gesturePose(v.gesture), t);
+    applyPose(v.fig, gesturePose(v.gesture), t, v.sitWant === 0 ? 0 : 1, v.sitWant === 0 ? Math.min(1, gap * 4) : 0);
+    wobbleBubble(v.bub, t);
+    const py = v.g.position.y;
+    if (v.prevY !== undefined && (v.prevY > SURF) !== (py > SURF)) splashAt(v.g.position.x, v.g.position.z, py < SURF, false);
+    v.prevY = py;
     const base = tmp.copy(v.g.position);
-    if (v.label) v.label.position.copy(base).add(new THREE.Vector3(0, 1.45, 0));
-    showBubble(v.bubbles, v.gesture, base.add(new THREE.Vector3(0, 0.82, 0)));
+    const top = mix(1.62, 1.18, v.fig.sit);
+    if (v.label) v.label.position.copy(base).add(new THREE.Vector3(0, top + 0.28, 0));
+    showBubble(v.bubbles, v.gesture, base.add(new THREE.Vector3(0, top - 0.25, 0)));
   }
   const me = orb.position.clone();
-  showBubble(myBubbles, myGesture, me.add(new THREE.Vector3(0, 0.82, 0)));
+  showBubble(myBubbles, myGesture, me.add(new THREE.Vector3(0, mix(1.62, 1.18, myFig.sit) - 0.2, 0)));
   updateBellLook();
 }
 
@@ -1770,7 +2054,7 @@ function sendPresence(force) {
   if (!room) return;
   const now = performance.now();
   if (!force && now - lastPresenceAt < 100) return;
-  const obj = { x: +orb.position.x.toFixed(2), y: +orb.position.y.toFixed(2), z: +orb.position.z.toFixed(2), h: +orb.rotation.y.toFixed(2), b: travel ? 1 : 0, s: mySeat, g: { k: myGesture.k, n: myGesture.n }, r: { n: myRing.n, at: myRing.at } };
+  const obj = { p: (mySeat !== null || travel || atBeach) ? 1 : 0, x: +orb.position.x.toFixed(2), y: +orb.position.y.toFixed(2), z: +orb.position.z.toFixed(2), h: +orb.rotation.y.toFixed(2), b: travel ? 1 : 0, s: mySeat, g: { k: myGesture.k, n: myGesture.n }, r: { n: myRing.n, at: myRing.at } };
   const str = JSON.stringify(obj);
   if (str === lastPresence) return;
   lastPresence = str; lastPresenceAt = now;
