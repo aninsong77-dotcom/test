@@ -1458,6 +1458,8 @@ $('endDive').addEventListener('click', () => { $('endSheet').hidden = true; star
 const pos2 = new THREE.Vector2(0, 0);
 let heading = 0;
 const fwd = new THREE.Vector3(0, 0, -1);
+const camDir = new THREE.Vector3(0, 0, -1);
+let camYaw = 0;
 const tmp = new THREE.Vector3();
 const lookTarget = new THREE.Vector3(), camGoal = new THREE.Vector3();
 let followRate = 4, snapCam = false;
@@ -1473,6 +1475,7 @@ window.addEventListener('keydown', e => {
   if (k === 'escape') closeSheets();
 });
 window.addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
+canvas.addEventListener('pointerdown', () => { try { canvas.focus({ preventScroll: true }); } catch (e) {} });
 window.addEventListener('blur', () => keys.clear());
 
 const joy = { x: 0, y: 0, id: null };
@@ -1495,21 +1498,31 @@ const joy = { x: 0, y: 0, id: null };
 
 
 function updateWalk(dt, t) {
-  let move = 0, turn = 0;
-  if (keys.has('w') || keys.has('arrowup')) move += 1;
-  if (keys.has('s') || keys.has('arrowdown')) move -= 1;
-  if (keys.has('a') || keys.has('arrowleft')) turn += 1;
-  if (keys.has('d') || keys.has('arrowright')) turn -= 1;
-  move += -joy.y; turn += -joy.x * 0.9;
-  move = Math.max(-1, Math.min(1, move));
-  turn = Math.max(-1, Math.min(1, turn));
-  if (mySeat !== null && (Math.abs(move) > 0.15 || Math.abs(turn) > 0.15)) standUp();
-  if (mySeat !== null) { const st = SEATS[mySeat]; pos2.set(st.x, st.z); heading = st.heading; move = 0; turn = 0; }
-
-  heading += turn * TURN * dt;
+  /* 방향키(또는 W A S D, 휴대폰은 원)가 가리키는 쪽으로 바로 움직임: 위 = 화면 안쪽, 왼쪽 = 화면 왼쪽 */
+  let ix = 0, iy = 0;
+  if (keys.has('w') || keys.has('arrowup')) iy += 1;
+  if (keys.has('s') || keys.has('arrowdown')) iy -= 1;
+  if (keys.has('a') || keys.has('arrowleft')) ix -= 1;
+  if (keys.has('d') || keys.has('arrowright')) ix += 1;
+  ix += joy.x; iy -= joy.y;
+  let mag = Math.min(1, Math.hypot(ix, iy));
+  if (mySeat !== null && mag > 0.15) { standUp(); camYaw = heading; }
+  if (mySeat !== null) { const st = SEATS[mySeat]; pos2.set(st.x, st.z); heading = st.heading; camYaw = heading; mag = 0; }
+  const move = mag;
+  if (mag > 0.05) {
+    const cfx = -Math.sin(camYaw), cfz = -Math.cos(camYaw);
+    let dx = cfx * iy - cfz * ix, dz = cfz * iy + cfx * ix;
+    const dl = Math.hypot(dx, dz) || 1;
+    dx /= dl; dz /= dl;
+    const want = Math.atan2(-dx, -dz);
+    heading += Math.atan2(Math.sin(want - heading), Math.cos(want - heading)) * Math.min(1, dt * 10);
+    pos2.x += dx * mag * SPEED * dt;
+    pos2.y += dz * mag * SPEED * dt;
+    // 카메라는 앞이나 옆으로 갈 때만 천천히 뒤로 따라 돎 (나를 향해 걸어오면 그대로 둠)
+    if (iy > -0.3) camYaw += Math.atan2(Math.sin(heading - camYaw), Math.cos(heading - camYaw)) * Math.min(1, dt * 1.6);
+  }
   fwd.set(-Math.sin(heading), 0, -Math.cos(heading));
-  pos2.x += fwd.x * move * SPEED * dt;
-  pos2.y += fwd.z * move * SPEED * dt;
+  camDir.set(-Math.sin(camYaw), 0, -Math.cos(camYaw));
   const r = pos2.length();
   if (r > LIMIT) pos2.multiplyScalar(LIMIT / r);
   if (pos2.y > 32) pos2.y = 32;
@@ -1524,7 +1537,7 @@ function updateWalk(dt, t) {
   applyPose(myFig, gesturePose(myGesture), t);
 
   trailTimer -= dt;
-  if (Math.abs(move) > 0.05 && trailTimer <= 0) {
+  if (move > 0.05 && trailTimer <= 0) {
     trailTimer = 0.09;
     const tr = trail[trailIdx++ % trail.length];
     tr.s.position.copy(orb.position).add(tmp.set((Math.random() - 0.5) * 0.3, -0.1, (Math.random() - 0.5) * 0.3));
@@ -1550,14 +1563,14 @@ function updateWalk(dt, t) {
     const ox = st.x - DOME_CENTER.x, oz = st.z - DOME_CENTER.z, ol = Math.hypot(ox, oz) || 1;
     const back = camera.aspect < 1 ? 2.0 : 2.3, high = camera.aspect < 1 ? 4.0 : 4.3;
     camGoal.set(st.x + ox / ol * back, HOUSE_BASE + high, st.z + oz / ol * back);
-  } else camGoal.copy(orb.position).add(tmp.set(0, near ? 2.4 : 3, 0)).addScaledVector(fwd, near ? -5.2 : -7.5);
+  } else camGoal.copy(orb.position).add(tmp.set(0, near ? 2.4 : 3, 0)).addScaledVector(camDir, near ? -5.2 : -7.5);
   camGoal.y = Math.min(Math.max(camGoal.y, groundH(camGoal.x, camGoal.z) + 1.3), SURF - 1.5);
   camera.position.lerp(camGoal, a);
   const wantFov = mySeat !== null && camera.aspect < 1 ? 84 : 60;
   if (Math.abs(camera.fov - wantFov) > 0.1) { camera.fov += (wantFov - camera.fov) * Math.min(1, dt * 4); camera.updateProjectionMatrix(); }
   camera.up.set(0, 1, 0);
   if (mySeat !== null) lookTarget.lerp(tmp.set(DOME_CENTER.x, HOUSE_BASE + 0.6, DOME_CENTER.z), a);
-  else lookTarget.lerp(tmp.copy(orb.position).addScaledVector(fwd, 4).add(new THREE.Vector3(0, 0.8, 0)), a);
+  else lookTarget.lerp(tmp.copy(orb.position).addScaledVector(camDir, 4).add(new THREE.Vector3(0, 0.8, 0)), a);
   camera.lookAt(lookTarget);
 
   let foundNow = null;
@@ -1802,7 +1815,7 @@ $('toDome').addEventListener('click', () => {
   if (inIntro) return;
   standUp();
   pos2.set(DOME_CENTER.x, DOME_CENTER.z + DOME_R + 2.5);
-  heading = 0;
+  heading = 0; camYaw = 0;
   snapCam = true;
 });
 
@@ -1816,8 +1829,8 @@ function updateDomeUi(near) {
   $('toDome').hidden = near;
   $('toDome').textContent = '돔으로 가기';
   $('hint').textContent = near
-    ? (coarse ? '방석에 앉아 함께 기다려요' : '방석에 앉아 함께 기다려요 · 인사 버튼으로 인사할 수 있어요 · 안내판을 누르면 링크가 열려요')
-    : (coarse ? '왼쪽 아래 원을 밀어서 다니기 · 앞에 보이는 투명 돔 안으로 들어가 보세요' : 'W A S D 또는 방향키로 다니기 · 앞에 보이는 투명 돔 안으로 들어가 보세요');
+    ? (coarse ? '방석에 앉아 함께 기다려요 · 원을 밀면 일어나 움직여요' : '방석에 앉아 함께 기다려요 · 방향키를 누르면 일어나 움직여요 · 안내판을 누르면 링크가 열려요')
+    : (coarse ? '왼쪽 아래 원을 미는 쪽으로 움직여요' : '방향키로 내 모습을 움직여요 (화면을 한 번 누른 뒤) · 위 앞으로, 아래 뒤로, 왼쪽·오른쪽은 그쪽으로');
 }
 
 /* 링크 */
