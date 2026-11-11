@@ -1609,6 +1609,7 @@ function updateViewCup(dt, t) {
   const potHands = on && !ph.held && ph.reach > 0.25 && (performance.now() - r.at) / 1000 < 5.2;
   va.group.visible = viewCup.visible || potHands;
   if (potHands) {
+    const fresh = va.lastRitual !== r; va.lastRitual = r;
     va.sleeveMat.color.copy(myFig.mat.color);
     va.sleeveMat.emissive.copy(myFig.mat.color);
     const pot = teaSet.potGroup;
@@ -1616,10 +1617,15 @@ function updateViewCup(dt, t) {
     camera.updateMatrixWorld(true);
     // 손잡이와 뚜껑 중 화면 왼쪽에 있는 것을 왼손이, 오른쪽에 있는 것을 오른손이 잡음 (팔이 엇갈리지 않게)
     const grips = [new THREE.Vector3(0.0, 0.2, 0), new THREE.Vector3(-0.13, 0.1, 0)].map(g => camera.worldToLocal(pot.localToWorld(g)));
-    grips.sort((p1, p2) => p1.x - p2.x);
+    // 어느 손이 어디를 잡을지는 처음 한 번만 정함 (매 순간 바뀌면 손이 떨림)
+    if (r.gripSwap === undefined) r.gripSwap = grips[0].x > grips[1].x;
+    if (r.gripSwap) grips.reverse();
     const hp = new THREE.Vector3(), sh = new THREE.Vector3(), d = new THREE.Vector3();
     for (const a of va.arms) {
-      hp.copy(grips[a.sd < 0 ? 0 : 1]);
+      // 손 위치를 부드럽게 따라가게 해서 흔들림을 없앰
+      if (!a.handSm || fresh) { a.handSm = grips[a.sd < 0 ? 0 : 1].clone(); }
+      a.handSm.lerp(grips[a.sd < 0 ? 0 : 1], 1 - Math.exp(-dt * 14));
+      hp.copy(a.handSm);
       sh.set(a.sd * 0.3, -0.5, Math.min(-0.3, hp.z * 0.4));
       d.subVectors(hp, sh);
       const len = d.length();
