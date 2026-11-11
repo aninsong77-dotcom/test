@@ -176,10 +176,10 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 <header class="hud fade is-hidden" id="hud">
   <div class="plate">
     <div class="id">A-508057</div>
-    <div class="sub">수심 30 m · <span id="found">빛나는 생물 0 / 9</span> · <span id="lightCount">띄운 빛 0개</span> · <span id="together">혼자 있어요</span></div>
+    <div class="sub"><span hidden><span id="found"></span><span id="lightCount"></span></span>유리 돔 · <span id="together">혼자 있어요</span></div>
     <div class="hint" id="hint"></div>
   </div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button type="button" id="toDome" hidden>돔으로 가기</button><button type="button" id="galleryBtn" hidden>기록 사진</button><span id="hostRow" hidden style="display:contents"><button type="button" id="linksBtn">링크 넣기</button></span><button type="button" id="viewBtn">내 모습 보기</button><button type="button" id="replay">바다 위부터 다시</button></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button type="button" id="toDome" hidden>돔으로 가기</button><button type="button" id="galleryBtn" hidden>기록 사진</button><span id="hostRow" hidden style="display:contents"><button type="button" id="linksBtn">링크 넣기</button></span><button type="button" id="viewBtn">내 모습 보기</button><button type="button" id="replay">나가기</button></div>
 </header>
 
 <div class="stick fade is-hidden" id="stick" aria-hidden="true"><div class="knob" id="knob"></div></div>
@@ -233,10 +233,9 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 <div class="sheet" id="endSheet" hidden>
   <div class="card" role="dialog" aria-labelledby="endTitle">
     <h2 id="endTitle">함께해 주셔서 고마워요</h2>
-    <p>명상을 마치고 해변으로 돌아왔어요. 창을 닫으면 나가요.</p>
+    <p>빛을 타고 돌아갔어요. 창을 닫으면 끝나요.</p>
     <div class="actions">
-      <button type="button" id="endStay">해변에 머물기</button>
-      <button type="button" class="primary" id="endDive">다시 바다로 들어가기</button>
+      <button type="button" class="primary" id="endDive">다시 들어오기</button>
     </div>
   </div>
 </div>
@@ -2064,8 +2063,7 @@ function updateBeach(dt, t) {
   camera.lookAt(lookTarget);
   sendPresence();
 }
-$('endStay').addEventListener('click', () => { $('endSheet').hidden = true; });
-$('endDive').addEventListener('click', () => { $('endSheet').hidden = true; startDive(false); });
+$('endDive').addEventListener('click', () => enterDomeDirect());
 
 /* ---------- 다니기 ---------- */
 const pos2 = new THREE.Vector2(0, 0);
@@ -2188,6 +2186,10 @@ function updateWalk(dt, t) {
   const r = pos2.length();
   if (r > LIMIT) pos2.multiplyScalar(LIMIT / r);
   if (pos2.y > 32) pos2.y = 32;
+  {
+    const dx = pos2.x - DOME_CENTER.x, dz = pos2.y - DOME_CENTER.z, d = Math.hypot(dx, dz), m = DOME_R - 0.55;
+    if (d > m) pos2.set(DOME_CENTER.x + dx / d * m, DOME_CENTER.z + dz / d * m);
+  }
   const gy = groundH(pos2.x, pos2.y);
   if (mySeat !== null) {
     orb.position.set(pos2.x, HOUSE_BASE + 0.33, pos2.y);
@@ -2391,6 +2393,11 @@ canvas.addEventListener('pointerup', e => {
   const gl = Math.hypot(gx, gz);
   if (gl > LIMIT) { gx *= LIMIT / gl; gz *= LIMIT / gl; }
   gz = Math.min(gz, 32);
+  {
+    const dx = gx - DOME_CENTER.x, dz = gz - DOME_CENTER.z, d = Math.hypot(dx, dz), m = DOME_R - 0.55;
+    if (d > m) { gx = DOME_CENTER.x + dx / d * m; gz = DOME_CENTER.z + dz / d * m; }
+    gh = HOUSE_BASE + 0.17;
+  }
   if (mySeat !== null) { mySeat = null; $('seatBtn').textContent = '방석에 앉기'; }
   moveTarget = { x: gx, y: gz, h: gh };
 });
@@ -2490,6 +2497,9 @@ async function renderPeers(peers) {
     if (wantBub && !v.bubOn) { v.bub.visible = true; v.bub.scale.setScalar(0.3); v.bubGrow = performance.now(); }
     else if (!wantBub && v.bubOn) popBubble(v.bub, v.g, false);
     v.bubOn = wantBub;
+    v.out = pr.o === 1;
+    v.g.visible = !v.out;
+    if (v.label) v.label.visible = !v.out;
     if (!v.seen) { v.g.position.copy(v.target); v.seen = true; }
     const g = pr.g && typeof pr.g === 'object' ? pr.g : null;
     if (g && (g.k === 'hello' || g.k === 'bow' || g.k === 'tea') && Number.isFinite(g.n) && g.n !== v.gesture.n) {
@@ -2554,7 +2564,7 @@ function sendPresence(force) {
   if (!room) return;
   const now = performance.now();
   if (!force && now - lastPresenceAt < 100) return;
-  const obj = { p: (mySeat !== null || atBeach || teaSitting !== null) ? 1 : 0, x: +orb.position.x.toFixed(2), y: +orb.position.y.toFixed(2), z: +orb.position.z.toFixed(2), h: +orb.rotation.y.toFixed(2), b: (travel || bubbleOn) ? 1 : 0, s: mySeat, g: { k: myGesture.k, n: myGesture.n, c: myGesture.c }, r: { n: myRing.n, at: myRing.at } };
+  const obj = { o: iAmOut ? 1 : leaving ? 2 : 0, p: (mySeat !== null || atBeach || teaSitting !== null) ? 1 : 0, x: +orb.position.x.toFixed(2), y: +orb.position.y.toFixed(2), z: +orb.position.z.toFixed(2), h: +orb.rotation.y.toFixed(2), b: (travel || bubbleOn) ? 1 : 0, s: mySeat, g: { k: myGesture.k, n: myGesture.n, c: myGesture.c }, r: { n: myRing.n, at: myRing.at } };
   const str = JSON.stringify(obj);
   if (str === lastPresence) return;
   lastPresence = str; lastPresenceAt = now;
@@ -2618,7 +2628,7 @@ function updateDomeUi(near) {
   $('toDome').hidden = near;
   $('toDome').textContent = '돔으로 가기';
   $('hint').textContent = near
-    ? (coarse ? '바닥을 누르면 걸어가요 · 방석을 누르면 앉아요 · 두 번 톡 인사, 꾹 누르면 합장 · 끌어서 둘러보기, 위로 끌면 바다 위쪽' : '바닥 누르기·방향키로 움직여요 · 방석을 누르거나 F로 앉기 · 1 안녕하세요, 2 합장, 3 종, 4 차, P 사진, V 시점 · 끌어서 둘러보기, 위로 끌면 바다 위쪽')
+    ? (coarse ? '바닥을 누르면 걸어가요 · 방석을 누르면 앉아요 · 두 번 톡 인사, 꾹 누르면 합장 · 끌어서 둘러보기 · 나가기를 누르면 빛을 타고 돌아가요' : '바닥 누르기·방향키로 움직여요 · 방석을 누르거나 F로 앉기 · 1 안녕하세요, 2 합장, 3 종, 4 차, P 사진, V 시점 · 끌어서 둘러보기 · 나가기를 누르면 빛을 타고 돌아가요')
     : (coarse ? '바닥을 누르거나 왼쪽 아래 원으로 움직여요 · 끌어서 둘러보기' : '바닥을 누르거나 방향키로 움직여요 · 끌어서 둘러보기 · 휠로 가까이·멀리');
 }
 
@@ -2645,7 +2655,7 @@ function openLink(kind) {
   $('openSheet').hidden = false;
 }
 function closeSheets() { $('openSheet').hidden = true; $('linkSheet').hidden = true; $('gallerySheet').hidden = true; }
-document.addEventListener('click', e => { if (e.target && e.target.id === 'endSheet') $('endSheet').hidden = true; });
+
 $('openSheetClose').addEventListener('click', closeSheets);
 $('openSheetGo').addEventListener('click', () => setTimeout(closeSheets, 300));
 $('linksBtn').addEventListener('click', () => {
@@ -2881,10 +2891,7 @@ function tick() {
   }
   if (before.state === 'playing' && session.state !== 'playing') {
     ringBell(false);
-    if (mySeat !== null && !travel && !atBeach) {
-      toast('명상이 끝났어요 · 물방울을 타고 해변으로 올라가요');
-      setTimeout(() => { if (!travel && !atBeach && session.state !== 'playing') startRise(); }, 3500);
-    }
+    if (!leaving) toast('명상이 끝났어요 · 차를 마시거나, 나가기를 누르면 빛을 타고 돌아가요');
   }
   if (session.state === 'playing' && domeUiShown === false) $('session').classList.remove('is-hidden');
   syncAudio();
@@ -3016,12 +3023,121 @@ function toast(msg) {
 $('hint').textContent = coarse ? '바닥을 누르거나 왼쪽 아래 원으로 움직여요 · 끌어서 둘러보기' : '바닥을 누르거나 방향키로 움직여요 · 끌어서 둘러보기 · 휠로 가까이·멀리';
 
 $('skip').addEventListener('click', () => { if (travel) finishTravel(); });
-$('replay').addEventListener('click', () => { if (travel) return; atBeach = false; startDive(true); });
+/* ---------- 들어오기: 빛 속에서 바로 유리 돔 안으로 / 나가기: 빛 기둥을 타고 올라가며 끝 ---------- */
+let leaving = null, iAmOut = false;
+const beam = noRay(new THREE.Mesh(new THREE.CylinderGeometry(0.75, 1.0, 40, 32, 1, true),
+  new THREE.MeshBasicMaterial({ color: '#fff4cf', transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false })));
+beam.visible = false;
+scene.add(beam);
+const beamCore = noRay(new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.38, 40, 20, 1, true),
+  new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })));
+beam.add(beamCore);
+const motes = [];
+for (let i = 0; i < 40; i++) {
+  const sp = noRay(new THREE.Sprite(glowMat(i % 2 ? '#fff4cf' : '#ffffff', 0)));
+  sp.visible = false;
+  scene.add(sp);
+  motes.push({ sp, a: Math.random() * 6.28, r: 0.25 + Math.random() * 0.55, y: Math.random() * 6, v: 0.8 + Math.random() * 1.6, s: 0.08 + Math.random() * 0.12 });
+}
+function whiteFlash(from, to, ms) {
+  flash.style.transition = 'none';
+  flash.style.opacity = String(from);
+  void flash.offsetWidth;
+  flash.style.transition = `opacity ${ms}ms ease`;
+  flash.style.opacity = String(to);
+}
+function enterDomeDirect() {
+  travel = null; atBeach = false; inIntro = false; leaving = null; iAmOut = false;
+  beam.visible = false; motes.forEach(m => { m.sp.visible = false; });
+  closeSheets();
+  $('endSheet').hidden = true;
+  $('intro').classList.add('is-hidden');
+  ['hud', 'stick'].forEach(id => $(id).classList.remove('is-hidden'));
+  $('makeStar').classList.add('is-hidden');
+  $('toDome').hidden = true;
+  myBub.visible = false;
+  orb.visible = true;
+  myFig.g.visible = true;
+  mySeat = null; teaSitting = null; teaPending = null; moveTarget = null;
+  pos2.set(DOME_CENTER.x, DOME_CENTER.z + 3.4);
+  heading = 0; camYaw = 0; fpPitch = -0.12; camPitchOff = 0;
+  snapCam = true; domeUiShown = null;
+  setLook(HOUSE_BASE + 2);
+  whiteFlash(1, 0, 1800);
+  // 함께 있는 사람을 알아본 뒤 빈 방석에 앉음
+  setTimeout(() => {
+    if (leaving || mySeat !== null || moveTarget || teaSitting !== null) return;
+    const seat = freeSeat();
+    if (seat !== null) sitAt(seat);
+  }, 1300);
+  const tc = $('titleCard');
+  tc.classList.remove('is-hidden');
+  clearTimeout(titleTimer);
+  titleTimer = setTimeout(() => tc.classList.add('is-hidden'), 2600);
+  sendPresence(true);
+}
+function startLeave() {
+  if (leaving || travel) return;
+  closeSheets();
+  for (const r of [...teaRituals]) if (r.fig === myFig) endTeaRitual(r);
+  mySeat = null; teaSitting = null; teaPending = null; moveTarget = null;
+  $('seatBtn').textContent = '방석에 앉기';
+  leaving = { t0: performance.now(), x: orb.position.x, y: HOUSE_BASE + 0.17, z: orb.position.z, done: false };
+  ['hud', 'stick', 'domeBar', 'session', 'toast'].forEach(id => $(id).classList.add('is-hidden'));
+  beam.position.set(leaving.x, leaving.y + 20, leaving.z);
+  beam.visible = true;
+  motes.forEach(m => { m.sp.visible = true; });
+  unlockAudio();
+  ringBell(false);
+  sendPresence(true);
+}
+function updateLeave(dt, t) {
+  const L = leaving, e = (performance.now() - L.t0) / 1000;
+  const on = Math.min(1, e / 1.2);
+  beam.material.opacity = on * 0.1 * (0.85 + Math.sin(t * 5) * 0.15);
+  beamCore.material.opacity = on * 0.16;
+  const rise = e < 1.4 ? 0 : Math.pow(Math.min(1, (e - 1.4) / 5), 1.7) * 26;
+  orb.position.set(L.x, L.y + rise + (e > 1.0 ? Math.min(1, (e - 1.0) / 0.4) * 0.15 : 0), L.z);
+  orb.rotation.y += dt * 0.5;
+  myFig.g.visible = true; myFig.head.visible = true; myBub.visible = false;
+  // 두 팔을 조금 벌리고 빛 속으로
+  applyPose(myFig, null, t, 0, 0);
+  for (const arm of myFig.arms) { arm.pivot.rotation.z = arm.side * mix(0.28, 0.7, on); arm.elbow.rotation.x = -0.1; }
+  for (const m of motes) {
+    m.y += m.v * dt;
+    if (m.y > 9) m.y -= 9;
+    m.a += dt * 1.2;
+    m.sp.position.set(L.x + Math.cos(m.a) * m.r, orb.position.y - 1 + m.y, L.z + Math.sin(m.a) * m.r);
+    m.sp.scale.setScalar(m.s);
+    m.sp.material.opacity = on * Math.sin(m.y / 9 * Math.PI) * 0.9;
+  }
+  // 돔 안쪽에서 올려다보다가 함께 따라 올라감
+  let ox = L.x - DOME_CENTER.x, oz = L.z - DOME_CENTER.z, ol = Math.hypot(ox, oz);
+  if (ol < 0.3) { ox = 0; oz = -1; ol = 1; }
+  const goal = new THREE.Vector3(L.x - ox / ol * 3.6, HOUSE_BASE + 1.3 + rise * 0.62, L.z - oz / ol * 3.6);
+  if (Math.hypot(goal.x - DOME_CENTER.x, goal.z - DOME_CENTER.z) > DOME_R - 0.6) goal.set(L.x + ox / ol * 3.2, goal.y, L.z + oz / ol * 3.2);
+  camera.position.lerp(goal, 1 - Math.exp(-dt * 2.2));
+  camera.up.set(0, 1, 0);
+  camera.lookAt(orb.position.x, orb.position.y + 0.7, orb.position.z);
+  if (Math.abs(camera.fov - 60) > 0.1) { camera.fov += (60 - camera.fov) * Math.min(1, dt * 3); camera.updateProjectionMatrix(); }
+  setLook(camera.position.y);
+  if (e > 4.4 && !L.white) { L.white = true; whiteFlash(0, 1, 1800); }
+  if (e > 6.4 && !L.done) {
+    L.done = true;
+    iAmOut = true;
+    $('endSheet').hidden = false;
+    sendPresence(true);
+  }
+  sendPresence();
+}
+$('replay').addEventListener('click', startLeave);
+
+
 
 myLights.forEach(L => addLightSprite(L, false));
 updateLightCount();
 resize();
-camera.position.set(0, BEACH_TOP + 3, 80);
+camera.position.set(DOME_CENTER.x, HOUSE_BASE + 2, DOME_CENTER.z + 5);
 lookTarget.copy(beachSpot());
 
 /* ---------- 움직이기 ---------- */
@@ -3030,8 +3146,9 @@ function frame() {
   const dt = Math.min(clock.getDelta(), 0.05);
   const t = clock.elapsedTime;
   {
-    if (travel || atBeach) { tpCam.copy(camera.position); myFig.head.visible = true; myFig.g.visible = true; myBub.userData.hideForEyes = false; fpBlend = 0; }
-    if (travel) updateTravel(dt, t);
+    if (travel || atBeach || leaving) { tpCam.copy(camera.position); myFig.head.visible = true; myFig.g.visible = true; myBub.userData.hideForEyes = false; fpBlend = 0; }
+    if (leaving) updateLeave(dt, t);
+    else if (travel) updateTravel(dt, t);
     else if (atBeach) updateBeach(dt, t);
     else updateWalk(dt, t);
     if (!travel) setLook(camera.position.y);
@@ -3051,8 +3168,8 @@ function frame() {
   }
   requestAnimationFrame(frame);
 }
-setLook(BEACH_TOP + 3);
-startDive(true);
+setLook(HOUSE_BASE + 2);
+enterDomeDirect();
 frame();
 </script>
 </body>
