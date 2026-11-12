@@ -199,7 +199,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
     <div class="sub"><span hidden><span id="found"></span><span id="lightCount"></span></span>유리 돔 · <span id="together">혼자 있어요</span> <span id="buildTag" style="opacity:.55;font-size:10px"></span></div>
     <div class="hint" id="hint"></div>
   </div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button type="button" id="toDome" hidden>돔으로 가기</button><button type="button" id="galleryBtn" hidden>기록 사진</button><span id="hostRow" hidden style="display:contents"><button type="button" id="linksBtn">링크 넣기</button></span><button type="button" id="viewBtn">내 모습 보기</button><button type="button" id="replay">나가기</button></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button type="button" id="toDome" hidden>돔으로 가기</button><button type="button" id="galleryBtn" hidden>기록 사진</button><span id="hostRow" hidden style="display:contents"><button type="button" id="linksBtn">링크 넣기</button></span><button type="button" id="nameBtn">이름</button><button type="button" id="viewBtn">내 모습 보기</button><button type="button" id="replay">나가기</button></div>
 </header>
 
 <div class="stick fade is-hidden" id="stick" aria-hidden="true"><div class="knob" id="knob"></div></div>
@@ -255,10 +255,10 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 
 <div class="sheet" id="nameSheet" hidden>
   <div class="card" role="dialog" aria-labelledby="nameTitle">
-    <h2 id="nameTitle">어떻게 불러 드릴까요?</h2>
-    <p>함께 있는 사람에게 머리 위 작은 글씨로 보여요. 비워 두어도 괜찮아요.</p>
+    <h2 id="nameTitle">이름 쓰기</h2>
+    <p>쓰면 다른 사람 화면에서 내 머리 위에 작은 글씨로 보여요. 비우고 저장하면 이름 없이 아바타만 보여요.</p>
     <label>이름<input id="nameInput" type="text" maxlength="12" autocomplete="nickname" placeholder="예: 송이"></label>
-    <div class="actions"><button type="button" class="primary" id="nameOk">들어가기</button></div>
+    <div class="actions"><button type="button" id="nameCancel">닫기</button><button type="button" class="primary" id="nameOk">저장</button></div>
   </div>
 </div>
 
@@ -322,7 +322,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.12-57';
+const BUILD = '11.12-58';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -3392,7 +3392,14 @@ async function renderPeers(peers) {
     else standUp();
   }
   // 이름표
-  // 이름표는 쓰지 않음 (아바타만 보임)
+  // 이름표: 이름을 쓴 사람만 (안 쓴 사람은 아바타만)
+  for (const v of peerViews.values()) {
+    const name = v.nick || '';
+    if (name === v.labelText) continue;
+    if (v.label) { scene.remove(v.label); v.label = null; }
+    v.labelText = name;
+    if (name) { v.label = textSprite(name, 'rgba(4,36,58,.55)', '#ffffff', 0.17); scene.add(v.label); }
+  }
   updateSessionText();
 }
 function updatePeers(dt, t) {
@@ -3425,11 +3432,29 @@ function updatePeers(dt, t) {
 
 /* 내 상태 보내기 (자리, 위치, 인사) */
 let lastPresence = '', lastPresenceAt = 0;
+/* 내 이름 (쓰고 싶은 사람만). 예전에 묻던 이름과는 따로 저장 */
+let myNick = '';
+try { myNick = (localStorage.getItem('a508057:nick') || '').trim().slice(0, 12); } catch (e) {}
+$('nameBtn').addEventListener('click', () => {
+  $('nameInput').value = myNick;
+  $('nameSheet').hidden = false;
+  setTimeout(() => { try { $('nameInput').focus(); } catch (e) {} }, 50);
+});
+const saveNick = () => {
+  myNick = $('nameInput').value.trim().slice(0, 12);
+  try { if (myNick) localStorage.setItem('a508057:nick', myNick); else localStorage.removeItem('a508057:nick'); } catch (e) {}
+  $('nameSheet').hidden = true;
+  toast(myNick ? `'${myNick}'(으)로 보여요` : '이름 없이 아바타만 보여요');
+  sendPresence(true);
+};
+$('nameOk').addEventListener('click', saveNick);
+$('nameCancel').addEventListener('click', () => { $('nameSheet').hidden = true; });
+$('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.isComposing) saveNick(); });
 function sendPresence(force) {
   if (!room) return;
   const now = performance.now();
   if (!force && now - lastPresenceAt < 100) return;
-  const obj = { o: iAmOut ? 1 : leaving ? 2 : 0, p: (mySeat !== null || atBeach || teaSitting !== null) ? 1 : 0, x: +orb.position.x.toFixed(2), y: +orb.position.y.toFixed(2), z: +orb.position.z.toFixed(2), h: +orb.rotation.y.toFixed(2), b: (travel || bubbleOn) ? 1 : 0, s: mySeat, g: Object.assign({ k: myGesture.k, n: myGesture.n }, Number.isInteger(myGesture.c) ? { c: myGesture.c } : {}, myGesture.to ? { to: myGesture.to } : {}), r: { n: myRing.n, at: myRing.at } };
+  const obj = { n: myNick, o: iAmOut ? 1 : leaving ? 2 : 0, p: (mySeat !== null || atBeach || teaSitting !== null) ? 1 : 0, x: +orb.position.x.toFixed(2), y: +orb.position.y.toFixed(2), z: +orb.position.z.toFixed(2), h: +orb.rotation.y.toFixed(2), b: (travel || bubbleOn) ? 1 : 0, s: mySeat, g: Object.assign({ k: myGesture.k, n: myGesture.n }, Number.isInteger(myGesture.c) ? { c: myGesture.c } : {}, myGesture.to ? { to: myGesture.to } : {}), r: { n: myRing.n, at: myRing.at } };
   const str = JSON.stringify(obj);
   if (str === lastPresence && !(fb && now - lastPresenceAt > 10000)) return;
   lastPresence = str; lastPresenceAt = now;
@@ -3993,7 +4018,7 @@ async function startFirebase() {
   dbM.onValue(R('.info/serverTimeOffset'), s => { serverOffset = Number(s.val()) || 0; });
   const roomAdapter = {
     // Firebase는 빈 값(undefined)을 받으면 멈추므로 깨끗하게 정리해서 보냄
-    presence: obj => { try { return dbM.set(meRef, { ...JSON.parse(JSON.stringify({ ...obj, n: nick })), t: dbM.serverTimestamp() }); } catch (e) { return Promise.reject(e); } },
+    presence: obj => { try { return dbM.set(meRef, { ...JSON.parse(JSON.stringify(obj)), t: dbM.serverTimestamp() }); } catch (e) { return Promise.reject(e); } },
     onPeers: (handler, onErr) => dbM.onValue(R('presence'), snap => {
       const all = snap.val() || {};
       const nowS = Date.now() + serverOffset;
