@@ -322,7 +322,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.12-43';
+const BUILD = '11.12-44';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -3117,6 +3117,8 @@ canvas.addEventListener('wheel', e => {
   camZoom = Math.max(0.5, Math.min(1.9, camZoom * Math.exp(e.deltaY * 0.0012)));
 }, { passive: false });
 canvas.addEventListener('pointerup', e => {
+  // 나간 뒤에 끝 화면이 사라졌으면 화면을 눌러 다시 띄움 (다시 들어오기)
+  if (iAmOut && $('endSheet').hidden) { $('endSheet').hidden = false; return; }
   if (mode !== 'outside' || !downAt || inIntro) return;
   const moved = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y);
   const held = performance.now() - downAt.t;
@@ -3571,7 +3573,7 @@ $('linkSave').addEventListener('click', async () => {
     $('linkMsg').textContent = '저장하지 못했어요. 잠시 뒤에 다시 눌러 주세요.';
   } finally { $('linkSave').disabled = false; }
 });
-document.querySelectorAll('.sheet').forEach(sh => sh.addEventListener('click', e => { if (e.target === sh) closeSheets(); }));
+document.querySelectorAll('.sheet').forEach(sh => sh.addEventListener('click', e => { if (e.target === sh && sh.id !== 'endSheet') closeSheets(); }));
 
 /* 명상 시간표: 매일 오전 9시(한국 시각)에 모두 함께 시작, 그 밖의 시간에는 종을 치면 시작 */
 const KST = 9 * 3600 * 1000;
@@ -4139,9 +4141,15 @@ function arriveShot(A) {
   // 내려앉을 자리를 등불 쪽에서 비스듬히 올려다보는 고정 카메라 (바다가 뒤로 보임)
   let ox = DOME_CENTER.x - A.x, oz = DOME_CENTER.z - A.z, ol = Math.hypot(ox, oz);
   if (ol < 0.3) { ox = 0; oz = -1; ol = 1; }
+  // 등불 쪽에서 50도 비켜서 봄 (등불 빛이 겹쳐 하얗게 되지 않게)
+  const rot = 0.87, c = Math.cos(rot), s2 = Math.sin(rot);
+  const dx = (ox * c - oz * s2) / ol, dz = (ox * s2 + oz * c) / ol;
   const portrait = camera.aspect < 1;
-  const back = portrait ? 7.2 : 6.4;
-  camera.position.set(A.x + ox / ol * back, HOUSE_BASE + 1.15, A.z + oz / ol * back);
+  const back = portrait ? 6.6 : 5.8;
+  let cx = A.x + dx * back, cz = A.z + dz * back;
+  const cr = Math.hypot(cx - DOME_CENTER.x, cz - DOME_CENTER.z), lim = DOME_R - 0.7;
+  if (cr > lim) { cx = DOME_CENTER.x + (cx - DOME_CENTER.x) * lim / cr; cz = DOME_CENTER.z + (cz - DOME_CENTER.z) * lim / cr; }
+  camera.position.set(cx, HOUSE_BASE + 1.15, cz);
   camera.up.set(0, 1, 0);
   camera.lookAt(A.x, HOUSE_BASE + (portrait ? 4.6 : 3.9), A.z);
   camera.fov = portrait ? 74 : 60;
@@ -4169,11 +4177,11 @@ function updateArrive(dt, t) {
   const on = A.td ? (e < ARRIVE_T + 0.2 ? fadeIn : Math.max(0, 1 - (e - ARRIVE_T - 0.2) / 1.0)) : fadeIn;
   // 한 줄기 빛: 가늘고 곧게
   beam.scale.set(0.45, 1, 0.45);
-  beam.material.opacity = on * 0.09 * (0.9 + Math.sin(t * 3) * 0.1);
-  beamCore.material.opacity = on * 0.22;
+  beam.material.opacity = on * 0.06 * (0.9 + Math.sin(t * 3) * 0.1);
+  beamCore.material.opacity = on * 0.15;
   const floorY = A.seat !== null ? HOUSE_BASE + 0.33 : HOUSE_BASE + 0.17;
   orb.position.set(A.x, floorY + down, A.z);
-  orb.rotation.y += dt * 0.35 * Math.min(1, down / 4);
+  orb.rotation.y -= dt * 0.35 * Math.min(1, down / 4);
   pos2.set(A.x, A.z);
   myFig.g.visible = true; myFig.head.visible = true; myBub.visible = false;
   applyPose(myFig, null, t, e > ARRIVE_T - 0.4 && A.seat !== null ? 1 : 0, 0);
@@ -4182,7 +4190,7 @@ function updateArrive(dt, t) {
   arriveGlow.visible = true;
   arriveGlow.position.set(A.x, orb.position.y + 0.55, A.z);
   arriveGlow.scale.setScalar(1.2 + Math.min(down, 20) * 0.12);
-  arriveGlow.material.opacity = on * Math.min(1, down / 5) * 0.95;
+  arriveGlow.material.opacity = on * Math.min(1, down / 5) * 0.75;
   for (const m of motes) {
     m.y -= m.v * dt * 0.6;
     if (m.y < 0) m.y += 9;
@@ -4235,8 +4243,8 @@ function updateLeave(dt, t) {
   const k = Math.min(1, Math.max(0, (e - 1.2) / ARRIVE_T));
   const up = Math.pow(k, 2.4) * ARRIVE_H;
   beam.scale.set(0.45, 1, 0.45);
-  beam.material.opacity = on * 0.09 * (0.9 + Math.sin(t * 3) * 0.1);
-  beamCore.material.opacity = on * 0.22;
+  beam.material.opacity = on * 0.06 * (0.9 + Math.sin(t * 3) * 0.1);
+  beamCore.material.opacity = on * 0.15;
   orb.position.set(L.x, L.y + up, L.z);
   orb.rotation.y += dt * 0.35 * Math.min(1, up / 4);
   myFig.g.visible = true; myFig.head.visible = true; myBub.visible = false;
@@ -4246,7 +4254,7 @@ function updateLeave(dt, t) {
   arriveGlow.visible = true;
   arriveGlow.position.set(L.x, orb.position.y + 0.55, L.z);
   arriveGlow.scale.setScalar(1.2 + Math.min(up, 20) * 0.12);
-  arriveGlow.material.opacity = on * Math.min(1, up / 5) * 0.95;
+  arriveGlow.material.opacity = on * Math.min(1, up / 5) * 0.75;
   for (const m of motes) {
     m.y += m.v * dt * 0.6;
     if (m.y > 9) m.y -= 9;
