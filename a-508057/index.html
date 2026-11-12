@@ -83,7 +83,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
   position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;
   border-radius:50%;background:rgba(255,233,168,.3);border:1px solid rgba(255,233,168,.55);
 }
-@media (pointer:coarse){.stick{display:block}}
+@media (pointer:coarse){.stick{display:none}}
 
 .toast{
   position:fixed;z-index:5;left:50%;transform:translateX(-50%);
@@ -2771,6 +2771,12 @@ function updateWalk(dt, t) {
   if (keys.has('a') || keys.has('arrowleft')) ix -= 1;
   if (keys.has('d') || keys.has('arrowright')) ix += 1;
   ix += joy.x; iy -= joy.y;
+  if (dragMove.on) {
+    const dz = v => Math.abs(v) < 0.12 ? 0 : (v - Math.sign(v) * 0.12) / 0.88;
+    iy -= dz(dragMove.y);
+    camYaw -= dz(dragMove.x) * dt * 1.8;
+    lastLookAt = performance.now();
+  }
   let mag = Math.min(1, Math.hypot(ix, iy));
   if (mySeat !== null && mag > 0.15) standUp();
   if (mySeat !== null) { const st = SEATS[mySeat]; pos2.set(st.x, st.z); heading = st.heading; mag = 0; moveTarget = null; }
@@ -2945,12 +2951,32 @@ const ndc = new THREE.Vector2();
 let downAt = null;
 let dragLook = null;
 let lastTap = null, lastTapPrevTarget = null;
+const touches = new Map();
+const dragMove = { on: false, id: null, sx: 0, sy: 0, x: 0, y: 0 };
+function endDragMove() { dragMove.on = false; dragMove.id = null; dragMove.x = 0; dragMove.y = 0; }
 canvas.addEventListener('pointerdown', e => {
   if (mode !== 'outside') return;
+  if (e.pointerType === 'touch') {
+    touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (touches.size === 1) { dragMove.id = e.pointerId; dragMove.sx = e.clientX; dragMove.sy = e.clientY; dragMove.on = false; }
+    else { endDragMove(); downAt = null; }   // 두 손가락: 둘러보기
+  }
+  if (touches.size > 1) { dragLook = { id: e.pointerId, x: e.clientX, y: e.clientY, on: true }; return; }
   downAt = { x: e.clientX, y: e.clientY, t: performance.now() };
   dragLook = { id: e.pointerId, x: e.clientX, y: e.clientY, on: false };
 });
 canvas.addEventListener('pointermove', e => {
+  if (e.pointerType === 'touch' && touches.has(e.pointerId)) touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  // 한 손가락으로 끌기 = 걷기
+  if (e.pointerType === 'touch' && touches.size === 1 && dragMove.id === e.pointerId && !travel && !atBeach) {
+    const dx = e.clientX - dragMove.sx, dy = e.clientY - dragMove.sy;
+    if (!dragMove.on && Math.hypot(dx, dy) < 10) return;
+    if (!dragMove.on) { dragMove.on = true; try { canvas.setPointerCapture(e.pointerId); } catch (err) {} }
+    const R = 70;
+    dragMove.x = Math.max(-1, Math.min(1, dx / R));
+    dragMove.y = Math.max(-1, Math.min(1, dy / R));
+    return;
+  }
   if (!dragLook || e.pointerId !== dragLook.id || travel || atBeach) return;
   const dx = e.clientX - dragLook.x, dy = e.clientY - dragLook.y;
   if (!dragLook.on && Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) < 8) return;
@@ -2961,7 +2987,13 @@ canvas.addEventListener('pointermove', e => {
   fpPitch = Math.max(-1.2, Math.min(1.35, fpPitch - dy * 0.004));
   lastLookAt = performance.now();
 });
-const endLook = () => { dragLook = null; };
+const endLook = e => {
+  dragLook = null;
+  if (e && e.pointerType === 'touch') {
+    touches.delete(e.pointerId);
+    if (dragMove.id === e.pointerId || touches.size === 0) endDragMove();
+  }
+};
 canvas.addEventListener('pointercancel', endLook);
 canvas.addEventListener('pointerup', endLook);
 canvas.addEventListener('wheel', e => {
@@ -3321,7 +3353,7 @@ function updateDomeUi(near) {
   $('toDome').hidden = near;
   $('toDome').textContent = '돔으로 가기';
   $('hint').textContent = near
-    ? (coarse ? '바닥을 누르면 걸어가요 · 방석을 누르면 앉아요 · 두 번 톡 인사, 꾹 누르면 합장 · 끌어서 둘러보기 · 나가기를 누르면 빛을 타고 돌아가요' : '바닥 누르기·방향키로 움직여요 · 방석을 누르거나 F로 앉기 · 1 안녕하세요, 2 합장, 3 종, 4 차, P 사진, V 시점 · 끌어서 둘러보기 · 나가기를 누르면 빛을 타고 돌아가요')
+    ? (coarse ? '손가락으로 끌면 그쪽으로 걸어가요 (옆으로 끌면 돌아요) · 두 손가락으로 끌면 둘러보기 · 방석을 누르면 앉아요 · 사람을 누르면 인사·차 대접 · 나가기를 누르면 빛을 타고 돌아가요' : '바닥 누르기·방향키로 움직여요 · 방석을 누르거나 F로 앉기 · 1 안녕하세요, 2 합장, 3 종, 4 차, P 사진, V 시점 · 끌어서 둘러보기 · 나가기를 누르면 빛을 타고 돌아가요')
     : (coarse ? '바닥을 누르거나 왼쪽 아래 원으로 움직여요 · 끌어서 둘러보기' : '바닥을 누르거나 방향키로 움직여요 · 끌어서 둘러보기 · 휠로 가까이·멀리');
 }
 
