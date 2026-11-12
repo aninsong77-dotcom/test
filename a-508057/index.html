@@ -322,7 +322,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.12-38';
+const BUILD = '11.12-39';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -3524,7 +3524,7 @@ function openLink(kind) {
     $('openSheetGo').href = url.trim();
     $('openSheetGo').hidden = false;
   } else {
-    $('openSheetText').textContent = isHost ? '아직 링크가 없어요. 아래쪽 "링크 넣기"에서 넣을 수 있어요.' : '아직 링크가 없어요. 진행하는 분이 넣으면 여기서 열 수 있어요.';
+    $('openSheetText').textContent = '아직 링크가 없어요. 진행하는 분이 넣으면 여기서 열 수 있어요.';
     $('openSheetGo').hidden = true;
   }
   $('openSheet').hidden = false;
