@@ -2942,13 +2942,14 @@ async function renderPeers(peers) {
   const others = peers.filter(p => p.kind === 'viewer' && !p.isMe);
   const alive = new Set();
   takenSeats.clear();
+  const seatOwner = new Map();
   for (const p of others) {
     alive.add(p.peer);
     let v = peerViews.get(p.peer);
     if (!v) { v = makePeerView(p); peerViews.set(p.peer, v); }
     const pr = p.presence || {};
     const seat = Number.isInteger(pr.s) && pr.s >= 0 && pr.s < SEATS.length ? pr.s : null;
-    if (seat !== null) takenSeats.add(seat);
+    if (seat !== null) { takenSeats.add(seat); seatOwner.set(seat, p.peer); }
     let x = Number.isFinite(pr.x) ? pr.x : DOME_CENTER.x + 3, z = Number.isFinite(pr.z) ? pr.z : DOME_CENTER.z + 5;
     let y = Number.isFinite(pr.y) ? pr.y : groundH(x, z) + 0.35;
     if (seat !== null) { x = SEATS[seat].x; z = SEATS[seat].z; y = HOUSE_BASE + 0.33; }
@@ -2979,7 +2980,11 @@ async function renderPeers(peers) {
   for (const [k, v] of peerViews) if (!alive.has(k)) { dropPeerView(v); peerViews.delete(k); }
   const n = others.length + 1;
   $('together').textContent = n === 1 ? '혼자 있어요' : `함께 ${n}명`;
-  if (mySeat !== null && takenSeats.has(mySeat)) { /* 같은 방석을 동시에 고른 경우: 그대로 둠 */ }
+  if (mySeat !== null && takenSeats.has(mySeat) && mine && String(mine.peer) > String(seatOwner.get(mySeat))) {
+    const other = freeSeat();
+    if (other !== null) { mySeat = null; sitAt(other); }
+    else standUp();
+  }
   // 이름표
   if (user || fb) {
     const ids = user ? [...peerViews.values()].map(v => v.by).filter(Boolean) : [];
@@ -3004,6 +3009,7 @@ function updatePeers(dt, t) {
     dy = Math.atan2(Math.sin(dy), Math.cos(dy));
     v.g.rotation.y += dy * Math.min(1, dt * 6);
     applyPose(v.fig, gesturePose(v.gesture), t, v.sitWant === 0 ? 0 : 1, v.sitWant === 0 ? Math.min(1, gap * 4) : 0);
+    if (!v.out) v.g.visible = camera.position.distanceTo(v.g.position) > 1.0;
     wobbleBubble(v.bub, t);
     if (v.bubGrow) { const ge = (performance.now() - v.bubGrow) / 600; v.bub.scale.setScalar(ge < 1 ? 0.3 + 0.7 * smooth(ge) : 1); if (ge >= 1) v.bubGrow = 0; }
     const py = v.g.position.y;
