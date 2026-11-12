@@ -214,7 +214,6 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 <div class="peer-menu is-hidden" id="peerMenu" role="menu" aria-label="함께하는 사람에게">
   <span id="peerMenuName"></span>
   <button type="button" id="pmBow" role="menuitem">합장 인사</button>
-  <button type="button" id="pmServe" role="menuitem">차 대접</button>
 </div>
 
 <div class="session fade is-hidden" id="session" role="status"></div>
@@ -3156,14 +3155,6 @@ $('pmBow').addEventListener('click', () => {
   if (pmTarget) { const v = peerViews.get(pmTarget); greet('bow', pmTarget); toast(`${(v && v.labelText) || '함께하는 사람'}님께 합장 인사했어요`); }
   closePeerMenu();
 });
-$('pmServe').addEventListener('click', () => {
-  const to = pmTarget; closePeerMenu();
-  if (!to) return;
-  if (teaRituals.some(r => r.fig === myFig)) return;
-  const v = peerViews.get(to);
-  toast(`찻상에서 차를 따라 ${(v && v.labelText) || '함께하는 사람'}님께 드려요`);
-  teaFrom(undefined, to);
-});
 canvas.addEventListener('pointerdown', () => { if (pmTarget) closePeerMenu(); });
 function lightFromButton() {
   const side = tmp.set(-fwd.z, 0, fwd.x);
@@ -3273,13 +3264,11 @@ async function renderPeers(peers) {
       const cupOk = Number.isInteger(g.c) && g.c >= 0 && g.c < TEA_CUP_ANGLES.length;
       if (v.gesture.at) {
         if (g.k === 'tea' && cupOk) startTeaRitual(g.c, v.fig, v.gesture.at);
-        if (g.k === 'serve' && cupOk && to) { const r = startTeaRitual(g.c, v.fig, v.gesture.at); r.serve = { to, by: p.peer }; }
+        if (g.k === 'serve' && cupOk) startTeaRitual(g.c, v.fig, v.gesture.at);
         if (g.k === 'sip') startSip(v.fig, p.peer, v.gesture.at);
         if (to && to === myPeerId) {
           const who = (v.labelText || '함께하는 사람') + '님이';
-          if (g.k === 'serve') showNotice(`🍵 ${who} 차를 따라 드려요`, p.peer, true);
-          else if (g.k === 'bow' || g.k === 'hello') showNotice(`🙏 ${who} 인사해요`, p.peer, false);
-          else if (g.k === 'sip') showNotice(`🍵 ${who} 대접한 차를 마셔요`, p.peer, false);
+          if (g.k === 'bow' || g.k === 'hello') showNotice(`🙏 ${who} 인사해요`, p.peer, false);
         }
       }
     }
@@ -3412,7 +3401,7 @@ function updateDomeUi(near) {
   $('toDome').hidden = near;
   $('toDome').textContent = '돔으로 가기';
   $('hint').textContent = near
-    ? (coarse ? '손가락으로 끌면 그쪽으로 걸어가요 (옆으로 끌면 돌아요) · 두 손가락으로 끌면 둘러보기 · 방석을 누르면 앉아요 · 사람을 누르면 인사·차 대접 · 나가기를 누르면 빛을 타고 돌아가요' : '바닥 누르기·방향키로 움직여요 · 방석을 누르거나 F로 앉기 · 1 안녕하세요, 2 합장, 3 종, 4 차, P 사진, V 시점 · 끌어서 둘러보기 · 나가기를 누르면 빛을 타고 돌아가요')
+    ? (coarse ? '손가락으로 끌면 그쪽으로 걸어가요 (옆으로 끌면 돌아요) · 두 손가락으로 끌면 둘러보기 · 방석을 누르면 앉아요 · 사람을 누르면 합장 인사 · 나가기를 누르면 빛을 타고 돌아가요' : '바닥 누르기·방향키로 움직여요 · 방석을 누르거나 F로 앉기 · 1 안녕하세요, 2 합장, 3 종, 4 차, P 사진, V 시점 · 끌어서 둘러보기 · 나가기를 누르면 빛을 타고 돌아가요')
     : (coarse ? '바닥을 누르거나 왼쪽 아래 원으로 움직여요 · 끌어서 둘러보기' : '바닥을 누르거나 방향키로 움직여요 · 끌어서 둘러보기 · 휠로 가까이·멀리');
 }
 
