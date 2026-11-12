@@ -2556,6 +2556,9 @@ const SPEED = 4.2, TURN = 1.9, LIMIT = 74;
 const keys = new Set();
 window.addEventListener('keydown', e => {
   if (e.target.closest && e.target.closest('button') && (e.key === ' ' || e.key === 'Enter')) return;
+  // 글자 칸에 쓰는 중에는 움직이기·단축키를 쓰지 않음
+  if (e.target.closest && e.target.closest('input, textarea, select, [contenteditable]')) { if (e.key === 'Escape') closeSheets(); return; }
+  if (!e.key) return;
   const k = e.key.toLowerCase();
   if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) { keys.add(k); e.preventDefault(); }
   if (k === ' ' && !inIntro && mode === 'outside') { e.preventDefault(); lightFromButton(); }
