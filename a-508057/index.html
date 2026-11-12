@@ -322,7 +322,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.12-37';
+const BUILD = '11.12-38';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -2893,11 +2893,19 @@ function updateWalk(dt, t) {
       }
     }
     else {
-      const step = Math.min(dist, (moveTarget.sp || SPEED) * dt);
-      pos2.x += dx / dist * step; pos2.y += dz / dist * step;
       const want = Math.atan2(-dx, -dz);
+      // 눈으로 볼 때는 먼저 가는 쪽으로 제자리에서 몸을 돌린 다음 걸어감 (뒷걸음질 없이)
+      const turn = firstPerson ? Math.atan2(Math.sin(want - camYaw), Math.cos(want - camYaw)) : 0;
+      const turning = Math.abs(turn) > 0.45;
+      if (turning) {
+        camYaw += Math.sign(turn) * Math.min(Math.abs(turn), dt * 2.4);
+        lastLookAt = performance.now();
+      } else {
+        const step = Math.min(dist, (moveTarget.sp || SPEED) * dt);
+        pos2.x += dx / dist * step; pos2.y += dz / dist * step;
+      }
       heading += Math.atan2(Math.sin(want - heading), Math.cos(want - heading)) * Math.min(1, dt * (moveTarget.sp ? 4 : 10));
-      move = moveTarget.sp ? 0.7 : 1;
+      move = turning ? 0.25 : moveTarget.sp ? 0.7 : 1;
     }
   }
   targetRing.visible = !!moveTarget;
@@ -4022,7 +4030,9 @@ async function startFirebase() {
   if (!c || typeof c.use !== 'function') {
     try { await startFirebase(); }
     catch (e) { console.warn('Firebase 연결 실패', e); $('together').textContent = '연결 실패: ' + String((e && (e.code || e.message)) || '').slice(0, 48); isHost = false; tick(); return; }
-    $('hostRow').hidden = false;
+    let hostDevice = false;
+    try { hostDevice = !!localStorage.getItem('a508057:host'); } catch (e) {}
+    $('hostRow').hidden = !(isHost || hostDevice || /[?&#]host\b/.test(location.search + location.hash));
     $('linksBtn').textContent = isHost ? '링크 넣기' : '진행자';
   } else {
     const [r, d, u, a, dl] = await Promise.all([c.use('room'), c.use('db'), c.use('user'), c.use('assets'), c.use('downloads')]);
