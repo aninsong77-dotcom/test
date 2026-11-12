@@ -151,6 +151,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 }
 .dome-bar a.linkbtn:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 .dome-bar .primary{border-color:rgba(255,233,168,.55);color:var(--glow)}
+@media (max-width:480px){.dome-bar .row{flex-wrap:nowrap;gap:5px}.dome-bar .row button{padding:8px 10px;font-size:12.5px;white-space:nowrap}}
 @media (pointer:coarse){.dome-bar{bottom:calc(env(safe-area-inset-bottom,0px) + 150px)}}
 
 .session{
@@ -223,7 +224,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
     <button type="button" class="primary" id="bellBtn">종 치기</button>
     <button type="button" id="snapBtn">사진 찍기</button>
     <button type="button" id="teaBtn">차 마시기</button>
-    <button type="button" id="backSeatBtn" hidden>자리로 가기</button>
+    <button type="button" id="backSeatBtn">자리로 가기</button>
     <button type="button" id="stopBellBtn" hidden>명상 그만하기</button>
   </div>
   <div hidden>
@@ -322,7 +323,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.12-58';
+const BUILD = '11.12-60';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -2002,7 +2003,8 @@ function walkPath(x, z, extra) {
   return goal;
 }
 function backToSeat() {
-  if (teaRituals.some(r => r.fig === myFig)) return;
+  if (mySeat !== null) { toast('방석에 앉아 있어요'); return; }
+  if (teaRituals.some(r => r.fig === myFig)) { toast('차를 다 마신 뒤에 자리로 가요'); return; }
   const seat = homeSeat !== null && !takenSeats.has(homeSeat) ? homeSeat : freeSeat();
   if (seat === null) { toast('빈 방석이 없어요'); return; }
   teaSitting = null; teaPending = null;
@@ -4327,7 +4329,6 @@ function frame() {
     updateSnow(dt, t);
     updateHouseBits(dt, t);
     if (autoTP && mySeat === null && !keepTP) setView(true);
-    { const showBack = domeUiShown && teaSitting !== null && !teaRituals.some(r => r.fig === myFig) && !leaving; if ($('backSeatBtn').hidden === showBack) $('backSeatBtn').hidden = !showBack; }
     updateTea(dt, t);
     updateServed(dt, t);
     updateViewCup(dt, t);
