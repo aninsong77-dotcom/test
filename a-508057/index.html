@@ -322,7 +322,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.12-41';
+const BUILD = '11.12-42';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -4120,10 +4120,8 @@ function enterDomeDirect() {
   setLook(HOUSE_BASE + 2);
   // 빛줄기를 타고 내려옴 (다른 화면 없이 바로): 함께 있는 사람을 알아본 뒤(빈 방석을 고른 뒤) 내려오기 시작
   arriving = { t0: performance.now(), td: 0, seat: null, x: pos2.x, z: pos2.y, landed: false };
-  orb.position.set(pos2.x, HOUSE_BASE + 0.17 + ARRIVE_H, pos2.y);
-  camera.position.set(pos2.x, HOUSE_BASE + 1.5 + ARRIVE_H * 0.6, pos2.y - 5.2);
-  camera.lookAt(pos2.x, HOUSE_BASE + 0.7 + ARRIVE_H * 0.85, pos2.y);
-  beam.position.set(pos2.x, HOUSE_BASE + 20, pos2.y);
+  pickArriveSeat(arriving);
+  orb.position.set(arriving.x, HOUSE_BASE + 0.33 + ARRIVE_H, arriving.z);
   beam.visible = true;
   motes.forEach(m => { m.sp.visible = true; });
   const tc = $('titleCard');
@@ -4132,55 +4130,69 @@ function enterDomeDirect() {
   titleTimer = setTimeout(() => tc.classList.add('is-hidden'), 1800);
   sendPresence(true);
 }
-const ARRIVE_H = 5.5, ARRIVE_T = 3.6;
+/* 들어오기: 카메라는 한자리에 가만히, 까마득히 높은 곳에서 한 줄기 빛을 타고 천천히 내려와 방석에 앉음 (한 컷) */
+const ARRIVE_H = 30, ARRIVE_T = 7.5;
+const arriveGlow = noRay(new THREE.Sprite(glowMat('#fff3c8', 0)));
+arriveGlow.visible = false;
+scene.add(arriveGlow);
+function arriveShot(A) {
+  // 내려앉을 자리를 등불 쪽에서 비스듬히 올려다보는 고정 카메라 (바다가 뒤로 보임)
+  let ox = DOME_CENTER.x - A.x, oz = DOME_CENTER.z - A.z, ol = Math.hypot(ox, oz);
+  if (ol < 0.3) { ox = 0; oz = -1; ol = 1; }
+  const portrait = camera.aspect < 1;
+  const back = portrait ? 7.2 : 6.4;
+  camera.position.set(A.x + ox / ol * back, HOUSE_BASE + 1.15, A.z + oz / ol * back);
+  camera.up.set(0, 1, 0);
+  camera.lookAt(A.x, HOUSE_BASE + (portrait ? 4.6 : 3.9), A.z);
+  camera.fov = portrait ? 74 : 60;
+  camera.updateProjectionMatrix();
+  setLook(camera.position.y);
+}
+function pickArriveSeat(A) {
+  A.seat = freeSeat();
+  if (A.seat !== null) { A.x = SEATS[A.seat].x; A.z = SEATS[A.seat].z; }
+  beam.position.set(A.x, HOUSE_BASE + 20, A.z);
+  arriveShot(A);
+}
 function updateArrive(dt, t) {
   const A = arriving, now = performance.now();
-  // 1) 기다림: 함께 있는 사람이 확인되면(또는 6초가 지나면) 내려앉을 방석을 고름
-  if (!A.td) {
-    if (peersReady || now - A.t0 > 6000) {
-      A.seat = freeSeat();
-      if (A.seat !== null) { A.x = SEATS[A.seat].x; A.z = SEATS[A.seat].z; }
-      A.td = now;
-      A.snapped = false;   // 내려앉을 자리가 정해지면 카메라를 바로 그 앞으로
-      beam.position.set(A.x, HOUSE_BASE + 20, A.z);
-    }
+  // 함께 있는 사람이 확인되면 내려오기 시작. 처음 고른 방석이 그새 찼으면 빈 방석으로 다시 맞춤
+  if (!A.td && (peersReady || now - A.t0 > 3000)) {
+    if (A.seat === null || takenSeats.has(A.seat)) pickArriveSeat(A);
+    A.td = now;
   }
   const e = A.td ? (now - A.td) / 1000 : 0;
-  // 2) 내려옴: 위에서 천천히 (나갈 때 올라가던 것의 반대)
-  // 기다리는 동안은 빛 속에 떠서 살짝 오르내림 (사람이 바로 보이는 높이)
-  const down = A.td ? Math.pow(Math.max(0, 1 - e / ARRIVE_T), 1.6) * ARRIVE_H : ARRIVE_H + Math.sin(t * 1.6) * 0.12;
-  const on = A.td ? (e < ARRIVE_T + 0.3 ? 1 : Math.max(0, 1 - (e - ARRIVE_T - 0.3) / 1.0)) : 1;
-  beam.material.opacity = on * 0.1 * (0.85 + Math.sin(t * 5) * 0.15);
-  beamCore.material.opacity = on * 0.16;
+  // 높은 곳에서는 조금 빠르게, 바닥 가까이에서는 아주 천천히
+  const k = Math.min(1, e / ARRIVE_T);
+  const down = Math.pow(1 - k, 2.4) * ARRIVE_H;
+  const fadeIn = Math.min(1, (now - A.t0) / 900);
+  const on = A.td ? (e < ARRIVE_T + 0.2 ? fadeIn : Math.max(0, 1 - (e - ARRIVE_T - 0.2) / 1.0)) : fadeIn;
+  // 한 줄기 빛: 가늘고 곧게
+  beam.scale.set(0.45, 1, 0.45);
+  beam.material.opacity = on * 0.09 * (0.9 + Math.sin(t * 3) * 0.1);
+  beamCore.material.opacity = on * 0.22;
   const floorY = A.seat !== null ? HOUSE_BASE + 0.33 : HOUSE_BASE + 0.17;
   orb.position.set(A.x, floorY + down, A.z);
-  orb.rotation.y += dt * 0.5 * Math.min(1, down / 4);
+  orb.rotation.y += dt * 0.35 * Math.min(1, down / 4);
   pos2.set(A.x, A.z);
   myFig.g.visible = true; myFig.head.visible = true; myBub.visible = false;
-  applyPose(myFig, null, t, e > ARRIVE_T - 0.3 && A.seat !== null ? 1 : 0, 0);
+  applyPose(myFig, null, t, e > ARRIVE_T - 0.4 && A.seat !== null ? 1 : 0, 0);
   for (const arm of myFig.arms) { arm.pivot.rotation.z = arm.side * mix(0.28, 0.7, Math.min(1, down / 3)); arm.elbow.rotation.x = -0.1; }
+  // 멀리 있을 때는 작은 별빛처럼, 내려올수록 빛이 잦아들며 모습이 또렷해짐
+  arriveGlow.visible = true;
+  arriveGlow.position.set(A.x, orb.position.y + 0.55, A.z);
+  arriveGlow.scale.setScalar(1.2 + Math.min(down, 20) * 0.12);
+  arriveGlow.material.opacity = on * Math.min(1, down / 5) * 0.95;
   for (const m of motes) {
-    m.y -= m.v * dt;
+    m.y -= m.v * dt * 0.6;
     if (m.y < 0) m.y += 9;
-    m.a += dt * 1.2;
-    m.sp.position.set(A.x + Math.cos(m.a) * m.r, orb.position.y - 1 + m.y, A.z + Math.sin(m.a) * m.r);
+    m.a += dt * 0.8;
+    m.sp.position.set(A.x + Math.cos(m.a) * m.r * 0.5, orb.position.y - 1 + m.y, A.z + Math.sin(m.a) * m.r * 0.5);
     m.sp.scale.setScalar(m.s);
-    m.sp.material.opacity = on * Math.sin(m.y / 9 * Math.PI) * 0.9;
+    m.sp.material.opacity = on * Math.sin(m.y / 9 * Math.PI) * 0.7;
   }
-  // 돔 안에서 올려다보다가 함께 내려옴
-  let ox = A.x - DOME_CENTER.x, oz = A.z - DOME_CENTER.z, ol = Math.hypot(ox, oz);
-  if (ol < 0.3) { ox = 0; oz = -1; ol = 1; }
-  // 등불 쪽 조금 떨어진 곳에서 올려다봄: 돔과 바다, 내려오는 빛줄기가 함께 보이게
-  const goal = new THREE.Vector3(A.x - ox / ol * 5.2, HOUSE_BASE + 1.5 + down * 0.6, A.z - oz / ol * 5.2);
-  if (Math.hypot(goal.x - DOME_CENTER.x, goal.z - DOME_CENTER.z) > DOME_R - 0.8) goal.set(A.x + ox / ol * 3.2, goal.y, A.z + oz / ol * 3.2);
-  if (!A.snapped) { camera.position.copy(goal); A.snapped = true; }
-  else camera.position.lerp(goal, 1 - Math.exp(-dt * 2.2));
-  camera.up.set(0, 1, 0);
-  // 너무 위를 올려다보지 않게: 빛줄기 아래쪽을 보고 있으면 위에서 내가 내려와 화면 안으로 들어옴
-  camera.lookAt(orb.position.x, HOUSE_BASE + 0.7 + down * 0.85, orb.position.z);
-  if (Math.abs(camera.fov - 60) > 0.1) { camera.fov += (60 - camera.fov) * Math.min(1, dt * 3); camera.updateProjectionMatrix(); }
+  // 카메라는 움직이지 않음 (한 컷)
   setLook(camera.position.y);
-  // 3) 내려앉음: 방석에 앉고 빛은 사라짐
   if (A.td && e > ARRIVE_T && !A.landed) {
     A.landed = true;
     pos2.set(A.x, A.z);
@@ -4188,9 +4200,11 @@ function updateArrive(dt, t) {
     else { const s2 = freeSeat(); if (s2 !== null) sitAt(s2); }
     try { chime(); } catch (err) {}
   }
-  if (A.td && e > ARRIVE_T + 1.3) {
+  if (A.td && e > ARRIVE_T + 1.2) {
     arriving = null;
     beam.visible = false;
+    beam.scale.set(1, 1, 1);
+    arriveGlow.visible = false;
     motes.forEach(m => { m.sp.visible = false; });
     tpCam.copy(camera.position);
   }
