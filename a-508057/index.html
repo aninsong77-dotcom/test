@@ -3548,7 +3548,8 @@ async function startFirebase() {
     import(`https://www.gstatic.com/firebasejs/${V}/firebase-database.js`),
   ]);
   const app = appM.initializeApp(FIREBASE_CONFIG);
-  const auth = authM.getAuth(app);
+  // 창마다 따로 들어온 사람으로 셈 (같은 컴퓨터에서 창 두 개를 열어도 2명)
+  const auth = authM.initializeAuth(app, { persistence: authM.browserSessionPersistence });
   const cred = await authM.signInAnonymously(auth);
   const uid = cred.user.uid;
   const rdb = dbM.getDatabase(app);
