@@ -702,6 +702,44 @@ function blueTangGeometry() {
   return g;
 }
 const blueTangGeo = blueTangGeometry();
+/* 흰 삼각 물고기: 옆에서 보면 세모, 하얀 몸에 까만 눈동자 */
+function whiteTriGeometry() {
+  const V = (x, y, z) => new THREE.Vector3(x, y, z);
+  const N = V(0, 0.01, 0.3), T = V(0, 0.27, -0.16), B = V(0, -0.22, -0.16), L = V(-0.055, 0.02, -0.02), R = V(0.055, 0.02, -0.02);
+  const WHITE = new THREE.Color('#f7fbff'), PEARL = new THREE.Color('#dde7f0'), BLACK = new THREE.Color('#0a0a10'), SHINE = new THREE.Color('#ffffff');
+  const pos = [], col = [];
+  const tri = (a, b, c, ca, cb = ca, cc = ca) => { pos.push(a.x, a.y, a.z, b.x, b.y, b.z, c.x, c.y, c.z); col.push(ca.r, ca.g, ca.b, cb.r, cb.g, cb.b, cc.r, cc.g, cc.b); };
+  // 몸: 양쪽 옆면(앞쪽 두 장씩)과 뒷면
+  tri(N, T, L, WHITE, WHITE, PEARL); tri(N, L, B, WHITE, PEARL, WHITE); tri(T, B, L, PEARL);
+  tri(N, R, T, WHITE, PEARL, WHITE); tri(N, B, R, WHITE, WHITE, PEARL); tri(T, R, B, PEARL);
+  // 꼬리: 작은 부채
+  const t0 = V(0, 0.02, -0.15), t1 = V(0, 0.13, -0.32), t2 = V(0, -0.09, -0.32);
+  tri(t0, t1, t2, PEARL, WHITE, WHITE);
+  // 눈: 옆면 위에 까만 눈동자와 작은 반짝임
+  const eye = (a, b, c, sign) => {
+    const n = new THREE.Vector3().subVectors(b, a).cross(new THREE.Vector3().subVectors(c, a)).normalize().multiplyScalar(sign);
+    const ctr = a.clone().multiplyScalar(0.62).addScaledVector(b, 0.2).addScaledVector(c, 0.18);
+    const u = new THREE.Vector3().subVectors(b, a).normalize(), v = new THREE.Vector3().crossVectors(n, u).normalize();
+    const disc = (cc, r, off, color) => {
+      const o = cc.clone().addScaledVector(n, off);
+      for (let k = 0; k < 14; k++) {
+        const a0 = k / 14 * Math.PI * 2, a1 = (k + 1) / 14 * Math.PI * 2;
+        const p0 = o.clone().addScaledVector(u, Math.cos(a0) * r).addScaledVector(v, Math.sin(a0) * r);
+        const p1 = o.clone().addScaledVector(u, Math.cos(a1) * r).addScaledVector(v, Math.sin(a1) * r);
+        if (sign > 0) tri(o, p0, p1, color); else tri(o, p1, p0, color);
+      }
+    };
+    disc(ctr, 0.034, 0.004, BLACK);
+    disc(ctr.clone().addScaledVector(u, 0.012).addScaledVector(v, 0.012), 0.009, 0.007, SHINE);
+  };
+  eye(N, T, L, 1); eye(N, T, R, -1);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.computeVertexNormals();
+  return g;
+}
+const whiteTriGeo = whiteTriGeometry();
 const SCHOOLS = [
   { n: 30, color: '#ffd23f', size: 0.8, cx: 9, cz: 6, rx: 7, rz: 5, y: 2.6, sp: 0.16, spread: 2.2 },
   { n: 36, color: '#b4cfe0', size: 1.0, cx: -30, cz: 4, rx: 12, rz: 10, y: 5, sp: 0.09, spread: 3 },
@@ -711,12 +749,14 @@ const SCHOOLS = [
   // 블루탱 무리: 돔 둘레를 크게 돌며 유리 너머로 지나감
   { n: 26, color: '#ffffff', size: 1.25, cx: 0, cz: -11, rx: 10.5, rz: 9.5, y: 2.6, sp: 0.1, spread: 2.2, geo: 'tang' },
   { n: 18, color: '#ffffff', size: 1.1, cx: -4, cz: -16, rx: 15, rz: 12, y: 4.2, sp: -0.075, spread: 2.6, geo: 'tang' },
+  // 흰 삼각 물고기 무리
+  { n: 34, color: '#ffffff', size: 1.15, cx: 2, cz: -9, rx: 12.5, rz: 11, y: 5.4, sp: -0.085, spread: 2.4, geo: 'tri' },
 ];
 const schools = [];
 const dummy = new THREE.Object3D();
 for (const def of SCHOOLS) {
-  const tang = def.geo === 'tang';
-  const mesh = noRay(new THREE.InstancedMesh(tang ? blueTangGeo : fishGeo, new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: tang, roughness: tang ? 0.4 : 0.45, metalness: 0.15, flatShading: !tang, side: THREE.DoubleSide, emissive: tang ? '#123a8a' : '#000000', emissiveIntensity: tang ? 0.25 : 0 }), def.n));
+  const tang = def.geo === 'tang' || def.geo === 'tri';
+  const mesh = noRay(new THREE.InstancedMesh(def.geo === 'tri' ? whiteTriGeo : tang ? blueTangGeo : fishGeo, new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: tang, roughness: tang ? 0.4 : 0.45, metalness: 0.15, flatShading: !tang, side: THREE.DoubleSide, emissive: tang && def.geo !== 'tri' ? '#123a8a' : '#000000', emissiveIntensity: tang && def.geo !== 'tri' ? 0.25 : 0 }), def.n));
   mesh.frustumCulled = false;
   const base = new THREE.Color(def.color), c = new THREE.Color();
   const fish = [];
