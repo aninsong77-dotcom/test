@@ -3033,7 +3033,7 @@ function sendPresence(force) {
   const str = JSON.stringify(obj);
   if (str === lastPresence) return;
   lastPresence = str; lastPresenceAt = now;
-  room.presence(obj).catch(() => {});
+  room.presence(obj).catch(e => { if (fb) $('together').textContent = '연결 문제: ' + String((e && (e.code || e.message)) || '알 수 없음').slice(0, 48); });
 }
 
 /* 방석 */
@@ -3603,7 +3603,7 @@ async function startFirebase() {
   const c = window.claude;
   if (!c || typeof c.use !== 'function') {
     try { await startFirebase(); }
-    catch (e) { console.warn('Firebase 연결 실패', e); isHost = false; tick(); return; }
+    catch (e) { console.warn('Firebase 연결 실패', e); $('together').textContent = '연결 실패: ' + String((e && (e.code || e.message)) || '').slice(0, 48); isHost = false; tick(); return; }
     $('hostRow').hidden = false;
     $('linksBtn').textContent = isHost ? '링크 넣기' : '진행자';
   } else {
@@ -3614,7 +3614,7 @@ async function startFirebase() {
     $('hostRow').hidden = !isHost;
   }
   if (room) {
-    room.onPeers(ch => { renderPeers(ch.peers); }, () => { $('together').textContent = '혼자 있어요'; });
+    room.onPeers(ch => { renderPeers(ch.peers); }, e => { $('together').textContent = fb ? '연결 문제: ' + String((e && (e.code || e.message)) || '읽기 실패').slice(0, 48) : '혼자 있어요'; });
     sendPresence(true);
   }
   if (db) {
