@@ -485,7 +485,7 @@ HOUSE_POS.y = HOUSE_BASE;
 function groundH(x, z) {
   const h = rawGround(x, z);
   const d = Math.hypot(x - HOUSE_POS.x, z - HOUSE_POS.z);
-  return d < 8.6 ? mix(HOUSE_BASE, h, smooth(Math.max(0, (d - 6.7) / 1.9))) : h;
+  return d < 11.1 ? mix(HOUSE_BASE, h, smooth(Math.max(0, (d - 9.2) / 1.9))) : h;
 }
 
 const causticTex = cellTexture('#000000', 'rgba(255,255,255,.55)', 150, 7, 15, 30);
@@ -509,7 +509,7 @@ floorGeo.rotateX(-Math.PI / 2);
 const floor = new THREE.Mesh(floorGeo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0, emissive: '#e4fbff', emissiveIntensity: 0.34, emissiveMap: causticTex }));
 scene.add(floor);
 
-const keepClear = (x, z, r) => Math.hypot(x - HOUSE_POS.x, z - HOUSE_POS.z) < 9 + r || Math.hypot(x, z) < 4 + r || z > 32 - r;
+const keepClear = (x, z, r) => Math.hypot(x - HOUSE_POS.x, z - HOUSE_POS.z) < 11.5 + r || Math.hypot(x, z) < 4 + r || z > 32 - r;
 const freeSpot = (rmin, rmax, r) => {
   for (let i = 0; i < 60; i++) {
     const a = rand() * Math.PI * 2, d = rmin + rand() * (rmax - rmin);
@@ -668,7 +668,7 @@ function updateJellies(t) {
     const a = j.ph + t * j.sp;
     const x = j.cx + Math.cos(a) * j.r, z = j.cz + Math.sin(a) * j.r;
     let jy = groundH(x, z) + j.baseY + Math.sin(t * 0.5 + j.ph) * 0.9;
-    if (Math.hypot(x - HOUSE_POS.x, z - HOUSE_POS.z) < 8) jy = Math.max(jy, HOUSE_BASE + 8.5);
+    if (Math.hypot(x - HOUSE_POS.x, z - HOUSE_POS.z) < 10.5) jy = Math.max(jy, HOUSE_BASE + 11);
     j.g.position.set(x, jy, z);
     j.g.rotation.y = t * 0.1 + j.ph;
     const p = Math.sin(t * 2.2 + j.ph);
@@ -803,7 +803,7 @@ for (const def of SCHOOLS) {
     mesh.setColorAt(i, c);
     fish.push({ o: new THREE.Vector3((rand() - 0.5) * 2, (rand() - 0.5), (rand() - 0.5) * 2).multiplyScalar(def.spread), ph: rand() * 6, w: 0.35 + rand() * 0.45, s: def.size * (0.8 + rand() * 0.4),
       // 혼자 다닐 때의 길: 자기만의 반지름, 높이, 속도, 그리고 언제 무리를 떠날지
-      soloR: 6.5 + rand() * 9, soloY: 1.6 + rand() * 4.5, soloW: (rand() < 0.5 ? -1 : 1) * (0.04 + rand() * 0.05), soloPh: rand() * 6.28, leave: rand() * 6.28, leaveSp: 0.025 + rand() * 0.03 });
+      soloR: 9.5 + rand() * 9, soloY: 1.6 + rand() * 4.5, soloW: (rand() < 0.5 ? -1 : 1) * (0.04 + rand() * 0.05), soloPh: rand() * 6.28, leave: rand() * 6.28, leaveSp: 0.025 + rand() * 0.03 });
   }
   mesh.instanceColor.needsUpdate = true;
   scene.add(mesh);
@@ -1124,7 +1124,7 @@ const bubbleCols = [];
 {
   const COLS = ['#ff8fa3', '#ffb86b', '#c39bff', '#ffe07a', '#7fdcd0', '#ff7eb6', '#9ad7ff'];
   for (let n = 0; n < 40; n++) {
-    const a = rand() * Math.PI * 2, r = 9.6 + rand() * 5;
+    const a = rand() * Math.PI * 2, r = 12.1 + rand() * 5;
     const x = HOUSE_POS.x + Math.cos(a) * r, z = HOUSE_POS.z + Math.sin(a) * r;
     if (Math.hypot(x, z) < 4.5) continue;
     const color = COLS[n % COLS.length];
@@ -1315,7 +1315,7 @@ function makeLionfish() {
 }
 // 돔 둘레 세 곳에 큰 말미잘 집과 흰동가리 한 쌍씩
 {
-  const homes = [[-0.4, 8.2], [1.9, 8.6], [3.6, 8.0]];
+  const homes = [[-0.4, 10.7], [1.9, 11.1], [3.6, 10.5]];
   homes.forEach(([a, r], hi) => {
     const x = HOUSE_POS.x + Math.cos(a) * r, z = HOUSE_POS.z + Math.sin(a) * r, y = groundH(x, z);
     const color = ['#c56bd6', '#ff8fb0', '#8fd6c8'][hi];
@@ -1346,11 +1346,11 @@ function makeLionfish() {
   });
   // 돔 둘레를 크게 돌며 헤엄치는 흰동가리 넷 (유리 너머로 지나감)
   for (let i = 0; i < 4; i++) {
-    const r = 7.2 + (i % 2) * 1.4;
+    const r = 9.7 + (i % 2) * 1.4;
     reefFish.push({ kind: 'roam', ...makeClownfish(), home: new THREE.Vector3(0, HOUSE_BASE + 1.1 + i * 0.45, 0), r, w: (i % 2 ? -1 : 1) * (0.16 + i * 0.03), ph: i * 1.6 });
   }
   // 쏠배감펭 둘: 돔 앞 바위 근처를 천천히 떠다님
-  [[0.9, 9.5, 1.3], [2.8, 10.5, 1.9]].forEach(([a, r, h], i) => {
+  [[0.9, 12, 1.3], [2.8, 13, 1.9]].forEach(([a, r, h], i) => {
     const x = HOUSE_POS.x + Math.cos(a) * r, z = HOUSE_POS.z + Math.sin(a) * r;
     reefFish.push({ kind: 'lion', ...makeLionfish(), home: new THREE.Vector3(x, groundH(x, z) + h, z), r: 1.2 + i * 0.5, w: (i ? -1 : 1) * (0.12 + i * 0.05), ph: i * 3 });
   });
@@ -1392,14 +1392,14 @@ function updateReefFish(t) {
 }
 
 /* ---------- 투명 돔 ---------- */
-const DOME_R = 6;
+const DOME_R = 8.5;
 const dome = new THREE.Group();
 dome.position.set(HOUSE_POS.x, HOUSE_BASE, HOUSE_POS.z);
 scene.add(dome);
 const domeTap = [];   // 누를 수 있는 것들
 const SEATS = [];     // 방석 자리 (세계 좌표)
 const steam = [];
-const TEA_POS = new THREE.Vector3(3.6, 0, -0.9), TEA_R = 0.46, TEA_TOP = 0.2, TEA_CUP_R = 0.27;
+const TEA_POS = new THREE.Vector3(6.7, 0, -1.7), TEA_R = 0.46, TEA_TOP = 0.2, TEA_CUP_R = 0.27;
 const TEA_CUP_ANGLES = [Math.PI * 0.62, Math.PI * 1.0, Math.PI * 1.38];   // 돔 가운데 쪽을 향한 세 자리
 const teaCups = [];
 let teaSet = null;
@@ -1455,17 +1455,32 @@ let centerGlow = null, centerCore = null;
   centerGlow.position.set(0, 0.5, 0);
   centerGlow.scale.setScalar(2.2);
   dome.add(centerGlow);
-  // 방석 셋 (가운데를 바라보고 둥글게)
+  // 방석 30개: 가운데 셋(등불 가까이, 고운 색)이 먼저 채워지고, 사람이 많아지면 둘레 9개, 그다음 18개
+  // 둘레 방석은 바닥과 비슷한 모래빛이라 비어 있어도 휑하지 않음
   const cushionCols = ['#9cb89a', '#b8a6d9', '#e8b4a0'];
-  [Math.PI / 2, Math.PI / 2 + 2.094, Math.PI / 2 + 4.189].forEach((a, i) => {
-    const x = Math.cos(a) * 1.9, z = Math.sin(a) * 1.9;
+  const SEAT_LAYOUT = [];
+  [Math.PI / 2, Math.PI / 2 + 2.094, Math.PI / 2 + 4.189].forEach((a, i) => SEAT_LAYOUT.push({ a, r: 1.9, size: 1.3, col: cushionCols[i] }));
+  for (let k = 0; k < 9; k++) SEAT_LAYOUT.push({ a: Math.PI / 2 + Math.PI / 9 + k * Math.PI * 2 / 9, r: 3.55, size: 1, col: '#ddd2bf' });
+  for (let k = 0; k < 18; k++) SEAT_LAYOUT.push({ a: Math.PI / 2 + Math.PI / 18 + k * Math.PI * 2 / 18, r: 5.15, size: 1, col: '#e2d8c6' });
+  SEAT_LAYOUT.forEach(({ a, r, size, col }, i) => {
+    const x = Math.cos(a) * r, z = Math.sin(a) * r;
     const g = new THREE.Group();
     g.position.set(x, 0.17, z);
     g.rotation.y = -a + Math.PI / 2;
-    const mat = std(cushionCols[i]);
-    const base = add(new THREE.BoxGeometry(1.3, 0.09, 1.3), mat, 0, 0.045, 0, g);
-    const top = add(new THREE.CylinderGeometry(0.4, 0.43, 0.07, 28), std(new THREE.Color(cushionCols[i]).offsetHSL(0, 0, -0.08).getStyle()), 0, 0.125, 0, g);
-    const ring = noRay(new THREE.Mesh(new THREE.RingGeometry(0.7, 0.78, 40), new THREE.MeshBasicMaterial({ color: '#ffe9a8', transparent: true, opacity: 0, depthWrite: false })));
+    g.scale.set(size / 1.3, 1, size / 1.3);
+    const mat = std(col);
+    const cushionCol = i < 3 ? cushionCols[i] : col;
+    let base, top;
+    if (i < 3) {
+      base = add(new THREE.BoxGeometry(1.3, 0.09, 1.3), mat, 0, 0.045, 0, g);
+      top = add(new THREE.CylinderGeometry(0.4, 0.43, 0.07, 28), std(new THREE.Color(cushionCol).offsetHSL(0, 0, -0.08).getStyle()), 0, 0.125, 0, g);
+    } else {
+      // 둘레 방석: 바닥 빛깔에 가까운 낮고 둥근 방석 하나 (비어 있으면 거의 눈에 띄지 않음)
+      g.scale.set(1, 1, 1);
+      base = add(new THREE.CylinderGeometry(0.4, 0.44, 0.03, 28), std('#e6ddcc'), 0, 0.015, 0, g);
+      top = add(new THREE.CylinderGeometry(0.34, 0.38, 0.13, 28), std(col), 0, 0.095, 0, g);
+    }
+    const ring = noRay(new THREE.Mesh(new THREE.RingGeometry(i < 3 ? 0.7 : 0.48, i < 3 ? 0.78 : 0.54, 40), new THREE.MeshBasicMaterial({ color: '#ffe9a8', transparent: true, opacity: 0, depthWrite: false })));
     ring.rotation.x = -Math.PI / 2;
     ring.position.y = 0.02;
     g.add(ring);
@@ -2573,8 +2588,12 @@ const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 const beachSpot = () => V3(0, BEACH_TOP + 0.03, 72);
 const seatPoint = i => V3(SEATS[i].x, HOUSE_BASE + 0.33, SEATS[i].z);
 function freeSeat() {
-  const free = [0, 1, 2].filter(i => !takenSeats.has(i));
-  return free.length ? free[Math.floor(Math.random() * free.length)] : null;
+  for (const [lo, hi] of [[0, 3], [3, 12], [12, 30]]) {
+    const free = [];
+    for (let i = lo; i < Math.min(hi, SEATS.length); i++) if (!takenSeats.has(i)) free.push(i);
+    if (free.length) return free[Math.floor(Math.random() * free.length)];
+  }
+  return null;
 }
 const DIVE_LINES = [[0, '바다 밖, 해변에서'], [0.12, '물방울을 타고'], [0.27, '첨벙!'], [0.45, '물고기들 사이로 내려가'], [0.75, '투명한 돔으로 들어가요']];
 const RISE_LINES = [[0, '명상이 끝났어요'], [0.3, '물방울을 타고 올라가요'], [0.82, '해변에 닿았어요']];
@@ -3581,7 +3600,7 @@ function ringBell(strong) {
 }
 /* 돔 안 싱잉볼 */
 const bowlGroup = new THREE.Group();
-bowlGroup.position.set(0, 0.17, -3.5);
+bowlGroup.position.set(0, 0.17, -6.9);
 dome.add(bowlGroup);
 let bowlGlow, bowlRipple;
 {
