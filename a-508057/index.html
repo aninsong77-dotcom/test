@@ -322,7 +322,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.12-51';
+const BUILD = '11.12-52';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -505,7 +505,7 @@ function groundH(x, z) {
   return d < 11.1 ? mix(HOUSE_BASE, h, smooth(Math.max(0, (d - 9.2) / 1.9))) : h;
 }
 
-const causticTex = cellTexture('#000000', 'rgba(255,255,255,.55)', 150, 7, 15, 30);
+const causticTex = cellTexture('#000000', 'rgba(255,255,255,.32)', 70, 7, 15, 30);
 const FLOOR_SIZE = 190;
 const floorGeo = new THREE.PlaneGeometry(FLOOR_SIZE, FLOOR_SIZE, coarse ? 110 : 160, coarse ? 110 : 160);
 floorGeo.rotateX(-Math.PI / 2);
@@ -975,7 +975,7 @@ const topSurface = noRay(new THREE.Mesh(new THREE.PlaneGeometry(900, 900), new T
 topSurface.rotation.x = -Math.PI / 2;
 topSurface.position.y = SURF;
 scene.add(topSurface);
-const underTex = cellTexture('#8fe0f5', 'rgba(255,255,255,.32)', 90, 10, 26, 18);
+const underTex = cellTexture('#8fe0f5', 'rgba(255,255,255,.10)', 22, 10, 26, 18);
 const underSurface = noRay(new THREE.Mesh(new THREE.PlaneGeometry(900, 900), new THREE.MeshBasicMaterial({ map: underTex, transparent: true, opacity: 0.72, depthWrite: false })));
 underSurface.rotation.x = Math.PI / 2;
 underSurface.position.y = SURF;
