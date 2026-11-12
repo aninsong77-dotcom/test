@@ -322,7 +322,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.12-55';
+const BUILD = '11.12-56';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -3396,7 +3396,7 @@ async function renderPeers(peers) {
     const ids = user ? [...peerViews.values()].map(v => v.by).filter(Boolean) : [];
     const ps = ids.length ? await user.profiles(ids) : {};
     for (const v of peerViews.values()) {
-      const name = (fb ? v.nick : (v.by && ps[v.by] && ps[v.by].name)) || '함께하는 사람';
+      const name = '함께하는 사람';   // 이름은 쓰지 않음
       if (name !== v.labelText) {
         if (v.label) scene.remove(v.label);
         v.label = textSprite(name, 'rgba(4,36,58,.55)', '#ffffff', 0.17);
@@ -3956,10 +3956,8 @@ const FIREBASE_CONFIG = {
 };
 let fb = null;
 function askName() {
-  // 이름을 묻지 않고 바로 시작 (예전에 적어 둔 이름이 있으면 그대로 씀)
-  let saved = '';
-  try { saved = (localStorage.getItem('a508057:name') || '').trim(); } catch (e) {}
-  return Promise.resolve(saved);
+  // 이름은 쓰지 않음 (예전에 적어 둔 이름도 보내지 않음): 모두 '함께하는 사람'
+  return Promise.resolve('');
 }
 function askNameSheet() {
   return new Promise(res => {
