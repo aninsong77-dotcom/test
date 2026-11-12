@@ -322,7 +322,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.12-39';
+const BUILD = '11.12-40';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -3261,7 +3261,10 @@ let room = null, db = null, user = null, isHost = false;
 let mySeat = null;
 const takenSeats = new Set();
 let myGesture = { k: '', n: 0, at: 0 };
-let links = { form: '', padlet: '' };
+/* ▼ 나가기 뒤 끝 화면에 보일 링크: 여기만 바꾸면 됨 */
+const FORM_URL = '';     // 구글 폼 주소
+const PADLET_URL = '';   // 패들렛 주소
+let links = { form: FORM_URL, padlet: PADLET_URL };
 let domeUiShown = null;
 
 function textSprite(text, bg, fg, h = 0.5) {
@@ -4032,14 +4035,14 @@ async function startFirebase() {
     catch (e) { console.warn('Firebase 연결 실패', e); $('together').textContent = '연결 실패: ' + String((e && (e.code || e.message)) || '').slice(0, 48); isHost = false; tick(); return; }
     let hostDevice = false;
     try { hostDevice = !!localStorage.getItem('a508057:host'); } catch (e) {}
-    $('hostRow').hidden = !(isHost || hostDevice || /[?&#]host\b/.test(location.search + location.hash));
+    $('hostRow').hidden = true;
     $('linksBtn').textContent = isHost ? '링크 넣기' : '진행자';
   } else {
     const [r, d, u, a, dl] = await Promise.all([c.use('room'), c.use('db'), c.use('user'), c.use('assets'), c.use('downloads')]);
     downloads = dl;
     room = r; db = d; user = u; assets = a;
     isHost = user ? await user.canEdit() : false;
-    $('hostRow').hidden = !isHost;
+    $('hostRow').hidden = true;
   }
   if (room) {
     room.onPeers(ch => { renderPeers(ch.peers); }, e => { $('together').textContent = fb ? '연결 문제: ' + String((e && (e.code || e.message)) || '읽기 실패').slice(0, 48) : '혼자 있어요'; });
@@ -4047,11 +4050,7 @@ async function startFirebase() {
   }
   if (db) {
     // 함께 보는 기록 사진 모음은 쓰지 않음 (사진은 각자 기기에 저장)
-    db.doc('live/links').onSnapshot(snap => {
-      const v = snap.exists ? snap.data() : {};
-      links = { form: typeof v.form === 'string' ? v.form : '', padlet: typeof v.padlet === 'string' ? v.padlet : '' };
-      applyLinks();
-    }, () => {});
+    applyLinks();
     db.collection('photos').onSnapshot(snap => {
       photos = snap.docs.map(doc => doc.data()).filter(v => v && (SAFE_ID(v.id) || (typeof v.img === 'string' && v.img.startsWith('data:image/jpeg;base64,'))) && Number.isFinite(v.at)).sort((x, y) => y.at - x.at).slice(0, 60);
       if (!$('gallerySheet').hidden) renderGallery();
