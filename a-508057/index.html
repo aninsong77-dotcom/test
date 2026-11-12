@@ -295,7 +295,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
   </div>
 </div>
 
-<div class="intro fade" id="intro">
+<div class="intro fade is-hidden" id="intro">
   <div class="depth" aria-live="off"><span>수심</span><b id="depthNum">수면 위</b></div>
   <p id="introLine" style="opacity:0"></p>
   <button type="button" class="skip" id="skip">건너뛰기</button>
@@ -322,7 +322,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.12-40';
+const BUILD = '11.12-41';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -3947,6 +3947,12 @@ const FIREBASE_CONFIG = {
 };
 let fb = null;
 function askName() {
+  // 이름을 묻지 않고 바로 시작 (예전에 적어 둔 이름이 있으면 그대로 씀)
+  let saved = '';
+  try { saved = (localStorage.getItem('a508057:name') || '').trim(); } catch (e) {}
+  return Promise.resolve(saved);
+}
+function askNameSheet() {
   return new Promise(res => {
     let saved = '';
     try { saved = localStorage.getItem('a508057:name') || ''; } catch (e) {}
@@ -4112,8 +4118,7 @@ function enterDomeDirect() {
   snapCam = true; domeUiShown = null;
   $('domeBar').classList.add('is-hidden');
   setLook(HOUSE_BASE + 2);
-  whiteFlash(1, 0, 500);
-  // 빛줄기를 타고 내려옴: 함께 있는 사람을 알아본 뒤(빈 방석을 고른 뒤) 내려오기 시작
+  // 빛줄기를 타고 내려옴 (다른 화면 없이 바로): 함께 있는 사람을 알아본 뒤(빈 방석을 고른 뒤) 내려오기 시작
   arriving = { t0: performance.now(), td: 0, seat: null, x: pos2.x, z: pos2.y, landed: false };
   orb.position.set(pos2.x, HOUSE_BASE + 0.17 + ARRIVE_H, pos2.y);
   camera.position.set(pos2.x, HOUSE_BASE + 1.5 + ARRIVE_H * 0.6, pos2.y - 5.2);
@@ -4136,6 +4141,7 @@ function updateArrive(dt, t) {
       A.seat = freeSeat();
       if (A.seat !== null) { A.x = SEATS[A.seat].x; A.z = SEATS[A.seat].z; }
       A.td = now;
+      A.snapped = false;   // 내려앉을 자리가 정해지면 카메라를 바로 그 앞으로
       beam.position.set(A.x, HOUSE_BASE + 20, A.z);
     }
   }
@@ -4167,7 +4173,8 @@ function updateArrive(dt, t) {
   // 등불 쪽 조금 떨어진 곳에서 올려다봄: 돔과 바다, 내려오는 빛줄기가 함께 보이게
   const goal = new THREE.Vector3(A.x - ox / ol * 5.2, HOUSE_BASE + 1.5 + down * 0.6, A.z - oz / ol * 5.2);
   if (Math.hypot(goal.x - DOME_CENTER.x, goal.z - DOME_CENTER.z) > DOME_R - 0.8) goal.set(A.x + ox / ol * 3.2, goal.y, A.z + oz / ol * 3.2);
-  camera.position.lerp(goal, 1 - Math.exp(-dt * 2.2));
+  if (!A.snapped) { camera.position.copy(goal); A.snapped = true; }
+  else camera.position.lerp(goal, 1 - Math.exp(-dt * 2.2));
   camera.up.set(0, 1, 0);
   // 너무 위를 올려다보지 않게: 빛줄기 아래쪽을 보고 있으면 위에서 내가 내려와 화면 안으로 들어옴
   camera.lookAt(orb.position.x, HOUSE_BASE + 0.7 + down * 0.85, orb.position.z);
