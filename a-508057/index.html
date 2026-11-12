@@ -321,7 +321,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.12-30';
+const BUILD = '11.12-31';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -2919,8 +2919,8 @@ function updateWalk(dt, t) {
   const near = inDome();
   const seated = mySeat !== null;
   const tv = smooth(teaView);
-  const D = (seated ? (camera.aspect < 1 ? 4.5 : 4.9) : near ? 5.7 : 8.1) * camZoom * (1 - 0.6 * tv);
-  const rawPitch = (seated ? 1.07 : near ? 0.43 : 0.38) + camPitchOff;
+  const D = (seated ? (camera.aspect < 1 ? 4.8 : 2.9) : near ? 5.7 : 8.1) * camZoom * (1 - 0.6 * tv);
+  const rawPitch = (seated ? 0.36 : near ? 0.43 : 0.38) + camPitchOff;
   const lookUp = Math.max(0, 0.08 - rawPitch) * (1 - tv);          // 위로 끌면 고개를 들어 수면을 올려다봄
   const pitch = Math.max(0.08, Math.min(1.4, rawPitch)) * (1 - 0.55 * tv) + 0.22 * tv;
   camGoal.copy(orb.position).addScaledVector(camDir, -D * Math.cos(pitch));
@@ -2933,7 +2933,7 @@ function updateWalk(dt, t) {
   camera.up.set(0, 1, 0);
   const ahead = Math.min(1, camZoom * camZoom);
   const lookBase = seated
-    ? tmp.copy(orb.position).addScaledVector(camDir, 1.9 * ahead).add(new THREE.Vector3(0, 0.1 + (1 - ahead) * 0.5, 0))
+    ? tmp.copy(orb.position).addScaledVector(camDir, 6 * ahead).add(new THREE.Vector3(0, 1.25 + (1 - ahead) * 0.5, 0))
     : tmp.copy(orb.position).addScaledVector(camDir, 4 * Math.cos(pitch) * ahead).add(new THREE.Vector3(0, 1.1 - (1 - ahead) * 0.3, 0));
   lookBase.lerp(new THREE.Vector3((orb.position.x + DOME_CENTER.x + TEA_POS.x) / 2, orb.position.y + 0.4, (orb.position.z + DOME_CENTER.z + TEA_POS.z) / 2), tv);
   lookBase.y += Math.min(1.6, lookUp) * 9;
