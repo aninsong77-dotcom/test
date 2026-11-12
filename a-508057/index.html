@@ -322,7 +322,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.12-42';
+const BUILD = '11.12-43';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -4210,53 +4210,54 @@ function updateArrive(dt, t) {
   }
   sendPresence();
 }
+/* 나가기: 들어올 때의 꼭 반대. 카메라는 한자리에 가만히, 한 줄기 빛을 타고 천천히 떠올라 까마득히 높이 작은 별빛이 됨 (한 컷) */
 function startLeave() {
   if (leaving || travel || arriving) return;
   closeSheets();
   for (const r of [...teaRituals]) if (r.fig === myFig) endTeaRitual(r);
+  const sat = mySeat !== null;
   mySeat = null; teaSitting = null; teaPending = null; moveTarget = null;
   $('seatBtn').textContent = '방석에 앉기';
-  leaving = { t0: performance.now(), x: orb.position.x, y: HOUSE_BASE + 0.17, z: orb.position.z, done: false };
+  leaving = { t0: performance.now(), x: orb.position.x, y: sat ? HOUSE_BASE + 0.33 : HOUSE_BASE + 0.17, z: orb.position.z, sat, done: false };
   ['hud', 'stick', 'domeBar', 'session', 'toast'].forEach(id => $(id).classList.add('is-hidden'));
-  beam.position.set(leaving.x, leaving.y + 20, leaving.z);
+  beam.position.set(leaving.x, HOUSE_BASE + 20, leaving.z);
   beam.visible = true;
   motes.forEach(m => { m.sp.visible = true; });
+  arriveShot(leaving);
   unlockAudio();
-  ringBell(false);
+  try { chime(); } catch (err) {}
   sendPresence(true);
 }
 function updateLeave(dt, t) {
   const L = leaving, e = (performance.now() - L.t0) / 1000;
-  const on = Math.min(1, e / 1.2);
-  beam.material.opacity = on * 0.1 * (0.85 + Math.sin(t * 5) * 0.15);
-  beamCore.material.opacity = on * 0.16;
-  const rise = e < 1.4 ? 0 : Math.pow(Math.min(1, (e - 1.4) / 5), 1.7) * 26;
-  orb.position.set(L.x, L.y + rise + (e > 1.0 ? Math.min(1, (e - 1.0) / 0.4) * 0.15 : 0), L.z);
-  orb.rotation.y += dt * 0.5;
+  // 빛이 먼저 내려오고(1.2초), 그다음 천천히 떠오르기 시작해 점점 빨라짐 (들어올 때 곡선의 반대)
+  const on = Math.min(1, e / 1.0);
+  const k = Math.min(1, Math.max(0, (e - 1.2) / ARRIVE_T));
+  const up = Math.pow(k, 2.4) * ARRIVE_H;
+  beam.scale.set(0.45, 1, 0.45);
+  beam.material.opacity = on * 0.09 * (0.9 + Math.sin(t * 3) * 0.1);
+  beamCore.material.opacity = on * 0.22;
+  orb.position.set(L.x, L.y + up, L.z);
+  orb.rotation.y += dt * 0.35 * Math.min(1, up / 4);
   myFig.g.visible = true; myFig.head.visible = true; myBub.visible = false;
-  // 두 팔을 조금 벌리고 빛 속으로
-  applyPose(myFig, null, t, 0, 0);
-  for (const arm of myFig.arms) { arm.pivot.rotation.z = arm.side * mix(0.28, 0.7, on); arm.elbow.rotation.x = -0.1; }
+  applyPose(myFig, null, t, L.sat && e < 1.4 ? 1 : 0, 0);
+  for (const arm of myFig.arms) { arm.pivot.rotation.z = arm.side * mix(0.28, 0.7, Math.min(1, up / 3)); arm.elbow.rotation.x = -0.1; }
+  // 올라갈수록 빛에 감싸여 작은 별빛이 됨
+  arriveGlow.visible = true;
+  arriveGlow.position.set(L.x, orb.position.y + 0.55, L.z);
+  arriveGlow.scale.setScalar(1.2 + Math.min(up, 20) * 0.12);
+  arriveGlow.material.opacity = on * Math.min(1, up / 5) * 0.95;
   for (const m of motes) {
-    m.y += m.v * dt;
+    m.y += m.v * dt * 0.6;
     if (m.y > 9) m.y -= 9;
-    m.a += dt * 1.2;
-    m.sp.position.set(L.x + Math.cos(m.a) * m.r, orb.position.y - 1 + m.y, L.z + Math.sin(m.a) * m.r);
+    m.a += dt * 0.8;
+    m.sp.position.set(L.x + Math.cos(m.a) * m.r * 0.5, orb.position.y - 1 + m.y, L.z + Math.sin(m.a) * m.r * 0.5);
     m.sp.scale.setScalar(m.s);
-    m.sp.material.opacity = on * Math.sin(m.y / 9 * Math.PI) * 0.9;
+    m.sp.material.opacity = on * Math.sin(m.y / 9 * Math.PI) * 0.7;
   }
-  // 돔 안쪽에서 올려다보다가 함께 따라 올라감
-  let ox = L.x - DOME_CENTER.x, oz = L.z - DOME_CENTER.z, ol = Math.hypot(ox, oz);
-  if (ol < 0.3) { ox = 0; oz = -1; ol = 1; }
-  const goal = new THREE.Vector3(L.x - ox / ol * 3.6, HOUSE_BASE + 1.3 + rise * 0.62, L.z - oz / ol * 3.6);
-  if (Math.hypot(goal.x - DOME_CENTER.x, goal.z - DOME_CENTER.z) > DOME_R - 0.6) goal.set(L.x + ox / ol * 3.2, goal.y, L.z + oz / ol * 3.2);
-  camera.position.lerp(goal, 1 - Math.exp(-dt * 2.2));
-  camera.up.set(0, 1, 0);
-  camera.lookAt(orb.position.x, orb.position.y + 0.7, orb.position.z);
-  if (Math.abs(camera.fov - 60) > 0.1) { camera.fov += (60 - camera.fov) * Math.min(1, dt * 3); camera.updateProjectionMatrix(); }
+  // 카메라는 움직이지 않음 (한 컷)
   setLook(camera.position.y);
-  if (e > 4.4 && !L.white) { L.white = true; whiteFlash(0, 1, 1800); }
-  if (e > 6.4 && !L.done) {
+  if (e > ARRIVE_T + 1.6 && !L.done) {
     L.done = true;
     iAmOut = true;
     applyLinks();
