@@ -322,7 +322,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.12-48';
+const BUILD = '11.12-49';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -4149,15 +4149,18 @@ function arriveShot(A) {
   // 등불 쪽에서 50도 비켜서 봄 (등불 빛이 겹쳐 하얗게 되지 않게)
   const rot = 0.87, c = Math.cos(rot), s2 = Math.sin(rot);
   const dx = (ox * c - oz * s2) / ol, dz = (ox * s2 + oz * c) / ol;
+  // 바닥 가까이 낮게 앉아서 하늘을 올려다보는 각도 (빛줄기가 위로 까마득히 이어져 보임)
   const portrait = camera.aspect < 1;
-  const back = portrait ? 6.6 : 5.8;
+  const back = portrait ? 4.0 : 3.6;
   let cx = A.x + dx * back, cz = A.z + dz * back;
   const cr = Math.hypot(cx - DOME_CENTER.x, cz - DOME_CENTER.z), lim = DOME_R - 0.7;
   if (cr > lim) { cx = DOME_CENTER.x + (cx - DOME_CENTER.x) * lim / cr; cz = DOME_CENTER.z + (cz - DOME_CENTER.z) * lim / cr; }
-  camera.position.set(cx, HOUSE_BASE + 1.15, cz);
+  const camY = HOUSE_BASE + 0.7;
+  camera.position.set(cx, camY, cz);
   camera.up.set(0, 1, 0);
-  camera.lookAt(A.x, HOUSE_BASE + (portrait ? 4.6 : 3.9), A.z);
-  camera.fov = portrait ? 74 : 60;
+  const d = Math.hypot(cx - A.x, cz - A.z);
+  camera.lookAt(A.x, camY + d * (portrait ? 0.82 : 0.68), A.z);
+  camera.fov = portrait ? 82 : 66;
   camera.updateProjectionMatrix();
   setLook(camera.position.y);
 }
