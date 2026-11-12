@@ -322,7 +322,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.12-52';
+const BUILD = '11.12-53';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -3268,7 +3268,7 @@ let mySeat = null;
 const takenSeats = new Set();
 let myGesture = { k: '', n: 0, at: 0 };
 /* ▼ 나가기 뒤 끝 화면에 보일 링크: 여기만 바꾸면 됨 */
-const FORM_URL = '';     // 구글 폼 주소
+const FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSfhjjzXiHSGR0d6m9YbojJ7dGSLMe2L7ks1bk0gax8LNNSjRw/viewform?usp=header';     // 구글 폼 주소
 const PADLET_URL = '';   // 패들렛 주소
 let links = { form: FORM_URL, padlet: PADLET_URL };
 let domeUiShown = null;
