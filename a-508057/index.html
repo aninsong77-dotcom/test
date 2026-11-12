@@ -196,7 +196,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 <header class="hud fade is-hidden" id="hud">
   <div class="plate">
     <div class="id">A-508057</div>
-    <div class="sub"><span hidden><span id="found"></span><span id="lightCount"></span></span>유리 돔 · <span id="together">혼자 있어요</span></div>
+    <div class="sub"><span hidden><span id="found"></span><span id="lightCount"></span></span>유리 돔 · <span id="together">혼자 있어요</span> <span id="buildTag" style="opacity:.55;font-size:10px"></span></div>
     <div class="hint" id="hint"></div>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button type="button" id="toDome" hidden>돔으로 가기</button><button type="button" id="galleryBtn" hidden>기록 사진</button><span id="hostRow" hidden style="display:contents"><button type="button" id="linksBtn">링크 넣기</button></span><button type="button" id="viewBtn">내 모습 보기</button><button type="button" id="replay">나가기</button></div>
@@ -319,6 +319,22 @@ setTimeout(function(){
 },8000);
 </script>
 
+<script>
+/* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
+const BUILD = '11.12-30';
+document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
+if (/github\.io$/.test(location.hostname)) {
+  fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
+    const m = html.match(/const BUILD = '([^']+)'/);
+    if (!m || m[1] === BUILD) return;
+    let tried = '';
+    try { tried = sessionStorage.getItem('a508057:reloadFor') || ''; } catch (e) {}
+    if (tried === m[1]) return;
+    try { sessionStorage.setItem('a508057:reloadFor', m[1]); } catch (e) {}
+    location.replace(location.pathname + '?v=' + encodeURIComponent(m[1]));
+  }).catch(() => {});
+}
+</script>
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
 
