@@ -99,6 +99,17 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 }
 .peer-menu button{font-size:12px;padding:6px 11px}
 .peer-menu.is-hidden{display:none}
+.gnote{
+  position:fixed;z-index:6;left:50%;transform:translateX(-50%);
+  top:calc(env(safe-area-inset-top,0px) + 64px);
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;
+  max-width:calc(100vw - 32px);padding:10px 12px 10px 16px;
+  background:rgba(255,250,236,.94);color:#123447;border:1px solid rgba(255,214,140,.9);border-radius:18px;
+  box-shadow:0 6px 24px rgba(4,36,58,.25);font-size:14px;
+}
+.gnote button{font-size:13px;padding:7px 12px}
+.gnote.is-hidden{display:none}
+@media (max-width:1100px){.gnote{top:calc(env(safe-area-inset-top,0px) + 176px)}}
 
 .intro{position:fixed;inset:0;z-index:6;display:grid;place-items:center;pointer-events:none;text-align:center}
 .intro p{
@@ -194,6 +205,12 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 <div class="stick fade is-hidden" id="stick" aria-hidden="true"><div class="knob" id="knob"></div></div>
 <button type="button" class="star-btn fade is-hidden" id="makeStar">빛 띄우기</button>
 <div class="toast fade is-hidden" id="toast" role="status"></div>
+<div class="gnote is-hidden" id="gnote" role="alert">
+  <span id="noticeText"></span>
+  <button type="button" class="primary" id="noticeDrink" hidden>마시기</button>
+  <button type="button" id="noticeBow">합장으로 답례</button>
+  <button type="button" id="noticeClose" aria-label="닫기">✕</button>
+</div>
 <div class="peer-menu is-hidden" id="peerMenu" role="menu" aria-label="함께하는 사람에게">
   <span id="peerMenuName"></span>
   <button type="button" id="pmBow" role="menuitem">합장 인사</button>
@@ -1698,7 +1715,10 @@ function updateServed(dt, t) {
       const k = Math.min(1, (now - sc.at) / sc.dur), e = smooth(k);
       sc.g.position.lerpVectors(sc.from, sc.to, e);
       sc.g.position.y += Math.sin(k * Math.PI) * 0.6;
-      if (k >= 1) sc.landed = true;
+      if (k >= 1) {
+        sc.landed = true;
+        if (key === myPeerId && drinkWhenLanded) { drinkWhenLanded = false; if (!teaRituals.some(r => r.fig === myFig)) drinkServed(); }
+      }
     }
     // 다 마신 잔은 잠시 뒤 사라짐, 안 마신 잔은 3분 뒤 사라짐
     if ((sc.doneAt && now - sc.doneAt > 2500) || now - sc.at > 180000) { dropServed(key); continue; }
@@ -1917,7 +1937,9 @@ function updateViewCup(dt, t) {
 }
 let teaPending = null, teaSitting = null, teaServeTo = null;
 function drinkServed() {
-  myGesture = { k: 'sip', n: myGesture.n + 1, at: performance.now() };
+  const sc = myPeerId ? servedCups.get(myPeerId) : null;
+  if (!$('noticeDrink').hidden) hideNotice();
+  myGesture = { k: 'sip', n: myGesture.n + 1, at: performance.now(), to: sc && sc.by ? sc.by : undefined };
   startSip(myFig, myPeerId, myGesture.at);
   unlockAudio();
   sendPresence(true);
@@ -3068,6 +3090,39 @@ canvas.addEventListener('pointerup', e => {
   if (mySeat !== null) { mySeat = null; $('seatBtn').textContent = '방석에 앉기'; }
   moveTarget = { x: gx, y: gz, h: gh };
 });
+/* 나에게 온 인사·차 대접 알림 (8초 동안 남고, 바로 답할 수 있음) */
+let noticeFrom = null, noticeTimer = 0, drinkWhenLanded = false;
+function chime() {
+  const c = ensureCtx(); if (!c) return;
+  const out = sfxBus(c), t0 = c.currentTime;
+  [[1318.5, 0], [1760, 0.16]].forEach(([f, d]) => {
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = 'sine'; o.frequency.value = f;
+    g.gain.setValueAtTime(0, t0 + d);
+    g.gain.linearRampToValueAtTime(0.12, t0 + d + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + d + 1.4);
+    o.connect(g); g.connect(out); o.start(t0 + d); o.stop(t0 + d + 1.5);
+  });
+}
+function hideNotice() { $('gnote').classList.add('is-hidden'); noticeFrom = null; }
+function showNotice(text, from, drink) {
+  noticeFrom = from;
+  $('noticeText').textContent = text;
+  $('noticeDrink').hidden = !drink;
+  $('noticeBow').hidden = false;
+  $('gnote').classList.remove('is-hidden');
+  chime();
+  if (navigator.vibrate) try { navigator.vibrate(60); } catch (e) {}
+  clearTimeout(noticeTimer);
+  noticeTimer = setTimeout(hideNotice, drink ? 30000 : 8000);
+}
+$('noticeClose').addEventListener('click', hideNotice);
+$('noticeBow').addEventListener('click', () => { const f = noticeFrom; hideNotice(); if (f) { greet('bow', f); toast('합장으로 답례했어요'); } });
+$('noticeDrink').addEventListener('click', () => {
+  hideNotice();
+  const sc = myPeerId ? servedCups.get(myPeerId) : null;
+  if (sc && sc.landed) drinkServed(); else drinkWhenLanded = true;
+});
 /* 함께하는 사람을 누르면 작은 메뉴 */
 let pmTarget = null, pmTimer = 0;
 function peerAt(x, y) {
@@ -3097,7 +3152,10 @@ function openPeerMenu(key, x, y) {
   clearTimeout(pmTimer);
   pmTimer = setTimeout(closePeerMenu, 6000);
 }
-$('pmBow').addEventListener('click', () => { if (pmTarget) greet('bow', pmTarget); closePeerMenu(); });
+$('pmBow').addEventListener('click', () => {
+  if (pmTarget) { const v = peerViews.get(pmTarget); greet('bow', pmTarget); toast(`${(v && v.labelText) || '함께하는 사람'}님께 합장 인사했어요`); }
+  closePeerMenu();
+});
 $('pmServe').addEventListener('click', () => {
   const to = pmTarget; closePeerMenu();
   if (!to) return;
@@ -3219,8 +3277,9 @@ async function renderPeers(peers) {
         if (g.k === 'sip') startSip(v.fig, p.peer, v.gesture.at);
         if (to && to === myPeerId) {
           const who = (v.labelText || '함께하는 사람') + '님이';
-          if (g.k === 'serve') toast(`${who} 차를 대접해요 · 차 마시기를 누르면 마셔요`);
-          else if (g.k === 'bow' || g.k === 'hello') toast(`${who} 인사해요`);
+          if (g.k === 'serve') showNotice(`🍵 ${who} 차를 따라 드려요`, p.peer, true);
+          else if (g.k === 'bow' || g.k === 'hello') showNotice(`🙏 ${who} 인사해요`, p.peer, false);
+          else if (g.k === 'sip') showNotice(`🍵 ${who} 대접한 차를 마셔요`, p.peer, false);
         }
       }
     }
@@ -3385,7 +3444,7 @@ function openLink(kind) {
   }
   $('openSheet').hidden = false;
 }
-function closeSheets() { if (typeof closePeerMenu === 'function') closePeerMenu(); $('openSheet').hidden = true; $('linkSheet').hidden = true; $('gallerySheet').hidden = true; $('nameSheet').hidden = true; }
+function closeSheets() { if (typeof closePeerMenu === 'function') closePeerMenu(); if (typeof hideNotice === 'function') hideNotice(); $('openSheet').hidden = true; $('linkSheet').hidden = true; $('gallerySheet').hidden = true; $('nameSheet').hidden = true; }
 
 $('openSheetClose').addEventListener('click', closeSheets);
 $('openSheetGo').addEventListener('click', () => setTimeout(closeSheets, 300));
