@@ -741,16 +741,15 @@ function whiteTriGeometry() {
 }
 const whiteTriGeo = whiteTriGeometry();
 const SCHOOLS = [
-  { n: 30, color: '#ffd23f', size: 0.8, cx: 9, cz: 6, rx: 7, rz: 5, y: 2.6, sp: 0.16, spread: 2.2 },
-  { n: 36, color: '#b4cfe0', size: 1.0, cx: -30, cz: 4, rx: 12, rz: 10, y: 5, sp: 0.09, spread: 3 },
-  { n: 24, color: '#ff8a3d', size: 0.75, cx: 20, cz: 8, rx: 10, rz: 13, y: 3, sp: 0.14, spread: 2 },
-  { n: 28, color: '#5fd0c8', size: 0.75, cx: -12, cz: 14, rx: 12, rz: 8, y: 4, sp: 0.12, spread: 2.5 },
-  { n: 18, color: '#7b6cff', size: 1.3, cx: 30, cz: -24, rx: 14, rz: 10, y: 6, sp: 0.07, spread: 3 },
-  // 블루탱 무리: 돔 둘레를 크게 돌며 유리 너머로 지나감
-  { n: 26, color: '#ffffff', size: 1.25, cx: 0, cz: -11, rx: 10.5, rz: 9.5, y: 2.6, sp: 0.1, spread: 2.2, geo: 'tang' },
-  { n: 18, color: '#ffffff', size: 1.1, cx: -4, cz: -16, rx: 15, rz: 12, y: 4.2, sp: -0.075, spread: 2.6, geo: 'tang' },
+  { n: 16, color: '#ffd23f', size: 0.8, cx: 9, cz: 6, rx: 7, rz: 5, y: 2.6, sp: 0.1, spread: 2.2 },
+  { n: 20, color: '#b4cfe0', size: 1.0, cx: -30, cz: 4, rx: 12, rz: 10, y: 5, sp: 0.06, spread: 3 },
+  { n: 12, color: '#ff8a3d', size: 0.75, cx: 20, cz: 8, rx: 10, rz: 13, y: 3, sp: 0.09, spread: 2 },
+  { n: 14, color: '#5fd0c8', size: 0.75, cx: -12, cz: 14, rx: 12, rz: 8, y: 4, sp: 0.08, spread: 2.5 },
+  { n: 10, color: '#7b6cff', size: 1.3, cx: 30, cz: -24, rx: 14, rz: 10, y: 6, sp: 0.05, spread: 3 },
+  // 블루탱: 함께 다니다가 몇 마리씩 무리를 벗어나 혼자 헤엄치고 다시 돌아옴
+  { n: 14, color: '#ffffff', size: 1.25, cx: 0, cz: -11, rx: 10.5, rz: 9.5, y: 2.8, sp: 0.06, spread: 2.0, geo: 'tang', roam: true },
   // 흰 삼각 물고기 무리
-  { n: 34, color: '#ffffff', size: 1.15, cx: 2, cz: -9, rx: 12.5, rz: 11, y: 5.4, sp: -0.085, spread: 2.4, geo: 'tri' },
+  { n: 18, color: '#ffffff', size: 1.15, cx: 2, cz: -9, rx: 12.5, rz: 11, y: 5.4, sp: -0.055, spread: 2.4, geo: 'tri' },
 ];
 const schools = [];
 const dummy = new THREE.Object3D();
@@ -763,7 +762,9 @@ for (const def of SCHOOLS) {
   for (let i = 0; i < def.n; i++) {
     c.copy(base).offsetHSL((rand() - 0.5) * 0.04, 0, tang ? -rand() * 0.05 : (rand() - 0.5) * 0.12);
     mesh.setColorAt(i, c);
-    fish.push({ o: new THREE.Vector3((rand() - 0.5) * 2, (rand() - 0.5), (rand() - 0.5) * 2).multiplyScalar(def.spread), ph: rand() * 6, w: 0.6 + rand() * 0.8, s: def.size * (0.8 + rand() * 0.4) });
+    fish.push({ o: new THREE.Vector3((rand() - 0.5) * 2, (rand() - 0.5), (rand() - 0.5) * 2).multiplyScalar(def.spread), ph: rand() * 6, w: 0.35 + rand() * 0.45, s: def.size * (0.8 + rand() * 0.4),
+      // 혼자 다닐 때의 길: 자기만의 반지름, 높이, 속도, 그리고 언제 무리를 떠날지
+      soloR: 6.5 + rand() * 9, soloY: 1.6 + rand() * 4.5, soloW: (rand() < 0.5 ? -1 : 1) * (0.04 + rand() * 0.05), soloPh: rand() * 6.28, leave: rand() * 6.28, leaveSp: 0.025 + rand() * 0.03 });
   }
   mesh.instanceColor.needsUpdate = true;
   scene.add(mesh);
@@ -775,15 +776,27 @@ function schoolCenter(sc, t, out) {
   const x = sc.cx + Math.cos(a) * sc.rx, z = sc.cz + Math.sin(a) * sc.rz;
   return out.set(x, groundH(x, z) + sc.y + Math.sin(a * 2) * 1.2, z);
 }
+const fA = new THREE.Vector3(), fB = new THREE.Vector3(), fC = new THREE.Vector3();
+function fishPos(sc, f, t, out) {
+  schoolCenter(sc, t, fC);
+  out.copy(fC).add(f.o).add(fishTmp.set(Math.sin(t * f.w + f.ph) * 0.6, Math.sin(t * f.w * 1.3 + f.ph) * 0.3, Math.cos(t * f.w + f.ph) * 0.6));
+  if (!sc.roam) return out;
+  // 0이면 무리 속, 1이면 혼자: 대부분은 무리에 있다가 가끔 떠남
+  const k = smooth(clamp01((Math.sin(t * f.leaveSp + f.leave) - 0.72) / 0.22));
+  if (k <= 0) return out;
+  const a = f.soloPh + t * f.soloW;
+  const sx = DOME_CENTER.x + Math.cos(a) * f.soloR, sz = DOME_CENTER.z + Math.sin(a) * f.soloR * 0.9;
+  const sy = groundH(sx, sz) + f.soloY + Math.sin(t * 0.3 + f.ph) * 0.7;
+  return out.lerp(fishTmp.set(sx, sy, sz), k);
+}
 function updateFish(t) {
   for (const sc of schools) {
-    schoolCenter(sc, t, cNow);
-    schoolCenter(sc, t + 0.3, cNext);
-    fishVel.subVectors(cNext, cNow);
     sc.fish.forEach((f, i) => {
-      dummy.position.copy(cNow).add(f.o).add(fishTmp.set(Math.sin(t * f.w + f.ph) * 0.5, Math.sin(t * f.w * 1.3 + f.ph) * 0.25, Math.cos(t * f.w + f.ph) * 0.5));
-      dummy.lookAt(fishTmp.copy(dummy.position).add(fishVel));
-      dummy.rotateY(Math.sin(t * 7 + f.ph) * 0.18);
+      fishPos(sc, f, t, fA);
+      fishPos(sc, f, t + 0.4, fB);
+      dummy.position.copy(fA);
+      dummy.lookAt(fB);
+      dummy.rotateY(Math.sin(t * 4 + f.ph) * 0.14);
       dummy.scale.setScalar(f.s);
       dummy.updateMatrix();
       sc.mesh.setMatrixAt(i, dummy.matrix);
