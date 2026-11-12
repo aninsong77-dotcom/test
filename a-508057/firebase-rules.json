@@ -1,0 +1,33 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "presence": {
+      ".read": "auth != null",
+      "$uid": { ".write": "auth != null && auth.uid === $uid" }
+    },
+    "links": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('hostKey').exists() && root.child('hostAuth/'+auth.uid).val() === root.child('hostKey').val()"
+    },
+    "photos": {
+      ".read": "auth != null",
+      "$id": {
+        ".write": "auth != null && root.child('hostKey').exists() && root.child('hostAuth/'+auth.uid).val() === root.child('hostKey').val()",
+        ".validate": "newData.child('img').isString() && newData.child('img').val().length < 400000"
+      }
+    },
+    "hostAuth": {
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid",
+        ".validate": "newData.isString() && newData.val().length < 100"
+      }
+    },
+    "hostCheck": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid && root.child('hostKey').exists() && root.child('hostAuth/'+auth.uid).val() === root.child('hostKey').val()"
+      }
+    }
+  }
+}
