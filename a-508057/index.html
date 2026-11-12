@@ -3559,7 +3559,8 @@ async function startFirebase() {
   const meRef = R('presence/' + uid);
   dbM.onDisconnect(meRef).remove();
   const roomAdapter = {
-    presence: obj => dbM.set(meRef, { ...obj, n: nick, t: Date.now() }),
+    // Firebase는 빈 값(undefined)을 받으면 멈추므로 깨끗하게 정리해서 보냄
+    presence: obj => { try { return dbM.set(meRef, JSON.parse(JSON.stringify({ ...obj, n: nick, t: Date.now() }))); } catch (e) { return Promise.reject(e); } },
     onPeers: (handler, onErr) => dbM.onValue(R('presence'), snap => {
       const all = snap.val() || {};
       const peers = Object.entries(all).filter(([k, v]) => v && typeof v === 'object').map(([k, v]) => ({
@@ -3572,7 +3573,7 @@ async function startFirebase() {
   const toPath = p => p.replace(/^live\//, '');
   const dbAdapter = {
     doc: path => ({
-      set: data => dbM.set(R(toPath(path)), data),
+      set: data => { try { return dbM.set(R(toPath(path)), JSON.parse(JSON.stringify(data))); } catch (e) { return Promise.reject(e); } },
       onSnapshot: (cb, err) => dbM.onValue(R(toPath(path)), snap => cb({ exists: snap.exists(), data: () => snap.val() }), e => err && err(e)),
     }),
     collection: path => ({
