@@ -322,7 +322,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.12-56';
+const BUILD = '11.12-57';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -3011,7 +3011,7 @@ function updateWalk(dt, t) {
   if (fb > 0.001) {
     const eyeH = mix(0.86, 0.76, myFig.sit);
     let yaw = camYaw, pitchFP = fpPitch;
-    let eyeBack = mySeat !== null ? (camera.aspect < 1 ? 1.6 : 0.5) * (1 - teaView) : 0;
+    let eyeBack = 0;
     if (teaView > 0.01) {
       // 따를 때는 찻상을 내려다보고, 잔을 들어 마실 때는 고개를 들어 잔 너머 바다를 봄
       const mr = teaRituals.find(r => r.fig === myFig);
@@ -3392,19 +3392,7 @@ async function renderPeers(peers) {
     else standUp();
   }
   // 이름표
-  if (user || fb) {
-    const ids = user ? [...peerViews.values()].map(v => v.by).filter(Boolean) : [];
-    const ps = ids.length ? await user.profiles(ids) : {};
-    for (const v of peerViews.values()) {
-      const name = '함께하는 사람';   // 이름은 쓰지 않음
-      if (name !== v.labelText) {
-        if (v.label) scene.remove(v.label);
-        v.label = textSprite(name, 'rgba(4,36,58,.55)', '#ffffff', 0.17);
-        v.labelText = name;
-        scene.add(v.label);
-      }
-    }
-  }
+  // 이름표는 쓰지 않음 (아바타만 보임)
   updateSessionText();
 }
 function updatePeers(dt, t) {
