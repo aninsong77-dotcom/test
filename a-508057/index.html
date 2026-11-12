@@ -322,7 +322,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.12-53';
+const BUILD = '11.12-54';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -468,6 +468,7 @@ function setLook(camY) {
   topSurface.visible = above;
   underSurface.visible = !above;
   sunSprite.visible = above;
+  if (beachMesh) beachMesh.visible = above;
   rays.forEach(r => { r.s.visible = !above; });
 }
 
@@ -1037,6 +1038,7 @@ function beachH(z) {
   return SURF + 1.2 + (z - 70) * 0.05;
 }
 const BEACH_TOP = beachH(72) + 0.35 * vnoise(0, 9, 72 * 0.18);
+let beachMesh = null;
 {
   const geo = new THREE.PlaneGeometry(260, 84, 96, 44);
   geo.rotateX(-Math.PI / 2);
@@ -1053,7 +1055,8 @@ const BEACH_TOP = beachH(72) + 0.35 * vnoise(0, 9, 72 * 0.18);
   }
   geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
   geo.computeVertexNormals();
-  scene.add(noRay(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 }))));
+  beachMesh = noRay(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 })));
+  scene.add(beachMesh);
   // 물가의 하얀 거품
   let zs = 38; while (beachH(zs) < SURF && zs < 70) zs += 0.1;
   const foam = noRay(new THREE.Mesh(new THREE.PlaneGeometry(260, 1.4), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.55, depthWrite: false })));
@@ -3297,7 +3300,7 @@ const myBubbles = { hello: makeBubble('hello'), bow: makeBubble('bow'), tea: mak
 Object.values(myBubbles).forEach(b => scene.add(b));
 function showBubble(bubbles, g, pos) {
   for (const [k, b] of Object.entries(bubbles)) {
-    const on = g && g.k === k && performance.now() - g.at < (k === 'tea' || k === 'serve' ? 5800 : 2600);
+    const on = !!(g && g.k === k && performance.now() - g.at < (k === 'tea' || k === 'serve' ? 5800 : 2600));
     b.visible = on;
     if (on) {
       b.position.copy(pos);
