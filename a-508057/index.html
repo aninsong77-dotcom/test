@@ -321,7 +321,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.12-34';
+const BUILD = '11.12-35';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -3825,6 +3825,7 @@ async function captureDataUrl(label) {
   return c.toDataURL('image/jpeg', 0.72);
 }
 function autoCapture(now) {
+  return;   // 함께 보는 기록 사진은 쓰지 않음
   if (!isHost || !(assets || fb) || !db || session.state !== 'playing' || session.kind !== 'nine') return;
   const el = now - session.startAt, key = dayKey(session.startAt);
   if (el > 15000 && !captured.has(key + '-start')) { captured.add(key + '-start'); saveCapture('start', key + '-start'); }
@@ -3834,10 +3835,7 @@ let downloads = null;
 $('snapBtn').addEventListener('click', async () => {
   $('snapBtn').disabled = true;
   try {
-    if ((assets || (fb && isHost)) && db) {
-      const ok = await saveCapture('manual', `${dayKey(Date.now())}-m${Date.now()}`);
-      toast(ok ? '사진을 남겼어요 · 기록 사진에서 볼 수 있어요' : '사진을 남기지 못했어요. 잠시 뒤에 다시 눌러 주세요.');
-    } else if (downloads) {
+    if (downloads) {
       const blob = await captureBlob(kstLabel(Date.now()));
       if (!blob) throw new Error('no image');
       await downloads.save({ filename: `A-508057-${dayKey(Date.now())}.jpg`, data: blob });
@@ -3998,7 +3996,7 @@ async function startFirebase() {
     sendPresence(true);
   }
   if (db) {
-    $('galleryBtn').hidden = false;
+    // 함께 보는 기록 사진 모음은 쓰지 않음 (사진은 각자 기기에 저장)
     db.doc('live/links').onSnapshot(snap => {
       const v = snap.exists ? snap.data() : {};
       links = { form: typeof v.form === 'string' ? v.form : '', padlet: typeof v.padlet === 'string' ? v.padlet : '' };
