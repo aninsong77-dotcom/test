@@ -321,7 +321,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.12-31';
+const BUILD = '11.12-33';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -805,6 +805,10 @@ const SCHOOLS = [
   { n: 14, color: '#ffffff', size: 1.25, cx: 0, cz: -11, rx: 10.5, rz: 9.5, y: 2.8, sp: 0.06, spread: 2.0, geo: 'tang', roam: true },
   // 흰 삼각 물고기 무리
   { n: 18, color: '#ffffff', size: 1.15, cx: 2, cz: -9, rx: 12.5, rz: 11, y: 5.4, sp: -0.055, spread: 2.4, geo: 'tri' },
+  // 돔 둘레를 이쪽저쪽 오가는 작은 무리 (어느 방석에서든 바다 쪽으로 물고기가 지나감)
+  { n: 8, color: '#ffd23f', size: 0.7, swing: { R: 11.2, dr: 1.6, amp: 1.5 }, ph0: 0.0, y: 2.2, sp: 0.075, spread: 1.4 },
+  { n: 7, color: '#5fd0c8', size: 0.75, swing: { R: 12.2, dr: 1.8, amp: 1.7 }, ph0: 2.1, y: 3.6, sp: 0.062, spread: 1.6 },
+  { n: 7, color: '#ff8a3d', size: 0.7, swing: { R: 11.6, dr: 1.5, amp: 1.4 }, ph0: 4.2, y: 2.8, sp: 0.07, spread: 1.4 },
 ];
 const schools = [];
 const dummy = new THREE.Object3D();
@@ -823,10 +827,17 @@ for (const def of SCHOOLS) {
   }
   mesh.instanceColor.needsUpdate = true;
   scene.add(mesh);
-  schools.push({ ...def, mesh, fish, ph0: rand() * 6 });
+  schools.push({ ...def, mesh, fish, ph0: def.swing ? def.ph0 : rand() * 6, sw0: rand() * 6 });
 }
 const cNow = new THREE.Vector3(), cNext = new THREE.Vector3(), fishVel = new THREE.Vector3(), fishTmp = new THREE.Vector3();
 function schoolCenter(sc, t, out) {
+  if (sc.swing) {
+    // 둘레를 따라 한쪽으로 갔다가 바깥으로 크게 돌아 되돌아옴 (끝에서 휙 뒤집히지 않게)
+    const w = sc.sp * t + sc.sw0, S = sc.swing;
+    const a = sc.ph0 + S.amp * Math.sin(w), r = S.R + S.dr * Math.cos(w);
+    const x = DOME_CENTER.x + Math.cos(a) * r, z = DOME_CENTER.z + Math.sin(a) * r;
+    return out.set(x, groundH(x, z) + sc.y + Math.sin(w * 2) * 0.8, z);
+  }
   const a = sc.sp * t + sc.ph0;
   const x = sc.cx + Math.cos(a) * sc.rx, z = sc.cz + Math.sin(a) * sc.rz;
   return out.set(x, groundH(x, z) + sc.y + Math.sin(a * 2) * 1.2, z);
@@ -2928,7 +2939,7 @@ function updateWalk(dt, t) {
   camGoal.y = Math.min(Math.max(camGoal.y, groundH(camGoal.x, camGoal.z) + 1.3), SURF - 1.5);
   tpCam.lerp(camGoal, a);
   camera.position.copy(tpCam);
-  const wantFov = firstPerson ? (camera.aspect < 1 ? 80 : 70) : mySeat !== null && camera.aspect < 1 ? 84 : 60;
+  const wantFov = firstPerson ? (mySeat !== null && teaView < 0.01 ? (camera.aspect < 1 ? 108 : 76) : camera.aspect < 1 ? 80 : 70) : mySeat !== null && camera.aspect < 1 ? 84 : 60;
   if (Math.abs(camera.fov - wantFov) > 0.1) { camera.fov += (wantFov - camera.fov) * Math.min(1, dt * 4); camera.updateProjectionMatrix(); }
   camera.up.set(0, 1, 0);
   const ahead = Math.min(1, camZoom * camZoom);
@@ -2948,7 +2959,7 @@ function updateWalk(dt, t) {
   if (fb > 0.001) {
     const eyeH = mix(0.86, 0.76, myFig.sit);
     let yaw = camYaw, pitchFP = fpPitch;
-    let eyeBack = 0;
+    let eyeBack = mySeat !== null ? (camera.aspect < 1 ? 1.6 : 0.5) * (1 - teaView) : 0;
     if (teaView > 0.01) {
       // 따를 때는 찻상을 내려다보고, 잔을 들어 마실 때는 고개를 들어 잔 너머 바다를 봄
       const mr = teaRituals.find(r => r.fig === myFig);
@@ -3384,7 +3395,7 @@ function sitAt(i) {
   if (takenSeats.has(i)) { toast('다른 분이 앉아 있는 방석이에요'); return; }
   mySeat = i;
   moveTarget = null;
-  camYaw = SEATS[i].heading; camPitchOff = 0; fpPitch = -0.12;
+  camYaw = SEATS[i].heading; camPitchOff = 0; fpPitch = 0.06;
   if (firstPerson) { setView(false); autoTP = true; }
   unlockAudio();
   $('seatBtn').textContent = '일어나기';
@@ -3693,6 +3704,7 @@ function fmtLeft(ms) {
   if (m <= 60) return ms < 60000 ? `${Math.ceil(ms / 1000)}초 남음` : `${m}분 남음`;
   return `${Math.floor(m / 60)}시간 ${m % 60}분 남음`;
 }
+let lastSeekAt = -1e9;
 function syncAudio() {
   if (audioOk === false) return;
   if (session.state !== 'playing') { if (!audio.paused) audio.pause(); return; }
@@ -3700,12 +3712,29 @@ function syncAudio() {
   if (el < 0 || el >= durSec()) { if (!audio.paused) audio.pause(); return; }
   if (!audioUnlocked) return;
   if (audio.paused) {
-    try { audio.currentTime = el; } catch (e) {}
+    try { if (Math.abs(audio.currentTime - el) > 0.5) audio.currentTime = el; } catch (e) {}
     audio.play().catch(() => { audioUnlocked = false; updateSessionText(); });
-  } else if (Math.abs(audio.currentTime - el) > 1.2) {
+    lastSeekAt = performance.now();
+  } else if (Math.abs(audio.currentTime - el) > 4 && !audio.seeking && audio.readyState >= 3 && performance.now() - lastSeekAt > 15000) {
+    // 많이 어긋났을 때만, 15초에 한 번까지만 맞춤 (자주 건너뛰면 소리가 뚝뚝 끊김)
     try { audio.currentTime = el; } catch (e) {}
+    lastSeekAt = performance.now();
   }
 }
+/* 음성 파일을 처음에 통째로 받아 두기: 듣는 도중 인터넷이 느려져도 끊기지 않게 */
+(async () => {
+  try {
+    const r = await fetch('meditation.mp3');
+    if (!r.ok) return;
+    const blob = await r.blob();
+    const wasPlaying = !audio.paused;
+    const t0 = audio.currentTime;
+    audio.src = URL.createObjectURL(blob);
+    if (wasPlaying) {
+      audio.addEventListener('loadedmetadata', () => { try { audio.currentTime = t0; } catch (e) {} syncAudio(); }, { once: true });
+    }
+  } catch (e) {}
+})();
 function updateSessionText() {
   const box = $('session');
   const now = Date.now();
