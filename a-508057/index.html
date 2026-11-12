@@ -3258,7 +3258,7 @@ function sendPresence(force) {
   if (!force && now - lastPresenceAt < 100) return;
   const obj = { o: iAmOut ? 1 : leaving ? 2 : 0, p: (mySeat !== null || atBeach || teaSitting !== null) ? 1 : 0, x: +orb.position.x.toFixed(2), y: +orb.position.y.toFixed(2), z: +orb.position.z.toFixed(2), h: +orb.rotation.y.toFixed(2), b: (travel || bubbleOn) ? 1 : 0, s: mySeat, g: Object.assign({ k: myGesture.k, n: myGesture.n }, Number.isInteger(myGesture.c) ? { c: myGesture.c } : {}, myGesture.to ? { to: myGesture.to } : {}), r: { n: myRing.n, at: myRing.at } };
   const str = JSON.stringify(obj);
-  if (str === lastPresence) return;
+  if (str === lastPresence && !(fb && now - lastPresenceAt > 15000)) return;
   lastPresence = str; lastPresenceAt = now;
   room.presence(obj).catch(e => { if (fb) $('together').textContent = '연결 문제: ' + String((e && (e.code || e.message)) || '알 수 없음').slice(0, 48); });
 }
@@ -3786,12 +3786,18 @@ async function startFirebase() {
   // 내 상태: 창을 닫으면 저절로 지워짐
   const meRef = R('presence/' + uid);
   dbM.onDisconnect(meRef).remove();
+  // 창을 닫거나 새로고침하면 내 모습을 바로 지움
+  addEventListener('pagehide', () => { try { dbM.remove(meRef); } catch (e) {} });
+  let serverOffset = 0;
+  dbM.onValue(R('.info/serverTimeOffset'), s => { serverOffset = Number(s.val()) || 0; });
   const roomAdapter = {
     // Firebase는 빈 값(undefined)을 받으면 멈추므로 깨끗하게 정리해서 보냄
-    presence: obj => { try { return dbM.set(meRef, JSON.parse(JSON.stringify({ ...obj, n: nick, t: Date.now() }))); } catch (e) { return Promise.reject(e); } },
+    presence: obj => { try { return dbM.set(meRef, { ...JSON.parse(JSON.stringify({ ...obj, n: nick })), t: dbM.serverTimestamp() }); } catch (e) { return Promise.reject(e); } },
     onPeers: (handler, onErr) => dbM.onValue(R('presence'), snap => {
       const all = snap.val() || {};
-      const peers = Object.entries(all).filter(([k, v]) => v && typeof v === 'object').map(([k, v]) => ({
+      const nowS = Date.now() + serverOffset;
+      // 새로고침하거나 창을 닫았는데 남아 있는 예전 모습은 빼기 (45초 넘게 소식이 없으면)
+      const peers = Object.entries(all).filter(([k, v]) => v && typeof v === 'object' && (k === uid || !Number.isFinite(v.t) || nowS - v.t < 45000)).map(([k, v]) => ({
         peer: k, by: k, isMe: k === uid, sameTab: k === uid, kind: 'viewer', guest: false, presence: v, updatedAt: Date.now(),
       }));
       if (!peers.some(p => p.isMe)) peers.push({ peer: uid, by: uid, isMe: true, sameTab: true, kind: 'viewer', guest: false, presence: {}, updatedAt: Date.now() });
