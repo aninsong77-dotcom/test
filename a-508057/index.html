@@ -667,22 +667,61 @@ function fishGeometry() {
   return g;
 }
 const fishGeo = fishGeometry();
+/* 블루탱: 납작한 타원 몸, 진한 파랑에 등쪽 까만 무늬, 노란 꼬리 */
+function blueTangGeometry() {
+  const BLUE = new THREE.Color('#1d5ee0'), DEEP = new THREE.Color('#0d2f86'), BLACK = new THREE.Color('#0b0d1c'), YEL = new THREE.Color('#ffd21f');
+  const body = new THREE.SphereGeometry(1, 24, 16);
+  body.scale(0.09, 0.2, 0.3);
+  const c = new THREE.Color();
+  const ng = body.toNonIndexed();
+  // 면마다 꼭짓점을 따로 두고 색칠
+  const np = ng.attributes.position, ncol = new Float32Array(np.count * 3);
+  for (let i = 0; i < np.count; i++) {
+    const x = np.getX(i), y = np.getY(i), z = np.getZ(i);
+    c.copy(BLUE);
+    const curve = 0.05 + 0.35 * (z + 0.05) * (z + 0.05) - 0.15 * z;
+    if (Math.abs(x) > 0.03 && y > curve - 0.045 && y < curve + 0.035 && z < 0.2 && z > -0.26) c.copy(BLACK);
+    if (z > 0.2 && y > -0.02 && y < 0.06 && Math.abs(x) > 0.05) c.copy(BLACK);
+    if (y < -0.15) c.lerp(DEEP, 0.6);
+    ncol.set([c.r, c.g, c.b], i * 3);
+  }
+  const tail = [0, 0, -0.27, 0, 0.16, -0.46, 0, -0.16, -0.46];
+  const dorsal = [0, 0.19, 0.08, 0, 0.23, -0.12, 0, 0.17, -0.2];
+  const anal = [0, -0.19, 0.0, 0, -0.21, -0.16, 0, -0.15, -0.22];
+  const fins = [...tail, ...dorsal, ...anal];
+  const all = new Float32Array(np.count * 3 + fins.length);
+  all.set(np.array); all.set(fins, np.count * 3);
+  const allCol = new Float32Array(all.length);
+  allCol.set(ncol);
+  const finCols = [YEL, YEL, YEL, BLUE, BLACK, BLACK, BLUE, BLACK, BLACK];
+  finCols.forEach((fc, i) => allCol.set([fc.r, fc.g, fc.b], np.count * 3 + i * 3));
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(all, 3));
+  g.setAttribute('color', new THREE.BufferAttribute(allCol, 3));
+  g.computeVertexNormals();
+  return g;
+}
+const blueTangGeo = blueTangGeometry();
 const SCHOOLS = [
   { n: 30, color: '#ffd23f', size: 0.8, cx: 9, cz: 6, rx: 7, rz: 5, y: 2.6, sp: 0.16, spread: 2.2 },
   { n: 36, color: '#b4cfe0', size: 1.0, cx: -30, cz: 4, rx: 12, rz: 10, y: 5, sp: 0.09, spread: 3 },
   { n: 24, color: '#ff8a3d', size: 0.75, cx: 20, cz: 8, rx: 10, rz: 13, y: 3, sp: 0.14, spread: 2 },
   { n: 28, color: '#5fd0c8', size: 0.75, cx: -12, cz: 14, rx: 12, rz: 8, y: 4, sp: 0.12, spread: 2.5 },
   { n: 18, color: '#7b6cff', size: 1.3, cx: 30, cz: -24, rx: 14, rz: 10, y: 6, sp: 0.07, spread: 3 },
+  // 블루탱 무리: 돔 둘레를 크게 돌며 유리 너머로 지나감
+  { n: 26, color: '#ffffff', size: 1.25, cx: 0, cz: -11, rx: 10.5, rz: 9.5, y: 2.6, sp: 0.1, spread: 2.2, geo: 'tang' },
+  { n: 18, color: '#ffffff', size: 1.1, cx: -4, cz: -16, rx: 15, rz: 12, y: 4.2, sp: -0.075, spread: 2.6, geo: 'tang' },
 ];
 const schools = [];
 const dummy = new THREE.Object3D();
 for (const def of SCHOOLS) {
-  const mesh = noRay(new THREE.InstancedMesh(fishGeo, new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.45, metalness: 0.15, flatShading: true, side: THREE.DoubleSide }), def.n));
+  const tang = def.geo === 'tang';
+  const mesh = noRay(new THREE.InstancedMesh(tang ? blueTangGeo : fishGeo, new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: tang, roughness: tang ? 0.4 : 0.45, metalness: 0.15, flatShading: !tang, side: THREE.DoubleSide, emissive: tang ? '#123a8a' : '#000000', emissiveIntensity: tang ? 0.25 : 0 }), def.n));
   mesh.frustumCulled = false;
   const base = new THREE.Color(def.color), c = new THREE.Color();
   const fish = [];
   for (let i = 0; i < def.n; i++) {
-    c.copy(base).offsetHSL((rand() - 0.5) * 0.04, 0, (rand() - 0.5) * 0.12);
+    c.copy(base).offsetHSL((rand() - 0.5) * 0.04, 0, tang ? -rand() * 0.05 : (rand() - 0.5) * 0.12);
     mesh.setColorAt(i, c);
     fish.push({ o: new THREE.Vector3((rand() - 0.5) * 2, (rand() - 0.5), (rand() - 0.5) * 2).multiplyScalar(def.spread), ph: rand() * 6, w: 0.6 + rand() * 0.8, s: def.size * (0.8 + rand() * 0.4) });
   }
@@ -1458,9 +1497,15 @@ function updateSteam(st, dt, t) {
   }
 }
 /* ---------- 차 마시기: 찻상 앞에 앉아 주전자로 따르고, 잔을 들어 마시고, 다시 내려놓음 ---------- */
-const TEA_T = 9.8;
+const TEA_T = 11.8;
 // 실제 시간을 예전 시간표로: 주전자 들기 0~1.0초, 따르기 1.0~3.8초(넉넉하게), 나머지는 1.2초 뒤로
-function teaClock(e) { return e < 1.0 ? e * 0.8 : e < 3.8 ? 0.8 + (e - 1.0) * (1.8 / 2.8) : e - 1.2; }
+function teaClock(e) {
+  if (e < 1.0) return e * 0.8;                              // 주전자 들기
+  if (e < 3.8) return 0.8 + (e - 1.0) * (1.8 / 2.8);        // 따르기
+  if (e < 5.3) return e - 1.2;                              // 주전자 내려놓고 잔 들기
+  if (e < 9.8) return 4.1 + (e - 5.3) * (2.5 / 4.5);        // 천천히 두 모금 (4.5초)
+  return e - 9.8 + 6.6;                                     // 잔 내려놓고 손 거두기
+}
 // 주전자 꼭지 끝 (주전자 안쪽 좌표): 꼭지 가운데 (0.12, 0.12) + 길이 반 × 꼭지 방향
 const SPOUT_TIP = new THREE.Vector3(0.12 + 0.06 * Math.sin(0.9), 0.12 + 0.06 * Math.cos(0.9), 0);
 // 시간표(초): 주전자 들기 0~0.8, 따르기 0.8~2.6, 주전자 내려놓기 2.6~3.4, 잔 들기 3.4~4.1, 마시기 4.1~6.6, 내려놓기 6.6~7.3, 손 거두기 ~8.6
