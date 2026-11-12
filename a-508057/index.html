@@ -223,6 +223,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
     <button type="button" class="primary" id="bellBtn">종 치기</button>
     <button type="button" id="snapBtn">사진 찍기</button>
     <button type="button" id="teaBtn">차 마시기</button>
+    <button type="button" id="backSeatBtn" hidden>자리로 가기</button>
     <button type="button" id="stopBellBtn" hidden>명상 그만하기</button>
   </div>
   <div hidden>
@@ -321,7 +322,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.12-35';
+const BUILD = '11.12-36';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -1976,7 +1977,31 @@ function updateViewCup(dt, t) {
   st.strength = 1 - sip * 0.85;
   updateSteam(st, dt, t);
 }
-let teaPending = null, teaSitting = null, teaServeTo = null;
+let teaPending = null, teaSitting = null, teaServeTo = null, keepTP = false, homeSeat = null;
+const WALK_SP = 1.5;
+function walkPath(x, z, extra) {
+  // 지금 자리에서 (x, z)까지 천천히 걷기. 가운데 등불 가까이를 지나면 옆으로 돌아감
+  const ax = pos2.x - DOME_CENTER.x, az = pos2.y - DOME_CENTER.z, bx = x - DOME_CENTER.x, bz = z - DOME_CENTER.z;
+  const vx = bx - ax, vz = bz - az, L2 = vx * vx + vz * vz || 1;
+  const k = Math.max(0, Math.min(1, -(ax * vx + az * vz) / L2));
+  const cx = ax + vx * k, cz = az + vz * k, cd = Math.hypot(cx, cz);
+  const goal = { x, y: z, h: HOUSE_BASE + 0.17, sp: WALK_SP, ...extra };
+  if (cd < 1.2 && k > 0.05 && k < 0.95) {
+    let nx = -vz, nz = vx; const nl = Math.hypot(nx, nz) || 1; nx /= nl; nz /= nl;
+    if (cd > 0.01 && (cx * nx + cz * nz) < 0) { nx = -nx; nz = -nz; }
+    return { x: DOME_CENTER.x + nx * 1.5, y: DOME_CENTER.z + nz * 1.5, h: HOUSE_BASE + 0.17, sp: WALK_SP, via: true, then: goal };
+  }
+  return goal;
+}
+function backToSeat() {
+  if (teaRituals.some(r => r.fig === myFig)) return;
+  const seat = homeSeat !== null && !takenSeats.has(homeSeat) ? homeSeat : freeSeat();
+  if (seat === null) { toast('빈 방석이 없어요'); return; }
+  teaSitting = null; teaPending = null;
+  if (firstPerson) { setView(false); autoTP = true; }
+  keepTP = true;
+  moveTarget = walkPath(SEATS[seat].x, SEATS[seat].z, { seat });
+}
 function drinkServed() {
   const sc = myPeerId ? servedCups.get(myPeerId) : null;
   if (!$('noticeDrink').hidden) hideNotice();
@@ -2005,13 +2030,16 @@ function teaFrom(c, serveTo) {
     c = best;
   }
   unlockAudio();
-  if (mySeat !== null) { mySeat = null; $('seatBtn').textContent = '방석에 앉기'; }
+  if (mySeat !== null) { homeSeat = mySeat; mySeat = null; $('seatBtn').textContent = '방석에 앉기'; }
   teaSitting = null;
   const sp = teaSpot(c);
-  moveTarget = { x: sp.x, y: sp.z, h: HOUSE_BASE + 0.17 };
+  // 걸어가는 모습이 보이게 (앉아 있을 때의 '내 모습 보기' 시점 그대로)
+  if (autoTP) keepTP = true;
+  moveTarget = walkPath(sp.x, sp.z);
   teaPending = c;
 }
 function beginMyTea(c) {
+  if (keepTP) { keepTP = false; setView(true); autoTP = true; }
   const sp = teaSpot(c);
   pos2.set(sp.x, sp.z);
   heading = sp.heading;
@@ -2852,19 +2880,23 @@ function updateWalk(dt, t) {
   if (myRitual) mag = 0;
   else if (teaSitting !== null && mag > 0.15) teaSitting = null;
   if (teaSitting !== null) { const sp = teaSpot(teaSitting); pos2.set(sp.x, sp.z); heading = sp.heading; }
-  if (mag > 0.05) { moveTarget = null; teaPending = null; }
+  if (mag > 0.05) { moveTarget = null; teaPending = null; keepTP = false; }
   else if (moveTarget) {
     const dx = moveTarget.x - pos2.x, dz = moveTarget.y - pos2.y, dist = Math.hypot(dx, dz);
-    if (dist < 0.12) {
-      moveTarget = null;
-      if (teaPending !== null) { const c = teaPending; teaPending = null; beginMyTea(c); }
+    if (dist < (moveTarget.via ? 0.35 : 0.12)) {
+      const mt = moveTarget;
+      moveTarget = mt.then || null;
+      if (!moveTarget) {
+        if (teaPending !== null) { const c = teaPending; teaPending = null; beginMyTea(c); }
+        else if (mt.seat !== undefined) { keepTP = false; if (!takenSeats.has(mt.seat)) sitAt(mt.seat); else { const s2 = freeSeat(); if (s2 !== null) sitAt(s2); } }
+      }
     }
     else {
-      const step = Math.min(dist, SPEED * dt);
+      const step = Math.min(dist, (moveTarget.sp || SPEED) * dt);
       pos2.x += dx / dist * step; pos2.y += dz / dist * step;
       const want = Math.atan2(-dx, -dz);
-      heading += Math.atan2(Math.sin(want - heading), Math.cos(want - heading)) * Math.min(1, dt * 10);
-      move = 1;
+      heading += Math.atan2(Math.sin(want - heading), Math.cos(want - heading)) * Math.min(1, dt * (moveTarget.sp ? 4 : 10));
+      move = moveTarget.sp ? 0.7 : 1;
     }
   }
   targetRing.visible = !!moveTarget;
@@ -3393,6 +3425,7 @@ function sendPresence(force) {
 /* 방석 */
 function sitAt(i) {
   if (arriving && !arriving.landed) return;
+  homeSeat = i;
   teaSitting = null; teaPending = null;
   if (takenSeats.has(i)) { toast('다른 분이 앉아 있는 방석이에요'); return; }
   mySeat = i;
@@ -3429,6 +3462,7 @@ function greet(k, to) {
 $('helloBtn').addEventListener('click', () => greet('hello'));
 $('bowBtn').addEventListener('click', () => greet('bow'));
 $('teaBtn').addEventListener('click', () => teaFrom());
+$('backSeatBtn').addEventListener('click', backToSeat);
 $('viewBtn').addEventListener('click', () => setView(!firstPerson));
 $('toDome').addEventListener('click', () => {
   if (atBeach) { $('toDome').textContent = '돔으로 가기'; startDive(false); return; }
@@ -4223,7 +4257,8 @@ function frame() {
     updateBurst(dt, t);
     updateSnow(dt, t);
     updateHouseBits(dt, t);
-    if (autoTP && mySeat === null) setView(true);
+    if (autoTP && mySeat === null && !keepTP) setView(true);
+    { const showBack = domeUiShown && teaSitting !== null && !teaRituals.some(r => r.fig === myFig) && !leaving; if ($('backSeatBtn').hidden === showBack) $('backSeatBtn').hidden = !showBack; }
     updateTea(dt, t);
     updateServed(dt, t);
     updateViewCup(dt, t);
