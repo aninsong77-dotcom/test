@@ -333,7 +333,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.13-63';
+const BUILD = '11.13-64';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -1443,6 +1443,9 @@ const SEATS = [];     // 방석 자리 (세계 좌표)
 const steam = [];
 const TEA_POS = new THREE.Vector3(6.7, 0, -1.7), TEA_R = 0.46, TEA_TOP = 0.2, TEA_CUP_R = 0.27;
 const TEA_CUP_ANGLES = [Math.PI * 0.62, Math.PI * 1.0, Math.PI * 1.38];   // 돔 가운데 쪽을 향한 세 자리
+// 찻상 셋 (처음 찻상은 그대로, 둘을 더 둠). 찻상마다 잔 셋이 돔 가운데 쪽을 향함
+const TEA_TABLES = [TEA_POS, new THREE.Vector3(-6.7, 0, -1.7), new THREE.Vector3(0, 0, 6.9)];
+const teaSets = [];
 const teaCups = [];
 let teaSet = null;
 const teaRituals = [];
@@ -1531,11 +1534,14 @@ let centerGlow = null, centerCore = null;
     const wp = new THREE.Vector3(x, 0, z).add(dome.position);
     SEATS.push({ x: wp.x, z: wp.z, heading: Math.atan2(x, z), ring });
   });
-  // 낮은 찻상과 주전자, 잔 세 벌 (앉아서 차를 따라 마심)
-  const table = new THREE.Group();
-  table.position.set(TEA_POS.x, 0.17, TEA_POS.z);
-  dome.add(table);
+  // 낮은 찻상과 주전자, 잔 세 벌 (앉아서 차를 따라 마심) × 찻상 셋
   const wood = std('#a8774f');
+  const phi0 = Math.atan2(-TEA_TABLES[0].z, -TEA_TABLES[0].x);
+  TEA_TABLES.forEach((TP, ti) => {
+  const turn = Math.atan2(-TP.z, -TP.x) - phi0;   // 이 찻상이 가운데를 보도록 잔 자리를 돌림
+  const table = new THREE.Group();
+  table.position.set(TP.x, 0.17, TP.z);
+  dome.add(table);
   add(new THREE.CylinderGeometry(TEA_R, TEA_R, 0.05, 40), wood, 0, TEA_TOP - 0.025, 0, table);
   [0, 2.094, 4.189].forEach(a => add(new THREE.CylinderGeometry(0.035, 0.04, TEA_TOP - 0.05, 8), wood, Math.cos(a) * TEA_R * 0.7, (TEA_TOP - 0.05) / 2, Math.sin(a) * TEA_R * 0.7, table));
   const celadon = std('#b9d3c3', { roughness: 0.35 });
@@ -1556,7 +1562,8 @@ let centerGlow = null, centerCore = null;
   const stream = noRay(new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.007, 1, 8), new THREE.MeshStandardMaterial({ color: '#d6a95a', transparent: true, opacity: 0.9, roughness: 0.15, emissive: '#8a5a1a', emissiveIntensity: 0.2 })));
   stream.visible = false;
   dome.add(stream);
-  TEA_CUP_ANGLES.forEach((a, i) => {
+  TEA_CUP_ANGLES.forEach((a0, k) => {
+    const a = a0 + turn, i = ti * 3 + k;
     const cx = Math.cos(a) * TEA_CUP_R, cz = Math.sin(a) * TEA_CUP_R;
     add(new THREE.CylinderGeometry(0.075, 0.075, 0.01, 24), celadon, cx, TEA_TOP + 0.005, cz, table);
     const cg = new THREE.Group();
@@ -1569,14 +1576,16 @@ let centerGlow = null, centerCore = null;
     tea.visible = false;
     cupM.userData.tap = { kind: 'tea', c: i };
     domeTap.push(cupM);
-    teaCups.push({ g: cg, home: cg.position.clone(), tea, level: 0 });
+    teaCups.push({ g: cg, home: cg.position.clone(), tea, level: 0, t: ti, a });
   });
-  teaSet = { table, potGroup, stream };
+  teaSets.push({ table, potGroup, stream, pos: TP });
   for (let i = 0; i < 6; i++) {
     const sp = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: '#ffffff', transparent: true, opacity: 0, depthWrite: false })));
     dome.add(sp);
-    steam.push({ s: sp, life: i / 6 });
+    steam.push({ s: sp, life: i / 6, t: ti });
   }
+  });
+  teaSet = teaSets[0];
   // 링크 안내판 둘 (구글 폼, 패들렛)
   function boardTexture(title, sub) {
     const c = document.createElement('canvas');
@@ -1605,8 +1614,8 @@ function updateHouseBits(dt, t) {
   for (const st of steam) {
     st.life += dt * 0.25;
     if (st.life > 1) st.life -= 1;
-    const pp = teaSet.potGroup.position;
-    st.s.position.set(TEA_POS.x + pp.x + Math.sin(t + st.life * 6) * 0.04, 0.17 + pp.y + 0.22 + st.life * 0.6, TEA_POS.z + pp.z);
+    const ts = teaSets[st.t] || teaSet, pp = ts.potGroup.position;
+    st.s.position.set(ts.pos.x + pp.x + Math.sin(t + st.life * 6) * 0.04, 0.17 + pp.y + 0.22 + st.life * 0.6, ts.pos.z + pp.z);
     st.s.scale.setScalar(0.1 + st.life * 0.25);
     st.s.material.opacity = Math.min(1, st.life * 5) * (1 - st.life) * 0.35;
   }
@@ -1682,12 +1691,19 @@ function teaPhase(e) {
   const pour = e > 0.8 && e < 2.6 ? Math.sin((e - 0.8) / 1.8 * Math.PI) : 0;
   return { reach, hold, sip, pour, held: e > 4.0 && e < 6.7 };
 }
+const tsOf = c => teaSets[(teaCups[c] && teaCups[c].t) || 0];
 function teaSpot(c) {
-  const a = TEA_CUP_ANGLES[c], d = TEA_R + 0.32;
-  const x = DOME_CENTER.x + TEA_POS.x + Math.cos(a) * d, z = DOME_CENTER.z + TEA_POS.z + Math.sin(a) * d;
-  return { x, z, heading: Math.atan2(-(DOME_CENTER.x + TEA_POS.x - x), -(DOME_CENTER.z + TEA_POS.z - z)) };
+  const a = teaCups[c].a, d = TEA_R + 0.32, TP = tsOf(c).pos;
+  const x = DOME_CENTER.x + TP.x + Math.cos(a) * d, z = DOME_CENTER.z + TP.z + Math.sin(a) * d;
+  return { x, z, heading: Math.atan2(-(DOME_CENTER.x + TP.x - x), -(DOME_CENTER.z + TP.z - z)) };
 }
 function cupInUse(c) { return teaRituals.some(r => r.c === c); }
+/* 이 잔 자리에 다른 사람이 있거나 가는 중이면 '찬 자리' (두 사람이 한 자리에 겹치지 않게) */
+function cupTaken(c) {
+  if (cupInUse(c)) return true;
+  for (const v of peerViews.values()) if (!v.out && v.teaSeat === c) return true;
+  return false;
+}
 function startTeaRitual(c, fig, at) {
   for (let i = teaRituals.length - 1; i >= 0; i--) if (teaRituals[i].fig === fig || (c >= 0 && teaRituals[i].c === c)) endTeaRitual(teaRituals[i]);
   const r = { c, fig, at };
@@ -1700,9 +1716,10 @@ function endTeaRitual(r) {
     cup.g.visible = true;
     cup.g.position.copy(cup.home);
     cup.g.rotation.set(0, 0, 0);
-    teaSet.potGroup.position.set(0, TEA_TOP, 0);
-    teaSet.potGroup.rotation.set(0, 0, 0);
-    teaSet.stream.visible = false;
+    const ts = tsOf(r.c);
+    ts.potGroup.position.set(0, TEA_TOP, 0);
+    ts.potGroup.rotation.set(0, 0, 0);
+    ts.stream.visible = false;
   }
   r.fig.cup.visible = false;
   const i = teaRituals.indexOf(r);
@@ -1811,7 +1828,7 @@ function updateTea(dt, t) {
       if (!r.flew) { r.flew = true; launchServe(r); }
       teaCups[r.c].g.visible = false;
       r.fig.cup.visible = false;
-      teaSet.stream.visible = false;
+      tsOf(r.c).stream.visible = false;
       if (e > SERVE_T) { endTeaRitual(r); teaCups[r.c].level = 0; }
       continue;
     }
@@ -1820,7 +1837,8 @@ function updateTea(dt, t) {
     const ph = teaPhase(e);
     e = teaClock(e);
     // 먼저 따르기 시작한 사람이 주전자를 씀. 다른 사람의 잔은 주전자 없이 조용히 채워짐
-    const potOwner = teaRituals.filter(x => x.c >= 0 && !(x.serve && x.flew) && teaClock((performance.now() - x.at) / 1000) < 3.4).sort((x, y) => x.at - y.at)[0];
+    const ts = tsOf(r.c);
+    const potOwner = teaRituals.filter(x => x.c >= 0 && teaCups[x.c].t === cup.t && !(x.serve && x.flew) && teaClock((performance.now() - x.at) / 1000) < 3.4).sort((x, y) => x.at - y.at)[0];
     if (potOwner && potOwner !== r && e < 3.4) {
       if (e > 0.9 && e < 2.5) cup.level = Math.max(cup.level, Math.min(1, (e - 0.9) / 1.5));
       r.fig.cup.visible = false;
@@ -1828,9 +1846,9 @@ function updateTea(dt, t) {
       continue;
     }
     // 주전자: 들어서 잔 위로 가져가 기울이고, 다시 가운데로
-    const pot = teaSet.potGroup;
+    const pot = ts.potGroup;
     const k = e < 0.8 ? smooth(e / 0.8) : e < 2.6 ? 1 : e < 3.4 ? 1 - smooth((e - 2.6) / 0.8) : 0;
-    pot.rotation.set(0, -TEA_CUP_ANGLES[r.c], 0);
+    pot.rotation.set(0, -cup.a, 0);
     pot.rotateZ(-Math.min(1, ph.pour * 1.4) * 0.85);
     // 꼭지 끝이 잔 한가운데 바로 위에 오도록 주전자 자리를 맞춤
     const tipOff = SPOUT_TIP.clone().applyQuaternion(pot.quaternion);
@@ -1839,13 +1857,13 @@ function updateTea(dt, t) {
     pot.position.y += Math.sin(k * Math.PI) * 0.06 * (e < 0.8 || e > 2.6 ? 1 : 0);
     // 찻물 줄기와 잔 채우기
     const pouring = ph.pour > 0.12;
-    teaSet.stream.visible = pouring;
+    ts.stream.visible = pouring;
     if (pouring) {
-      tv3.copy(SPOUT_TIP); pot.localToWorld(tv3); teaSet.stream.parent.worldToLocal(tv3);
-      tv4.copy(cup.home).add(new THREE.Vector3(0, 0.012 + cup.level * 0.045, 0)); teaSet.table.localToWorld(tv4); teaSet.stream.parent.worldToLocal(tv4);
-      teaSet.stream.position.lerpVectors(tv3, tv4, 0.5);
-      teaSet.stream.scale.set(1, Math.max(0.01, tv3.distanceTo(tv4)), 1);
-      teaSet.stream.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tv4.clone().sub(tv3).normalize());
+      tv3.copy(SPOUT_TIP); pot.localToWorld(tv3); ts.stream.parent.worldToLocal(tv3);
+      tv4.copy(cup.home).add(new THREE.Vector3(0, 0.012 + cup.level * 0.045, 0)); ts.table.localToWorld(tv4); ts.stream.parent.worldToLocal(tv4);
+      ts.stream.position.lerpVectors(tv3, tv4, 0.5);
+      ts.stream.scale.set(1, Math.max(0.01, tv3.distanceTo(tv4)), 1);
+      ts.stream.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tv4.clone().sub(tv3).normalize());
     }
     if (e > 0.9 && e < 2.5) cup.level = Math.max(cup.level, Math.min(1, (e - 0.9) / 1.5));
     if (e > 4.6 && e < 6.6) cup.level = Math.min(cup.level, mix(1, 0.35, (e - 4.6) / 2));
@@ -1857,7 +1875,7 @@ function updateTea(dt, t) {
       if (lift > 0) {
         if (r.fig === myFig && fpBlend > 0.6) { viewCup.position.set(0, -0.24, -0.62); viewCup.updateMatrixWorld(true); viewCup.getWorldPosition(tv3); }
         else r.fig.cup.getWorldPosition(tv3);
-        teaSet.table.worldToLocal(tv3);
+        ts.table.worldToLocal(tv3);
         cup.g.position.lerpVectors(cup.home, tv3.add(new THREE.Vector3(0, -0.03, 0)), lift);
       } else cup.g.position.copy(cup.home);
     }
@@ -1933,7 +1951,7 @@ function updateViewCup(dt, t) {
     const fresh = va.lastRitual !== r; va.lastRitual = r;
     va.sleeveMat.color.copy(myFig.mat.color);
     va.sleeveMat.emissive.copy(myFig.mat.color);
-    const pot = teaSet.potGroup;
+    const pot = tsOf(r.c).potGroup;
     pot.updateMatrixWorld(true);
     camera.updateMatrixWorld(true);
     // 손잡이와 뚜껑 중 화면 왼쪽에 있는 것을 왼손이, 오른쪽에 있는 것을 오른손이 잡음 (팔이 엇갈리지 않게)
@@ -2038,11 +2056,11 @@ function teaFrom(c, serveTo) {
   const sc = myPeerId ? servedCups.get(myPeerId) : null;
   if (!serveTo && sc && sc.landed && sc.level > 0.5) { drinkServed(); return; }
   teaServeTo = serveTo || null;
-  if (c === undefined || c < 0 || cupInUse(c)) {
-    // 가장 가까운 빈 잔
+  if (c === undefined || c < 0 || cupTaken(c)) {
+    // 가장 가까운 빈 잔 (찻상 셋 모두에서)
     let best = null, bd = 1e9;
-    TEA_CUP_ANGLES.forEach((_, i) => {
-      if (cupInUse(i)) return;
+    teaCups.forEach((_, i) => {
+      if (cupTaken(i)) return;
       const sp = teaSpot(i), d = Math.hypot(sp.x - pos2.x, sp.z - pos2.y);
       if (d < bd) { bd = d; best = i; }
     });
@@ -2059,6 +2077,10 @@ function teaFrom(c, serveTo) {
   teaPending = c;
 }
 function beginMyTea(c) {
+  for (const [k, v] of peerViews) {
+    if (!v.out && v.teaSeat === c && String(k) < String(myPeerId)) { teaPending = null; teaFrom(); return; }
+  }
+  if (cupInUse(c)) { teaPending = null; teaFrom(); return; }
   if (keepTP) { keepTP = false; setView(true); teaAutoFP = true; }
   const sp = teaSpot(c);
   pos2.set(sp.x, sp.z);
@@ -3026,7 +3048,8 @@ function updateWalk(dt, t) {
   const lookBase = seated
     ? tmp.copy(orb.position).addScaledVector(camDir, 6 * ahead).add(new THREE.Vector3(0, 1.25 + (1 - ahead) * 0.5, 0))
     : tmp.copy(orb.position).addScaledVector(camDir, 4 * Math.cos(pitch) * ahead).add(new THREE.Vector3(0, 1.1 - (1 - ahead) * 0.3, 0));
-  lookBase.lerp(new THREE.Vector3((orb.position.x + DOME_CENTER.x + TEA_POS.x) / 2, orb.position.y + 0.4, (orb.position.z + DOME_CENTER.z + TEA_POS.z) / 2), tv);
+  { const TP = teaSitting !== null ? tsOf(teaSitting).pos : TEA_POS;
+    lookBase.lerp(new THREE.Vector3((orb.position.x + DOME_CENTER.x + TP.x) / 2, orb.position.y + 0.4, (orb.position.z + DOME_CENTER.z + TP.z) / 2), tv); }
   lookBase.y += Math.min(1.6, lookUp) * 9;
   lookTarget.lerp(lookBase, a);
   // 아바타의 눈으로 보기: 머리 자리에서, 바라보는 쪽(끌어서 돌림)과 위아래(끌어서 올려다봄)
@@ -3191,7 +3214,7 @@ canvas.addEventListener('pointerup', e => {
     } else if (tap.kind === 'tea') {
       teaFrom(tap.c);
     } else if (tap.kind === 'bell') {
-      ringFromMe();
+      ringBowl();
     } else {
       openLink(tap.kind);
     }
@@ -3387,6 +3410,7 @@ async function renderPeers(peers) {
     else if (!wantBub && v.bubOn) popBubble(v.bub, v.g, false);
     v.bubOn = wantBub;
     v.out = pr.o === 1;
+    v.teaSeat = Number.isInteger(pr.ts) && pr.ts >= 0 && pr.ts < teaCups.length ? pr.ts : -1;
     v.fig.headset.visible = pr.hp === 1;
     v.g.visible = !v.out;
     if (v.label) v.label.visible = !v.out;
@@ -3395,7 +3419,7 @@ async function renderPeers(peers) {
     if (g && ['hello', 'bow', 'tea', 'serve', 'sip'].includes(g.k) && Number.isFinite(g.n) && g.n !== v.gesture.n) {
       const to = typeof g.to === 'string' ? g.to.slice(0, 64) : '';
       v.gesture = { k: g.k, n: g.n, at: v.gesture.n === 0 && !v.gestureInit ? 0 : performance.now(), to };
-      const cupOk = Number.isInteger(g.c) && g.c >= 0 && g.c < TEA_CUP_ANGLES.length;
+      const cupOk = Number.isInteger(g.c) && g.c >= 0 && g.c < teaCups.length;
       if (v.gesture.at) {
         if (g.k === 'tea' && cupOk) startTeaRitual(g.c, v.fig, v.gesture.at);
         if (g.k === 'serve' && cupOk) startTeaRitual(g.c, v.fig, v.gesture.at);
@@ -3483,7 +3507,7 @@ function sendPresence(force) {
   if (!room) return;
   const now = performance.now();
   if (!force && now - lastPresenceAt < 100) return;
-  const obj = { n: myNick, hp: solo ? 1 : 0, o: iAmOut ? 1 : leaving ? 2 : 0, p: (mySeat !== null || atBeach || teaSitting !== null) ? 1 : 0, x: +orb.position.x.toFixed(2), y: +orb.position.y.toFixed(2), z: +orb.position.z.toFixed(2), h: +orb.rotation.y.toFixed(2), b: (travel || bubbleOn) ? 1 : 0, s: mySeat, g: Object.assign({ k: myGesture.k, n: myGesture.n }, Number.isInteger(myGesture.c) ? { c: myGesture.c } : {}, myGesture.to ? { to: myGesture.to } : {}), r: { n: myRing.n, at: myRing.at } };
+  const obj = { n: myNick, hp: solo ? 1 : 0, ts: teaPending !== null ? teaPending : teaSitting !== null ? teaSitting : -1, o: iAmOut ? 1 : leaving ? 2 : 0, p: (mySeat !== null || atBeach || teaSitting !== null) ? 1 : 0, x: +orb.position.x.toFixed(2), y: +orb.position.y.toFixed(2), z: +orb.position.z.toFixed(2), h: +orb.rotation.y.toFixed(2), b: (travel || bubbleOn) ? 1 : 0, s: mySeat, g: Object.assign({ k: myGesture.k, n: myGesture.n }, Number.isInteger(myGesture.c) ? { c: myGesture.c } : {}, myGesture.to ? { to: myGesture.to } : {}), r: { n: myRing.n, at: myRing.at } };
   const str = JSON.stringify(obj);
   if (str === lastPresence && !(fb && now - lastPresenceAt > 10000)) return;
   lastPresence = str; lastPresenceAt = now;
@@ -3551,7 +3575,7 @@ function updateDomeUi(near) {
   $('toDome').hidden = near;
   $('toDome').textContent = '돔으로 가기';
   $('hint').textContent = near
-    ? (coarse ? '손가락으로 끌면 그쪽으로 걸어가요 (옆으로 끌면 돌아요) · 두 손가락으로 끌면 둘러보기 · 방석을 누르면 앉아요 · 사람을 누르면 합장 인사 · 나가기를 누르면 빛을 타고 돌아가요' : '바닥 누르기·방향키로 움직여요 · 방석을 누르거나 F로 앉기 · 1 안녕하세요, 2 합장, 3 종, 4 차, P 사진, V 시점 · 끌어서 둘러보기 · 나가기를 누르면 빛을 타고 돌아가요')
+    ? (coarse ? '손가락으로 끌면 그쪽으로 걸어가요 (옆으로 끌면 돌아요) · 두 손가락으로 끌면 둘러보기 · 방석을 누르면 앉아요 · 싱잉볼을 누르면 소리만 울려요 · 사람을 누르면 합장 인사 · 나가기를 누르면 빛을 타고 돌아가요' : '바닥 누르기·방향키로 움직여요 · 방석을 누르거나 F로 앉기 · 1 안녕하세요, 2 합장, 3 종, 4 차, P 사진, V 시점 · 싱잉볼을 누르면 소리만 · 끌어서 둘러보기 · 나가기를 누르면 빛을 타고 돌아가요')
     : (coarse ? '바닥을 누르거나 왼쪽 아래 원으로 움직여요 · 끌어서 둘러보기' : '바닥을 누르거나 방향키로 움직여요 · 끌어서 둘러보기 · 휠로 가까이·멀리');
 }
 
@@ -3762,6 +3786,13 @@ function updateBellLook() {
   bowlRipple.material.opacity = on ? 0.75 * k * (0.75 + 0.25 * Math.sin(e * 5.6)) : 0;
   bowlRipple.scale.setScalar(1 + (e % 3) * 2.4);
   bowlGlow.material.opacity = on ? 0.12 + 0.8 * k : 0.12;
+}
+/* 싱잉볼을 직접 누르면: 소리만 울림 (명상으로 이어지지 않음, 나에게만 들림) */
+function ringBowl() {
+  const c = ensureCtx();
+  if (!c) return;
+  if (c.state === 'running') ringBell(true);
+  else c.resume().then(() => ringBell(true)).catch(() => {});
 }
 function ringFromMe() {
   if (inIntro) return;
