@@ -339,7 +339,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.13-82';
+const BUILD = '11.13-85';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -464,9 +464,9 @@ const SKY = new THREE.Color('#bfe6f7');
 const SEA_TOP = new THREE.Color('#62d8ef'), SEA_BOTTOM = new THREE.Color('#2aa2c9');
 /* 하루의 바다 (한국 시각에 맞춰 서서히): 낮 → 해 질 녘 노을빛 → 은은한 달빛의 환한 밤바다 → 새벽 */
 const DAY_SEA = { top: SEA_TOP.clone(), bottom: SEA_BOTTOM.clone(), sky: SKY.clone(), hemi: new THREE.Color('#d8f4ff'), hemiI: 1.5, sun: new THREE.Color('#fff4dc'), sunI: 2.0, ray: new THREE.Color('#f2fdff'), under: new THREE.Color('#ffffff') };
-const DUSK_SEA = { top: new THREE.Color('#e9c27e'), bottom: new THREE.Color('#4f8ab6'), sky: new THREE.Color('#f5cd8e'), hemi: new THREE.Color('#fff0d4'), hemiI: 1.4, sun: new THREE.Color('#ffd9a0'), sunI: 1.65, ray: new THREE.Color('#ffe2a6'), under: new THREE.Color('#ffdba4') };
+const DUSK_SEA = { top: new THREE.Color('#e9c27e'), bottom: new THREE.Color('#4f8ab6'), sky: new THREE.Color('#f5cd8e'), hemi: new THREE.Color('#fff0d4'), hemiI: 1.4, sun: new THREE.Color('#ffd9a0'), sunI: 1.65, ray: new THREE.Color('#ffc98a'), under: new THREE.Color('#ffbf86') };
 const NIGHT_SEA = { top: new THREE.Color('#3f6fa8'), bottom: new THREE.Color('#1b3a6a'), sky: new THREE.Color('#22355e'), hemi: new THREE.Color('#b9cdf2'), hemiI: 1.05, sun: new THREE.Color('#cfe0ff'), sunI: 0.9, ray: new THREE.Color('#dfe9ff'), under: new THREE.Color('#9fb6e6') };
-let daySea = { top: SEA_TOP.clone(), bottom: SEA_BOTTOM.clone(), sky: SKY.clone(), hemi: new THREE.Color(), hemiI: 1.5, sun: new THREE.Color(), sunI: 2, ray: new THREE.Color(), under: new THREE.Color(), night: 0 };
+let daySea = { top: SEA_TOP.clone(), bottom: SEA_BOTTOM.clone(), sky: SKY.clone(), hemi: new THREE.Color(), hemiI: 1.5, sun: new THREE.Color(), sunI: 2, ray: new THREE.Color(), under: new THREE.Color(), night: 0, warm: 0 };
 function seaPhase(now) {
   // 한국 시각 (시간, 소수). 6:00~7:00 새벽빛, 7:00~17:30 낮, 17:30~19:30 노을, 19:30~20:30 밤으로, 밤, 5:00~6:00 밤에서 새벽
   const k = new Date(now + 9 * 3600 * 1000), h = k.getUTCHours() + k.getUTCMinutes() / 60 + k.getUTCSeconds() / 3600;
@@ -487,6 +487,7 @@ function updateDaySea(now) {
   daySea.hemiI = mix(mix(DAY_SEA.hemiI, DUSK_SEA.hemiI, dusk), NIGHT_SEA.hemiI, night);
   daySea.sunI = mix(mix(DAY_SEA.sunI, DUSK_SEA.sunI, dusk), NIGHT_SEA.sunI, night);
   daySea.night = night;
+  daySea.warm = dusk * (1 - night);
 }
 updateDaySea(Date.now());
 scene.background = new THREE.Color('#1f86b6');
@@ -1066,6 +1067,35 @@ for (let i = 0; i < 26; i++) {
   rays.push({ s, ph: rand() * 6 });
 }
 // 물속에서 올려다보면 수면 너머로 번지는 햇빛
+const seaDome = (() => {
+  const mat = new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite: false, fog: false,
+    uniforms: { uTop: { value: new THREE.Color() }, uBottom: { value: new THREE.Color() }, uWarm: { value: 0 }, uSunDir: { value: new THREE.Vector3(8, 40, -30).normalize() } },
+    vertexShader: `varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+    fragmentShader: `uniform vec3 uTop; uniform vec3 uBottom; uniform float uWarm; uniform vec3 uSunDir; varying vec3 vDir;
+      void main(){
+        // 수평선 아래·근처는 안개 색과 같게 (이음매 없이), 위로 갈수록 수면 빛
+        float up = smoothstep(0.08, 0.8, vDir.y);
+        vec3 c = mix(uBottom, uTop, up * 0.6);
+        // 노을: 수면 쪽 물이 주황빛으로 물들고, 해가 있는 쪽이 더 붉게
+        float sun = pow(max(dot(normalize(vDir), uSunDir), 0.0), 2.5);
+        vec3 glow = mix(vec3(0.98, 0.66, 0.38), vec3(0.98, 0.5, 0.28), sun);
+        c = mix(c, glow, uWarm * (0.7 * smoothstep(0.12, 0.9, vDir.y) + 0.3 * sun * smoothstep(0.0, 0.4, vDir.y)));
+        gl_FragColor = vec4(c, 1.0);
+      }`,
+  });
+  const m = noRay(new THREE.Mesh(new THREE.SphereGeometry(450, 32, 16), mat));
+  m.renderOrder = -10;
+  scene.add(m);
+  return m;
+})();
+// 노을이 비친 수면: 물속에서 올려다본 수면 위에 주황빛이 넓게 번짐 (노을 때만)
+const sunsetSheet = noRay(new THREE.Mesh(new THREE.PlaneGeometry(260, 260), new THREE.MeshBasicMaterial({ map: glowTex, color: '#ff8f4a', transparent: true, opacity: 0, depthWrite: false, fog: false, side: THREE.DoubleSide })));
+sunsetSheet.rotation.x = Math.PI / 2;
+sunsetSheet.position.set(2, SURF - 0.3, -16);
+sunsetSheet.scale.setScalar(1.6);
+sunsetSheet.renderOrder = 5;   // 수면 물결 무늬 위에 그려지게
+scene.add(sunsetSheet);
 const sunUnder = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: '#fffbe6', transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })));
 sunUnder.position.set(8, SURF - 0.4, -30);
 sunUnder.scale.setScalar(46);
@@ -1073,6 +1103,16 @@ scene.add(sunUnder);
 function updateWater(t) {
   sunUnder.visible = !above;
   sunUnder.material.opacity = 0.7 + Math.sin(t * 0.7) * 0.12;
+  // 노을 때: 물속에서 올려다본 해가 주황빛으로 크게 번짐
+  sunUnder.material.color.setRGB(1, mix(0.98, 0.66, daySea.warm), mix(0.9, 0.38, daySea.warm));
+  sunUnder.scale.setScalar(46 + 30 * daySea.warm);
+  seaDome.visible = !above;
+  sunsetSheet.visible = !above && daySea.warm > 0.02;
+  sunsetSheet.material.opacity = 0.9 * daySea.warm * (0.92 + 0.08 * Math.sin(t * 0.5));
+  seaDome.position.copy(camera.position);
+  seaDome.material.uniforms.uTop.value.copy(daySea.top);
+  seaDome.material.uniforms.uBottom.value.copy(scene.background);
+  seaDome.material.uniforms.uWarm.value = daySea.warm;
   causticTex.offset.set(t * 0.012, t * 0.008);
   underTex.offset.set(-t * 0.006, t * 0.004);
   waterTopTex.offset.set(t * 0.004, t * 0.002);
