@@ -339,7 +339,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.14-88';
+const BUILD = '11.14-89';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -896,7 +896,22 @@ function schoolCenter(sc, t, out) {
   return out.set(x, groundH(x, z) + sc.y + Math.sin(a * 2) * 1.2, z);
 }
 const fA = new THREE.Vector3(), fB = new THREE.Vector3(), fC = new THREE.Vector3();
+/* 물고기는 유리 돔 안으로 들어오지 않음: 돔(반구) 가까이 오면 바깥 면을 따라 비켜 감 */
+function keepOutOfDome(p) {
+  const dx = p.x - HOUSE_POS.x, dy = p.y - HOUSE_BASE, dz = p.z - HOUSE_POS.z;
+  const d = Math.hypot(dx, Math.max(0, dy), dz), R = DOME_R_OUT;
+  if (d >= R || d < 1e-4) return p;
+  const k = R / d;
+  p.x = HOUSE_POS.x + dx * k; p.z = HOUSE_POS.z + dz * k;
+  if (dy > 0) p.y = HOUSE_BASE + dy * k;
+  return p;
+}
+const DOME_R_OUT = 8.5 + 0.45;   // 돔 바로 바깥까지 가까이 올 수 있게 (유리에 닿지 않을 만큼만 여유)
 function fishPos(sc, f, t, out) {
+  fishPosRaw(sc, f, t, out);
+  return keepOutOfDome(out);
+}
+function fishPosRaw(sc, f, t, out) {
   schoolCenter(sc, t, fC);
   out.copy(fC).add(f.o).add(fishTmp.set(Math.sin(t * f.w + f.ph) * 0.6, Math.sin(t * f.w * 1.3 + f.ph) * 0.3, Math.cos(t * f.w + f.ph) * 0.6));
   if (!sc.roam) return out;
@@ -1484,7 +1499,8 @@ function makeLionfish() {
   });
 }
 const rfA = new THREE.Vector3(), rfB = new THREE.Vector3();
-function reefPos(f, t, out) {
+function reefPos(f, t, out) { return keepOutOfDome(reefPosRaw(f, t, out)); }
+function reefPosRaw(f, t, out) {
   const a = f.ph + t * f.w;
   if (f.kind === 'clown') {
     // 가끔 말미잘을 떠나 크게 한 바퀴 돌고 돌아옴
