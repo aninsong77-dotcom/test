@@ -333,7 +333,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.13-65';
+const BUILD = '11.13-66';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -1442,7 +1442,7 @@ const domeTap = [];   // 누를 수 있는 것들
 const SEATS = [];     // 방석 자리 (세계 좌표)
 const steam = [];
 const TEA_POS = new THREE.Vector3(6.7, 0, -1.7), TEA_R = 0.46, TEA_TOP = 0.2, TEA_CUP_R = 0.27;
-const TEA_CUP_ANGLES = [Math.PI * 0.62, Math.PI * 1.0, Math.PI * 1.38];   // 돔 가운데 쪽을 향한 세 자리
+const TEA_CUP_ANGLES = [Math.PI / 3, Math.PI, Math.PI * 5 / 3];   // 찻상 둘레에 고르게 세 자리 (서로 마주 보며 마심)
 // 찻상 셋 (처음 찻상은 그대로, 둘을 더 둠). 찻상마다 잔 셋이 돔 가운데 쪽을 향함
 const TEA_TABLES = [TEA_POS, new THREE.Vector3(-6.7, 0, -1.7), new THREE.Vector3(0, 0, 6.9)];
 const teaSets = [];
@@ -2073,11 +2073,13 @@ function teaFrom(c, serveTo) {
   if (!serveTo && sc && sc.landed && sc.level > 0.5) { drinkServed(); return; }
   teaServeTo = serveTo || null;
   if (c === undefined || c < 0 || cupTaken(c)) {
-    // 가장 가까운 빈 잔 (찻상 셋 모두에서)
+    // 빈 잔 고르기: 이미 누가 차를 마시는(앉아 있는) 찻상이 있으면 그 찻상으로 가서 함께 마주 보고 마심. 없으면 가장 가까운 찻상
+    const busy = new Set();
+    teaCups.forEach((cp, i) => { if (cupTaken(i)) busy.add(cp.t); });
     let best = null, bd = 1e9;
-    teaCups.forEach((_, i) => {
+    teaCups.forEach((cp, i) => {
       if (cupTaken(i)) return;
-      const sp = teaSpot(i), d = Math.hypot(sp.x - pos2.x, sp.z - pos2.y);
+      const sp = teaSpot(i), d = Math.hypot(sp.x - pos2.x, sp.z - pos2.y) - (busy.has(cp.t) ? 20 : 0);
       if (d < bd) { bd = d; best = i; }
     });
     if (best === null) { toast('잔이 모두 쓰이고 있어요'); return; }
@@ -3057,7 +3059,7 @@ function updateWalk(dt, t) {
   camGoal.y = Math.min(Math.max(camGoal.y, groundH(camGoal.x, camGoal.z) + 1.3), SURF - 1.5);
   tpCam.lerp(camGoal, a);
   camera.position.copy(tpCam);
-  const wantFov = firstPerson ? (mySeat !== null && teaView < 0.01 ? (camera.aspect < 1 ? 108 : 76) : camera.aspect < 1 ? 80 : 70) : mySeat !== null && camera.aspect < 1 ? 84 : 60;
+  const wantFov = firstPerson ? (mySeat !== null && teaView < 0.01 ? (camera.aspect < 1 ? 108 : 76) : teaView > 0.01 ? (camera.aspect < 1 ? 96 : 74) : camera.aspect < 1 ? 80 : 70) : mySeat !== null && camera.aspect < 1 ? 84 : 60;
   if (Math.abs(camera.fov - wantFov) > 0.1) { camera.fov += (wantFov - camera.fov) * Math.min(1, dt * 4); camera.updateProjectionMatrix(); }
   camera.up.set(0, 1, 0);
   const ahead = Math.min(1, camZoom * camZoom);
