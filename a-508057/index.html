@@ -339,7 +339,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.14-87';
+const BUILD = '11.14-88';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -3284,7 +3284,8 @@ function updateWalk(dt, t) {
   applyPose(myFig, gesturePose(myGesture), t, mySeat !== null || teaSitting !== null ? 1 : 0, move);
 
   trailTimer -= dt;
-  if (move > 0.05 && trailTimer <= 0) {
+  // 걸을 때 뒤로 남는 물방울은 돔 밖(물속)에서만. 돔 안은 공기라서 물방울이 생기지 않음
+  if (move > 0.05 && trailTimer <= 0 && !inDome()) {
     trailTimer = 0.09;
     const tr = trail[trailIdx++ % trail.length];
     tr.s.position.copy(orb.position).add(tmp.set((Math.random() - 0.5) * 0.3, 0.5, (Math.random() - 0.5) * 0.3));
