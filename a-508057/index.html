@@ -339,7 +339,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.13-78';
+const BUILD = '11.13-80';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -464,16 +464,18 @@ const SKY = new THREE.Color('#bfe6f7');
 const SEA_TOP = new THREE.Color('#62d8ef'), SEA_BOTTOM = new THREE.Color('#2aa2c9');
 /* 하루의 바다 (한국 시각에 맞춰 서서히): 낮 → 해 질 녘 노을빛 → 은은한 달빛의 환한 밤바다 → 새벽 */
 const DAY_SEA = { top: SEA_TOP.clone(), bottom: SEA_BOTTOM.clone(), sky: SKY.clone(), hemi: new THREE.Color('#d8f4ff'), hemiI: 1.5, sun: new THREE.Color('#fff4dc'), sunI: 2.0, ray: new THREE.Color('#f2fdff'), under: new THREE.Color('#ffffff') };
-const DUSK_SEA = { top: new THREE.Color('#f0a98a'), bottom: new THREE.Color('#5b7fb0'), sky: new THREE.Color('#f6b48c'), hemi: new THREE.Color('#ffe8dc'), hemiI: 1.35, sun: new THREE.Color('#ffd2ad'), sunI: 1.5, ray: new THREE.Color('#ffd2a8'), under: new THREE.Color('#ffc6a4') };
+const DUSK_SEA = { top: new THREE.Color('#e9c27e'), bottom: new THREE.Color('#4f8ab6'), sky: new THREE.Color('#f5cd8e'), hemi: new THREE.Color('#fff0d4'), hemiI: 1.4, sun: new THREE.Color('#ffd9a0'), sunI: 1.65, ray: new THREE.Color('#ffe2a6'), under: new THREE.Color('#ffdba4') };
 const NIGHT_SEA = { top: new THREE.Color('#3f6fa8'), bottom: new THREE.Color('#1b3a6a'), sky: new THREE.Color('#22355e'), hemi: new THREE.Color('#b9cdf2'), hemiI: 1.05, sun: new THREE.Color('#cfe0ff'), sunI: 0.9, ray: new THREE.Color('#dfe9ff'), under: new THREE.Color('#9fb6e6') };
 let daySea = { top: SEA_TOP.clone(), bottom: SEA_BOTTOM.clone(), sky: SKY.clone(), hemi: new THREE.Color(), hemiI: 1.5, sun: new THREE.Color(), sunI: 2, ray: new THREE.Color(), under: new THREE.Color(), night: 0 };
 function seaPhase(now) {
   // 한국 시각 (시간, 소수). 6:00~7:00 새벽빛, 7:00~17:30 낮, 17:30~19:30 노을, 19:30~20:30 밤으로, 밤, 5:00~6:00 밤에서 새벽
   const k = new Date(now + 9 * 3600 * 1000), h = k.getUTCHours() + k.getUTCMinutes() / 60 + k.getUTCSeconds() / 3600;
   const ss = x => smooth(clamp01(x));
-  if (h >= 7 && h < 17.5) return { dusk: 0, night: 0 };
-  if (h >= 17.5 && h < 19.5) return { dusk: ss((h - 17.5) / 1.2), night: 0 };
-  if (h >= 19.5 && h < 20.5) return { dusk: 1 - ss((h - 19.5) / 1), night: ss((h - 19.5) / 1) };
+  if (h >= 7 && h < 13.5) return { dusk: 0, night: 0 };
+  // 오후: 아주 조금씩 따뜻해짐 (은은하게), 해 질 녘에 가장 따뜻
+  if (h >= 13.5 && h < 17.5) return { dusk: 0.4 * ss((h - 13.5) / 4), night: 0 };
+  if (h >= 17.5 && h < 19.5) return { dusk: 0.4 + 0.5 * ss((h - 17.5) / 1.5), night: 0 };
+  if (h >= 19.5 && h < 20.5) return { dusk: 0.9 * (1 - ss((h - 19.5) / 1)), night: ss((h - 19.5) / 1) };
   if (h >= 20.5 || h < 5) return { dusk: 0, night: 1 };
   if (h < 6) return { dusk: ss((h - 5) / 1) * 0.6, night: 1 - ss((h - 5) / 1) };     // 새벽: 밤이 걷히며 은은한 분홍빛
   return { dusk: 0.6 * (1 - ss((h - 6) / 1)), night: 0 };
@@ -1668,9 +1670,46 @@ let centerGlow = null, centerCore = null;
 }
 const DOME_CENTER = new THREE.Vector3(HOUSE_POS.x, HOUSE_BASE, HOUSE_POS.z);
 const inDome = () => Math.hypot(pos2.x - DOME_CENTER.x, pos2.y - DOME_CENTER.z) < DOME_R - 0.2;
+/* 밤에만: 수면의 둥근 달 + 돔으로 내려오는 달빛 기둥 + 바닥에 고이는 달빛 */
+const moonTop = new THREE.Vector3(DOME_CENTER.x - 5, SURF - 0.4, DOME_CENTER.z - 6);
+const moonFloor = new THREE.Vector3(DOME_CENTER.x, HOUSE_BASE + 0.2, DOME_CENTER.z);
+const moonDisk = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: '#f4f7ff', transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })));
+moonDisk.position.copy(moonTop); moonDisk.scale.setScalar(16);
+scene.add(moonDisk);
+// 달빛 기둥: 가장자리가 부드러운 빛줄기 여러 겹 (물속 햇살과 같은 결)
+const moonShafts = [];
+{
+  const L = moonTop.distanceTo(moonFloor), mid = moonTop.clone().add(moonFloor).multiplyScalar(0.5);
+  [[0, 5.2, 1], [0.6, 3.4, 0.8], [-0.7, 2.6, 0.7], [0.25, 7.5, 0.45]].forEach(([dx, w, k], i) => {
+    const sp = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: rayTex, color: '#dde8ff', transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })));
+    sp.position.set(mid.x + dx, mid.y, mid.z + dx * 0.4);
+    sp.scale.set(w, L * 1.05, 1);
+    sp.center.set(0.5, 0.5);
+    sp.visible = false;
+    scene.add(sp);
+    moonShafts.push({ sp, k, ph: i * 1.7 });
+  });
+}
+const moonSpot = new THREE.SpotLight('#cfdcff', 0, 0, 0.2, 0.9, 0);   // 등불 둘레에 동그랗게 고이는 달빛
+moonSpot.position.copy(moonTop);
+moonSpot.target.position.copy(moonFloor);
+scene.add(moonSpot, moonSpot.target);
+function updateMoonlight(t) {
+  const n = above ? 0 : daySea.night;
+  moonDisk.visible = n > 0.02;
+  for (const m of moonShafts) {
+    m.sp.visible = n > 0.02;
+    m.sp.material.opacity = 0.5 * m.k * n * (0.8 + 0.2 * Math.sin(t * 0.4 + m.ph));
+    m.sp.material.rotation = -0.18 + Math.sin(t * 0.12 + m.ph) * 0.03;   // 비스듬히, 아주 천천히 흔들림
+  }
+  moonDisk.material.opacity = 0.85 * n * (0.92 + 0.08 * Math.sin(t * 0.6));
+  moonSpot.intensity = 4 * n;
+  sunUnder.material.opacity *= (1 - 0.85 * daySea.night);   // 밤에는 물속 해 빛 대신 달
+}
 const _glowW = new THREE.Vector3(), _glowA = new THREE.Vector3(), _glowB = new THREE.Vector3();
 let glowCover = 1;
 function updateHouseBits(dt, t) {
+  updateMoonlight(t);
   for (const st of steam) {
     st.life += dt * 0.25;
     if (st.life > 1) st.life -= 1;
