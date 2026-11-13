@@ -333,7 +333,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.13-67';
+const BUILD = '11.13-68';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -2271,7 +2271,8 @@ function applyPose(fig, pose, t, sit = 1, walk = 0) {
   {
     // 두 손으로 감싼 잔을 입가로 가져가 살짝 기울여 마심
     fig.cup.position.set(0, mix(0.22, 0.47, sip), mix(0.28, 0.25, sip));
-    fig.cup.rotation.x = sip * 0.7;
+    fig.cup.rotation.x = 0;
+    fig.sipK = sip;
     if (!fig.steam) fig.steam = makeSteam(fig.steamSp, 0.05);
     fig.steam.strength = (1 - sip * 0.8);
     updateSteam(fig.steam, 1 / 60, t);
@@ -2328,7 +2329,13 @@ function applyPose(fig, pose, t, sit = 1, walk = 0) {
     const ha = fig.arms[0].elbow.children[1].getWorldPosition(_hand1), hb = fig.arms[1].elbow.children[1].getWorldPosition(_hand2);
     ha.add(hb).multiplyScalar(0.5);
     fig.torso.worldToLocal(ha);
-    fig.cup.position.copy(ha.add(_hand2.set(0, 0.08, 0.015)));
+    ha.add(_hand2.set(0, 0.08, 0.015));
+    // 마실 때: 잔을 얼굴 속이 아니라 입술 바로 앞으로 가져와, 잔 윗부분을 입 쪽으로 기울임
+    const sp = fig.sipK || 0;
+    _hand2.set(0, 0.5, 0.37);                 // 입 앞 (얼굴 앞면보다 바깥)
+    fig.cup.position.lerpVectors(ha, _hand2, smooth(sp));
+    if (fig.cup.position.y > 0.38 && fig.cup.position.z < 0.33) fig.cup.position.z = 0.33;   // 얼굴 속으로 들어가지 않게
+    fig.cup.rotation.x = -0.95 * smooth(sp);  // 입 쪽으로 기울여 마심
   }
 }
 const _hand1 = new THREE.Vector3(), _hand2 = new THREE.Vector3();
