@@ -333,7 +333,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.13-66';
+const BUILD = '11.13-67';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -1747,6 +1747,15 @@ function fitTea(m, y) { const r = (0.038 + 0.012 * Math.min(1, Math.max(0, y / 0
 const SERVE_GIVE = 4.6, SERVE_T = 7.4, SIP_SKIP = 4.6;
 const servedCups = new Map();      // 받는 사람 → 내려앉은 잔
 let myPeerId = null;
+/* 누군가에게 인사할 때 그 사람 쪽으로 몸을 돌리는 정도 (0~1): 인사하는 동안만, 부드럽게 돌았다가 돌아옴 */
+function faceK(g) {
+  if (!g || !g.at || !g.to) return 0;
+  const T = g.k === 'bow' ? 3.4 : g.k === 'hello' ? 2.6 : 0;
+  const e = (performance.now() - g.at) / 1000;
+  if (!T || e < 0 || e > T) return 0;
+  return smooth(Math.min(1, e / 0.45)) * smooth(Math.min(1, (T - e) / 0.6));
+}
+const angTo = (from, to) => Math.atan2(Math.sin(to - from), Math.cos(to - from));
 function personPos(key) {
   if (key && key === myPeerId) return orb.position;
   const v = peerViews.get(key);
@@ -3024,6 +3033,8 @@ function updateWalk(dt, t) {
     if (teaSitting !== null) orb.rotation.y = heading;
     orb.rotation.y = Math.atan2(fwd.x, fwd.z);
   }
+  { const fk = faceK(myGesture), T = fk > 0 ? personPos(myGesture.to) : null;
+    if (T && T !== orb.position) orb.rotation.y += angTo(orb.rotation.y, Math.atan2(T.x - orb.position.x, T.z - orb.position.z)) * fk; }
   applyPose(myFig, gesturePose(myGesture), t, mySeat !== null || teaSitting !== null ? 1 : 0, move);
 
   trailTimer -= dt;
@@ -3080,6 +3091,8 @@ function updateWalk(dt, t) {
   if (fb > 0.001) {
     const eyeH = mix(0.86, 0.76, myFig.sit);
     let yaw = camYaw, pitchFP = fpPitch;
+    { const fk = faceK(myGesture), T = fk > 0 ? personPos(myGesture.to) : null;
+      if (T && T !== orb.position) yaw += angTo(yaw, Math.atan2(-(T.x - orb.position.x), -(T.z - orb.position.z))) * fk; }
     let eyeBack = 0;
     if (teaView > 0.01) {
       // 따를 때는 찻상을 내려다보고, 잔을 들어 마실 때는 고개를 들어 잔 너머 바다를 봄
@@ -3477,7 +3490,10 @@ function updatePeers(dt, t) {
   for (const v of peerViews.values()) {
     const gap = Math.hypot(v.target.x - v.g.position.x, v.target.z - v.g.position.z);
     v.g.position.lerp(v.target, Math.min(1, dt * 6));
-    let dy = v.yaw - v.g.rotation.y;
+    let wantYaw = v.yaw;
+    { const fk = faceK(v.gesture), T = fk > 0 ? personPos(v.gesture.to) : null;
+      if (T && T !== v.g.position) wantYaw = v.yaw + angTo(v.yaw, Math.atan2(T.x - v.g.position.x, T.z - v.g.position.z)) * fk; }
+    let dy = wantYaw - v.g.rotation.y;
     dy = Math.atan2(Math.sin(dy), Math.cos(dy));
     v.g.rotation.y += dy * Math.min(1, dt * 6);
     applyPose(v.fig, gesturePose(v.gesture), t, v.sitWant === 0 ? 0 : 1, v.sitWant === 0 ? Math.min(1, gap * 4) : 0);
