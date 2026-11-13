@@ -212,6 +212,11 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
   <button type="button" id="noticeBow">합장으로 답례</button>
   <button type="button" id="noticeClose" aria-label="닫기">✕</button>
 </div>
+<div class="peer-menu is-hidden" id="exMenu" role="menu" aria-label="몸풀기">
+  <button type="button" id="exKick" role="menuitem">발차기</button>
+  <button type="button" id="exTumble" role="menuitem">덤블링</button>
+  <button type="button" id="exStretch" role="menuitem">스트레칭</button>
+</div>
 <div class="peer-menu is-hidden" id="peerMenu" role="menu" aria-label="함께하는 사람에게">
   <span id="peerMenuName"></span>
   <button type="button" id="pmBow" role="menuitem">합장 인사</button>
@@ -226,6 +231,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
     <button type="button" id="teaBtn">차 마시기</button>
     <button type="button" id="backSeatBtn">자리로 가기</button>
     <button type="button" id="soloBtn">🎧 혼자 명상</button>
+    <button type="button" id="exBtn">🤸 몸풀기</button>
     <button type="button" id="stopBellBtn" hidden>명상 그만하기</button>
     <button type="button" id="joinGroupBtn" hidden>함께하기</button>
   </div>
@@ -333,7 +339,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.13-74';
+const BUILD = '11.13-75';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -1444,6 +1450,11 @@ const steam = [];
 const TEA_POS = new THREE.Vector3(6.7, 0, -1.7), TEA_R = 0.46, TEA_TOP = 0.2, TEA_CUP_R = 0.27;
 const TEA_CUP_ANGLES = [Math.PI / 3, Math.PI, Math.PI * 5 / 3];   // 찻상 둘레에 고르게 세 자리 (서로 마주 보며 마심)
 // 찻상 셋 (처음 찻상은 그대로, 둘을 더 둠). 찻상마다 잔 셋이 돔 가운데 쪽을 향함
+// 몸풀기 매트: 돔 가운데에서 45도 방향 가장자리, 나란히 두 장
+const MATS = (() => {
+  const a = Math.PI / 4, r = 6.55, ux = Math.cos(a), uz = Math.sin(a), tx = -uz, tz = ux;
+  return [-1, 1].map((sd, i) => ({ lx: ux * r + tx * sd * 0.55, lz: uz * r + tz * sd * 0.55, rot: Math.atan2(ux, uz), col: i ? '#9fc7b8' : '#c9b6dd', x: 0, z: 0 }));
+})();
 const TEA_TABLES = [TEA_POS, new THREE.Vector3(-6.7, 0, -1.7), new THREE.Vector3(0, 0, 6.9)];
 const teaSets = [];
 const teaCups = [];
@@ -1507,6 +1518,18 @@ let centerGlow = null, centerCore = null;
   [Math.PI / 2, Math.PI / 2 + 2.094, Math.PI / 2 + 4.189].forEach((a, i) => SEAT_LAYOUT.push({ a, r: 1.9, size: 1.3, col: cushionCols[i] }));
   for (let k = 0; k < 9; k++) SEAT_LAYOUT.push({ a: Math.PI / 2 + Math.PI / 9 + k * Math.PI * 2 / 9, r: 3.55, size: 1, col: '#ddd2bf' });
   for (let k = 0; k < 18; k++) SEAT_LAYOUT.push({ a: Math.PI / 2 + Math.PI / 18 + k * Math.PI * 2 / 18, r: 5.15, size: 1, col: '#e2d8c6' });
+  // 몸풀기 매트 두 장: 돔 가운데를 향해 길게
+  MATS.forEach(M0 => {
+    const mg = new THREE.Group();
+    mg.position.set(M0.lx, 0.17, M0.lz);
+    mg.rotation.y = M0.rot;
+    dome.add(mg);
+    const mat = add(new THREE.BoxGeometry(0.78, 0.025, 1.9), std(M0.col, { roughness: 0.9 }), 0, 0.0125, 0, mg);
+    add(new THREE.BoxGeometry(0.66, 0.027, 0.04), std('#ffffff', { roughness: 0.9 }), 0, 0.013, -0.82, mg);   // 머리 쪽 줄무늬
+    mat.userData.tap = { kind: 'mat' }; domeTap.push(mat);
+    const wp = new THREE.Vector3(M0.lx, 0, M0.lz).add(dome.position);
+    M0.x = wp.x; M0.z = wp.z;
+  });
   SEAT_LAYOUT.forEach(({ a, r, size, col }, i) => {
     const x = Math.cos(a) * r, z = Math.sin(a) * r;
     const g = new THREE.Group();
@@ -2044,6 +2067,37 @@ function updateViewCup(dt, t) {
   updateSteam(st, dt, t);
 }
 let teaPending = null, teaSitting = null, teaServeTo = null, keepTP = false, homeSeat = null, teaAutoFP = false;
+let onMat = null;   // 몸풀기 매트 번호 (매트 위에 있을 때)
+const exActive = () => !!(myGesture && EX_T[myGesture.k] && performance.now() - myGesture.at < EX_T[myGesture.k] * 1000);
+function matTaken(i) {
+  for (const v of peerViews.values()) if (!v.out && Math.hypot(v.g.position.x - MATS[i].x, v.g.position.z - MATS[i].z) < 0.6) return true;
+  return false;
+}
+function doExercise(k) {
+  if (travel || atBeach || leaving || arriving) return;
+  if (!inDome()) return;
+  if (teaRituals.some(r => r.fig === myFig)) { toast('차를 다 마신 뒤에 몸을 풀어요'); return; }
+  if (exActive()) return;
+  // 이미 매트 위면 바로, 아니면 빈 매트로 걸어가서
+  if (onMat !== null && Math.hypot(pos2.x - MATS[onMat].x, pos2.y - MATS[onMat].z) < 0.3) { startExercise(k); return; }
+  let best = null, bd = 1e9;
+  MATS.forEach((m, i) => { if (matTaken(i)) return; const d = Math.hypot(m.x - pos2.x, m.z - pos2.y); if (d < bd) { bd = d; best = i; } });
+  if (best === null) { toast('매트가 모두 쓰이고 있어요'); return; }
+  if (mySeat !== null) { homeSeat = mySeat; mySeat = null; $('seatBtn').textContent = '방석에 앉기'; }
+  teaSitting = null; teaPending = null;
+  if (autoTP) keepTP = true;
+  moveTarget = walkPath(MATS[best].x, MATS[best].z, { mat: best, ex: k });
+}
+function startExercise(k) {
+  // 내 모습이 보이게 (눈으로 보기였으면 잠시 내 모습 보기로)
+  if (firstPerson) { setView(false); autoTP = true; }
+  keepTP = true;
+  const m = MATS[onMat];
+  heading = Math.atan2(-(DOME_CENTER.x - m.x), -(DOME_CENTER.z - m.z));   // 돔 가운데를 바라봄
+  myGesture = { k, n: myGesture.n + 1, at: performance.now() };
+  unlockAudio();
+  sendPresence(true);
+}
 let walkBob = 0, walkPhase = 0;
 const WALK_SP = 1.5;
 function walkPath(x, z, extra) {
@@ -2062,6 +2116,8 @@ function walkPath(x, z, extra) {
 }
 function backToSeat() {
   if (mySeat !== null) { toast('방석에 앉아 있어요'); return; }
+  if (exActive()) return;
+  onMat = null;
   if (teaRituals.some(r => r.fig === myFig)) { toast('차를 다 마신 뒤에 자리로 가요'); return; }
   const seat = homeSeat !== null && !takenSeats.has(homeSeat) ? homeSeat : freeSeat();
   if (seat === null) { toast('빈 방석이 없어요'); return; }
@@ -2244,9 +2300,11 @@ function makeFigure(color) {
   return fig;
 }
 /* 인사 몸짓: 안녕하세요는 오른손을 들어 흔들기, 합장 인사는 두 손을 모은 뒤 천천히 고개 숙였다 일어나기 */
+const EX_T = { kick: 1.8, tumble: 2.2, stretch: 7.0 };
 function gesturePose(g) {
   if (!g || !g.at) return null;
   const e = (performance.now() - g.at) / 1000;
+  if (EX_T[g.k]) return e >= 0 && e <= EX_T[g.k] ? { k: g.k, e, a: 1 } : null;
   if (g.k === 'serve' || g.k === 'sip') {
     const T2 = g.k === 'serve' ? SERVE_T : TEA_T - SIP_SKIP;
     if (e < 0 || e > T2) return null;
@@ -2329,6 +2387,9 @@ function applyPose(fig, pose, t, sit = 1, walk = 0) {
     arm.elbow.rotation.x = ex;
     arm.elbow.rotation.z = -arm.side * ez;
   }
+  // 몸풀기 동작 (발차기·덤블링·스트레칭). 그 밖에는 몸 전체 자세를 원래대로
+  fig.g.position.set(0, 0, 0); fig.g.rotation.set(0, 0, 0); fig.torso.rotation.z = 0;
+  if (pose && EX_T[pose.k]) exercisePose(fig, pose.k, pose.e, t);
   if (fig.cup.visible) {
     fig.torso.updateMatrixWorld(true);
     const ha = fig.arms[0].elbow.children[1].getWorldPosition(_hand1), hb = fig.arms[1].elbow.children[1].getWorldPosition(_hand2);
@@ -2341,6 +2402,46 @@ function applyPose(fig, pose, t, sit = 1, walk = 0) {
   }
 }
 const _hand1 = new THREE.Vector3(), _hand2 = new THREE.Vector3();
+function exercisePose(fig, k, e, t) {
+  const sm = x => smooth(clamp01(x));
+  const setArm = (px, pz, ex, ez) => { for (const arm of fig.arms) { arm.pivot.rotation.x = px; arm.pivot.rotation.z = arm.side * pz; arm.elbow.rotation.x = ex; arm.elbow.rotation.z = -arm.side * ez; } };
+  fig.crossLegs.visible = false; fig.standLegs.visible = true; fig.sit = 0;
+  fig.eyesClosed.visible = false; fig.eyesOpen.visible = true;
+  if (k === 'kick') {
+    // 무릎을 들었다가 앞으로 쭉 차고 다시 내림 (오른발)
+    const up = sm(e / 0.35) * sm((1.8 - e) / 0.4);
+    const ext = sm((e - 0.45) / 0.25) * sm((1.25 - e) / 0.3);
+    const leg = fig.legs.find(l => l.side === 1) || fig.legs[0];
+    leg.pitch.rotation.x = -(0.9 * up + 0.6 * ext);
+    leg.knee.rotation.x = 1.3 * up * (1 - ext);
+    fig.torso.rotation.x = -0.18 * up;
+    setArm(mix(0.05, -0.4, up), mix(0.15, 0.9, up), -0.3 * up, 0.2 * up);
+  } else if (k === 'tumble') {
+    // 쪼그렸다가 뛰어올라 앞으로 한 바퀴 돌고 착지
+    const crouch = Math.max(sm(e / 0.3) * (1 - sm((e - 0.3) / 0.15)), sm((e - 1.75) / 0.15) * (1 - sm((e - 1.95) / 0.25)));
+    const fk = sm((e - 0.4) / 1.35);
+    const air = Math.sin(Math.PI * clamp01((e - 0.4) / 1.35));
+    const tuck = Math.sin(Math.PI * clamp01((e - 0.45) / 1.25));
+    const th = fk * Math.PI * 2, cy = 0.42;
+    fig.g.rotation.x = th;
+    fig.g.position.set(0, cy - cy * Math.cos(th) + air * 0.75 - crouch * 0.08, -cy * Math.sin(th));
+    for (const leg of fig.legs) { leg.pitch.rotation.x = -1.3 * tuck - 0.5 * crouch; leg.knee.rotation.x = 1.8 * tuck + 0.9 * crouch; }
+    fig.torso.rotation.x = 0.5 * tuck + 0.3 * crouch;
+    setArm(mix(-0.3, -1.9, tuck), 0.25, -0.6 * tuck, 0.3);
+  } else if (k === 'stretch') {
+    // 1) 두 팔 쭉 위로 (0~2.4초) 2) 옆구리 왼쪽·오른쪽 (2.4~4.8초) 3) 앞으로 숙이기 (4.8~7초)
+    const upA = sm(e / 0.6) * (1 - sm((e - 4.6) / 0.5));
+    const side = e > 2.4 && e < 4.8 ? Math.sin((e - 2.4) / 2.4 * Math.PI * 2) * sm((e - 2.4) / 0.3) * sm((4.8 - e) / 0.3) : 0;
+    const fold = sm((e - 4.8) / 0.7) * sm((7.0 - e) / 0.6);
+    const reach = Math.sin(Math.min(1, e / 2.4) * Math.PI * 3) * 0.08 * upA;
+    setArm(mix(mix(0.05, -2.95, upA), -1.3, fold), mix(0.05, 0.18, upA), -0.1 * upA, 0);
+    fig.torso.rotation.z = side * 0.42;
+    fig.torso.rotation.x = fold * 0.95;
+    fig.head.rotation.x = fold * 0.3;
+    fig.pelvis.position.y += reach;
+    for (const leg of fig.legs) { leg.pitch.rotation.x = -0.15 * fold; leg.knee.rotation.x = 0; }
+  }
+}
 /* 물방울 */
 const bubbleMat = new THREE.ShaderMaterial({
   transparent: true, depthWrite: false,
@@ -2971,7 +3072,8 @@ function updateWalk(dt, t) {
   if (mySeat !== null) { const st = SEATS[mySeat]; pos2.set(st.x, st.z); heading = st.heading; mag = 0; moveTarget = null; }
   let move = mag;
   const myRitual = teaRituals.find(r => r.fig === myFig);
-  if (myRitual) mag = 0;
+  if (myRitual || exActive()) mag = 0;
+  if (onMat !== null && (mag > 0.05 || moveTarget)) onMat = null;
   else if (teaSitting !== null && mag > 0.15) teaSitting = null;
   if (teaSitting !== null) { const sp = teaSpot(teaSitting); pos2.set(sp.x, sp.z); heading = sp.heading; }
   if (mag > 0.05) { moveTarget = null; teaPending = null; keepTP = false; }
@@ -2982,6 +3084,7 @@ function updateWalk(dt, t) {
       moveTarget = mt.then || null;
       if (!moveTarget) {
         if (teaPending !== null) { const c = teaPending; teaPending = null; beginMyTea(c); }
+        else if (mt.mat !== undefined) { onMat = mt.mat; pos2.set(MATS[mt.mat].x, MATS[mt.mat].z); startExercise(mt.ex); }
         else if (mt.seat !== undefined) { keepTP = false; if (!takenSeats.has(mt.seat)) sitAt(mt.seat); else { const s2 = freeSeat(); if (s2 !== null) sitAt(s2); } }
       }
     }
@@ -3271,6 +3374,8 @@ canvas.addEventListener('pointerup', e => {
       teaFrom(tap.c);
     } else if (tap.kind === 'bell') {
       ringBowl();
+    } else if (tap.kind === 'mat') {
+      if (!$('exBtn').hidden) $('exBtn').click();   // 매트를 누르면 몸풀기 메뉴
     } else {
       openLink(tap.kind);
     }
@@ -3330,6 +3435,19 @@ $('noticeDrink').addEventListener('click', () => {
   const sc = myPeerId ? servedCups.get(myPeerId) : null;
   if (sc && sc.landed) drinkServed(); else drinkWhenLanded = true;
 });
+/* 몸풀기 메뉴 */
+function closeExMenu() { $('exMenu').classList.add('is-hidden'); }
+$('exBtn').addEventListener('click', e => {
+  e.stopPropagation();
+  const m = $('exMenu');
+  if (!m.classList.contains('is-hidden')) { closeExMenu(); return; }
+  m.classList.remove('is-hidden');
+  const r = $('exBtn').getBoundingClientRect(), w = m.offsetWidth, h = m.offsetHeight;
+  m.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, r.left + r.width / 2 - w / 2)) + 'px';
+  m.style.top = Math.max(8, r.top - h - 10) + 'px';
+});
+[['exKick', 'kick'], ['exTumble', 'tumble'], ['exStretch', 'stretch']].forEach(([id, k]) => $(id).addEventListener('click', () => { closeExMenu(); doExercise(k); }));
+canvas.addEventListener('pointerdown', closeExMenu);
 /* 함께하는 사람을 누르면 작은 메뉴 */
 let pmTarget = null, pmTimer = 0;
 function peerAt(x, y) {
@@ -3476,7 +3594,7 @@ async function renderPeers(peers) {
     if (v.label) v.label.visible = !v.out;
     if (!v.seen) { v.g.position.copy(v.target); v.seen = true; }
     const g = pr.g && typeof pr.g === 'object' ? pr.g : null;
-    if (g && ['hello', 'bow', 'tea', 'serve', 'sip'].includes(g.k) && Number.isFinite(g.n) && g.n !== v.gesture.n) {
+    if (g && ['hello', 'bow', 'tea', 'serve', 'sip', 'kick', 'tumble', 'stretch'].includes(g.k) && Number.isFinite(g.n) && g.n !== v.gesture.n) {
       const to = typeof g.to === 'string' ? g.to.slice(0, 64) : '';
       v.gesture = { k: g.k, n: g.n, at: v.gesture.n === 0 && !v.gestureInit ? 0 : performance.now(), to };
       const cupOk = Number.isInteger(g.c) && g.c >= 0 && g.c < teaCups.length;
@@ -4019,6 +4137,10 @@ function updateSessionText() {
   $('stopBellBtn').hidden = !(playing && session.kind === 'bell' && !solo && !groupOptOut);
   $('joinGroupBtn').hidden = !(playing && groupOptOut && !solo);
   $('soloBtn').textContent = solo ? '🎧 헤드셋 벗기' : '🎧 혼자 명상';
+  // 명상 중(함께하는 명상이든 혼자 명상이든)에는 몸풀기 숨김
+  const meditatingNow = solo || (playing && !groupOptOut);
+  $('exBtn').hidden = meditatingNow;
+  if (meditatingNow) closeExMenu();
   $('bellBtn').textContent = playing ? '종 치기' : '종 치고 시작';
 }
 function tick() {
