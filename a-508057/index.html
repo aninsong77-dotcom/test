@@ -339,7 +339,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.13-85';
+const BUILD = '11.13-86';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -468,17 +468,18 @@ const DUSK_SEA = { top: new THREE.Color('#e9c27e'), bottom: new THREE.Color('#4f
 const NIGHT_SEA = { top: new THREE.Color('#3f6fa8'), bottom: new THREE.Color('#1b3a6a'), sky: new THREE.Color('#22355e'), hemi: new THREE.Color('#b9cdf2'), hemiI: 1.05, sun: new THREE.Color('#cfe0ff'), sunI: 0.9, ray: new THREE.Color('#dfe9ff'), under: new THREE.Color('#9fb6e6') };
 let daySea = { top: SEA_TOP.clone(), bottom: SEA_BOTTOM.clone(), sky: SKY.clone(), hemi: new THREE.Color(), hemiI: 1.5, sun: new THREE.Color(), sunI: 2, ray: new THREE.Color(), under: new THREE.Color(), night: 0, warm: 0 };
 function seaPhase(now) {
-  // 한국 시각 (시간, 소수). 6:00~7:00 새벽빛, 7:00~17:30 낮, 17:30~19:30 노을, 19:30~20:30 밤으로, 밤, 5:00~6:00 밤에서 새벽
+  // 한국 시각에 맞춰 아주 천천히 (몇 시간에 걸쳐) 바뀜. 어느 순간에도 뚝 끊기지 않게 이어 붙임
+  //   13:30~17:30 오후에 아주 조금씩 따뜻해짐 → 17:30~19:30 노을 → 19:30~21:30 밤으로 → 21:30~4:30 달빛 밤바다
+  //   4:30~6:30 밤이 걷히며 분홍빛 새벽 → 6:30~8:00 맑은 아침
   const k = new Date(now + 9 * 3600 * 1000), h = k.getUTCHours() + k.getUTCMinutes() / 60 + k.getUTCSeconds() / 3600;
   const ss = x => smooth(clamp01(x));
-  if (h >= 7 && h < 13.5) return { dusk: 0, night: 0 };
-  // 오후: 아주 조금씩 따뜻해짐 (은은하게), 해 질 녘에 가장 따뜻
+  if (h >= 8 && h < 13.5) return { dusk: 0, night: 0 };
   if (h >= 13.5 && h < 17.5) return { dusk: 0.4 * ss((h - 13.5) / 4), night: 0 };
-  if (h >= 17.5 && h < 19.5) return { dusk: 0.4 + 0.5 * ss((h - 17.5) / 1.5), night: 0 };
-  if (h >= 19.5 && h < 20.5) return { dusk: 0.9 * (1 - ss((h - 19.5) / 1)), night: ss((h - 19.5) / 1) };
-  if (h >= 20.5 || h < 5) return { dusk: 0, night: 1 };
-  if (h < 6) return { dusk: ss((h - 5) / 1) * 0.6, night: 1 - ss((h - 5) / 1) };     // 새벽: 밤이 걷히며 은은한 분홍빛
-  return { dusk: 0.6 * (1 - ss((h - 6) / 1)), night: 0 };
+  if (h >= 17.5 && h < 19.5) return { dusk: 0.4 + 0.5 * ss((h - 17.5) / 2), night: 0 };
+  if (h >= 19.5 && h < 21.5) { const n = ss((h - 19.5) / 2); return { dusk: 0.9 * (1 - n), night: n }; }
+  if (h >= 21.5 || h < 4.5) return { dusk: 0, night: 1 };
+  if (h < 6.5) { const m = ss((h - 4.5) / 2); return { dusk: 0.6 * Math.sin(m * Math.PI * 0.5), night: 1 - m }; }
+  return { dusk: 0.6 * (1 - ss((h - 6.5) / 1.5)), night: 0 };
 }
 const _mixC = (out, a, b, c, d, n) => out.copy(a.clone().lerp(b, d)).lerp(c, n);
 function updateDaySea(now) {
