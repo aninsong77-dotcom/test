@@ -323,7 +323,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.12-60';
+const BUILD = '11.13-61';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -3755,6 +3755,7 @@ function checkRing(peer, r) {
   const prev = seenRings.get(peer);
   seenRings.set(peer, r.n);
   if (prev === undefined || r.n === prev) return;
+  if (isOut()) return;   // 나간 뒤에는 다른 사람의 종소리로 명상이 다시 시작되지 않음
   ringBell(true);
   const now = Date.now();
   if (session.state !== 'playing' && Math.abs(r.at - now) < 20000 && audioOk !== false) {
@@ -3782,8 +3783,12 @@ function fmtLeft(ms) {
   return `${Math.floor(m / 60)}시간 ${m % 60}분 남음`;
 }
 let lastSeekAt = -1e9;
+/* 나가기를 눌러 빛을 타고 나갔거나 끝 화면에 있으면 '나간 사람' (명상 소리를 내지 않음) */
+const isOut = () => { try { return !!(leaving || iAmOut); } catch (e) { return false; } };
 function syncAudio() {
   if (audioOk === false) return;
+  // 나간 사람은 명상 음성을 멈춤: 9시 명상이 아직 진행 중이어도, 다른 사람이 종을 쳐도 다시 틀지 않음
+  if (isOut()) { if (!audio.paused) audio.pause(); return; }
   if (session.state !== 'playing') { if (!audio.paused) audio.pause(); return; }
   const el = (Date.now() - session.startAt) / 1000;
   if (el < 0 || el >= durSec()) { if (!audio.paused) audio.pause(); return; }
@@ -3835,10 +3840,10 @@ function tick() {
   session = computeSession(now);
   if (session.state === 'playing' && now >= session.startAt && chimedFor !== session.startAt && now - session.startAt < 2500) {
     chimedFor = session.startAt;
-    if (session.kind === 'nine') ringBell(true); else ringBell(false);
+    if (!isOut()) { if (session.kind === 'nine') ringBell(true); else ringBell(false); }
   }
   if (before.state === 'playing' && session.state !== 'playing') {
-    ringBell(false);
+    if (!isOut()) ringBell(false);
     if (!leaving) toast('명상이 끝났어요 · 차를 마시거나, 나가기를 누르면 빛을 타고 돌아가요');
   }
   if (session.state === 'playing' && domeUiShown === false) $('session').classList.remove('is-hidden');
