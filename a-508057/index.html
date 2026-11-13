@@ -339,7 +339,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.13-86';
+const BUILD = '11.14-87';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -1083,6 +1083,7 @@ const seaDome = (() => {
         vec3 glow = mix(vec3(0.98, 0.66, 0.38), vec3(0.98, 0.5, 0.28), sun);
         c = mix(c, glow, uWarm * (0.7 * smoothstep(0.12, 0.9, vDir.y) + 0.3 * sun * smoothstep(0.0, 0.4, vDir.y)));
         gl_FragColor = vec4(c, 1.0);
+        #include <colorspace_fragment>
       }`,
   });
   const m = noRay(new THREE.Mesh(new THREE.SphereGeometry(450, 32, 16), mat));
