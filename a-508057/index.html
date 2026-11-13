@@ -333,7 +333,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.13-62';
+const BUILD = '11.13-63';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -3806,11 +3806,18 @@ function unlockAudio() {
   if (audioUnlocked || audioOk === false) return;
   audio.muted = true;
   const p = audio.play();
-  if (p && p.then) p.then(() => { if (session.state !== 'playing') audio.pause(); audio.muted = false; audioUnlocked = true; syncAudio(); updateSessionText(); })
+  if (p && p.then) p.then(() => { if (session.state !== 'playing' && !solo) audio.pause(); audio.muted = false; audioUnlocked = true; syncAudio(); updateSessionText(); })
     .catch(() => { audio.muted = false; });
   else { audio.muted = false; audioUnlocked = true; }
 }
 $('soundBtn').addEventListener('click', unlockAudio);
+document.addEventListener('pointerdown', () => {
+  const want = !isOut() && audioOk && (solo || (session.state === 'playing' && !groupOptOut && Date.now() >= session.startAt));
+  if (!want || !audio.paused) return;
+  audio.muted = false;
+  const p = audio.play();
+  if (p && p.then) p.then(() => { audioUnlocked = true; syncAudio(); updateSessionText(); }).catch(() => {});
+}, true);
 const fmt = sec => { sec = Math.max(0, Math.floor(sec)); return `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`; };
 function fmtLeft(ms) {
   const m = Math.ceil(ms / 60000);
@@ -3822,8 +3829,13 @@ let lastSeekAt = -1e9;
 let solo = null, groupOptOut = false;
 function startSolo() {
   if (!audioOk) { toast('명상 음성을 아직 넣지 않았어요'); return; }
-  unlockAudio();
-  solo = { startAt: Date.now() + 1500 };
+  ensureCtx();
+  solo = { startAt: Date.now() };
+  // 누른 그 순간에 바로 재생 (폰 브라우저는 '누른 순간'의 재생만 허락하는 경우가 있음)
+  try { audio.muted = false; audio.currentTime = 0; } catch (e) {}
+  const pr = audio.play();
+  if (pr && pr.then) pr.then(() => { audioUnlocked = true; updateSessionText(); }).catch(() => { audioUnlocked = false; toast('소리가 막혀 있어요 · 아래 소리 켜기를 눌러 주세요'); updateSessionText(); });
+  else audioUnlocked = true;
   groupOptOut = true;          // 혼자 명상하는 동안 단체 명상 소리는 끼어들지 않음
   myFig.headset.visible = true;
   if (mySeat === null && teaSitting === null) backToSeat();
