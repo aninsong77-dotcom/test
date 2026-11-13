@@ -339,7 +339,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.14-90';
+const BUILD = '11.14-91';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -4298,13 +4298,13 @@ function updateSessionText() {
    느린 화음이 천천히 겹쳐 바뀌고, 가끔 맑은 소리가 하나씩. 명상 음성이 나올 때와 나간 뒤에는 조용히 꺼짐 */
 const amb = { on: true, out: null, timer: 0, chimeT: 0, idx: 0, level: 0 };
 try { amb.on = localStorage.getItem('a508057:amb') !== 'off'; } catch (e) {}
-const AMB_CHORDS = [   // 부드러운 장조 화음들 (낮은 음역)
-  [130.81, 196.0, 246.94, 329.63],   // C - G - B - E
-  [110.0, 164.81, 220.0, 261.63],    // A - E - A - C
-  [87.31, 130.81, 174.61, 220.0],    // F - C - F - A
-  [98.0, 146.83, 196.0, 246.94],     // G - D - G - B
+const AMB_CHORDS = [   // 가볍고 맑은 화음 (한 옥타브 위, 낮은 베이스 없이)
+  [261.63, 392.0, 493.88, 659.25],   // C - G - B - E
+  [220.0, 329.63, 440.0, 523.25],    // A - E - A - C
+  [349.23, 440.0, 523.25, 659.25],   // F - A - C - E
+  [293.66, 392.0, 493.88, 587.33],   // D - G - B - D
 ];
-const AMB_BELL = [523.25, 587.33, 659.25, 783.99, 880.0];   // 맑은 소리 (오음 음계)
+const AMB_BELL = [783.99, 880.0, 1046.5, 1174.66, 1318.51, 1567.98];   // 높고 맑은 소리 (오음 음계)
 function ambVoice(c, f, t0, dur, vol, type) {
   const o = c.createOscillator(), g = c.createGain();
   o.type = type; o.frequency.value = f; o.detune.value = (Math.random() - 0.5) * 8;
@@ -4318,7 +4318,7 @@ function ambVoice(c, f, t0, dur, vol, type) {
 function ambChord() {
   const c = actx; if (!c || !amb.out) return;
   const ch = AMB_CHORDS[amb.idx++ % AMB_CHORDS.length], t0 = c.currentTime + 0.05;
-  ch.forEach((f, i) => { ambVoice(c, f, t0, 16, i ? 0.12 : 0.16, 'sine'); ambVoice(c, f * 2, t0 + 0.4, 15, 0.025, 'triangle'); });
+  ch.forEach((f, i) => ambVoice(c, f, t0 + i * 0.35, 14, 0.07, 'sine'));   // 음을 살짝씩 차례로, 가볍게
 }
 function ambChime() {
   const c = actx; if (!c || !amb.out) return;
@@ -4326,19 +4326,19 @@ function ambChime() {
   const o = c.createOscillator(), g = c.createGain();
   o.type = 'sine'; o.frequency.value = f;
   g.gain.setValueAtTime(0.0001, t0);
-  g.gain.exponentialRampToValueAtTime(0.06, t0 + 0.02);
-  g.gain.exponentialRampToValueAtTime(0.0001, t0 + 4.5);
+  g.gain.exponentialRampToValueAtTime(0.05, t0 + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + 3.2);
   o.connect(g); g.connect(amb.filter);
   o.start(t0); o.stop(t0 + 4.6);
 }
 function ambEnsure() {
   const c = ensureCtx(); if (!c || amb.out) return;
   amb.out = c.createGain(); amb.out.gain.value = 0;
-  amb.filter = c.createBiquadFilter(); amb.filter.type = 'lowpass'; amb.filter.frequency.value = 1400; amb.filter.Q.value = 0.3;
+  amb.filter = c.createBiquadFilter(); amb.filter.type = 'lowpass'; amb.filter.frequency.value = 3200; amb.filter.Q.value = 0.3;
   amb.filter.connect(amb.out); amb.out.connect(c.destination);
   ambChord();
   amb.timer = setInterval(ambChord, 10000);                       // 10초마다 다음 화음 (16초씩 길게 겹침)
-  const chimeLoop = () => { ambChime(); amb.chimeT = setTimeout(chimeLoop, 7000 + Math.random() * 9000); };
+  const chimeLoop = () => { ambChime(); if (Math.random() < 0.4) setTimeout(ambChime, 450); amb.chimeT = setTimeout(chimeLoop, 4000 + Math.random() * 6000); };
   amb.chimeT = setTimeout(chimeLoop, 5000);
 }
 function ambUpdate() {
