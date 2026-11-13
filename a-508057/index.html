@@ -151,7 +151,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 }
 .dome-bar a.linkbtn:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 .dome-bar .primary{border-color:rgba(255,233,168,.55);color:var(--glow)}
-@media (max-width:480px){.dome-bar .row{flex-wrap:nowrap;gap:5px}.dome-bar .row button{padding:8px 10px;font-size:12.5px;white-space:nowrap}}
+@media (max-width:480px){.dome-bar .row{flex-wrap:wrap;gap:5px;max-width:calc(100vw - 24px)}.dome-bar .row button{padding:8px 9px;font-size:12px;white-space:nowrap;letter-spacing:-.02em}}
 @media (pointer:coarse){.dome-bar{bottom:calc(env(safe-area-inset-bottom,0px) + 150px)}}
 
 .session{
@@ -225,7 +225,9 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
     <button type="button" id="snapBtn">사진 찍기</button>
     <button type="button" id="teaBtn">차 마시기</button>
     <button type="button" id="backSeatBtn">자리로 가기</button>
+    <button type="button" id="soloBtn">🎧 혼자 명상</button>
     <button type="button" id="stopBellBtn" hidden>명상 그만하기</button>
+    <button type="button" id="joinGroupBtn" hidden>함께하기</button>
   </div>
   <div hidden>
     <button type="button" id="seatBtn">방석에 앉기</button>
@@ -251,6 +253,14 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
       <button type="button" id="linkCancel">닫기</button>
       <button type="button" class="primary" id="linkSave">저장</button>
     </div>
+  </div>
+</div>
+
+<div class="sheet" id="soloSheet" hidden>
+  <div class="card" role="dialog" aria-labelledby="soloTitle">
+    <h2 id="soloTitle">곧 오전 9시 함께 명상이 시작돼요</h2>
+    <p id="soloText"></p>
+    <div class="actions"><button type="button" id="soloWait">9시에 함께하기</button><button type="button" class="primary" id="soloGo">혼자 시작하기</button></div>
   </div>
 </div>
 
@@ -323,7 +333,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.13-61';
+const BUILD = '11.13-62';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -2148,6 +2158,22 @@ function makeFigure(color) {
     M(ball(0.056), skin, 0, -0.15, 0, elbow);
     arms.push({ pivot, elbow, side });
   });
+  // 혼자 명상할 때 쓰는 헤드셋 (머리띠 + 양쪽 귀 덮개)
+  const headset = new THREE.Group();
+  const hsMat = new THREE.MeshStandardMaterial({ color: '#46557a', roughness: 0.45, metalness: 0.2 });
+  const hsPad = new THREE.MeshStandardMaterial({ color: '#efeaf7', roughness: 0.8 });
+  const band = new THREE.Mesh(new THREE.TorusGeometry(0.295, 0.022, 8, 28, Math.PI), hsMat);
+  band.position.y = 0.01; band.scale.set(1.02, 1, 1);
+  headset.add(band);
+  [-1, 1].forEach(sd => {
+    const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.085, 0.055, 20), hsMat);
+    cup.rotation.z = Math.PI / 2; cup.position.set(sd * 0.3, -0.01, 0);
+    const pad = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.02, 20), hsPad);
+    pad.rotation.z = Math.PI / 2; pad.position.set(sd * 0.272, -0.01, 0);
+    headset.add(cup, pad);
+  });
+  headset.visible = false;
+  head.add(headset);
   g.traverse(o => { if (o.isMesh) noRay(o); });
   const cup = new THREE.Group();
   torso.add(cup);
@@ -2159,7 +2185,7 @@ function makeFigure(color) {
   const steamSp = new THREE.Group();
   cup.add(steamSp);
   cup.visible = false;
-  const fig = { g, pelvis, torso, body, head, legs, standLegs, crossLegs, arms, cup, cupTea, steamSp, eyesOpen, eyesClosed, mat, soft, sit: 1, blinkPh: Math.random() * 5 };
+  const fig = { g, pelvis, torso, body, head, legs, standLegs, crossLegs, arms, cup, cupTea, steamSp, eyesOpen, eyesClosed, mat, soft, headset, sit: 1, blinkPh: Math.random() * 5 };
   applyPose(fig, null, 0, 1, 0);
   return fig;
 }
@@ -3361,6 +3387,7 @@ async function renderPeers(peers) {
     else if (!wantBub && v.bubOn) popBubble(v.bub, v.g, false);
     v.bubOn = wantBub;
     v.out = pr.o === 1;
+    v.fig.headset.visible = pr.hp === 1;
     v.g.visible = !v.out;
     if (v.label) v.label.visible = !v.out;
     if (!v.seen) { v.g.position.copy(v.target); v.seen = true; }
@@ -3456,7 +3483,7 @@ function sendPresence(force) {
   if (!room) return;
   const now = performance.now();
   if (!force && now - lastPresenceAt < 100) return;
-  const obj = { n: myNick, o: iAmOut ? 1 : leaving ? 2 : 0, p: (mySeat !== null || atBeach || teaSitting !== null) ? 1 : 0, x: +orb.position.x.toFixed(2), y: +orb.position.y.toFixed(2), z: +orb.position.z.toFixed(2), h: +orb.rotation.y.toFixed(2), b: (travel || bubbleOn) ? 1 : 0, s: mySeat, g: Object.assign({ k: myGesture.k, n: myGesture.n }, Number.isInteger(myGesture.c) ? { c: myGesture.c } : {}, myGesture.to ? { to: myGesture.to } : {}), r: { n: myRing.n, at: myRing.at } };
+  const obj = { n: myNick, hp: solo ? 1 : 0, o: iAmOut ? 1 : leaving ? 2 : 0, p: (mySeat !== null || atBeach || teaSitting !== null) ? 1 : 0, x: +orb.position.x.toFixed(2), y: +orb.position.y.toFixed(2), z: +orb.position.z.toFixed(2), h: +orb.rotation.y.toFixed(2), b: (travel || bubbleOn) ? 1 : 0, s: mySeat, g: Object.assign({ k: myGesture.k, n: myGesture.n }, Number.isInteger(myGesture.c) ? { c: myGesture.c } : {}, myGesture.to ? { to: myGesture.to } : {}), r: { n: myRing.n, at: myRing.at } };
   const str = JSON.stringify(obj);
   if (str === lastPresence && !(fb && now - lastPresenceAt > 10000)) return;
   lastPresence = str; lastPresenceAt = now;
@@ -3556,7 +3583,7 @@ function openLink(kind) {
   }
   $('openSheet').hidden = false;
 }
-function closeSheets() { if (typeof closePeerMenu === 'function') closePeerMenu(); if (typeof hideNotice === 'function') hideNotice(); $('openSheet').hidden = true; $('linkSheet').hidden = true; $('gallerySheet').hidden = true; $('nameSheet').hidden = true; }
+function closeSheets() { $('soloSheet').hidden = true; if (typeof closePeerMenu === 'function') closePeerMenu(); if (typeof hideNotice === 'function') hideNotice(); $('openSheet').hidden = true; $('linkSheet').hidden = true; $('gallerySheet').hidden = true; $('nameSheet').hidden = true; }
 
 $('openSheetClose').addEventListener('click', closeSheets);
 $('openSheetGo').addEventListener('click', () => setTimeout(closeSheets, 300));
@@ -3741,6 +3768,7 @@ function ringFromMe() {
   if (!inDome()) { toast('돔 안에서 종을 칠 수 있어요'); return; }
   unlockAudio();
   ringBell(true);
+  if (solo) { toast('🎧 혼자 명상 중이에요 · 헤드셋을 벗고 종을 쳐 주세요'); return; }
   if (session.state === 'playing') { toast(session.kind === 'nine' ? '지금은 오전 9시 명상 중이에요' : '명상 중이에요'); return; }
   if (audioOk === false) { toast('명상 음성을 아직 넣지 않았어요'); return; }
   const at = Date.now() + 4000;
@@ -3756,6 +3784,13 @@ function checkRing(peer, r) {
   seenRings.set(peer, r.n);
   if (prev === undefined || r.n === prev) return;
   if (isOut()) return;   // 나간 뒤에는 다른 사람의 종소리로 명상이 다시 시작되지 않음
+  if (solo) {
+    // 혼자 명상(헤드셋) 중에는 방해하지 않음: 종소리도 안 나고 내 명상도 그대로.
+    // 다만 단체 명상이 시작된 건 기억해 두어, 헤드셋을 벗은 뒤 원하면 '함께하기'로 합류
+    const now = Date.now();
+    if (session.state !== 'playing' && Math.abs(r.at - now) < 20000 && audioOk !== false && inDome()) { bellSession = { startAt: r.at }; tick(); }
+    return;
+  }
   ringBell(true);
   const now = Date.now();
   if (session.state !== 'playing' && Math.abs(r.at - now) < 20000 && audioOk !== false) {
@@ -3783,14 +3818,52 @@ function fmtLeft(ms) {
   return `${Math.floor(m / 60)}시간 ${m % 60}분 남음`;
 }
 let lastSeekAt = -1e9;
+/* 혼자 명상(헤드셋): 정해진 시간과 상관없이 나만 듣는 명상. 단체 명상(9시·종)은 방해하지 않고 원하면 '함께하기' */
+let solo = null, groupOptOut = false;
+function startSolo() {
+  if (!audioOk) { toast('명상 음성을 아직 넣지 않았어요'); return; }
+  unlockAudio();
+  solo = { startAt: Date.now() + 1500 };
+  groupOptOut = true;          // 혼자 명상하는 동안 단체 명상 소리는 끼어들지 않음
+  myFig.headset.visible = true;
+  if (mySeat === null && teaSitting === null) backToSeat();
+  toast('🎧 혼자 명상을 시작해요');
+  sendPresence(true); tick();
+}
+function stopSolo(msg) {
+  solo = null;
+  myFig.headset.visible = false;
+  if (msg) toast(msg);
+  sendPresence(true); tick();
+}
+function soloClick() {
+  if (solo) { stopSolo('헤드셋을 벗었어요'); return; }
+  const now = Date.now(), nine = nineOf(now), lead = nine - now;
+  // 혼자 명상이 끝나기 전에 9시 함께 명상이 시작되면, 시작 전에 먼저 알려 주고 고르게 함
+  if (session.state !== 'playing' && lead > 0 && lead < durSec() * 1000 + 60000) {
+    const m = Math.max(1, Math.ceil(lead / 60000));
+    $('soloText').textContent = `${m}분 뒤에 9시 함께 명상이 시작돼요. 지금 혼자 명상을 시작하면 9시가 되어도 혼자 명상을 그대로 이어 가요. 끝난 뒤에는 원하면 함께하기를 눌러 합류할 수 있어요.`;
+    $('soloSheet').hidden = false;
+    return;
+  }
+  startSolo();
+}
+$('soloBtn').addEventListener('click', soloClick);
+$('soloGo').addEventListener('click', () => { $('soloSheet').hidden = true; startSolo(); });
+$('soloWait').addEventListener('click', () => { $('soloSheet').hidden = true; toast('9시에 함께 명상해요'); });
+$('joinGroupBtn').addEventListener('click', () => { if (solo) stopSolo(); groupOptOut = false; unlockAudio(); tick(); toast('함께 명상해요'); });
 /* 나가기를 눌러 빛을 타고 나갔거나 끝 화면에 있으면 '나간 사람' (명상 소리를 내지 않음) */
 const isOut = () => { try { return !!(leaving || iAmOut); } catch (e) { return false; } };
 function syncAudio() {
   if (audioOk === false) return;
   // 나간 사람은 명상 음성을 멈춤: 9시 명상이 아직 진행 중이어도, 다른 사람이 종을 쳐도 다시 틀지 않음
   if (isOut()) { if (!audio.paused) audio.pause(); return; }
-  if (session.state !== 'playing') { if (!audio.paused) audio.pause(); return; }
-  const el = (Date.now() - session.startAt) / 1000;
+  // 혼자 명상(헤드셋): 내가 시작한 때부터 나에게만
+  let startAt;
+  if (solo) startAt = solo.startAt;
+  else if (session.state !== 'playing' || groupOptOut) { if (!audio.paused) audio.pause(); return; }
+  else startAt = session.startAt;
+  const el = (Date.now() - startAt) / 1000;
   if (el < 0 || el >= durSec()) { if (!audio.paused) audio.pause(); return; }
   if (!audioUnlocked) return;
   if (audio.paused) {
@@ -3822,7 +3895,12 @@ function updateSessionText() {
   const now = Date.now();
   let txt;
   if (audioOk === false) txt = '명상 음성을 아직 넣지 않았어요';
-  else if (session.state === 'playing') {
+  else if (solo) {
+    const el = (now - solo.startAt) / 1000;
+    txt = el < 0 ? '🎧 혼자 명상 · 곧 시작해요' : `🎧 혼자 명상 중 · ${fmt(el)} / ${fmt(durSec())}`;
+  } else if (session.state === 'playing' && groupOptOut) {
+    txt = `${session.kind === 'nine' ? '오전 9시 함께 명상 중' : '종소리 명상 중'} · 함께하기를 누르면 같이 들어요`;
+  } else if (session.state === 'playing') {
     const el = (now - session.startAt) / 1000;
     if (el < 0) txt = `종이 울렸어요 · 곧 시작해요 ${Math.ceil(-el)}`;
     else txt = `${session.kind === 'nine' ? '오전 9시 명상 중' : '종소리 명상 중'} · ${fmt(el)} / ${fmt(durSec())}`;
@@ -3830,21 +3908,25 @@ function updateSessionText() {
   else txt = '오늘 9시 명상은 끝났어요 · 종을 치면 언제든 시작해요';
   if (box.textContent !== txt) box.textContent = txt;
   const playing = session.state === 'playing';
-  $('soundRow').hidden = !(playing && !audioUnlocked && audioOk !== false);
-  $('stopBellBtn').hidden = !(playing && session.kind === 'bell');
+  $('soundRow').hidden = !((playing || solo) && !audioUnlocked && audioOk !== false);
+  $('stopBellBtn').hidden = !(playing && session.kind === 'bell' && !solo && !groupOptOut);
+  $('joinGroupBtn').hidden = !(playing && groupOptOut && !solo);
+  $('soloBtn').textContent = solo ? '🎧 헤드셋 벗기' : '🎧 혼자 명상';
   $('bellBtn').textContent = playing ? '종 치기' : '종 치고 시작';
 }
 function tick() {
   const now = Date.now();
   const before = session;
   session = computeSession(now);
+  if (solo && now - solo.startAt >= durSec() * 1000) stopSolo('🎧 혼자 명상이 끝났어요');
+  if (!solo && groupOptOut && session.state !== 'playing') groupOptOut = false;
   if (session.state === 'playing' && now >= session.startAt && chimedFor !== session.startAt && now - session.startAt < 2500) {
     chimedFor = session.startAt;
-    if (!isOut()) { if (session.kind === 'nine') ringBell(true); else ringBell(false); }
+    if (!isOut() && !solo) { if (session.kind === 'nine') ringBell(true); else ringBell(false); }
   }
   if (before.state === 'playing' && session.state !== 'playing') {
-    if (!isOut()) ringBell(false);
-    if (!leaving) toast('명상이 끝났어요 · 차를 마시거나, 나가기를 누르면 빛을 타고 돌아가요');
+    if (!isOut() && !solo && !groupOptOut) ringBell(false);
+    if (!leaving && !solo && !groupOptOut) toast('명상이 끝났어요 · 차를 마시거나, 나가기를 누르면 빛을 타고 돌아가요');
   }
   if (session.state === 'playing' && domeUiShown === false) $('session').classList.remove('is-hidden');
   syncAudio();
@@ -4270,6 +4352,8 @@ function updateArrive(dt, t) {
 function startLeave() {
   if (leaving || travel || arriving) return;
   closeSheets();
+  if (solo) { solo = null; myFig.headset.visible = false; }
+  groupOptOut = false;
   for (const r of [...teaRituals]) if (r.fig === myFig) endTeaRitual(r);
   const sat = mySeat !== null;
   mySeat = null; teaSitting = null; teaPending = null; moveTarget = null;
