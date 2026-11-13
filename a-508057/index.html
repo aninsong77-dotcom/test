@@ -333,7 +333,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.13-72';
+const BUILD = '11.13-73';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -3105,8 +3105,10 @@ function updateWalk(dt, t) {
       // 따를 때는 찻상을 내려다보고, 잔을 들어 마실 때는 고개를 들어 잔 너머 바다를 봄
       const mr = teaRituals.find(r => r.fig === myFig);
       const hold = mr ? teaPhase((performance.now() - mr.at) / 1000).hold : 0;
-      yaw = mix(yaw, heading, smooth(teaView));
-      pitchFP = mix(pitchFP, mix(-0.62, -0.25, hold), smooth(teaView));
+      // 끌어서 둘러본 만큼 더함 (손을 떼고 1초 뒤부터 천천히 잔 쪽으로)
+      if (performance.now() - teaLookAt > 1000) { const k = Math.exp(-dt * 1.4); teaLookYaw *= k; teaLookPitch *= k; }
+      yaw = mix(yaw, heading + teaLookYaw, smooth(teaView));
+      pitchFP = mix(pitchFP, mix(-0.62, -0.25, hold) + teaLookPitch, smooth(teaView));
       eyeBack = 0;
     }
     if (mySeat !== null && performance.now() - lastLookAt > 4000 && teaView < 0.01) camYaw += Math.atan2(Math.sin(heading - camYaw), Math.cos(heading - camYaw)) * Math.min(1, dt * 0.8);
@@ -3174,8 +3176,21 @@ canvas.addEventListener('pointerdown', e => {
   downAt = { x: e.clientX, y: e.clientY, t: performance.now() };
   dragLook = { id: e.pointerId, x: e.clientX, y: e.clientY, on: false };
 });
+let teaLookYaw = 0, teaLookPitch = 0, teaLookAt = -1e9, teaLookLast = null;
+const myTeaOn = () => teaRituals.some(r => r.fig === myFig);
 canvas.addEventListener('pointermove', e => {
   if (e.pointerType === 'touch' && touches.has(e.pointerId)) touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  // 차를 마시는 동안 끌면 둘러보기 (걷지는 않음). 손을 떼면 천천히 잔 쪽으로 돌아옴
+  if (myTeaOn() && downAt && (e.buttons || e.pointerType === 'touch')) {
+    const last = teaLookLast && teaLookLast.id === e.pointerId ? teaLookLast : { id: e.pointerId, x: downAt.x, y: downAt.y };
+    const dx = e.clientX - last.x, dy = e.clientY - last.y;
+    teaLookLast = { id: e.pointerId, x: e.clientX, y: e.clientY };
+    if (Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) < 8) return;
+    teaLookYaw = Math.max(-1.5, Math.min(1.5, teaLookYaw - dx * 0.006));
+    teaLookPitch = Math.max(-0.5, Math.min(0.7, teaLookPitch - dy * 0.004));
+    teaLookAt = performance.now();
+    return;
+  }
   // 한 손가락으로 끌기 = 걷기
   if (e.pointerType === 'touch' && touches.size === 1 && dragMove.id === e.pointerId && !travel && !atBeach) {
     const dx = e.clientX - dragMove.sx, dy = e.clientY - dragMove.sy;
@@ -3198,6 +3213,7 @@ canvas.addEventListener('pointermove', e => {
 });
 const endLook = e => {
   dragLook = null;
+  teaLookLast = null;
   if (e && e.pointerType === 'touch') {
     touches.delete(e.pointerId);
     if (dragMove.id === e.pointerId || touches.size === 0) endDragMove();
