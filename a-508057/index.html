@@ -333,7 +333,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.13-73';
+const BUILD = '11.13-74';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -1681,16 +1681,18 @@ function updateSteam(st, dt, t) {
   }
 }
 /* ---------- 차 마시기: 찻상 앞에 앉아 주전자로 따르고, 잔을 들어 마시고, 다시 내려놓음 ---------- */
-const TEA_T = 17.3;
+const TEA_T = 19.3;
 // 실제 시간을 예전 시간표로: 주전자 들기 0~1.0초, 따르기 1.0~3.8초(넉넉하게), 나머지는 1.2초 뒤로
 function teaClock(e) {
   if (e < 1.0) return e * 0.8;                              // 주전자 들기
   if (e < 3.8) return 0.8 + (e - 1.0) * (1.8 / 2.8);        // 따르기
   if (e < 4.6) return e - 1.2;                              // 주전자 내려놓기
   if (e < 5.8) return 3.4 + (e - 4.6) * (0.7 / 1.2);        // 잔을 천천히 들기 (1.2초)
-  if (e < 14.8) return 4.1 + (e - 5.8) * (2.5 / 9.0);       // 아주 천천히 세 모금 (9초)
-  if (e < 15.9) return 6.6 + (e - 14.8) * (0.6 / 1.1);      // 잔을 천천히 내려놓기
-  return e - 15.9 + 7.2;                                    // 손 거두기
+  if (e < 11.74) return 4.1 + (e - 5.8) * (2.5 / 9.0);      // 아주 천천히 첫째, 둘째 모금
+  if (e < 13.74) return 5.75;                               // 둘째 모금 뒤 2초 쉼 (잔을 든 채)
+  if (e < 16.8) return 5.75 + (e - 13.74) * (2.5 / 9.0);    // 셋째 모금
+  if (e < 17.9) return 6.6 + (e - 16.8) * (0.6 / 1.1);      // 잔을 천천히 내려놓기
+  return e - 17.9 + 7.2;                                    // 손 거두기
 }
 // 주전자 꼭지 끝 (주전자 안쪽 좌표): 꼭지 가운데 (0.12, 0.12) + 길이 반 × 꼭지 방향
 const SPOUT_TIP = new THREE.Vector3(0.12 + 0.06 * Math.sin(0.9), 0.12 + 0.06 * Math.cos(0.9), 0);
