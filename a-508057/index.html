@@ -339,7 +339,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.13-81';
+const BUILD = '11.13-82';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -1703,7 +1703,7 @@ function updateMoonlight(t) {
     m.sp.material.rotation = -0.18 + Math.sin(t * 0.12 + m.ph) * 0.03;   // 비스듬히, 아주 천천히 흔들림
   }
   moonDisk.material.opacity = 0.85 * n * (0.92 + 0.08 * Math.sin(t * 0.6));
-  moonSpot.intensity = 4 * n;
+  moonSpot.intensity = 1.1 * n;
   sunUnder.material.opacity *= (1 - 0.85 * daySea.night);   // 밤에는 물속 해 빛 대신 달
 }
 const _glowW = new THREE.Vector3(), _glowA = new THREE.Vector3(), _glowB = new THREE.Vector3();
@@ -3232,7 +3232,8 @@ function updateWalk(dt, t) {
     orb.rotation.y = Math.atan2(DOME_CENTER.x - pos2.x, DOME_CENTER.z - pos2.y);
   } else {
     const onFloor = Math.hypot(pos2.x - DOME_CENTER.x, pos2.y - DOME_CENTER.z) < DOME_R + 0.3;
-    orb.position.set(pos2.x, onFloor ? HOUSE_BASE + 0.17 : gy + 0.03, pos2.y);
+    const onMatTop = MATS.some(m => Math.abs(pos2.x - m.x) < 0.5 && Math.abs(pos2.y - m.z) < 0.5) ? 0.026 : 0;
+    orb.position.set(pos2.x, (onFloor ? HOUSE_BASE + 0.17 : gy + 0.03) + onMatTop, pos2.y);
     if (teaSitting !== null) orb.rotation.y = heading;
     orb.rotation.y = Math.atan2(fwd.x, fwd.z);
   }
