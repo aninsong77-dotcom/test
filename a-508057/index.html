@@ -333,7 +333,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.13-68';
+const BUILD = '11.13-70';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -1703,7 +1703,7 @@ function teaPhase(e) {
   else if (e < 7.2) { hold = 1 - sm((e - 6.6) / 0.6); reach = sm((e - 6.6) / 0.6); }
   else reach = 1 - sm((e - 7.2) / 1.0);
   const sipAt = x => Math.sin(Math.min(1, Math.max(0, x)) * Math.PI);
-  const sip = Math.max(sipAt((e - 4.25) / 1.15), sipAt((e - 5.45) / 1.15));
+  const sip = Math.max(sipAt((e - 4.2) / 0.75), sipAt((e - 5.0) / 0.75), sipAt((e - 5.8) / 0.75));   // 세 모금
   const pour = e > 0.8 && e < 2.6 ? Math.sin((e - 0.8) / 1.8 * Math.PI) : 0;
   return { reach, hold, sip, pour, held: e > 4.0 && e < 6.7 };
 }
@@ -1858,7 +1858,7 @@ function updateTea(dt, t) {
       continue;
     }
     const cup = teaCups[r.c];
-    if (e > TEA_T) { cup.level = Math.min(cup.level, 0.35); endTeaRitual(r); continue; }
+    if (e > TEA_T) { cup.level = 0; endTeaRitual(r); continue; }
     const ph = teaPhase(e);
     e = teaClock(e);
     // 먼저 따르기 시작한 사람이 주전자를 씀. 다른 사람의 잔은 주전자 없이 조용히 채워짐
@@ -1891,7 +1891,8 @@ function updateTea(dt, t) {
       ts.stream.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), tv4.clone().sub(tv3).normalize());
     }
     if (e > 0.9 && e < 2.5) cup.level = Math.max(cup.level, Math.min(1, (e - 0.9) / 1.5));
-    if (e > 4.6 && e < 6.6) cup.level = Math.min(cup.level, mix(1, 0.35, (e - 4.6) / 2));
+    // 한 모금마다 1/3씩 줄어 세 모금이면 빈 잔
+    if (e > 4.2) { const drunk = [4.2, 5.0, 5.8].reduce((a, s0) => a + clamp01((e - s0 - 0.15) / 0.5) / 3, 0); cup.level = Math.min(cup.level, 1 - drunk); }
     // 잔: 찻상 ↔ 두 손
     r.fig.cup.visible = ph.held;
     cup.g.visible = !ph.held;
@@ -2313,7 +2314,7 @@ function applyPose(fig, pose, t, sit = 1, walk = 0) {
     const wPX = -0.2, wPZ = 2.55, wEX = -0.35, wEZ = Math.sin(t * 11) * 0.55;
     let px = mix(restPX, gPX, hands), pz = mix(restPZ, gPZ, hands), ex = mix(restEX, gEX, hands), ez = mix(restEZ, gEZ, hands);
     // 차 마시기: 두 손으로 잔을 감싸 들고, 홀짝일 때 입가로
-    const tPX = mix(-0.95, -1.6, sip), tPZ = -0.1, tEX = mix(-1.0, -1.35, sip), tEZ = 0.65;
+    const tPX = mix(-0.95, -1.9, sip), tPZ = mix(-0.1, -0.2, sip), tEX = mix(-1.0, -0.2, sip), tEZ = mix(0.65, 0.2, sip);
     px = mix(px, tPX, tea); pz = mix(pz, tPZ, tea); ex = mix(ex, tEX, tea); ez = mix(ez, tEZ, tea);
     // 찻상으로 두 팔을 뻗기 (주전자를 들 때는 조금 더 높이)
     const rPX = -1.3 - pourK * 0.25, rPZ = 0.05, rEX = -0.25, rEZ = 0.25;
@@ -2329,13 +2330,10 @@ function applyPose(fig, pose, t, sit = 1, walk = 0) {
     const ha = fig.arms[0].elbow.children[1].getWorldPosition(_hand1), hb = fig.arms[1].elbow.children[1].getWorldPosition(_hand2);
     ha.add(hb).multiplyScalar(0.5);
     fig.torso.worldToLocal(ha);
-    ha.add(_hand2.set(0, 0.08, 0.015));
-    // 마실 때: 잔을 얼굴 속이 아니라 입술 바로 앞으로 가져와, 잔 윗부분을 입 쪽으로 기울임
-    const sp = fig.sipK || 0;
-    _hand2.set(0, 0.5, 0.37);                 // 입 앞 (얼굴 앞면보다 바깥)
-    fig.cup.position.lerpVectors(ha, _hand2, smooth(sp));
-    if (fig.cup.position.y > 0.38 && fig.cup.position.z < 0.33) fig.cup.position.z = 0.33;   // 얼굴 속으로 들어가지 않게
-    fig.cup.rotation.x = -0.95 * smooth(sp);  // 입 쪽으로 기울여 마심
+    const sp = smooth(fig.sipK || 0);
+    // 잔은 늘 두 손 위에서 함께 움직임. 마실 때는 손끝 쪽(앞)으로 조금 나와 입 쪽으로 기울어짐
+    fig.cup.position.copy(ha.add(_hand2.set(0, 0.08 - 0.01 * sp, 0.015 + 0.05 * sp)));
+    fig.cup.rotation.x = -0.95 * sp;
   }
 }
 const _hand1 = new THREE.Vector3(), _hand2 = new THREE.Vector3();
@@ -3435,6 +3433,10 @@ async function renderPeers(peers) {
     const pr = p.presence || {};
     const seat = Number.isInteger(pr.s) && pr.s >= 0 && pr.s < SEATS.length ? pr.s : null;
     if (seat !== null) { takenSeats.add(seat); seatOwner.set(seat, p.peer); }
+    // 빛을 타고 내려오는 중인 사람이 예약해 둔 방석도 찬 자리로
+    const rs = Number.isInteger(pr.rs) && pr.rs >= 0 && pr.rs < SEATS.length ? pr.rs : null;
+    v.reserve = rs;
+    if (rs !== null && !takenSeats.has(rs)) { takenSeats.add(rs); seatOwner.set(rs, p.peer); }
     let x = Number.isFinite(pr.x) ? pr.x : DOME_CENTER.x + 3, z = Number.isFinite(pr.z) ? pr.z : DOME_CENTER.z + 5;
     let y = Number.isFinite(pr.y) ? pr.y : groundH(x, z) + 0.35;
     if (seat !== null) { x = SEATS[seat].x; z = SEATS[seat].z; y = HOUSE_BASE + 0.33; }
@@ -3548,7 +3550,7 @@ function sendPresence(force) {
   if (!room) return;
   const now = performance.now();
   if (!force && now - lastPresenceAt < 100) return;
-  const obj = { n: myNick, hp: solo ? 1 : 0, ts: teaPending !== null ? teaPending : teaSitting !== null ? teaSitting : -1, o: iAmOut ? 1 : leaving ? 2 : 0, p: (mySeat !== null || atBeach || teaSitting !== null) ? 1 : 0, x: +orb.position.x.toFixed(2), y: +orb.position.y.toFixed(2), z: +orb.position.z.toFixed(2), h: +orb.rotation.y.toFixed(2), b: (travel || bubbleOn) ? 1 : 0, s: mySeat, g: Object.assign({ k: myGesture.k, n: myGesture.n }, Number.isInteger(myGesture.c) ? { c: myGesture.c } : {}, myGesture.to ? { to: myGesture.to } : {}), r: { n: myRing.n, at: myRing.at } };
+  const obj = { n: myNick, rs: arriving && !arriving.landed && arriving.seat !== null ? arriving.seat : -1, hp: solo ? 1 : 0, ts: teaPending !== null ? teaPending : teaSitting !== null ? teaSitting : -1, o: iAmOut ? 1 : leaving ? 2 : 0, p: (mySeat !== null || atBeach || teaSitting !== null) ? 1 : 0, x: +orb.position.x.toFixed(2), y: +orb.position.y.toFixed(2), z: +orb.position.z.toFixed(2), h: +orb.rotation.y.toFixed(2), b: (travel || bubbleOn) ? 1 : 0, s: mySeat, g: Object.assign({ k: myGesture.k, n: myGesture.n }, Number.isInteger(myGesture.c) ? { c: myGesture.c } : {}, myGesture.to ? { to: myGesture.to } : {}), r: { n: myRing.n, at: myRing.at } };
   const str = JSON.stringify(obj);
   if (str === lastPresence && !(fb && now - lastPresenceAt > 10000)) return;
   lastPresence = str; lastPresenceAt = now;
@@ -4381,6 +4383,18 @@ function pickArriveSeat(A) {
   A.seat = freeSeat();
   if (A.seat !== null) { A.x = SEATS[A.seat].x; A.z = SEATS[A.seat].z; A.y = HOUSE_BASE + 0.33; }
   beam.position.set(A.x, HOUSE_BASE + 20, A.z);
+  A.camSet = false;
+  sendPresence(true);   // 고른 방석을 바로 알려서 다른 사람이 같은 방석을 고르지 않게
+}
+/* 거의 같은 순간에 둘이 같은 방석을 골랐으면: 아이디가 뒤인 사람이 다른 빈 방석으로 (아직 하얀 빛이라 안 보임) */
+function arriveSeatClash(A) {
+  if (A.seat === null) return false;
+  for (const [k, v] of peerViews) {
+    if (v.out) continue;
+    const theirs = v.seat !== null && v.seat !== undefined ? v.seat : v.reserve;
+    if (theirs === A.seat && (v.seat === A.seat || String(myPeerId) > String(k))) return true;
+  }
+  return false;
 }
 function updateArrive(dt, t) {
   const A = arriving, now = performance.now();
@@ -4398,6 +4412,7 @@ function updateArrive(dt, t) {
       return;
     }
   }
+  if (!A.landed && (now - A.td) < 1500 && arriveSeatClash(A)) pickArriveSeat(A);
   const e = (now - A.td) / 1000;
   const back = Math.max(0, LEAVE_T - e);          // 나가기 시간표를 거꾸로
   const rise = drawLightPath(A, back, dt, t, -1);
