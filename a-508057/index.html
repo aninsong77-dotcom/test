@@ -200,7 +200,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
     <div class="sub"><span hidden><span id="found"></span><span id="lightCount"></span></span>유리 돔 · <span id="together">혼자 있어요</span> <span id="buildTag" style="opacity:.55;font-size:10px"></span></div>
     <div class="hint" id="hint"></div>
   </div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button type="button" id="toDome" hidden>돔으로 가기</button><button type="button" id="galleryBtn" hidden>기록 사진</button><span id="hostRow" hidden style="display:contents"><button type="button" id="linksBtn">링크 넣기</button></span><button type="button" id="nameBtn">이름</button><button type="button" id="viewBtn">내 모습 보기</button><button type="button" id="replay">나가기</button></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button type="button" id="toDome" hidden>돔으로 가기</button><button type="button" id="galleryBtn" hidden>기록 사진</button><span id="hostRow" hidden style="display:contents"><button type="button" id="linksBtn">링크 넣기</button></span><button type="button" id="ambBtn" aria-pressed="true">음악 끄기</button><button type="button" id="nameBtn">이름</button><button type="button" id="viewBtn">내 모습 보기</button><button type="button" id="replay">나가기</button></div>
 </header>
 
 <div class="stick fade is-hidden" id="stick" aria-hidden="true"><div class="knob" id="knob"></div></div>
@@ -339,7 +339,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.14-89';
+const BUILD = '11.14-90';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -4294,9 +4294,77 @@ function updateSessionText() {
   if (meditatingNow) closeExMenu();
   $('bellBtn').textContent = playing ? '종 치기' : '종 치고 시작';
 }
+/* 돔 안의 아주 작고 은은한 배경 음악 (브라우저에서 바로 만드는 소리라 저작권 걱정 없음)
+   느린 화음이 천천히 겹쳐 바뀌고, 가끔 맑은 소리가 하나씩. 명상 음성이 나올 때와 나간 뒤에는 조용히 꺼짐 */
+const amb = { on: true, out: null, timer: 0, chimeT: 0, idx: 0, level: 0 };
+try { amb.on = localStorage.getItem('a508057:amb') !== 'off'; } catch (e) {}
+const AMB_CHORDS = [   // 부드러운 장조 화음들 (낮은 음역)
+  [130.81, 196.0, 246.94, 329.63],   // C - G - B - E
+  [110.0, 164.81, 220.0, 261.63],    // A - E - A - C
+  [87.31, 130.81, 174.61, 220.0],    // F - C - F - A
+  [98.0, 146.83, 196.0, 246.94],     // G - D - G - B
+];
+const AMB_BELL = [523.25, 587.33, 659.25, 783.99, 880.0];   // 맑은 소리 (오음 음계)
+function ambVoice(c, f, t0, dur, vol, type) {
+  const o = c.createOscillator(), g = c.createGain();
+  o.type = type; o.frequency.value = f; o.detune.value = (Math.random() - 0.5) * 8;
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.linearRampToValueAtTime(vol, t0 + dur * 0.35);
+  g.gain.linearRampToValueAtTime(vol * 0.8, t0 + dur * 0.7);
+  g.gain.linearRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g); g.connect(amb.filter);
+  o.start(t0); o.stop(t0 + dur + 0.1);
+}
+function ambChord() {
+  const c = actx; if (!c || !amb.out) return;
+  const ch = AMB_CHORDS[amb.idx++ % AMB_CHORDS.length], t0 = c.currentTime + 0.05;
+  ch.forEach((f, i) => { ambVoice(c, f, t0, 16, i ? 0.12 : 0.16, 'sine'); ambVoice(c, f * 2, t0 + 0.4, 15, 0.025, 'triangle'); });
+}
+function ambChime() {
+  const c = actx; if (!c || !amb.out) return;
+  const f = AMB_BELL[Math.floor(Math.random() * AMB_BELL.length)], t0 = c.currentTime + 0.05;
+  const o = c.createOscillator(), g = c.createGain();
+  o.type = 'sine'; o.frequency.value = f;
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(0.06, t0 + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + 4.5);
+  o.connect(g); g.connect(amb.filter);
+  o.start(t0); o.stop(t0 + 4.6);
+}
+function ambEnsure() {
+  const c = ensureCtx(); if (!c || amb.out) return;
+  amb.out = c.createGain(); amb.out.gain.value = 0;
+  amb.filter = c.createBiquadFilter(); amb.filter.type = 'lowpass'; amb.filter.frequency.value = 1400; amb.filter.Q.value = 0.3;
+  amb.filter.connect(amb.out); amb.out.connect(c.destination);
+  ambChord();
+  amb.timer = setInterval(ambChord, 10000);                       // 10초마다 다음 화음 (16초씩 길게 겹침)
+  const chimeLoop = () => { ambChime(); amb.chimeT = setTimeout(chimeLoop, 7000 + Math.random() * 9000); };
+  amb.chimeT = setTimeout(chimeLoop, 5000);
+}
+function ambUpdate() {
+  if (!amb.out || !actx) return;
+  // 명상 음성이 나오는 동안(함께·혼자), 종이 울려 곧 시작할 때, 나간 뒤에는 조용히
+  const medSound = solo || (session.state === 'playing' && !groupOptOut && Date.now() >= session.startAt - 5000);
+  const want = amb.on && !medSound && !isOut() && !document.hidden ? 0.5 : 0;
+  if (Math.abs(want - amb.level) > 0.001) {
+    amb.level = want;
+    amb.out.gain.cancelScheduledValues(actx.currentTime);
+    amb.out.gain.setTargetAtTime(want * 0.22, actx.currentTime, want ? 2.5 : 1.2);   // 천천히 커지고 줄어듦
+  }
+}
+function ambButton() { $('ambBtn').textContent = amb.on ? '음악 끄기' : '음악 켜기'; $('ambBtn').setAttribute('aria-pressed', amb.on ? 'true' : 'false'); }
+$('ambBtn').addEventListener('click', () => {
+  amb.on = !amb.on;
+  try { localStorage.setItem('a508057:amb', amb.on ? 'on' : 'off'); } catch (e) {}
+  ambEnsure(); ambButton(); ambUpdate();
+});
+ambButton();
+// 브라우저는 사람이 화면을 한 번 누른 뒤에만 소리를 낼 수 있어서, 처음 누를 때 시작
+['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, () => { ambEnsure(); ambUpdate(); }, { once: false, passive: true }));
 function tick() {
   const now = Date.now();
   updateDaySea(now);
+  ambUpdate();
   const before = session;
   session = computeSession(now);
   if (solo && now - solo.startAt >= durSec() * 1000) stopSolo('🎧 혼자 명상이 끝났어요');
