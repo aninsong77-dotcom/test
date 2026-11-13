@@ -333,7 +333,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.13-70';
+const BUILD = '11.13-71';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -3292,19 +3292,19 @@ function chime() {
   });
 }
 function hideNotice() { $('gnote').classList.add('is-hidden'); noticeFrom = null; }
-function showNotice(text, from, drink) {
+function showNotice(text, from, drink, isReply) {
   noticeFrom = from;
   $('noticeText').textContent = text;
   $('noticeDrink').hidden = !drink;
-  $('noticeBow').hidden = false;
+  $('noticeBow').hidden = !!isReply;
   $('gnote').classList.remove('is-hidden');
   chime();
   if (navigator.vibrate) try { navigator.vibrate(60); } catch (e) {}
   clearTimeout(noticeTimer);
-  noticeTimer = setTimeout(hideNotice, drink ? 30000 : 8000);
+  noticeTimer = setTimeout(hideNotice, drink ? 30000 : isReply ? 5000 : 8000);
 }
 $('noticeClose').addEventListener('click', hideNotice);
-$('noticeBow').addEventListener('click', () => { const f = noticeFrom; hideNotice(); if (f) { greet('bow', f); toast('합장으로 답례했어요'); } });
+$('noticeBow').addEventListener('click', () => { const f = noticeFrom; hideNotice(); if (f) { greet('bow', f, true); toast('합장으로 답례했어요'); } });
 $('noticeDrink').addEventListener('click', () => {
   hideNotice();
   const sc = myPeerId ? servedCups.get(myPeerId) : null;
@@ -3466,7 +3466,8 @@ async function renderPeers(peers) {
         if (g.k === 'sip') startSip(v.fig, p.peer, v.gesture.at);
         if (to && to === myPeerId) {
           const who = (v.labelText || '함께하는 사람') + '님이';
-          if (g.k === 'bow' || g.k === 'hello') showNotice(`🙏 ${who} 인사해요`, p.peer, false);
+          if (g.re === 1) showNotice(`🙏 ${who} 답례했어요`, p.peer, false, true);
+          else if (g.k === 'bow' || g.k === 'hello') showNotice(`🙏 ${who} 인사해요`, p.peer, false);
         }
       }
     }
@@ -3550,7 +3551,7 @@ function sendPresence(force) {
   if (!room) return;
   const now = performance.now();
   if (!force && now - lastPresenceAt < 100) return;
-  const obj = { n: myNick, rs: arriving && !arriving.landed && arriving.seat !== null ? arriving.seat : -1, hp: solo ? 1 : 0, ts: teaPending !== null ? teaPending : teaSitting !== null ? teaSitting : -1, o: iAmOut ? 1 : leaving ? 2 : 0, p: (mySeat !== null || atBeach || teaSitting !== null) ? 1 : 0, x: +orb.position.x.toFixed(2), y: +orb.position.y.toFixed(2), z: +orb.position.z.toFixed(2), h: +orb.rotation.y.toFixed(2), b: (travel || bubbleOn) ? 1 : 0, s: mySeat, g: Object.assign({ k: myGesture.k, n: myGesture.n }, Number.isInteger(myGesture.c) ? { c: myGesture.c } : {}, myGesture.to ? { to: myGesture.to } : {}), r: { n: myRing.n, at: myRing.at } };
+  const obj = { n: myNick, rs: arriving && !arriving.landed && arriving.seat !== null ? arriving.seat : -1, hp: solo ? 1 : 0, ts: teaPending !== null ? teaPending : teaSitting !== null ? teaSitting : -1, o: iAmOut ? 1 : leaving ? 2 : 0, p: (mySeat !== null || atBeach || teaSitting !== null) ? 1 : 0, x: +orb.position.x.toFixed(2), y: +orb.position.y.toFixed(2), z: +orb.position.z.toFixed(2), h: +orb.rotation.y.toFixed(2), b: (travel || bubbleOn) ? 1 : 0, s: mySeat, g: Object.assign({ k: myGesture.k, n: myGesture.n }, Number.isInteger(myGesture.c) ? { c: myGesture.c } : {}, myGesture.to ? { to: myGesture.to } : {}, myGesture.re ? { re: 1 } : {}), r: { n: myRing.n, at: myRing.at } };
   const str = JSON.stringify(obj);
   if (str === lastPresence && !(fb && now - lastPresenceAt > 10000)) return;
   lastPresence = str; lastPresenceAt = now;
@@ -3589,8 +3590,8 @@ $('seatBtn').addEventListener('click', () => {
   });
   if (best === null) toast('방석이 모두 찼어요'); else sitAt(best);
 });
-function greet(k, to) {
-  myGesture = { k, n: myGesture.n + 1, at: performance.now(), to: to || undefined };
+function greet(k, to, reply) {
+  myGesture = { k, n: myGesture.n + 1, at: performance.now(), to: to || undefined, re: reply ? 1 : 0 };
   unlockAudio();
   sendPresence();
 }
