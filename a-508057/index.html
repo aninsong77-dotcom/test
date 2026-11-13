@@ -200,7 +200,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
     <div class="sub"><span hidden><span id="found"></span><span id="lightCount"></span></span>유리 돔 · <span id="together">혼자 있어요</span> <span id="buildTag" style="opacity:.55;font-size:10px"></span></div>
     <div class="hint" id="hint"></div>
   </div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button type="button" id="toDome" hidden>돔으로 가기</button><button type="button" id="galleryBtn" hidden>기록 사진</button><span id="hostRow" hidden style="display:contents"><button type="button" id="linksBtn">링크 넣기</button></span><button type="button" id="ambBtn" aria-pressed="true">음악 끄기</button><button type="button" id="nameBtn">이름</button><button type="button" id="viewBtn">내 모습 보기</button><button type="button" id="replay">나가기</button></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button type="button" id="toDome" hidden>돔으로 가기</button><button type="button" id="galleryBtn" hidden>기록 사진</button><span id="hostRow" hidden style="display:contents"><button type="button" id="linksBtn">링크 넣기</button></span><button type="button" id="ambBtn" aria-pressed="true">바다 소리 끄기</button><button type="button" id="nameBtn">이름</button><button type="button" id="viewBtn">내 모습 보기</button><button type="button" id="replay">나가기</button></div>
 </header>
 
 <div class="stick fade is-hidden" id="stick" aria-hidden="true"><div class="knob" id="knob"></div></div>
@@ -339,7 +339,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.14-91';
+const BUILD = '11.14-92';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -4294,52 +4294,49 @@ function updateSessionText() {
   if (meditatingNow) closeExMenu();
   $('bellBtn').textContent = playing ? '종 치기' : '종 치고 시작';
 }
-/* 돔 안의 아주 작고 은은한 배경 음악 (브라우저에서 바로 만드는 소리라 저작권 걱정 없음)
+/* 돔 안의 아주 작고 은은한 바다 소리 (브라우저에서 바로 만드는 소리라 저작권 걱정 없음)
    느린 화음이 천천히 겹쳐 바뀌고, 가끔 맑은 소리가 하나씩. 명상 음성이 나올 때와 나간 뒤에는 조용히 꺼짐 */
 const amb = { on: true, out: null, timer: 0, chimeT: 0, idx: 0, level: 0 };
 try { amb.on = localStorage.getItem('a508057:amb') !== 'off'; } catch (e) {}
-const AMB_CHORDS = [   // 가볍고 맑은 화음 (한 옥타브 위, 낮은 베이스 없이)
-  [261.63, 392.0, 493.88, 659.25],   // C - G - B - E
-  [220.0, 329.63, 440.0, 523.25],    // A - E - A - C
-  [349.23, 440.0, 523.25, 659.25],   // F - A - C - E
-  [293.66, 392.0, 493.88, 587.33],   // D - G - B - D
-];
-const AMB_BELL = [783.99, 880.0, 1046.5, 1174.66, 1318.51, 1567.98];   // 높고 맑은 소리 (오음 음계)
-function ambVoice(c, f, t0, dur, vol, type) {
-  const o = c.createOscillator(), g = c.createGain();
-  o.type = type; o.frequency.value = f; o.detune.value = (Math.random() - 0.5) * 8;
-  g.gain.setValueAtTime(0.0001, t0);
-  g.gain.linearRampToValueAtTime(vol, t0 + dur * 0.35);
-  g.gain.linearRampToValueAtTime(vol * 0.8, t0 + dur * 0.7);
-  g.gain.linearRampToValueAtTime(0.0001, t0 + dur);
-  o.connect(g); g.connect(amb.filter);
-  o.start(t0); o.stop(t0 + dur + 0.1);
-}
-function ambChord() {
+/* 바다 소리: 물속에서 들리는 낮고 부드러운 물결 소리 + 가끔 보글보글 물방울 (브라우저에서 만드는 소리) */
+function ambBubble() {
   const c = actx; if (!c || !amb.out) return;
-  const ch = AMB_CHORDS[amb.idx++ % AMB_CHORDS.length], t0 = c.currentTime + 0.05;
-  ch.forEach((f, i) => ambVoice(c, f, t0 + i * 0.35, 14, 0.07, 'sine'));   // 음을 살짝씩 차례로, 가볍게
-}
-function ambChime() {
-  const c = actx; if (!c || !amb.out) return;
-  const f = AMB_BELL[Math.floor(Math.random() * AMB_BELL.length)], t0 = c.currentTime + 0.05;
-  const o = c.createOscillator(), g = c.createGain();
-  o.type = 'sine'; o.frequency.value = f;
-  g.gain.setValueAtTime(0.0001, t0);
-  g.gain.exponentialRampToValueAtTime(0.05, t0 + 0.02);
-  g.gain.exponentialRampToValueAtTime(0.0001, t0 + 3.2);
-  o.connect(g); g.connect(amb.filter);
-  o.start(t0); o.stop(t0 + 4.6);
+  const n = 1 + Math.floor(Math.random() * 3);
+  for (let i = 0; i < n; i++) {
+    const t0 = c.currentTime + 0.05 + i * (0.08 + Math.random() * 0.12);
+    const o = c.createOscillator(), g = c.createGain(), f0 = 300 + Math.random() * 500;
+    o.type = 'sine';
+    o.frequency.setValueAtTime(f0, t0);
+    o.frequency.exponentialRampToValueAtTime(f0 * (1.8 + Math.random()), t0 + 0.09);   // '뽀록' 하고 올라가는 소리
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(0.03, t0 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.12);
+    o.connect(g); g.connect(amb.out);
+    o.start(t0); o.stop(t0 + 0.14);
+  }
 }
 function ambEnsure() {
   const c = ensureCtx(); if (!c || amb.out) return;
   amb.out = c.createGain(); amb.out.gain.value = 0;
-  amb.filter = c.createBiquadFilter(); amb.filter.type = 'lowpass'; amb.filter.frequency.value = 3200; amb.filter.Q.value = 0.3;
-  amb.filter.connect(amb.out); amb.out.connect(c.destination);
-  ambChord();
-  amb.timer = setInterval(ambChord, 10000);                       // 10초마다 다음 화음 (16초씩 길게 겹침)
-  const chimeLoop = () => { ambChime(); if (Math.random() < 0.4) setTimeout(ambChime, 450); amb.chimeT = setTimeout(chimeLoop, 4000 + Math.random() * 6000); };
-  amb.chimeT = setTimeout(chimeLoop, 5000);
+  amb.out.connect(c.destination);
+  // 갈색 잡음 (낮고 둥근 '쏴아' 소리)
+  const len = c.sampleRate * 6, buf = c.createBuffer(2, len, c.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = buf.getChannelData(ch); let last = 0;
+    for (let i = 0; i < len; i++) { const w = Math.random() * 2 - 1; last = (last + 0.02 * w) / 1.02; d[i] = last * 3.2; }
+  }
+  const src = c.createBufferSource(); src.buffer = buf; src.loop = true;
+  const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 520; lp.Q.value = 0.4;
+  const swell = c.createGain(); swell.gain.value = 0.55;
+  // 물결: 8~11초마다 천천히 밀려왔다 빠지는 느낌 (소리 크기와 밝기가 함께 출렁임)
+  const lfo = c.createOscillator(), lfoG = c.createGain(); lfo.frequency.value = 0.105; lfoG.gain.value = 0.3;
+  lfo.connect(lfoG); lfoG.connect(swell.gain);
+  const lfo2 = c.createOscillator(), lfo2G = c.createGain(); lfo2.frequency.value = 0.071; lfo2G.gain.value = 180;
+  lfo2.connect(lfo2G); lfo2G.connect(lp.frequency);
+  src.connect(lp); lp.connect(swell); swell.connect(amb.out);
+  src.start(); lfo.start(); lfo2.start();
+  const bubbleLoop = () => { ambBubble(); amb.chimeT = setTimeout(bubbleLoop, 3500 + Math.random() * 7000); };
+  amb.chimeT = setTimeout(bubbleLoop, 3000);
 }
 function ambUpdate() {
   if (!amb.out || !actx) return;
@@ -4349,10 +4346,10 @@ function ambUpdate() {
   if (Math.abs(want - amb.level) > 0.001) {
     amb.level = want;
     amb.out.gain.cancelScheduledValues(actx.currentTime);
-    amb.out.gain.setTargetAtTime(want * 0.22, actx.currentTime, want ? 2.5 : 1.2);   // 천천히 커지고 줄어듦
+    amb.out.gain.setTargetAtTime(want * 0.26, actx.currentTime, want ? 2.5 : 1.2);   // 천천히 커지고 줄어듦
   }
 }
-function ambButton() { $('ambBtn').textContent = amb.on ? '음악 끄기' : '음악 켜기'; $('ambBtn').setAttribute('aria-pressed', amb.on ? 'true' : 'false'); }
+function ambButton() { $('ambBtn').textContent = amb.on ? '바다 소리 끄기' : '바다 소리 켜기'; $('ambBtn').setAttribute('aria-pressed', amb.on ? 'true' : 'false'); }
 $('ambBtn').addEventListener('click', () => {
   amb.on = !amb.on;
   try { localStorage.setItem('a508057:amb', amb.on ? 'on' : 'off'); } catch (e) {}
