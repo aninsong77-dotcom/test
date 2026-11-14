@@ -200,7 +200,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
     <div class="sub"><span hidden><span id="found"></span><span id="lightCount"></span></span>유리 돔 · <span id="together">혼자 있어요</span> <span id="buildTag" style="opacity:.55;font-size:10px"></span></div>
     <div class="hint" id="hint"></div>
   </div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button type="button" id="toDome" hidden>돔으로 가기</button><button type="button" id="galleryBtn" hidden>기록 사진</button><span id="hostRow" hidden style="display:contents"><button type="button" id="linksBtn">링크 넣기</button></span><button type="button" id="ambBtn" aria-pressed="false" hidden>바다 소리 켜기</button><button type="button" id="nameBtn">이름</button><button type="button" id="viewBtn">내 모습 보기</button><button type="button" id="replay">나가기</button></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button type="button" id="toDome" hidden>돔으로 가기</button><button type="button" id="galleryBtn" hidden>기록 사진</button><span id="hostRow" hidden style="display:contents"><button type="button" id="linksBtn">링크 넣기</button></span><button type="button" id="ambBtn" aria-pressed="true">음악 끄기</button><button type="button" id="nameBtn">이름</button><button type="button" id="viewBtn">내 모습 보기</button><button type="button" id="replay">나가기</button></div>
 </header>
 
 <div class="stick fade is-hidden" id="stick" aria-hidden="true"><div class="knob" id="knob"></div></div>
@@ -339,7 +339,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.14-93';
+const BUILD = '11.14-94';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -4315,8 +4315,21 @@ function ambBubble() {
     o.start(t0); o.stop(t0 + 0.14);
   }
 }
-const AMB_ENABLED = false;   // 배경 소리는 쓰지 않음 (다시 쓰려면 true)
+const AMB_ENABLED = false;   // 브라우저에서 만드는 바다 소리는 쓰지 않음
+/* 배경 음악: 피아노 곡 (Pixabay 'Piano for Meditation', 무료 사용 허용 곡)을 아주 작게 반복 */
+const bgm = new Audio('bgm.mp3');
+bgm.loop = true; bgm.preload = 'auto'; bgm.volume = 0;
+let bgmVol = 0, bgmWant = 0, bgmStarted = false;
+function bgmTick() {
+  // 천천히 커지고 줄어듦 (0.25초마다 조금씩)
+  const step = bgmWant > bgmVol ? 0.006 : 0.015;
+  bgmVol = Math.abs(bgmWant - bgmVol) < step ? bgmWant : bgmVol + Math.sign(bgmWant - bgmVol) * step;
+  try { bgm.volume = bgmVol; } catch (e) {}
+  if (bgmVol <= 0.001 && !bgm.paused && bgmWant === 0) bgm.pause();
+  if (bgmWant > 0 && bgm.paused && bgmStarted) bgm.play().catch(() => {});
+}
 function ambEnsure() {
+  if (!bgmStarted) { bgmStarted = true; bgm.play().catch(() => { bgmStarted = false; }); }
   if (!AMB_ENABLED) return;
   const c = ensureCtx(); if (!c || amb.out) return;
   amb.out = c.createGain(); amb.out.gain.value = 0;
@@ -4341,6 +4354,11 @@ function ambEnsure() {
   amb.chimeT = setTimeout(bubbleLoop, 3000);
 }
 function ambUpdate() {
+  {
+    const medSound = solo || (session.state === 'playing' && !groupOptOut && Date.now() >= session.startAt - 5000);
+    bgmWant = amb.on && !medSound && !isOut() && !document.hidden ? 0.07 : 0;   // 은은하게 (최대 소리의 7%)
+    bgmTick();
+  }
   if (!amb.out || !actx) return;
   // 명상 음성이 나오는 동안(함께·혼자), 종이 울려 곧 시작할 때, 나간 뒤에는 조용히
   const medSound = solo || (session.state === 'playing' && !groupOptOut && Date.now() >= session.startAt - 5000);
@@ -4351,7 +4369,7 @@ function ambUpdate() {
     amb.out.gain.setTargetAtTime(want * 0.26, actx.currentTime, want ? 2.5 : 1.2);   // 천천히 커지고 줄어듦
   }
 }
-function ambButton() { $('ambBtn').textContent = amb.on ? '바다 소리 끄기' : '바다 소리 켜기'; $('ambBtn').setAttribute('aria-pressed', amb.on ? 'true' : 'false'); }
+function ambButton() { $('ambBtn').textContent = amb.on ? '음악 끄기' : '음악 켜기'; $('ambBtn').setAttribute('aria-pressed', amb.on ? 'true' : 'false'); }
 $('ambBtn').addEventListener('click', () => {
   amb.on = !amb.on;
   try { localStorage.setItem('a508057:amb', amb.on ? 'on' : 'off'); } catch (e) {}
