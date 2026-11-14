@@ -345,7 +345,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.14-109';
+const BUILD = '11.14-110';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -3421,7 +3421,6 @@ function updateWalk(dt, t) {
       pitchFP = mix(pitchFP, mix(-0.62, -0.25, hold) + teaLookPitch, smooth(teaView));
       eyeBack = 0;
     }
-    if (mySeat !== null && performance.now() - lastLookAt > 4000 && teaView < 0.01) camYaw += Math.atan2(Math.sin(heading - camYaw), Math.cos(heading - camYaw)) * Math.min(1, dt * 0.8);
     myGaze.p = fb > 0.6 ? pitchFP : 0;
     const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
     const bobY = Math.abs(Math.sin(walkPhase)) * 0.045 * walkBob, bobX = Math.sin(walkPhase) * 0.025 * walkBob;
@@ -3505,7 +3504,7 @@ canvas.addEventListener('pointermove', e => {
     return;
   }
   // 한 손가락으로 끌기 = 걷기
-  if (e.pointerType === 'touch' && touches.size === 1 && dragMove.id === e.pointerId && !travel && !atBeach && !edgeSit) {
+  if (e.pointerType === 'touch' && touches.size === 1 && dragMove.id === e.pointerId && !travel && !atBeach && !edgeSit && mySeat === null) {
     const dx = e.clientX - dragMove.sx, dy = e.clientY - dragMove.sy;
     if (!dragMove.on && Math.hypot(dx, dy) < 10) return;
     if (!dragMove.on) { dragMove.on = true; try { canvas.setPointerCapture(e.pointerId); } catch (err) {} }
@@ -3521,7 +3520,7 @@ canvas.addEventListener('pointermove', e => {
   dragLook.x = e.clientX; dragLook.y = e.clientY;
   camYaw -= dx * 0.006;
   camPitchOff = Math.max(-1.6, Math.min(1.0, camPitchOff + dy * 0.004));
-  fpPitch = Math.max(-1.2, Math.min(edgeSit ? 1.5 : 1.35, fpPitch - dy * 0.004));
+  fpPitch = Math.max(-1.2, Math.min(edgeSit || mySeat !== null ? 1.5 : 1.35, fpPitch - dy * 0.004));
   lastLookAt = performance.now();
 });
 const endLook = e => {
@@ -3929,6 +3928,7 @@ function sendPresence(force) {
 }
 
 /* 방석 */
+let seatLookHinted = false;
 function sitAt(i) {
   if (arriving && !arriving.landed) return;
   homeSeat = i;
@@ -3940,6 +3940,7 @@ function sitAt(i) {
   if (firstPerson) { setView(false); autoTP = true; }
   unlockAudio();
   $('seatBtn').textContent = '일어나기';
+  if (!arriving && !seatLookHinted) { seatLookHinted = true; toast('끌어서 둘러봐요 · 위도 올려다볼 수 있어요'); }
   sendPresence();
 }
 function standUp() {
