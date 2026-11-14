@@ -345,7 +345,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.14-107';
+const BUILD = '11.14-108';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -4067,7 +4067,7 @@ const KST = 9 * 3600 * 1000;
 const DEFAULT_DUR = 20 * 60;
 const audio = new Audio();
 audio.preload = 'auto';
-audio.src = 'meditation.mp3?v=2';
+audio.src = 'meditation.mp3?v=3';
 let audioOk = null, audioUnlocked = false;
 audio.addEventListener('loadedmetadata', () => { audioOk = true; tick(); });
 audio.addEventListener('error', () => { audioOk = false; tick(); });
@@ -4357,7 +4357,7 @@ function syncAudio() {
 /* 음성 파일을 처음에 통째로 받아 두기: 듣는 도중 인터넷이 느려져도 끊기지 않게 */
 (async () => {
   try {
-    const r = await fetch('meditation.mp3?v=2');
+    const r = await fetch('meditation.mp3?v=3');
     if (!r.ok) return;
     const blob = await r.blob();
     const wasPlaying = !audio.paused;
