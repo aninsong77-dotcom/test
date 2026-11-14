@@ -345,7 +345,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.14-110';
+const BUILD = '11.14-111';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -855,7 +855,7 @@ function whiteTriGeometry() {
 }
 const whiteTriGeo = whiteTriGeometry();
 const SCHOOLS = [
-  { n: 16, color: '#ffd23f', size: 0.8, cx: 9, cz: 6, rx: 7, rz: 5, y: 2.6, sp: 0.1, spread: 2.2 },
+  { n: 16, color: '#f2f7fb', silver: true, size: 0.8, cx: 9, cz: 6, rx: 7, rz: 5, y: 2.6, sp: 0.1, spread: 2.2 },
   { n: 20, color: '#b4cfe0', size: 1.0, cx: -30, cz: 4, rx: 12, rz: 10, y: 5, sp: 0.06, spread: 3 },
   { n: 12, color: '#ff8a3d', size: 0.75, cx: 20, cz: 8, rx: 10, rz: 13, y: 3, sp: 0.09, spread: 2 },
   { n: 14, color: '#5fd0c8', size: 0.75, cx: -12, cz: 14, rx: 12, rz: 8, y: 4, sp: 0.08, spread: 2.5 },
@@ -865,26 +865,26 @@ const SCHOOLS = [
   // 흰 삼각 물고기 무리
   { n: 18, color: '#ffffff', size: 1.15, cx: 2, cz: -9, rx: 12.5, rz: 11, y: 5.4, sp: -0.055, spread: 2.4, geo: 'tri' },
   // 돔 둘레를 이쪽저쪽 오가는 작은 무리 (어느 방석에서든 바다 쪽으로 물고기가 지나감)
-  { n: 8, color: '#ffd23f', size: 0.7, swing: { R: 11.2, dr: 1.6, amp: 1.5 }, ph0: 0.0, y: 2.2, sp: 0.075, spread: 1.4 },
+  { n: 8, color: '#f2f7fb', silver: true, size: 0.7, swing: { R: 11.2, dr: 1.6, amp: 1.5 }, ph0: 0.0, y: 2.2, sp: 0.075, spread: 1.4 },
   { n: 7, color: '#5fd0c8', size: 0.75, swing: { R: 12.2, dr: 1.8, amp: 1.7 }, ph0: 2.1, y: 3.6, sp: 0.062, spread: 1.6 },
   { n: 7, color: '#ff8a3d', size: 0.7, swing: { R: 11.6, dr: 1.5, amp: 1.4 }, ph0: 4.2, y: 2.8, sp: 0.07, spread: 1.4 },
   // 먼 바다를 떠도는 무리 셋: 멀리 안개 속으로 사라졌다가, 다른 방향에서 다시 돔 곁을 지나감 (높이도 오르내림)
   { n: 12, color: '#cfe3ee', size: 0.95, wander: { rMin: 10, rMax: 70, pr: 140, pa: 0.018, y0: 3, y1: 19, py: 97 }, ph0: 0.0, sp: 0, spread: 2.8 },
-  { n: 9, color: '#f6cf7a', size: 0.85, wander: { rMin: 11, rMax: 75, pr: 190, pa: -0.013, y0: 5, y1: 21, py: 131 }, ph0: 2.4, sp: 0, spread: 2.4 },
+  { n: 9, color: '#f2f7fb', silver: true, size: 0.85, wander: { rMin: 11, rMax: 75, pr: 190, pa: -0.013, y0: 5, y1: 21, py: 131 }, ph0: 2.4, sp: 0, spread: 2.4 },
   { n: 10, color: '#a9c8f0', size: 1.0, wander: { rMin: 12, rMax: 65, pr: 165, pa: 0.011, y0: 2.5, y1: 16, py: 113 }, ph0: 4.6, sp: 0, spread: 2.6 },
 ];
 const schools = [];
 const dummy = new THREE.Object3D();
 for (const def of SCHOOLS) {
   const tang = def.geo === 'tang' || def.geo === 'tri';
-  const mesh = noRay(new THREE.InstancedMesh(def.geo === 'tri' ? whiteTriGeo : tang ? blueTangGeo : fishGeo, new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: tang, roughness: tang ? 0.4 : 0.45, metalness: 0.15, flatShading: !tang, side: THREE.DoubleSide, emissive: tang && def.geo !== 'tri' ? '#123a8a' : '#000000', emissiveIntensity: tang && def.geo !== 'tri' ? 0.25 : 0 }), def.n));
+  const mesh = noRay(new THREE.InstancedMesh(def.geo === 'tri' ? whiteTriGeo : tang ? blueTangGeo : fishGeo, new THREE.MeshStandardMaterial({ color: '#ffffff', vertexColors: tang, roughness: def.silver ? 0.3 : tang ? 0.4 : 0.45, metalness: def.silver ? 0.12 : 0.15, flatShading: !tang, side: THREE.DoubleSide, emissive: def.silver ? '#9fb4c4' : tang && def.geo !== 'tri' ? '#123a8a' : '#000000', emissiveIntensity: def.silver ? 0.22 : tang && def.geo !== 'tri' ? 0.25 : 0 }), def.n));
   mesh.frustumCulled = false;
   const base = new THREE.Color(def.color), c = new THREE.Color();
   const fish = [];
   for (let i = 0; i < def.n; i++) {
-    c.copy(base).offsetHSL((rand() - 0.5) * 0.04, 0, tang ? -rand() * 0.05 : (rand() - 0.5) * 0.12);
+    c.copy(base).offsetHSL((rand() - 0.5) * 0.04, 0, tang ? -rand() * 0.05 : def.silver ? (rand() - 0.5) * 0.05 : (rand() - 0.5) * 0.12);
     mesh.setColorAt(i, c);
-    fish.push({ o: new THREE.Vector3((rand() - 0.5) * 2, (rand() - 0.5), (rand() - 0.5) * 2).multiplyScalar(def.spread), ph: rand() * 6, w: 0.35 + rand() * 0.45, s: def.size * (0.8 + rand() * 0.4),
+    fish.push({ col: c.clone(), o: new THREE.Vector3((rand() - 0.5) * 2, (rand() - 0.5), (rand() - 0.5) * 2).multiplyScalar(def.spread), ph: rand() * 6, w: 0.35 + rand() * 0.45, s: def.size * (0.8 + rand() * 0.4),
       // 혼자 다닐 때의 길: 자기만의 반지름, 높이, 속도, 그리고 언제 무리를 떠날지
       soloR: 9.5 + rand() * 9, soloY: 1.6 + rand() * 4.5, soloW: (rand() < 0.5 ? -1 : 1) * (0.04 + rand() * 0.05), soloPh: rand() * 6.28, leave: rand() * 6.28, leaveSp: 0.025 + rand() * 0.03 });
   }
@@ -892,6 +892,7 @@ for (const def of SCHOOLS) {
   scene.add(mesh);
   schools.push({ ...def, mesh, fish, ph0: (def.swing || def.wander) ? def.ph0 : rand() * 6, sw0: rand() * 6 });
 }
+const fishCol = new THREE.Color();
 const cNow = new THREE.Vector3(), cNext = new THREE.Vector3(), fishVel = new THREE.Vector3(), fishTmp = new THREE.Vector3();
 function schoolCenter(sc, t, out) {
   if (sc.wander) {
@@ -954,8 +955,16 @@ function updateFish(t) {
       dummy.scale.setScalar(f.s);
       dummy.updateMatrix();
       sc.mesh.setMatrixAt(i, dummy.matrix);
+      if (sc.silver) {
+        // 은빛 물고기: 몸을 틀 때마다 옆구리가 빛을 받아 반짝임 (서로 다른 때에)
+        const turn = Math.atan2(fB.x - fA.x, fB.z - fA.z);
+        const k = Math.pow(Math.max(0, Math.sin(t * 2.2 + f.ph * 5.1 + turn * 2.5)), 14) + 0.6 * Math.pow(Math.max(0, Math.sin(t * 4 + f.ph)), 30);
+        fishCol.copy(f.col).multiplyScalar(1.0 + 1.8 * k);
+        sc.mesh.setColorAt(i, fishCol);
+      }
     });
     sc.mesh.instanceMatrix.needsUpdate = true;
+    if (sc.silver) sc.mesh.instanceColor.needsUpdate = true;
   }
 }
 
