@@ -90,6 +90,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
   bottom:calc(env(safe-area-inset-bottom,0px) + 214px);
   font-size:13px;color:var(--ink);background:var(--glass);border:1px solid var(--line);
   border-radius:999px;padding:9px 16px;white-space:nowrap;
+  pointer-events:none;   /* 안내 글 위를 눌러도 화면이 눌리게 */
 }
 
 .peer-menu{
@@ -344,7 +345,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.14-99';
+const BUILD = '11.14-100';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -2207,6 +2208,17 @@ function updateViewCup(dt, t) {
 let teaPending = null, teaSitting = null, teaServeTo = null, keepTP = false, homeSeat = null, teaAutoFP = false;
 let onMat = null;   // 몸풀기 매트 번호 (매트 위에 있을 때)
 let edgeSit = null; // 돔 가장자리에 앉아 바다를 바라볼 때 { x, z, heading }
+const nearGlass = () => Math.hypot(pos2.x - DOME_CENTER.x, pos2.y - DOME_CENTER.z) > DOME_R - 1.9;
+let glassHintAt = -1e9, wasNearGlass = false;
+/* 유리 가까이 가면 한 번 알려 줌: 두 번 톡 하면 앉아서 바다 보기 */
+function glassHint() {
+  const near = nearGlass() && !edgeSit && mySeat === null && teaSitting === null && onMat === null && !arriving && !leaving && !(moveTarget && (moveTarget.edge || (moveTarget.then && moveTarget.then.edge)));
+  if (near && !wasNearGlass && performance.now() - glassHintAt > 45000 && domeUiShown) {
+    glassHintAt = performance.now();
+    toast(coarse ? '유리 앞이에요 · 화면을 두 번 톡 하면 앉아서 바다를 볼 수 있어요' : '유리 앞이에요 · 두 번 클릭하면 앉아서 바다를 볼 수 있어요');
+  }
+  wasNearGlass = near;
+}
 function startEdgeSit() {
   const dx = pos2.x - DOME_CENTER.x, dz = pos2.y - DOME_CENTER.z;
   const h = Math.atan2(-dx, -dz);        // 바깥(바다)을 바라보는 방향
@@ -3245,6 +3257,7 @@ function updateWalk(dt, t) {
   if (teaSitting !== null) { const sp = teaSpot(teaSitting); pos2.set(sp.x, sp.z); heading = sp.heading; }
   if (edgeSit && (mag > 0.15 || moveTarget)) edgeSit = null;           // 움직이면 일어남
   if (edgeSit) { pos2.set(edgeSit.x, edgeSit.z); heading = edgeSit.heading; }
+  glassHint();
   if (mag > 0.05) { moveTarget = null; teaPending = null; keepTP = false; }
   else if (moveTarget) {
     const dx = moveTarget.x - pos2.x, dz = moveTarget.y - pos2.y, dist = Math.hypot(dx, dz);
@@ -3527,7 +3540,12 @@ canvas.addEventListener('pointerup', e => {
     if (!firstPerson && Math.hypot(e.clientX - sx, e.clientY - sy) < rad) { greet(held >= 550 ? 'bow' : 'hello'); return; }
     if (firstPerson && held >= 550 && domeUiShown) { greet('bow'); return; }
     const now = performance.now();
-    if (firstPerson && domeUiShown && lastTap && now - lastTap.t < 320 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 40) {
+    const dbl = lastTap && now - lastTap.t < 350 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 40;
+    if (dbl && nearGlass() && !edgeSit && domeUiShown) {
+      lastTap = null; moveTarget = null; if (mySeat !== null) { homeSeat = mySeat; mySeat = null; }
+      startEdgeSit(); return;
+    }
+    if (firstPerson && domeUiShown && dbl) {
       lastTap = null; moveTarget = lastTapPrevTarget; greet('hello'); return;
     }
     lastTapPrevTarget = moveTarget;
