@@ -344,7 +344,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.14-98';
+const BUILD = '11.14-99';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -2206,6 +2206,18 @@ function updateViewCup(dt, t) {
 }
 let teaPending = null, teaSitting = null, teaServeTo = null, keepTP = false, homeSeat = null, teaAutoFP = false;
 let onMat = null;   // 몸풀기 매트 번호 (매트 위에 있을 때)
+let edgeSit = null; // 돔 가장자리에 앉아 바다를 바라볼 때 { x, z, heading }
+function startEdgeSit() {
+  const dx = pos2.x - DOME_CENTER.x, dz = pos2.y - DOME_CENTER.z;
+  const h = Math.atan2(-dx, -dz);        // 바깥(바다)을 바라보는 방향
+  edgeSit = { x: pos2.x, z: pos2.y, heading: h };
+  heading = h; camYaw = h; camPitchOff = 0; fpPitch = 0.12;
+  lastLookAt = performance.now();
+  keepTP = false;
+  if (!firstPerson) setView(true);        // 내 눈으로 넓게 바다를 봄
+  toast('바다를 보며 앉았어요 · 끌어서 둘러봐요');
+  sendPresence(true);
+}
 const exActive = () => !!(myGesture && EX_T[myGesture.k] && performance.now() - myGesture.at < EX_T[myGesture.k] * 1000);
 function matTaken(i) {
   for (const v of peerViews.values()) if (!v.out && Math.hypot(v.g.position.x - MATS[i].x, v.g.position.z - MATS[i].z) < 0.6) return true;
@@ -2254,6 +2266,7 @@ function walkPath(x, z, extra) {
 }
 function backToSeat() {
   if (mySeat !== null) { toast('방석에 앉아 있어요'); return; }
+  edgeSit = null;
   if (exActive()) return;
   onMat = null;
   if (teaRituals.some(r => r.fig === myFig)) { toast('차를 다 마신 뒤에 자리로 가요'); return; }
@@ -3230,6 +3243,8 @@ function updateWalk(dt, t) {
   if (onMat !== null && (mag > 0.05 || moveTarget)) onMat = null;
   else if (teaSitting !== null && mag > 0.15) teaSitting = null;
   if (teaSitting !== null) { const sp = teaSpot(teaSitting); pos2.set(sp.x, sp.z); heading = sp.heading; }
+  if (edgeSit && (mag > 0.15 || moveTarget)) edgeSit = null;           // 움직이면 일어남
+  if (edgeSit) { pos2.set(edgeSit.x, edgeSit.z); heading = edgeSit.heading; }
   if (mag > 0.05) { moveTarget = null; teaPending = null; keepTP = false; }
   else if (moveTarget) {
     const dx = moveTarget.x - pos2.x, dz = moveTarget.y - pos2.y, dist = Math.hypot(dx, dz);
@@ -3238,6 +3253,7 @@ function updateWalk(dt, t) {
       moveTarget = mt.then || null;
       if (!moveTarget) {
         if (teaPending !== null) { const c = teaPending; teaPending = null; beginMyTea(c); }
+        else if (mt.edge) startEdgeSit();
         else if (mt.mat !== undefined) { onMat = mt.mat; pos2.set(MATS[mt.mat].x, MATS[mt.mat].z); startExercise(mt.ex); }
         else if (mt.seat !== undefined) { keepTP = false; if (!takenSeats.has(mt.seat)) sitAt(mt.seat); else { const s2 = freeSeat(); if (s2 !== null) sitAt(s2); } }
       }
@@ -3302,7 +3318,7 @@ function updateWalk(dt, t) {
   }
   { const fk = faceK(myGesture), T = fk > 0 ? personPos(myGesture.to) : null;
     if (T && T !== orb.position) orb.rotation.y += angTo(orb.rotation.y, Math.atan2(T.x - orb.position.x, T.z - orb.position.z)) * fk; }
-  applyPose(myFig, gesturePose(myGesture), t, mySeat !== null || teaSitting !== null ? 1 : 0, move);
+  applyPose(myFig, gesturePose(myGesture), t, mySeat !== null || teaSitting !== null || edgeSit ? 1 : 0, move);
 
   trailTimer -= dt;
   // 걸을 때 뒤로 남는 물방울은 돔 밖(물속)에서만. 돔 안은 공기라서 물방울이 생기지 않음
@@ -3338,7 +3354,7 @@ function updateWalk(dt, t) {
   camGoal.y = Math.min(Math.max(camGoal.y, groundH(camGoal.x, camGoal.z) + 1.3), SURF - 1.5);
   tpCam.lerp(camGoal, a);
   camera.position.copy(tpCam);
-  const wantFov = firstPerson ? (mySeat !== null && teaView < 0.01 ? (camera.aspect < 1 ? 108 : 76) : teaView > 0.01 ? (camera.aspect < 1 ? 96 : 74) : camera.aspect < 1 ? 80 : 70) : mySeat !== null && camera.aspect < 1 ? 84 : 60;
+  const wantFov = firstPerson && edgeSit ? (camera.aspect < 1 ? 104 : 82) : firstPerson ? (mySeat !== null && teaView < 0.01 ? (camera.aspect < 1 ? 108 : 76) : teaView > 0.01 ? (camera.aspect < 1 ? 96 : 74) : camera.aspect < 1 ? 80 : 70) : mySeat !== null && camera.aspect < 1 ? 84 : 60;
   if (Math.abs(camera.fov - wantFov) > 0.1) { camera.fov += (wantFov - camera.fov) * Math.min(1, dt * 4); camera.updateProjectionMatrix(); }
   camera.up.set(0, 1, 0);
   const ahead = Math.min(1, camZoom * camZoom);
@@ -3453,7 +3469,7 @@ canvas.addEventListener('pointermove', e => {
     return;
   }
   // 한 손가락으로 끌기 = 걷기
-  if (e.pointerType === 'touch' && touches.size === 1 && dragMove.id === e.pointerId && !travel && !atBeach) {
+  if (e.pointerType === 'touch' && touches.size === 1 && dragMove.id === e.pointerId && !travel && !atBeach && !edgeSit) {
     const dx = e.clientX - dragMove.sx, dy = e.clientY - dragMove.sy;
     if (!dragMove.on && Math.hypot(dx, dy) < 10) return;
     if (!dragMove.on) { dragMove.on = true; try { canvas.setPointerCapture(e.pointerId); } catch (err) {} }
@@ -3469,7 +3485,7 @@ canvas.addEventListener('pointermove', e => {
   dragLook.x = e.clientX; dragLook.y = e.clientY;
   camYaw -= dx * 0.006;
   camPitchOff = Math.max(-1.6, Math.min(1.0, camPitchOff + dy * 0.004));
-  fpPitch = Math.max(-1.2, Math.min(1.35, fpPitch - dy * 0.004));
+  fpPitch = Math.max(-1.2, Math.min(edgeSit ? 1.5 : 1.35, fpPitch - dy * 0.004));
   lastLookAt = performance.now();
 });
 const endLook = e => {
@@ -3550,13 +3566,16 @@ canvas.addEventListener('pointerup', e => {
   const gl = Math.hypot(gx, gz);
   if (gl > LIMIT) { gx *= LIMIT / gl; gz *= LIMIT / gl; }
   gz = Math.min(gz, 32);
+  let edge = false;
   {
-    const dx = gx - DOME_CENTER.x, dz = gz - DOME_CENTER.z, d = Math.hypot(dx, dz), m = DOME_R - 0.55;
+    const dx = gx - DOME_CENTER.x, dz = gz - DOME_CENTER.z, d = Math.hypot(dx, dz), m = DOME_R - 0.75;
+    if (d > DOME_R - 1.6) edge = true;                       // 유리 가까이를 누르면 가장자리에 앉기
     if (d > m) { gx = DOME_CENTER.x + dx / d * m; gz = DOME_CENTER.z + dz / d * m; }
     gh = HOUSE_BASE + 0.17;
   }
-  if (mySeat !== null) { mySeat = null; $('seatBtn').textContent = '방석에 앉기'; }
-  moveTarget = { x: gx, y: gz, h: gh };
+  if (mySeat !== null) { homeSeat = mySeat; mySeat = null; $('seatBtn').textContent = '방석에 앉기'; }
+  edgeSit = null; onMat = null;
+  moveTarget = edge ? walkPath(gx, gz, { edge: true }) : { x: gx, y: gz, h: gh };
 });
 /* 나에게 온 인사·차 대접 알림 (8초 동안 남고, 바로 답할 수 있음) */
 let noticeFrom = null, noticeTimer = 0, drinkWhenLanded = false;
@@ -3845,7 +3864,7 @@ function sendPresence(force) {
   if (!room) return;
   const now = performance.now();
   if (!force && now - lastPresenceAt < 100) return;
-  const obj = { n: myNick, rs: arriving && !arriving.landed && arriving.seat !== null ? arriving.seat : -1, hp: solo ? 1 : 0, ts: teaPending !== null ? teaPending : teaSitting !== null ? teaSitting : -1, o: iAmOut ? 1 : leaving ? 2 : 0, p: (mySeat !== null || atBeach || teaSitting !== null) ? 1 : 0, x: +orb.position.x.toFixed(2), y: +orb.position.y.toFixed(2), z: +orb.position.z.toFixed(2), h: +orb.rotation.y.toFixed(2), b: (travel || bubbleOn) ? 1 : 0, s: mySeat, g: Object.assign({ k: myGesture.k, n: myGesture.n }, Number.isInteger(myGesture.c) ? { c: myGesture.c } : {}, myGesture.to ? { to: myGesture.to } : {}, myGesture.re ? { re: 1 } : {}), r: { n: myRing.n, at: myRing.at } };
+  const obj = { n: myNick, rs: arriving && !arriving.landed && arriving.seat !== null ? arriving.seat : -1, hp: solo ? 1 : 0, ts: teaPending !== null ? teaPending : teaSitting !== null ? teaSitting : -1, o: iAmOut ? 1 : leaving ? 2 : 0, p: (mySeat !== null || atBeach || teaSitting !== null || edgeSit) ? 1 : 0, x: +orb.position.x.toFixed(2), y: +orb.position.y.toFixed(2), z: +orb.position.z.toFixed(2), h: +orb.rotation.y.toFixed(2), b: (travel || bubbleOn) ? 1 : 0, s: mySeat, g: Object.assign({ k: myGesture.k, n: myGesture.n }, Number.isInteger(myGesture.c) ? { c: myGesture.c } : {}, myGesture.to ? { to: myGesture.to } : {}, myGesture.re ? { re: 1 } : {}), r: { n: myRing.n, at: myRing.at } };
   const str = JSON.stringify(obj);
   if (str === lastPresence && !(fb && now - lastPresenceAt > 10000)) return;
   lastPresence = str; lastPresenceAt = now;
@@ -3913,7 +3932,7 @@ function updateDomeUi(near) {
   $('toDome').hidden = near;
   $('toDome').textContent = '돔으로 가기';
   $('hint').textContent = near
-    ? (coarse ? '손가락으로 끌면 그쪽으로 걸어가요 (옆으로 끌면 돌아요) · 두 손가락으로 끌면 둘러보기 · 방석을 누르면 앉아요 · 싱잉볼을 누르면 소리만 울려요 · 사람을 누르면 합장 인사 · 나가기를 누르면 빛을 타고 돌아가요' : '바닥 누르기·방향키로 움직여요 · 방석을 누르거나 F로 앉기 · 1 안녕하세요, 2 합장, 3 종, 4 차, P 사진, V 시점 · 싱잉볼을 누르면 소리만 · 끌어서 둘러보기 · 나가기를 누르면 빛을 타고 돌아가요')
+    ? (coarse ? '손가락으로 끌면 그쪽으로 걸어가요 (옆으로 끌면 돌아요) · 두 손가락으로 끌면 둘러보기 · 방석을 누르면 앉아요 · 유리 가까이 바닥을 누르면 바다를 보며 앉아요 · 싱잉볼을 누르면 소리만 울려요 · 사람을 누르면 합장 인사 · 나가기를 누르면 빛을 타고 돌아가요' : '바닥 누르기·방향키로 움직여요 · 방석을 누르거나 F로 앉기 · 유리 가까이 바닥을 누르면 바다를 보며 앉기 · 1 안녕하세요, 2 합장, 3 종, 4 차, P 사진, V 시점 · 싱잉볼을 누르면 소리만 · 끌어서 둘러보기 · 나가기를 누르면 빛을 타고 돌아가요')
     : (coarse ? '바닥을 누르거나 왼쪽 아래 원으로 움직여요 · 끌어서 둘러보기' : '바닥을 누르거나 방향키로 움직여요 · 끌어서 둘러보기 · 휠로 가까이·멀리');
 }
 
