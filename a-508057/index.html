@@ -345,7 +345,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.14-104';
+const BUILD = '11.14-105';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -2430,6 +2430,8 @@ function makeFigure(color) {
     M(new THREE.CircleGeometry(0.045, 20), blushMat, sd * 0.16, -0.085, 0.226, head, 1, 0.6, 1).rotation.y = sd * 0.55;
   });
   eyesClosed.visible = false;
+  // 양쪽 귀 (고개 돌린 방향이 보이게)
+  [-1, 1].forEach(sd => { M(ball(0.076), skin, sd * 0.272, -0.03, -0.01, head, 0.5, 0.95, 0.75).rotation.y = sd * -0.25; });
   // 짧고 통통한 팔과 동그란 손
   const arms = [];
   [-1, 1].forEach(side => {
