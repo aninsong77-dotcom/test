@@ -345,7 +345,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.14-105';
+const BUILD = '11.14-106';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -2531,7 +2531,7 @@ function applyPose(fig, pose, t, sit = 1, walk = 0) {
   fig.head.rotation.x = dip * 0.3 - sip * 0.22;
   fig.head.rotation.z = wave * Math.sin(t * 5) * 0.12 + Math.sin(t * 0.9 + fig.blinkPh) * 0.03 * up;
   // 명상할 때는 눈을 감고, 서 있을 때는 가끔 깜빡임
-  const meditating = s > 0.6 && !wave && !tp && !fig.lookingOut;
+  const meditating = s > 0.6 && !wave && !tp && !fig.lookingOut && !!fig.meditate;
   fig.eyesClosed.visible = meditating;
   fig.eyesOpen.visible = !meditating;
   const bl = (t + fig.blinkPh) % 4.2;
@@ -3350,6 +3350,7 @@ function updateWalk(dt, t) {
   { const fk = faceK(myGesture), T = fk > 0 ? personPos(myGesture.to) : null;
     if (T && T !== orb.position) orb.rotation.y += angTo(orb.rotation.y, Math.atan2(T.x - orb.position.x, T.z - orb.position.z)) * fk; }
   myFig.lookingOut = !!edgeSit;
+  myFig.meditate = mySeat !== null && (!!solo || groupMeditating());   // 명상 중일 때만 눈을 감음
   applyPose(myFig, gesturePose(myGesture), t, mySeat !== null || teaSitting !== null || edgeSit ? 1 : 0, move);
 
   trailTimer -= dt;
@@ -3799,6 +3800,7 @@ async function renderPeers(peers) {
     v.yaw = seat !== null ? Math.atan2(DOME_CENTER.x - x, DOME_CENTER.z - z) : (Number.isFinite(pr.h) ? pr.h : v.yaw);
     v.sitWant = pr.p === 0 ? 0 : 1;
     v.fig.lookingOut = pr.eo === 1;
+    v.hp = pr.hp === 1;
     v.gaze = Number.isFinite(pr.ly) ? { y: pr.ly, p: Number.isFinite(pr.lp) ? pr.lp : 0 } : null;   // 가장자리에서 바다를 보는 중이면 눈을 뜸
     const wantBub = pr.b === 1;
     if (wantBub && !v.bubOn) { v.bub.visible = true; v.bub.scale.setScalar(0.3); v.bubGrow = performance.now(); }
@@ -3861,6 +3863,7 @@ function updatePeers(dt, t) {
     let dy = wantYaw - v.g.rotation.y;
     dy = Math.atan2(Math.sin(dy), Math.cos(dy));
     v.g.rotation.y += dy * Math.min(1, dt * 6);
+    v.fig.meditate = v.seat !== null && (v.hp || groupMeditating());
     applyPose(v.fig, gesturePose(v.gesture), t, v.sitWant === 0 ? 0 : 1, v.sitWant === 0 ? Math.min(1, gap * 4) : 0);
     { // 그 사람이 보는 쪽으로 고개를 돌림 (몸 기준 좌우 ±70°, 위아래)
       const hd = v.fig.head; hd.rotation.order = 'YXZ';
@@ -4313,6 +4316,12 @@ $('soloWait').addEventListener('click', () => { $('soloSheet').hidden = true; to
 $('joinGroupBtn').addEventListener('click', () => { if (solo) stopSolo(); groupOptOut = false; unlockAudio(); tick(); toast('함께 명상해요'); });
 /* 나가기를 눌러 빛을 타고 나갔거나 끝 화면에 있으면 '나간 사람' (명상 소리를 내지 않음) */
 const isOut = () => { try { return !!(leaving || iAmOut); } catch (e) { return false; } };
+/* 다 함께 하는 명상 음성이 지금 흐르는 중인지 */
+function groupMeditating() {
+  if (session.state !== 'playing') return false;
+  const el = (Date.now() - session.startAt) / 1000;
+  return el >= 0 && el < durSec();
+}
 function syncAudio() {
   if (audioOk === false) return;
   // 나간 사람은 명상 음성을 멈춤: 9시 명상이 아직 진행 중이어도, 다른 사람이 종을 쳐도 다시 틀지 않음
