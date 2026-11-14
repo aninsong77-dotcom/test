@@ -243,7 +243,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
     <a id="padletLink" href="#" hidden>패들렛</a>
   </div>
   <div class="row" id="soundRow" hidden>
-    <button type="button" class="primary" id="soundBtn">소리 켜기</button>
+    <button type="button" class="primary" id="soundBtn">🔊 눌러서 명상 소리 듣기</button>
   </div>
 </div>
 
@@ -339,7 +339,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.14-94';
+const BUILD = '11.14-95';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -4175,20 +4175,25 @@ function unlockAudio() {
   else { audio.muted = false; audioUnlocked = true; }
 }
 $('soundBtn').addEventListener('click', unlockAudio);
-document.addEventListener('pointerdown', () => {
+/* 소리 허락 받기: 폰 브라우저는 '손을 뗄 때(탭이 끝날 때)'의 동작에서만 소리를 허락함 (누르는 순간·끌기 시작은 안 됨)
+   그래서 화면을 탭하거나 끌다 손을 뗄 때마다, 아직 허락을 못 받았으면 받아 둠 → 9시가 되면 저절로 음성이 나옴 */
+function onUserGesture() {
+  ensureCtx();
+  if (!audioUnlocked) unlockAudio();
   const want = !isOut() && audioOk && (solo || (session.state === 'playing' && !groupOptOut && Date.now() >= session.startAt));
   if (!want || !audio.paused) return;
   audio.muted = false;
   const p = audio.play();
   if (p && p.then) p.then(() => { audioUnlocked = true; syncAudio(); updateSessionText(); }).catch(() => {});
-}, true);
+}
+['pointerup', 'touchend', 'keydown', 'click'].forEach(ev => document.addEventListener(ev, onUserGesture, { capture: true, passive: true }));
 const fmt = sec => { sec = Math.max(0, Math.floor(sec)); return `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`; };
 function fmtLeft(ms) {
   const m = Math.ceil(ms / 60000);
   if (m <= 60) return ms < 60000 ? `${Math.ceil(ms / 1000)}초 남음` : `${m}분 남음`;
   return `${Math.floor(m / 60)}시간 ${m % 60}분 남음`;
 }
-let lastSeekAt = -1e9;
+let lastSeekAt = -1e9, autoTriedFor = 0;
 /* 혼자 명상(헤드셋): 정해진 시간과 상관없이 나만 듣는 명상. 단체 명상(9시·종)은 방해하지 않고 원하면 '함께하기' */
 let solo = null, groupOptOut = false;
 function startSolo() {
@@ -4241,7 +4246,17 @@ function syncAudio() {
   else startAt = session.startAt;
   const el = (Date.now() - startAt) / 1000;
   if (el < 0 || el >= durSec()) { if (!audio.paused) audio.pause(); return; }
-  if (!audioUnlocked) return;
+  if (!audioUnlocked) {
+    // 허락 표시가 없어도 한 번은 틀어 봄 (이미 이 사이트에서 소리를 허락한 브라우저면 그대로 나옴)
+    if (autoTriedFor !== startAt) {
+      autoTriedFor = startAt;
+      try { audio.currentTime = el; } catch (e) {}
+      audio.muted = false;
+      const pr = audio.play();
+      if (pr && pr.then) pr.then(() => { audioUnlocked = true; updateSessionText(); }).catch(() => { updateSessionText(); });
+    }
+    return;
+  }
   if (audio.paused) {
     try { if (Math.abs(audio.currentTime - el) > 0.5) audio.currentTime = el; } catch (e) {}
     audio.play().catch(() => { audioUnlocked = false; updateSessionText(); });
