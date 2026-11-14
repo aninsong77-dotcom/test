@@ -345,7 +345,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.14-100';
+const BUILD = '11.14-101';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -2515,7 +2515,7 @@ function applyPose(fig, pose, t, sit = 1, walk = 0) {
   fig.head.rotation.x = dip * 0.3 - sip * 0.22;
   fig.head.rotation.z = wave * Math.sin(t * 5) * 0.12 + Math.sin(t * 0.9 + fig.blinkPh) * 0.03 * up;
   // 명상할 때는 눈을 감고, 서 있을 때는 가끔 깜빡임
-  const meditating = s > 0.6 && !wave && !tp;
+  const meditating = s > 0.6 && !wave && !tp && !fig.lookingOut;
   fig.eyesClosed.visible = meditating;
   fig.eyesOpen.visible = !meditating;
   const bl = (t + fig.blinkPh) % 4.2;
@@ -3331,6 +3331,7 @@ function updateWalk(dt, t) {
   }
   { const fk = faceK(myGesture), T = fk > 0 ? personPos(myGesture.to) : null;
     if (T && T !== orb.position) orb.rotation.y += angTo(orb.rotation.y, Math.atan2(T.x - orb.position.x, T.z - orb.position.z)) * fk; }
+  myFig.lookingOut = !!edgeSit;
   applyPose(myFig, gesturePose(myGesture), t, mySeat !== null || teaSitting !== null || edgeSit ? 1 : 0, move);
 
   trailTimer -= dt;
@@ -3776,6 +3777,7 @@ async function renderPeers(peers) {
     v.target.set(x, y, z);
     v.yaw = seat !== null ? Math.atan2(DOME_CENTER.x - x, DOME_CENTER.z - z) : (Number.isFinite(pr.h) ? pr.h : v.yaw);
     v.sitWant = pr.p === 0 ? 0 : 1;
+    v.fig.lookingOut = pr.eo === 1;   // 가장자리에서 바다를 보는 중이면 눈을 뜸
     const wantBub = pr.b === 1;
     if (wantBub && !v.bubOn) { v.bub.visible = true; v.bub.scale.setScalar(0.3); v.bubGrow = performance.now(); }
     else if (!wantBub && v.bubOn) popBubble(v.bub, v.g, false);
@@ -3882,7 +3884,7 @@ function sendPresence(force) {
   if (!room) return;
   const now = performance.now();
   if (!force && now - lastPresenceAt < 100) return;
-  const obj = { n: myNick, rs: arriving && !arriving.landed && arriving.seat !== null ? arriving.seat : -1, hp: solo ? 1 : 0, ts: teaPending !== null ? teaPending : teaSitting !== null ? teaSitting : -1, o: iAmOut ? 1 : leaving ? 2 : 0, p: (mySeat !== null || atBeach || teaSitting !== null || edgeSit) ? 1 : 0, x: +orb.position.x.toFixed(2), y: +orb.position.y.toFixed(2), z: +orb.position.z.toFixed(2), h: +orb.rotation.y.toFixed(2), b: (travel || bubbleOn) ? 1 : 0, s: mySeat, g: Object.assign({ k: myGesture.k, n: myGesture.n }, Number.isInteger(myGesture.c) ? { c: myGesture.c } : {}, myGesture.to ? { to: myGesture.to } : {}, myGesture.re ? { re: 1 } : {}), r: { n: myRing.n, at: myRing.at } };
+  const obj = { eo: edgeSit ? 1 : 0, n: myNick, rs: arriving && !arriving.landed && arriving.seat !== null ? arriving.seat : -1, hp: solo ? 1 : 0, ts: teaPending !== null ? teaPending : teaSitting !== null ? teaSitting : -1, o: iAmOut ? 1 : leaving ? 2 : 0, p: (mySeat !== null || atBeach || teaSitting !== null || edgeSit) ? 1 : 0, x: +orb.position.x.toFixed(2), y: +orb.position.y.toFixed(2), z: +orb.position.z.toFixed(2), h: +orb.rotation.y.toFixed(2), b: (travel || bubbleOn) ? 1 : 0, s: mySeat, g: Object.assign({ k: myGesture.k, n: myGesture.n }, Number.isInteger(myGesture.c) ? { c: myGesture.c } : {}, myGesture.to ? { to: myGesture.to } : {}, myGesture.re ? { re: 1 } : {}), r: { n: myRing.n, at: myRing.at } };
   const str = JSON.stringify(obj);
   if (str === lastPresence && !(fb && now - lastPresenceAt > 10000)) return;
   lastPresence = str; lastPresenceAt = now;
