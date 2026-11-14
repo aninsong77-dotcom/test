@@ -212,6 +212,11 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
   <button type="button" id="noticeBow">합장으로 답례</button>
   <button type="button" id="noticeClose" aria-label="닫기">✕</button>
 </div>
+<div class="peer-menu is-hidden" id="bgmMenu" role="menu" aria-label="음악 고르기">
+  <button type="button" data-bgm="piano" role="menuitemradio">🎹 피아노</button>
+  <button type="button" data-bgm="ambient" role="menuitemradio">🌊 잔잔한 소리</button>
+  <button type="button" data-bgm="off" role="menuitemradio">끄기</button>
+</div>
 <div class="peer-menu is-hidden" id="exMenu" role="menu" aria-label="몸풀기">
   <button type="button" id="exKick" role="menuitem">발차기</button>
   <button type="button" id="exTumble" role="menuitem">덤블링</button>
@@ -339,7 +344,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.14-97';
+const BUILD = '11.14-98';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -4333,7 +4338,10 @@ function ambBubble() {
 }
 const AMB_ENABLED = false;   // 브라우저에서 만드는 바다 소리는 쓰지 않음
 /* 배경 음악: 피아노 곡 (Pixabay 'Piano for Meditation', 무료 사용 허용 곡)을 아주 작게 반복 */
-const bgm = new Audio('bgm.mp3');
+const BGM_TRACKS = { piano: { src: 'bgm.mp3', name: '피아노' }, ambient: { src: 'bgm2.mp3', name: '잔잔한 소리' } };
+let bgmTrack = 'piano';
+try { const v = localStorage.getItem('a508057:bgmTrack'); if (BGM_TRACKS[v]) bgmTrack = v; } catch (e) {}
+const bgm = new Audio(BGM_TRACKS[bgmTrack].src);
 bgm.loop = true; bgm.preload = 'auto'; bgm.volume = 0;
 let bgmVol = 0, bgmWant = 0, bgmStarted = false;
 let bgmHinted = false;
@@ -4393,13 +4401,41 @@ function ambUpdate() {
     amb.out.gain.setTargetAtTime(want * 0.26, actx.currentTime, want ? 2.5 : 1.2);   // 천천히 커지고 줄어듦
   }
 }
-function ambButton() { $('ambBtn').textContent = amb.on ? '🎵 음악 끄기' : '🎵 음악 켜기'; $('ambBtn').setAttribute('aria-pressed', amb.on ? 'true' : 'false'); }
-$('ambBtn').addEventListener('click', () => {
-  amb.on = !amb.on;
-  try { localStorage.setItem('a508057:amb', amb.on ? 'on' : 'off'); } catch (e) {}
-  if (amb.on) { bgmStarted = true; bgm.play().catch(() => {}); }
-  ambEnsure(); ambButton(); ambUpdate();
+function ambButton() { $('ambBtn').textContent = amb.on ? '🎵 ' + BGM_TRACKS[bgmTrack].name : '🎵 음악'; $('ambBtn').setAttribute('aria-pressed', amb.on ? 'true' : 'false'); }
+/* 음악 고르기: 버튼을 누르면 메뉴 (피아노 / 잔잔한 소리 / 끄기) */
+function closeBgmMenu() { $('bgmMenu').classList.add('is-hidden'); }
+$('ambBtn').addEventListener('click', e => {
+  e.stopPropagation();
+  const m = $('bgmMenu');
+  if (!m.classList.contains('is-hidden')) { closeBgmMenu(); return; }
+  for (const b of m.querySelectorAll('button')) {
+    const on = b.dataset.bgm === 'off' ? !amb.on : (amb.on && b.dataset.bgm === bgmTrack);
+    b.setAttribute('aria-checked', on ? 'true' : 'false');
+    b.classList.toggle('primary', on);
+  }
+  m.classList.remove('is-hidden');
+  const r = $('ambBtn').getBoundingClientRect(), w = m.offsetWidth;
+  m.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, r.right - w)) + 'px';
+  m.style.top = (r.bottom + 8) + 'px';
 });
+$('bgmMenu').addEventListener('click', e => {
+  const b = e.target.closest('button[data-bgm]'); if (!b) return;
+  const v = b.dataset.bgm;
+  closeBgmMenu();
+  if (v === 'off') amb.on = false;
+  else {
+    amb.on = true;
+    if (v !== bgmTrack) {
+      bgmTrack = v;
+      bgm.pause(); bgm.src = BGM_TRACKS[v].src; bgm.currentTime = 0; bgmVol = 0; bgm.volume = 0;
+      try { localStorage.setItem('a508057:bgmTrack', v); } catch (err) {}
+    }
+    bgmStarted = true; bgm.play().catch(() => {});   // 고른 그 순간에 바로 재생
+  }
+  try { localStorage.setItem('a508057:amb', amb.on ? 'on' : 'off'); } catch (err) {}
+  ambButton(); ambUpdate();
+});
+canvas.addEventListener('pointerdown', closeBgmMenu);
 ambButton();
 // 브라우저는 사람이 화면을 한 번 누른 뒤에만 소리를 낼 수 있어서, 처음 누를 때 시작
 ['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, () => { ambEnsure(); ambUpdate(); }, { once: false, passive: true }));
