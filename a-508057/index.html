@@ -345,7 +345,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.14-102';
+const BUILD = '11.14-104';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -868,9 +868,10 @@ const SCHOOLS = [
   { n: 8, color: '#ffd23f', size: 0.7, swing: { R: 11.2, dr: 1.6, amp: 1.5 }, ph0: 0.0, y: 2.2, sp: 0.075, spread: 1.4 },
   { n: 7, color: '#5fd0c8', size: 0.75, swing: { R: 12.2, dr: 1.8, amp: 1.7 }, ph0: 2.1, y: 3.6, sp: 0.062, spread: 1.6 },
   { n: 7, color: '#ff8a3d', size: 0.7, swing: { R: 11.6, dr: 1.5, amp: 1.4 }, ph0: 4.2, y: 2.8, sp: 0.07, spread: 1.4 },
-  // 돔 위로 천천히 지나가는 무리 둘: 올려다보면 수면 아래로 물고기 떼가 지나감 (드문드문, 느긋하게)
-  { n: 11, color: '#cfe3ee', size: 0.95, cx: 1, cz: -11, rx: 7, rz: 5.5, y: 14.5, sp: 0.03, spread: 2.8 },
-  { n: 8, color: '#f6cf7a', size: 0.85, cx: -2, cz: -9, rx: 10, rz: 8, y: 18.5, sp: -0.022, spread: 2.4 },
+  // 먼 바다를 떠도는 무리 셋: 멀리 안개 속으로 사라졌다가, 다른 방향에서 다시 돔 곁을 지나감 (높이도 오르내림)
+  { n: 12, color: '#cfe3ee', size: 0.95, wander: { rMin: 10, rMax: 70, pr: 140, pa: 0.018, y0: 3, y1: 19, py: 97 }, ph0: 0.0, sp: 0, spread: 2.8 },
+  { n: 9, color: '#f6cf7a', size: 0.85, wander: { rMin: 11, rMax: 75, pr: 190, pa: -0.013, y0: 5, y1: 21, py: 131 }, ph0: 2.4, sp: 0, spread: 2.4 },
+  { n: 10, color: '#a9c8f0', size: 1.0, wander: { rMin: 12, rMax: 65, pr: 165, pa: 0.011, y0: 2.5, y1: 16, py: 113 }, ph0: 4.6, sp: 0, spread: 2.6 },
 ];
 const schools = [];
 const dummy = new THREE.Object3D();
@@ -889,10 +890,20 @@ for (const def of SCHOOLS) {
   }
   mesh.instanceColor.needsUpdate = true;
   scene.add(mesh);
-  schools.push({ ...def, mesh, fish, ph0: def.swing ? def.ph0 : rand() * 6, sw0: rand() * 6 });
+  schools.push({ ...def, mesh, fish, ph0: (def.swing || def.wander) ? def.ph0 : rand() * 6, sw0: rand() * 6 });
 }
 const cNow = new THREE.Vector3(), cNext = new THREE.Vector3(), fishVel = new THREE.Vector3(), fishTmp = new THREE.Vector3();
 function schoolCenter(sc, t, out) {
+  if (sc.wander) {
+    // 멀어졌다 가까워졌다 (가까울 때는 돔 곁을 스치듯), 도는 방향도 아주 천천히 바뀜
+    const W = sc.wander, ph = sc.ph0 * 7.3;
+    const near = 0.5 - 0.5 * Math.cos((t / W.pr) * Math.PI * 2 + ph);      // 0 = 가까이, 1 = 멀리
+    const r = W.rMin + (W.rMax - W.rMin) * Math.pow(near, 1.4);
+    const a = sc.ph0 + t * W.pa + 0.6 * Math.sin(t / W.pr * 3.1 + ph);
+    const x = DOME_CENTER.x + Math.cos(a) * r, z = DOME_CENTER.z + Math.sin(a) * r * 0.85;
+    const yy = W.y0 + (W.y1 - W.y0) * (0.5 + 0.5 * Math.sin(t / W.py * Math.PI * 2 + ph * 1.3));
+    return out.set(x, Math.min(SURF - 2.5, groundH(x, z) + yy), z);
+  }
   if (sc.swing) {
     // 둘레를 따라 한쪽으로 갔다가 바깥으로 크게 돌아 되돌아옴 (끝에서 휙 뒤집히지 않게)
     const w = sc.sp * t + sc.sw0, S = sc.swing;
@@ -3170,6 +3181,8 @@ const fwd = new THREE.Vector3(0, 0, -1);
 const camDir = new THREE.Vector3(0, 0, -1);
 let teaView = 0;
 let firstPerson = true, fpBlend = 1, fpPitch = -0.12;
+/* 내가 보는 쪽 (다른 사람 화면에서 내 아바타 고개가 따라 돌아감) */
+const myGaze = { on: false, y: 0, p: 0 }, tmp2Gaze = new THREE.Vector3();
 const tpCam = new THREE.Vector3();
 let autoTP = false;
 function setView(fp) {
@@ -3406,13 +3419,16 @@ function updateWalk(dt, t) {
       eyeBack = 0;
     }
     if (mySeat !== null && performance.now() - lastLookAt > 4000 && teaView < 0.01) camYaw += Math.atan2(Math.sin(heading - camYaw), Math.cos(heading - camYaw)) * Math.min(1, dt * 0.8);
+    myGaze.p = fb > 0.6 ? pitchFP : 0;
     const fwdX = -Math.sin(yaw), fwdZ = -Math.cos(yaw);
     const bobY = Math.abs(Math.sin(walkPhase)) * 0.045 * walkBob, bobX = Math.sin(walkPhase) * 0.025 * walkBob;
     const eye = new THREE.Vector3(orb.position.x + fwdX * (0.12 - eyeBack) - fwdZ * bobX, orb.position.y + eyeH + eyeBack * 0.4 + bobY, orb.position.z + fwdZ * (0.12 - eyeBack) + fwdX * bobX);
     const fpLook = eye.clone().add(new THREE.Vector3(fwdX * Math.cos(pitchFP), Math.sin(pitchFP), fwdZ * Math.cos(pitchFP)).multiplyScalar(5));
     camera.position.lerpVectors(tpCam, eye, fb);
     camera.lookAt(new THREE.Vector3().lerpVectors(lookTarget, fpLook, fb));
-  } else camera.lookAt(lookTarget);
+  } else { camera.lookAt(lookTarget); myGaze.p = Math.min(0.9, lookUp * 1.5); }
+  { // 내 화면이 향한 쪽 = 내가 보는 쪽 (눈으로 보기든 내 모습 보기든)
+    const d = camera.getWorldDirection(tmp2Gaze); myGaze.on = true; myGaze.y = Math.atan2(d.x, d.z); }
 
   let foundNow = null;
   for (const c of creatures) {
@@ -3780,7 +3796,8 @@ async function renderPeers(peers) {
     v.target.set(x, y, z);
     v.yaw = seat !== null ? Math.atan2(DOME_CENTER.x - x, DOME_CENTER.z - z) : (Number.isFinite(pr.h) ? pr.h : v.yaw);
     v.sitWant = pr.p === 0 ? 0 : 1;
-    v.fig.lookingOut = pr.eo === 1;   // 가장자리에서 바다를 보는 중이면 눈을 뜸
+    v.fig.lookingOut = pr.eo === 1;
+    v.gaze = Number.isFinite(pr.ly) ? { y: pr.ly, p: Number.isFinite(pr.lp) ? pr.lp : 0 } : null;   // 가장자리에서 바다를 보는 중이면 눈을 뜸
     const wantBub = pr.b === 1;
     if (wantBub && !v.bubOn) { v.bub.visible = true; v.bub.scale.setScalar(0.3); v.bubGrow = performance.now(); }
     else if (!wantBub && v.bubOn) popBubble(v.bub, v.g, false);
@@ -3843,6 +3860,17 @@ function updatePeers(dt, t) {
     dy = Math.atan2(Math.sin(dy), Math.cos(dy));
     v.g.rotation.y += dy * Math.min(1, dt * 6);
     applyPose(v.fig, gesturePose(v.gesture), t, v.sitWant === 0 ? 0 : 1, v.sitWant === 0 ? Math.min(1, gap * 4) : 0);
+    { // 그 사람이 보는 쪽으로 고개를 돌림 (몸 기준 좌우 ±70°, 위아래)
+      const hd = v.fig.head; hd.rotation.order = 'YXZ';
+      const busy = faceK(v.gesture) > 0.05 || v.gesture.k === 'bow';
+      const wy = v.gaze && !busy ? Math.max(-1.2, Math.min(1.2, angTo(v.g.rotation.y, v.gaze.y))) : 0;
+      const wp = v.gaze && !busy ? Math.max(-0.5, Math.min(0.7, v.gaze.p)) : 0;
+      const k = Math.min(1, dt * 3);
+      v.headY = (v.headY || 0) + (wy - (v.headY || 0)) * k;
+      v.headP = (v.headP || 0) + (wp - (v.headP || 0)) * k;
+      hd.rotation.y = v.headY;
+      hd.rotation.x -= v.headP * 0.75;
+    }
     if (!v.out) v.g.visible = camera.position.distanceTo(v.g.position) > 1.0;
     wobbleBubble(v.bub, t);
     if (v.bubGrow) { const ge = (performance.now() - v.bubGrow) / 600; v.bub.scale.setScalar(ge < 1 ? 0.3 + 0.7 * smooth(ge) : 1); if (ge >= 1) v.bubGrow = 0; }
@@ -3888,6 +3916,7 @@ function sendPresence(force) {
   const now = performance.now();
   if (!force && now - lastPresenceAt < 100) return;
   const obj = { eo: edgeSit ? 1 : 0, n: myNick, rs: arriving && !arriving.landed && arriving.seat !== null ? arriving.seat : -1, hp: solo ? 1 : 0, ts: teaPending !== null ? teaPending : teaSitting !== null ? teaSitting : -1, o: iAmOut ? 1 : leaving ? 2 : 0, p: (mySeat !== null || atBeach || teaSitting !== null || edgeSit) ? 1 : 0, x: +orb.position.x.toFixed(2), y: +orb.position.y.toFixed(2), z: +orb.position.z.toFixed(2), h: +orb.rotation.y.toFixed(2), b: (travel || bubbleOn) ? 1 : 0, s: mySeat, g: Object.assign({ k: myGesture.k, n: myGesture.n }, Number.isInteger(myGesture.c) ? { c: myGesture.c } : {}, myGesture.to ? { to: myGesture.to } : {}, myGesture.re ? { re: 1 } : {}), r: { n: myRing.n, at: myRing.at } };
+  if (myGaze.on && !leaving && !arriving) { obj.ly = +Math.atan2(Math.sin(myGaze.y), Math.cos(myGaze.y)).toFixed(1); obj.lp = +Math.max(-1.2, Math.min(1.5, myGaze.p)).toFixed(1); }
   const str = JSON.stringify(obj);
   if (str === lastPresence && !(fb && now - lastPresenceAt > 10000)) return;
   lastPresence = str; lastPresenceAt = now;
