@@ -345,7 +345,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.14-101';
+const BUILD = '11.14-102';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -868,6 +868,9 @@ const SCHOOLS = [
   { n: 8, color: '#ffd23f', size: 0.7, swing: { R: 11.2, dr: 1.6, amp: 1.5 }, ph0: 0.0, y: 2.2, sp: 0.075, spread: 1.4 },
   { n: 7, color: '#5fd0c8', size: 0.75, swing: { R: 12.2, dr: 1.8, amp: 1.7 }, ph0: 2.1, y: 3.6, sp: 0.062, spread: 1.6 },
   { n: 7, color: '#ff8a3d', size: 0.7, swing: { R: 11.6, dr: 1.5, amp: 1.4 }, ph0: 4.2, y: 2.8, sp: 0.07, spread: 1.4 },
+  // 돔 위로 천천히 지나가는 무리 둘: 올려다보면 수면 아래로 물고기 떼가 지나감 (드문드문, 느긋하게)
+  { n: 11, color: '#cfe3ee', size: 0.95, cx: 1, cz: -11, rx: 7, rz: 5.5, y: 14.5, sp: 0.03, spread: 2.8 },
+  { n: 8, color: '#f6cf7a', size: 0.85, cx: -2, cz: -9, rx: 10, rz: 8, y: 18.5, sp: -0.022, spread: 2.4 },
 ];
 const schools = [];
 const dummy = new THREE.Object3D();
