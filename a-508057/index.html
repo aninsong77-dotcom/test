@@ -345,7 +345,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.14-112';
+const BUILD = '11.14-113';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -1580,6 +1580,7 @@ const MATS = (() => {
   const a = Math.PI / 4, r = 6.55, ux = Math.cos(a), uz = Math.sin(a), tx = -uz, tz = ux;
   return [-1, 1].map((sd, i) => ({ lx: ux * r + tx * sd * 0.55, lz: uz * r + tz * sd * 0.55, rot: Math.atan2(ux, uz), col: i ? '#9fc7b8' : '#c9b6dd', x: 0, z: 0 }));
 })();
+const EX_SPOTS = [];
 const TEA_TABLES = [TEA_POS, new THREE.Vector3(-6.7, 0, -1.7), new THREE.Vector3(0, 0, 6.9)];
 const teaSets = [];
 const teaCups = [];
@@ -1655,6 +1656,9 @@ let centerGlow = null, centerCore = null;
     const wp = new THREE.Vector3(M0.lx, 0, M0.lz).add(dome.position);
     M0.x = wp.x; M0.z = wp.z;
   });
+  // 몸풀기 자리: 매트 두 장 + 매트가 차면 쓰는 옆 바닥 자리 넷 (같은 가장자리 줄, 돔 가운데를 바라봄)
+  MATS.forEach(M0 => EX_SPOTS.push({ x: M0.x, z: M0.z, mat: true }));
+  [30, 60, 18, 72].forEach(deg => { const a = deg * Math.PI / 180; EX_SPOTS.push({ x: dome.position.x + Math.cos(a) * 6.55, z: dome.position.z + Math.sin(a) * 6.55, mat: false }); });
   SEAT_LAYOUT.forEach(({ a, r, size, col }, i) => {
     const x = Math.cos(a) * r, z = Math.sin(a) * r;
     const g = new THREE.Group();
@@ -2254,9 +2258,23 @@ function startEdgeSit() {
   sendPresence(true);
 }
 const exActive = () => !!(myGesture && EX_T[myGesture.k] && performance.now() - myGesture.at < EX_T[myGesture.k] * 1000);
-function matTaken(i) {
-  for (const v of peerViews.values()) if (!v.out && Math.hypot(v.g.position.x - MATS[i].x, v.g.position.z - MATS[i].z) < 0.6) return true;
+function matTaken(i, tie) {
+  for (const [k, v] of peerViews) {
+    if (v.out) continue;
+    // 이미 그 자리에 서 있는 사람
+    if (Math.hypot(v.target.x - EX_SPOTS[i].x, v.target.z - EX_SPOTS[i].z) < 0.6) return true;
+    // 그 자리로 가는 중인 사람 (동시에 같은 자리로 가면 한 사람만 양보)
+    if (v.exSpot === i && (!tie || String(k) < String(myPeerId))) return true;
+  }
   return false;
+}
+/* 내가 쓰는(또는 가는) 몸풀기 자리 번호 */
+const myExSpot = () => onMat !== null ? onMat : moveTarget ? (moveTarget.mat !== undefined ? moveTarget.mat : moveTarget.then && moveTarget.then.mat !== undefined ? moveTarget.then.mat : -1) : -1;
+function pickExSpot() {
+  // 빈 매트 먼저, 매트가 다 차면 매트 옆 바닥 자리 (가까운 곳)
+  let best = null, bd = 1e9;
+  EX_SPOTS.forEach((m, i) => { if (matTaken(i)) return; const d = Math.hypot(m.x - pos2.x, m.z - pos2.y) + (m.mat ? 0 : 100); if (d < bd) { bd = d; best = i; } });
+  return best;
 }
 function doExercise(k) {
   if (travel || atBeach || leaving || arriving) return;
@@ -2264,20 +2282,21 @@ function doExercise(k) {
   if (teaRituals.some(r => r.fig === myFig)) { toast('차를 다 마신 뒤에 몸을 풀어요'); return; }
   if (exActive()) return;
   // 이미 매트 위면 바로, 아니면 빈 매트로 걸어가서
-  if (onMat !== null && Math.hypot(pos2.x - MATS[onMat].x, pos2.y - MATS[onMat].z) < 0.3) { startExercise(k); return; }
-  let best = null, bd = 1e9;
-  MATS.forEach((m, i) => { if (matTaken(i)) return; const d = Math.hypot(m.x - pos2.x, m.z - pos2.y); if (d < bd) { bd = d; best = i; } });
-  if (best === null) { toast('매트가 모두 쓰이고 있어요'); return; }
+  if (onMat !== null && !matTaken(onMat, true) && Math.hypot(pos2.x - EX_SPOTS[onMat].x, pos2.y - EX_SPOTS[onMat].z) < 0.3) { startExercise(k); return; }
+  const best = pickExSpot();
+  if (best === null) { toast('몸풀기 자리가 모두 쓰이고 있어요'); return; }
+  if (!EX_SPOTS[best].mat) toast('매트가 쓰이고 있어서 옆자리에서 해요');
   if (mySeat !== null) { homeSeat = mySeat; mySeat = null; $('seatBtn').textContent = '방석에 앉기'; }
   teaSitting = null; teaPending = null;
   if (autoTP) keepTP = true;
-  moveTarget = walkPath(MATS[best].x, MATS[best].z, { mat: best, ex: k });
+  moveTarget = walkPath(EX_SPOTS[best].x, EX_SPOTS[best].z, { mat: best, ex: k });
+  sendPresence(true);
 }
 function startExercise(k) {
   // 내 모습이 보이게 (눈으로 보기였으면 잠시 내 모습 보기로)
   if (firstPerson) { setView(false); autoTP = true; }
   keepTP = true;
-  const m = MATS[onMat];
+  const m = EX_SPOTS[onMat];
   heading = Math.atan2(-(DOME_CENTER.x - m.x), -(DOME_CENTER.z - m.z));   // 돔 가운데를 바라봄
   myGesture = { k, n: myGesture.n + 1, at: performance.now() };
   unlockAudio();
@@ -3294,7 +3313,10 @@ function updateWalk(dt, t) {
       if (!moveTarget) {
         if (teaPending !== null) { const c = teaPending; teaPending = null; beginMyTea(c); }
         else if (mt.edge) startEdgeSit();
-        else if (mt.mat !== undefined) { onMat = mt.mat; pos2.set(MATS[mt.mat].x, MATS[mt.mat].z); startExercise(mt.ex); }
+        else if (mt.mat !== undefined) {
+          if (matTaken(mt.mat, true)) { const b2 = pickExSpot(); if (b2 !== null) moveTarget = walkPath(EX_SPOTS[b2].x, EX_SPOTS[b2].z, { mat: b2, ex: mt.ex }); else toast('몸풀기 자리가 모두 쓰이고 있어요'); }
+          else { onMat = mt.mat; pos2.set(EX_SPOTS[mt.mat].x, EX_SPOTS[mt.mat].z); startExercise(mt.ex); }
+        }
         else if (mt.seat !== undefined) { keepTP = false; if (!takenSeats.has(mt.seat)) sitAt(mt.seat); else { const s2 = freeSeat(); if (s2 !== null) sitAt(s2); } }
       }
     }
@@ -3816,6 +3838,7 @@ async function renderPeers(peers) {
     v.bubOn = wantBub;
     v.out = pr.o === 1;
     v.teaSeat = Number.isInteger(pr.ts) && pr.ts >= 0 && pr.ts < teaCups.length ? pr.ts : -1;
+    v.exSpot = Number.isInteger(pr.ms) && pr.ms >= 0 && pr.ms < EX_SPOTS.length ? pr.ms : -1;
     v.fig.headset.visible = pr.hp === 1;
     v.g.visible = !v.out;
     if (v.label) v.label.visible = !v.out;
@@ -3928,7 +3951,7 @@ function sendPresence(force) {
   if (!room) return;
   const now = performance.now();
   if (!force && now - lastPresenceAt < 100) return;
-  const obj = { eo: edgeSit ? 1 : 0, n: myNick, rs: arriving && !arriving.landed && arriving.seat !== null ? arriving.seat : -1, hp: solo ? 1 : 0, ts: teaPending !== null ? teaPending : teaSitting !== null ? teaSitting : -1, o: iAmOut ? 1 : leaving ? 2 : 0, p: (mySeat !== null || atBeach || teaSitting !== null || edgeSit) ? 1 : 0, x: +orb.position.x.toFixed(2), y: +orb.position.y.toFixed(2), z: +orb.position.z.toFixed(2), h: +orb.rotation.y.toFixed(2), b: (travel || bubbleOn) ? 1 : 0, s: mySeat, g: Object.assign({ k: myGesture.k, n: myGesture.n }, Number.isInteger(myGesture.c) ? { c: myGesture.c } : {}, myGesture.to ? { to: myGesture.to } : {}, myGesture.re ? { re: 1 } : {}), r: { n: myRing.n, at: myRing.at } };
+  const obj = { ms: myExSpot(), eo: edgeSit ? 1 : 0, n: myNick, rs: arriving && !arriving.landed && arriving.seat !== null ? arriving.seat : -1, hp: solo ? 1 : 0, ts: teaPending !== null ? teaPending : teaSitting !== null ? teaSitting : -1, o: iAmOut ? 1 : leaving ? 2 : 0, p: (mySeat !== null || atBeach || teaSitting !== null || edgeSit) ? 1 : 0, x: +orb.position.x.toFixed(2), y: +orb.position.y.toFixed(2), z: +orb.position.z.toFixed(2), h: +orb.rotation.y.toFixed(2), b: (travel || bubbleOn) ? 1 : 0, s: mySeat, g: Object.assign({ k: myGesture.k, n: myGesture.n }, Number.isInteger(myGesture.c) ? { c: myGesture.c } : {}, myGesture.to ? { to: myGesture.to } : {}, myGesture.re ? { re: 1 } : {}), r: { n: myRing.n, at: myRing.at } };
   if (myGaze.on && !leaving && !arriving) { obj.ly = +Math.atan2(Math.sin(myGaze.y), Math.cos(myGaze.y)).toFixed(1); obj.lp = +Math.max(-1.2, Math.min(1.5, myGaze.p)).toFixed(1); }
   const str = JSON.stringify(obj);
   if (str === lastPresence && !(fb && now - lastPresenceAt > 10000)) return;
