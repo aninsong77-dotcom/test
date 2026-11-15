@@ -345,7 +345,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.15-115';
+const BUILD = '11.15-116';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -1349,7 +1349,11 @@ function updatePretty(t) {
     }
     gl.sp.position.y = Math.min(gl.sp.position.y, SURF - 0.5);
     const tw = Math.max(0, Math.sin(t * gl.sp2 + gl.ph));
-    gl.sp.material.opacity = above ? 0 : tw * tw * 0.75;
+    // 돔 안(공기)에는 플랑크톤이 없음: 유리 바깥 물속에서만 반짝임
+    const gp = gl.sp.position, gdx = gp.x - HOUSE_POS.x, gdy = gp.y - HOUSE_BASE, gdz = gp.z - HOUSE_POS.z;
+    const gd = Math.hypot(gdx, Math.max(0, gdy), gdz);
+    const outK = Math.max(0, Math.min(1, (gd - DOME_R - 0.25) / 0.8));
+    gl.sp.material.opacity = above ? 0 : tw * tw * 0.75 * outK;
   }
   for (const tu of turtles) {
     const a = tu.ph + t * tu.w;
