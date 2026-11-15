@@ -345,7 +345,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.14-114';
+const BUILD = '11.15-115';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -1697,7 +1697,7 @@ let centerGlow = null, centerCore = null;
   add(new THREE.CylinderGeometry(TEA_R, TEA_R, 0.05, 40), wood, 0, TEA_TOP - 0.025, 0, table);
   [0, 2.094, 4.189].forEach(a => add(new THREE.CylinderGeometry(0.035, 0.04, TEA_TOP - 0.05, 8), wood, Math.cos(a) * TEA_R * 0.7, (TEA_TOP - 0.05) / 2, Math.sin(a) * TEA_R * 0.7, table));
   const celadon = std('#b9d3c3', { roughness: 0.35 });
-  const teaCol = std('#c8a35a', { roughness: 0.3 });
+  const teaCol = new THREE.MeshStandardMaterial({ color: '#bcc96f', roughness: 0.1, transparent: true, opacity: 0.6, emissive: '#3c4a10', emissiveIntensity: 0.18 });   // 맑은 녹차빛
   // 주전자 (들어서 기울일 수 있게 한 덩어리로)
   const potGroup = new THREE.Group();
   potGroup.position.set(0, TEA_TOP, 0);
@@ -1711,7 +1711,7 @@ let centerGlow = null, centerCore = null;
   pot.userData.tap = { kind: 'tea', c: -1 };
   domeTap.push(pot);
   // 찻물 줄기
-  const stream = noRay(new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.007, 1, 8), new THREE.MeshStandardMaterial({ color: '#d6a95a', transparent: true, opacity: 0.9, roughness: 0.15, emissive: '#8a5a1a', emissiveIntensity: 0.2 })));
+  const stream = noRay(new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.007, 1, 8), new THREE.MeshStandardMaterial({ color: '#cbd67e', transparent: true, opacity: 0.5, roughness: 0.1, emissive: '#3c4a10', emissiveIntensity: 0.15 })));
   stream.visible = false;
   dome.add(stream);
   TEA_CUP_ANGLES.forEach((a0, k) => {
@@ -1974,7 +1974,7 @@ function makeServedCup() {
   const floorC = noRay(new THREE.Mesh(new THREE.CircleGeometry(0.038, 18), inner));
   floorC.rotation.x = -Math.PI / 2; floorC.position.y = 0.004;
   g.add(floorC);
-  const tea = noRay(new THREE.Mesh(new THREE.CylinderGeometry(0.044, 0.044, 0.004, 18), new THREE.MeshStandardMaterial({ color: '#c99a45', roughness: 0.15, emissive: '#8a5a1a', emissiveIntensity: 0.25 })));
+  const tea = noRay(new THREE.Mesh(new THREE.CylinderGeometry(0.044, 0.044, 0.004, 18), new THREE.MeshStandardMaterial({ color: '#bcc96f', roughness: 0.1, transparent: true, opacity: 0.6, emissive: '#3c4a10', emissiveIntensity: 0.18 })));
   tea.position.y = 0.055;
   const saucer = noRay(new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.075, 0.01, 24), celadon));
   g.add(body, tea, saucer);
@@ -2126,7 +2126,7 @@ camera.add(viewCup);
   const rim = noRay(new THREE.Mesh(new THREE.TorusGeometry(0.052, 0.004, 6, 32), celadon));
   rim.rotation.x = Math.PI / 2; rim.position.y = 0.0325;
   viewCup.add(rim);
-  const tea = noRay(new THREE.Mesh(new THREE.CircleGeometry(0.049, 28), new THREE.MeshStandardMaterial({ color: '#c99a45', roughness: 0.15, emissive: '#8a5a1a', emissiveIntensity: 0.25 })));
+  const tea = noRay(new THREE.Mesh(new THREE.CircleGeometry(0.049, 28), new THREE.MeshStandardMaterial({ color: '#bcc96f', roughness: 0.1, transparent: true, opacity: 0.6, emissive: '#3c4a10', emissiveIntensity: 0.18 })));
   tea.rotation.x = -Math.PI / 2;
   viewCup.add(tea);
   viewCup.userData.tea = tea;
@@ -2498,7 +2498,7 @@ function makeFigure(color) {
   const celIn = celadon.clone(); celIn.side = THREE.DoubleSide;
   M(new THREE.CylinderGeometry(0.052, 0.04, 0.065, 18, 1, true), celIn, 0, 0, 0, cup);
   M(new THREE.CircleGeometry(0.04, 18), celIn, 0, -0.028, 0, cup).rotation.x = -Math.PI / 2;
-  const cupTea = M(new THREE.CylinderGeometry(0.046, 0.046, 0.004, 18), new THREE.MeshStandardMaterial({ color: '#c8a35a', roughness: 0.4 }), 0, 0.026, 0, cup);
+  const cupTea = M(new THREE.CylinderGeometry(0.046, 0.046, 0.004, 18), new THREE.MeshStandardMaterial({ color: '#bcc96f', roughness: 0.1, transparent: true, opacity: 0.6, emissive: '#3c4a10', emissiveIntensity: 0.18 }), 0, 0.026, 0, cup);
   const steamSp = new THREE.Group();
   cup.add(steamSp);
   cup.visible = false;
