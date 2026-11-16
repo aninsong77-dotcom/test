@@ -286,7 +286,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 <div class="sheet" id="medSheet" hidden>
   <div class="card" role="dialog" aria-labelledby="medTitle">
     <h2 id="medTitle">🎧 어떤 명상을 할까요?</h2>
-    <p>헤드셋을 쓰고 나에게만 들려요.</p>
+    <p id="medSub">헤드셋을 쓰고 나에게만 들려요.</p>
     <div class="medList" id="medList"></div>
     <div class="actions"><button type="button" id="medCancel">닫기</button></div>
   </div>
@@ -361,7 +361,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.16-117';
+const BUILD = '11.16-118';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -3971,7 +3971,7 @@ function sendPresence(force) {
   if (!room) return;
   const now = performance.now();
   if (!force && now - lastPresenceAt < 100) return;
-  const obj = { ms: myExSpot(), eo: edgeSit ? 1 : 0, n: myNick, rs: arriving && !arriving.landed && arriving.seat !== null ? arriving.seat : -1, hp: solo ? 1 : 0, ts: teaPending !== null ? teaPending : teaSitting !== null ? teaSitting : -1, o: iAmOut ? 1 : leaving ? 2 : 0, p: (mySeat !== null || atBeach || teaSitting !== null || edgeSit) ? 1 : 0, x: +orb.position.x.toFixed(2), y: +orb.position.y.toFixed(2), z: +orb.position.z.toFixed(2), h: +orb.rotation.y.toFixed(2), b: (travel || bubbleOn) ? 1 : 0, s: mySeat, g: Object.assign({ k: myGesture.k, n: myGesture.n }, Number.isInteger(myGesture.c) ? { c: myGesture.c } : {}, myGesture.to ? { to: myGesture.to } : {}, myGesture.re ? { re: 1 } : {}), r: { n: myRing.n, at: myRing.at } };
+  const obj = { ms: myExSpot(), eo: edgeSit ? 1 : 0, n: myNick, rs: arriving && !arriving.landed && arriving.seat !== null ? arriving.seat : -1, hp: solo ? 1 : 0, ts: teaPending !== null ? teaPending : teaSitting !== null ? teaSitting : -1, o: iAmOut ? 1 : leaving ? 2 : 0, p: (mySeat !== null || atBeach || teaSitting !== null || edgeSit) ? 1 : 0, x: +orb.position.x.toFixed(2), y: +orb.position.y.toFixed(2), z: +orb.position.z.toFixed(2), h: +orb.rotation.y.toFixed(2), b: (travel || bubbleOn) ? 1 : 0, s: mySeat, g: Object.assign({ k: myGesture.k, n: myGesture.n }, Number.isInteger(myGesture.c) ? { c: myGesture.c } : {}, myGesture.to ? { to: myGesture.to } : {}, myGesture.re ? { re: 1 } : {}), r: Object.assign({ n: myRing.n, at: myRing.at }, myRing.m ? { m: myRing.m } : {}) };
   if (myGaze.on && !leaving && !arriving) { obj.ly = +Math.atan2(Math.sin(myGaze.y), Math.cos(myGaze.y)).toFixed(1); obj.lp = +Math.max(-1.2, Math.min(1.5, myGaze.p)).toFixed(1); }
   const str = JSON.stringify(obj);
   if (str === lastPresence && !(fb && now - lastPresenceAt > 10000)) return;
@@ -4142,12 +4142,15 @@ function setAudioTrack(t) {
   try { audio.pause(); } catch (e) {}
   audio.src = id === 'main' ? mainSrc : t.file;
 }
-/* 혼자 명상 중인 음성의 길이 */
-function soloDur() {
-  const tr = solo && solo.track;
+const trackById = id => MED_TRACKS.find(t => t.id === id) || MED_TRACKS[0];
+function trackDur(tr) {
   if (!tr || tr.main) return durSec();
   return audioTrack === tr.id && Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : tr.dur;
 }
+/* 혼자 명상 중인 음성의 길이 */
+const soloDur = () => trackDur(solo && solo.track);
+/* 지금 함께 하는 명상(9시는 늘 기본 음성, 종소리 명상은 종 친 사람이 고른 음성)의 길이 */
+const sessionDur = () => trackDur(trackById(session.track));
 /* 그날 오전 9시(한국 시각) = 그날 0시(세계 표준시) */
 function nineOf(now) { const k = new Date(now + KST); return Date.UTC(k.getUTCFullYear(), k.getUTCMonth(), k.getUTCDate()); }
 function dayKey(ms) { const k = new Date(ms + KST); return `${k.getUTCFullYear()}-${String(k.getUTCMonth() + 1).padStart(2, '0')}-${String(k.getUTCDate()).padStart(2, '0')}`; }
@@ -4161,7 +4164,7 @@ let chimedFor = 0;
 function computeSession(now) {
   const nine = nineOf(now), d = durSec() * 1000;
   if (now >= nine && now < nine + d) return { state: 'playing', startAt: nine, kind: 'nine' };
-  if (bellSession && now < bellSession.startAt + d) return { state: 'playing', startAt: bellSession.startAt, kind: 'bell' };
+  if (bellSession && now < bellSession.startAt + trackDur(trackById(bellSession.track)) * 1000) return { state: 'playing', startAt: bellSession.startAt, kind: 'bell', track: bellSession.track || 'main' };
   bellSession = null;
   return now < nine ? { state: 'idle', startAt: 0, kind: 'before', next: nine } : { state: 'idle', startAt: 0, kind: 'after', next: nine + 86400000 };
 }
@@ -4288,15 +4291,21 @@ function ringFromMe() {
   if (inIntro) return;
   if (!inDome()) { toast('돔 안에서 종을 칠 수 있어요'); return; }
   unlockAudio();
-  ringBell(true);
-  if (solo) { toast('🎧 혼자 명상 중이에요 · 헤드셋을 벗고 종을 쳐 주세요'); return; }
-  if (session.state === 'playing') { toast(session.kind === 'nine' ? '지금은 오전 9시 명상 중이에요' : '명상 중이에요'); return; }
+  if (solo) { ringBell(true); toast('🎧 혼자 명상 중이에요 · 헤드셋을 벗고 종을 쳐 주세요'); return; }
+  if (session.state === 'playing') { ringBell(true); toast(session.kind === 'nine' ? '지금은 오전 9시 명상 중이에요' : '명상 중이에요'); return; }
   if (audioOk === false) { toast('명상 음성을 아직 넣지 않았어요'); return; }
+  openMedSheet('bell');
+}
+/* 고른 명상으로 종을 치고 다 함께 시작 */
+function ringWith(track) {
+  unlockAudio();
+  ringBell(true);
   const at = Date.now() + 4000;
-  bellSession = { startAt: at };
-  myRing = { n: myRing.n + 1, at };
+  bellSession = { startAt: at, track: track.id };
+  myRing = { n: myRing.n + 1, at, m: track.id };
   sendPresence(true);
   tick();
+  toast(`🔔 ${track.type} (${track.voice}) 다 함께 시작해요`);
 }
 /* 다른 사람이 종을 치면: 들리고, 돔 안에 있으면 함께 시작 */
 function checkRing(peer, r) {
@@ -4309,13 +4318,13 @@ function checkRing(peer, r) {
     // 혼자 명상(헤드셋) 중에는 방해하지 않음: 종소리도 안 나고 내 명상도 그대로.
     // 다만 단체 명상이 시작된 건 기억해 두어, 헤드셋을 벗은 뒤 원하면 '함께하기'로 합류
     const now = Date.now();
-    if (session.state !== 'playing' && Math.abs(r.at - now) < 20000 && audioOk !== false && inDome()) { bellSession = { startAt: r.at }; tick(); }
+    if (session.state !== 'playing' && Math.abs(r.at - now) < 20000 && audioOk !== false && inDome()) { bellSession = { startAt: r.at, track: trackById(r.m).id }; tick(); }
     return;
   }
   ringBell(true);
   const now = Date.now();
   if (session.state !== 'playing' && Math.abs(r.at - now) < 20000 && audioOk !== false) {
-    if (inDome()) { bellSession = { startAt: r.at }; tick(); }
+    if (inDome()) { bellSession = { startAt: r.at, track: trackById(r.m).id }; tick(); }
     else toast('돔에서 누군가 종을 쳤어요');
   }
 }
@@ -4380,7 +4389,11 @@ function stopSolo(msg) {
 }
 let pendingTrack = null;
 const fmtMin = s => { s = Math.round(s); return `${Math.floor(s / 60)}분 ${String(s % 60).padStart(2, '0')}초`; };
-function openMedSheet() {
+let medMode = 'solo';
+function openMedSheet(mode) {
+  medMode = mode || 'solo';
+  $('medTitle').textContent = medMode === 'bell' ? '🔔 어떤 명상으로 시작할까요?' : '🎧 어떤 명상을 할까요?';
+  $('medSub').textContent = medMode === 'bell' ? '종을 치면 돔 안 모두가 함께 들어요.' : '헤드셋을 쓰고 나에게만 들려요.';
   let last = 'main';
   try { last = localStorage.getItem('a508057:med') || 'main'; } catch (e) {}
   const list = $('medList');
@@ -4392,7 +4405,7 @@ function openMedSheet() {
     const sub = document.createElement('small'); sub.textContent = `${tr.voice} 목소리` + (tr.note ? ` · ${tr.note}` : '');
     const dur = document.createElement('span'); dur.className = 'dur'; dur.textContent = fmtMin(tr.main ? durSec() : tr.dur);
     b.append(name, dur, sub);
-    b.addEventListener('click', () => { $('medSheet').hidden = true; chooseMed(tr); });
+    b.addEventListener('click', () => { $('medSheet').hidden = true; if (medMode === 'bell') ringWith(tr); else chooseMed(tr); });
     list.appendChild(b);
   });
   $('medSheet').hidden = false;
@@ -4400,7 +4413,7 @@ function openMedSheet() {
 $('medCancel').addEventListener('click', () => { $('medSheet').hidden = true; });
 function soloClick() {
   if (solo) { stopSolo('헤드셋을 벗었어요'); return; }
-  openMedSheet();
+  openMedSheet('solo');
 }
 function chooseMed(track) {
   const now = Date.now(), nine = nineOf(now), lead = nine - now;
@@ -4425,7 +4438,7 @@ const isOut = () => { try { return !!(leaving || iAmOut); } catch (e) { return f
 function groupMeditating() {
   if (session.state !== 'playing') return false;
   const el = (Date.now() - session.startAt) / 1000;
-  return el >= 0 && el < durSec();
+  return el >= 0 && el < sessionDur();
 }
 function syncAudio() {
   if (audioOk === false) return;
@@ -4434,10 +4447,10 @@ function syncAudio() {
   // 혼자 명상(헤드셋): 내가 시작한 때부터 나에게만
   let startAt;
   if (solo) startAt = solo.startAt;
-  else if (session.state !== 'playing' || groupOptOut) { if (!audio.paused) audio.pause(); return; }
-  else startAt = session.startAt;
+  else if (session.state !== 'playing' || groupOptOut) { if (!audio.paused) audio.pause(); if (audio.paused) setAudioTrack(null); return; }
+  else { startAt = session.startAt; setAudioTrack(trackById(session.track)); }
   const el = (Date.now() - startAt) / 1000;
-  if (el < 0 || el >= (solo ? soloDur() : durSec())) { if (!audio.paused) audio.pause(); return; }
+  if (el < 0 || el >= (solo ? soloDur() : sessionDur())) { if (!audio.paused) audio.pause(); return; }
   if (!audioUnlocked) {
     // 허락 표시가 없어도 한 번은 틀어 봄 (이미 이 사이트에서 소리를 허락한 브라우저면 그대로 나옴)
     if (autoTriedFor !== startAt) {
@@ -4485,11 +4498,11 @@ function updateSessionText() {
     const tn = solo.track ? `${solo.track.type}(${solo.track.voice})` : '혼자 명상';
     txt = el < 0 ? `🎧 ${tn} · 곧 시작해요` : `🎧 ${tn} · ${fmt(el)} / ${fmt(soloDur())}`;
   } else if (session.state === 'playing' && groupOptOut) {
-    txt = `${session.kind === 'nine' ? '오전 9시 함께 명상 중' : '종소리 명상 중'} · 함께하기를 누르면 같이 들어요`;
+    { const st = trackById(session.track); txt = `${session.kind === 'nine' ? '오전 9시 함께 명상이 진행 중이에요' : `누군가 종을 쳐서 ${st.type}(${st.voice}) 함께 명상 중이에요`} · 아래 '함께하기'를 누르면 같이 들어요`; }
   } else if (session.state === 'playing') {
     const el = (now - session.startAt) / 1000;
     if (el < 0) txt = `종이 울렸어요 · 곧 시작해요 ${Math.ceil(-el)}`;
-    else txt = `${session.kind === 'nine' ? '오전 9시 명상 중' : '종소리 명상 중'} · ${fmt(el)} / ${fmt(durSec())}`;
+    else { const st = trackById(session.track); txt = `${session.kind === 'nine' ? '오전 9시 명상 중' : `🔔 ${st.type}(${st.voice})`} · ${fmt(el)} / ${fmt(sessionDur())}`; }
   } else if (session.kind === 'before') txt = `오늘 오전 9시에 함께 시작해요 · ${fmtLeft(session.next - now)}`;
   else txt = '오늘 9시 명상은 끝났어요 · 종을 치면 언제든 시작해요';
   if (box.textContent !== txt) box.textContent = txt;
@@ -4708,7 +4721,7 @@ function autoCapture(now) {
   if (!isHost || !(assets || fb) || !db || session.state !== 'playing' || session.kind !== 'nine') return;
   const el = now - session.startAt, key = dayKey(session.startAt);
   if (el > 15000 && !captured.has(key + '-start')) { captured.add(key + '-start'); saveCapture('start', key + '-start'); }
-  if (el > durSec() * 1000 - 8000 && !captured.has(key + '-end')) { captured.add(key + '-end'); saveCapture('end', key + '-end'); }
+  if (el > sessionDur() * 1000 - 8000 && !captured.has(key + '-end')) { captured.add(key + '-end'); saveCapture('end', key + '-end'); }
 }
 let downloads = null;
 $('snapBtn').addEventListener('click', async () => {
