@@ -185,6 +185,13 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 .gallery img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;background:rgba(255,255,255,.06);max-width:100%}
 .gallery a:focus-visible{outline:2px solid var(--glow);outline-offset:2px;border-radius:10px}
 .end-menu{display:grid;gap:10px}
+.medList{display:grid;gap:8px}
+.medItem{display:grid;grid-template-columns:1fr auto;align-items:center;gap:4px 12px;text-align:left;width:100%;
+  font:500 15px/1.3 var(--f-body);color:var(--ink);background:rgba(255,255,255,.07);border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer}
+.medItem small{grid-column:1;font:400 12.5px/1.3 var(--f-body);color:var(--muted)}
+.medItem .dur{grid-row:1 / span 2;grid-column:2;font:500 13px/1 var(--f-body);color:var(--muted);font-variant-numeric:tabular-nums}
+.medItem.last{border-color:var(--glow)}
+.medItem:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 .sheet a.go{
   display:block;text-align:center;font:500 15px/1 var(--f-body);color:#0b3550;background:var(--glow);
   border-radius:999px;padding:13px 16px;text-decoration:none;
@@ -276,6 +283,15 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
   </div>
 </div>
 
+<div class="sheet" id="medSheet" hidden>
+  <div class="card" role="dialog" aria-labelledby="medTitle">
+    <h2 id="medTitle">🎧 어떤 명상을 할까요?</h2>
+    <p>헤드셋을 쓰고 나에게만 들려요.</p>
+    <div class="medList" id="medList"></div>
+    <div class="actions"><button type="button" id="medCancel">닫기</button></div>
+  </div>
+</div>
+
 <div class="sheet" id="nameSheet" hidden>
   <div class="card" role="dialog" aria-labelledby="nameTitle">
     <h2 id="nameTitle">이름 쓰기</h2>
@@ -345,7 +361,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.15-116';
+const BUILD = '11.16-117';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -4058,7 +4074,7 @@ function openLink(kind) {
   }
   $('openSheet').hidden = false;
 }
-function closeSheets() { $('soloSheet').hidden = true; if (typeof closePeerMenu === 'function') closePeerMenu(); if (typeof hideNotice === 'function') hideNotice(); $('openSheet').hidden = true; $('linkSheet').hidden = true; $('gallerySheet').hidden = true; $('nameSheet').hidden = true; }
+function closeSheets() { $('soloSheet').hidden = true; $('medSheet').hidden = true; if (typeof closePeerMenu === 'function') closePeerMenu(); if (typeof hideNotice === 'function') hideNotice(); $('openSheet').hidden = true; $('linkSheet').hidden = true; $('gallerySheet').hidden = true; $('nameSheet').hidden = true; }
 
 $('openSheetClose').addEventListener('click', closeSheets);
 $('openSheetGo').addEventListener('click', () => setTimeout(closeSheets, 300));
@@ -4104,11 +4120,34 @@ const KST = 9 * 3600 * 1000;
 const DEFAULT_DUR = 20 * 60;
 const audio = new Audio();
 audio.preload = 'auto';
-audio.src = 'meditation.mp3?v=6';
+/* 고를 수 있는 명상들. main은 9시·종소리 함께 명상에 쓰는 음성 */
+const MED_TRACKS = [
+  { id: 'main', main: true, type: '자비 명상', voice: '여성', note: '9시 함께 명상 음성' },
+  { id: 'jabi_m', file: 'med_jabi_m.mp3?v=1', type: '자비 명상', voice: '남성', dur: 951.5 },
+  { id: 'breath_m', file: 'med_breath_m.mp3?v=1', type: '호흡 알아차리기', voice: '남성', dur: 327.8 },
+];
+let mainSrc = 'meditation.mp3?v=6', audioTrack = 'main', mainDur = 0;
+audio.src = mainSrc;
 let audioOk = null, audioUnlocked = false;
-audio.addEventListener('loadedmetadata', () => { audioOk = true; tick(); });
-audio.addEventListener('error', () => { audioOk = false; tick(); });
-const durSec = () => Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : DEFAULT_DUR;
+audio.addEventListener('loadedmetadata', () => {
+  if (audioTrack === 'main') { audioOk = true; if (Number.isFinite(audio.duration) && audio.duration > 0) mainDur = audio.duration; }
+  tick();
+});
+audio.addEventListener('error', () => { if (audioTrack === 'main') audioOk = false; else if (solo) stopSolo('이 명상 음성을 불러오지 못했어요'); tick(); });
+const durSec = () => mainDur || DEFAULT_DUR;
+function setAudioTrack(t) {
+  const id = t ? t.id : 'main';
+  if (audioTrack === id) return;
+  audioTrack = id;
+  try { audio.pause(); } catch (e) {}
+  audio.src = id === 'main' ? mainSrc : t.file;
+}
+/* 혼자 명상 중인 음성의 길이 */
+function soloDur() {
+  const tr = solo && solo.track;
+  if (!tr || tr.main) return durSec();
+  return audioTrack === tr.id && Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : tr.dur;
+}
 /* 그날 오전 9시(한국 시각) = 그날 0시(세계 표준시) */
 function nineOf(now) { const k = new Date(now + KST); return Date.UTC(k.getUTCFullYear(), k.getUTCMonth(), k.getUTCDate()); }
 function dayKey(ms) { const k = new Date(ms + KST); return `${k.getUTCFullYear()}-${String(k.getUTCMonth() + 1).padStart(2, '0')}-${String(k.getUTCDate()).padStart(2, '0')}`; }
@@ -4314,10 +4353,13 @@ function fmtLeft(ms) {
 let lastSeekAt = -1e9, autoTriedFor = 0;
 /* 혼자 명상(헤드셋): 정해진 시간과 상관없이 나만 듣는 명상. 단체 명상(9시·종)은 방해하지 않고 원하면 '함께하기' */
 let solo = null, groupOptOut = false;
-function startSolo() {
-  if (!audioOk) { toast('명상 음성을 아직 넣지 않았어요'); return; }
+function startSolo(track) {
+  track = track || MED_TRACKS[0];
+  if (track.main && !audioOk) { toast('명상 음성을 아직 넣지 않았어요'); return; }
   ensureCtx();
-  solo = { startAt: Date.now() };
+  setAudioTrack(track);
+  solo = { startAt: Date.now(), track };
+  try { localStorage.setItem('a508057:med', track.id); } catch (e) {}
   // 누른 그 순간에 바로 재생 (폰 브라우저는 '누른 순간'의 재생만 허락하는 경우가 있음)
   try { audio.muted = false; audio.currentTime = 0; } catch (e) {}
   const pr = audio.play();
@@ -4326,29 +4368,55 @@ function startSolo() {
   groupOptOut = true;          // 혼자 명상하는 동안 단체 명상 소리는 끼어들지 않음
   myFig.headset.visible = true;
   if (mySeat === null && teaSitting === null) backToSeat();
-  toast('🎧 혼자 명상을 시작해요');
+  toast(`🎧 ${track.type} (${track.voice}) 시작해요`);
   sendPresence(true); tick();
 }
 function stopSolo(msg) {
   solo = null;
+  setAudioTrack(null);
   myFig.headset.visible = false;
   if (msg) toast(msg);
   sendPresence(true); tick();
 }
+let pendingTrack = null;
+const fmtMin = s => { s = Math.round(s); return `${Math.floor(s / 60)}분 ${String(s % 60).padStart(2, '0')}초`; };
+function openMedSheet() {
+  let last = 'main';
+  try { last = localStorage.getItem('a508057:med') || 'main'; } catch (e) {}
+  const list = $('medList');
+  list.textContent = '';
+  MED_TRACKS.forEach(tr => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'medItem' + (tr.id === last ? ' last' : '');
+    const name = document.createElement('span'); name.textContent = tr.type;
+    const sub = document.createElement('small'); sub.textContent = `${tr.voice} 목소리` + (tr.note ? ` · ${tr.note}` : '');
+    const dur = document.createElement('span'); dur.className = 'dur'; dur.textContent = fmtMin(tr.main ? durSec() : tr.dur);
+    b.append(name, dur, sub);
+    b.addEventListener('click', () => { $('medSheet').hidden = true; chooseMed(tr); });
+    list.appendChild(b);
+  });
+  $('medSheet').hidden = false;
+}
+$('medCancel').addEventListener('click', () => { $('medSheet').hidden = true; });
 function soloClick() {
   if (solo) { stopSolo('헤드셋을 벗었어요'); return; }
+  openMedSheet();
+}
+function chooseMed(track) {
   const now = Date.now(), nine = nineOf(now), lead = nine - now;
+  const D = track.main ? durSec() : track.dur;
   // 혼자 명상이 끝나기 전에 9시 함께 명상이 시작되면, 시작 전에 먼저 알려 주고 고르게 함
-  if (session.state !== 'playing' && lead > 0 && lead < durSec() * 1000 + 60000) {
+  if (session.state !== 'playing' && lead > 0 && lead < D * 1000 + 60000) {
+    pendingTrack = track;
     const m = Math.max(1, Math.ceil(lead / 60000));
     $('soloText').textContent = `${m}분 뒤에 9시 함께 명상이 시작돼요. 지금 혼자 명상을 시작하면 9시가 되어도 혼자 명상을 그대로 이어 가요. 끝난 뒤에는 원하면 함께하기를 눌러 합류할 수 있어요.`;
     $('soloSheet').hidden = false;
     return;
   }
-  startSolo();
+  startSolo(track);
 }
 $('soloBtn').addEventListener('click', soloClick);
-$('soloGo').addEventListener('click', () => { $('soloSheet').hidden = true; startSolo(); });
+$('soloGo').addEventListener('click', () => { $('soloSheet').hidden = true; startSolo(pendingTrack); });
 $('soloWait').addEventListener('click', () => { $('soloSheet').hidden = true; toast('9시에 함께 명상해요'); });
 $('joinGroupBtn').addEventListener('click', () => { if (solo) stopSolo(); groupOptOut = false; unlockAudio(); tick(); toast('함께 명상해요'); });
 /* 나가기를 눌러 빛을 타고 나갔거나 끝 화면에 있으면 '나간 사람' (명상 소리를 내지 않음) */
@@ -4369,7 +4437,7 @@ function syncAudio() {
   else if (session.state !== 'playing' || groupOptOut) { if (!audio.paused) audio.pause(); return; }
   else startAt = session.startAt;
   const el = (Date.now() - startAt) / 1000;
-  if (el < 0 || el >= durSec()) { if (!audio.paused) audio.pause(); return; }
+  if (el < 0 || el >= (solo ? soloDur() : durSec())) { if (!audio.paused) audio.pause(); return; }
   if (!audioUnlocked) {
     // 허락 표시가 없어도 한 번은 틀어 봄 (이미 이 사이트에서 소리를 허락한 브라우저면 그대로 나옴)
     if (autoTriedFor !== startAt) {
@@ -4397,9 +4465,11 @@ function syncAudio() {
     const r = await fetch('meditation.mp3?v=6');
     if (!r.ok) return;
     const blob = await r.blob();
+    mainSrc = URL.createObjectURL(blob);
+    if (audioTrack !== 'main') return;   // 다른 명상을 듣는 중이면 그대로
     const wasPlaying = !audio.paused;
     const t0 = audio.currentTime;
-    audio.src = URL.createObjectURL(blob);
+    audio.src = mainSrc;
     if (wasPlaying) {
       audio.addEventListener('loadedmetadata', () => { try { audio.currentTime = t0; } catch (e) {} syncAudio(); }, { once: true });
     }
@@ -4412,7 +4482,8 @@ function updateSessionText() {
   if (audioOk === false) txt = '명상 음성을 아직 넣지 않았어요';
   else if (solo) {
     const el = (now - solo.startAt) / 1000;
-    txt = el < 0 ? '🎧 혼자 명상 · 곧 시작해요' : `🎧 혼자 명상 중 · ${fmt(el)} / ${fmt(durSec())}`;
+    const tn = solo.track ? `${solo.track.type}(${solo.track.voice})` : '혼자 명상';
+    txt = el < 0 ? `🎧 ${tn} · 곧 시작해요` : `🎧 ${tn} · ${fmt(el)} / ${fmt(soloDur())}`;
   } else if (session.state === 'playing' && groupOptOut) {
     txt = `${session.kind === 'nine' ? '오전 9시 함께 명상 중' : '종소리 명상 중'} · 함께하기를 누르면 같이 들어요`;
   } else if (session.state === 'playing') {
@@ -4564,7 +4635,7 @@ function tick() {
   ambUpdate();
   const before = session;
   session = computeSession(now);
-  if (solo && now - solo.startAt >= durSec() * 1000) stopSolo('🎧 혼자 명상이 끝났어요');
+  if (solo && now - solo.startAt >= soloDur() * 1000) stopSolo('🎧 혼자 명상이 끝났어요');
   if (!solo && groupOptOut && session.state !== 'playing') groupOptOut = false;
   if (session.state === 'playing' && now >= session.startAt && chimedFor !== session.startAt && now - session.startAt < 2500) {
     chimedFor = session.startAt;
@@ -5012,7 +5083,7 @@ function updateArrive(dt, t) {
 function startLeave() {
   if (leaving || travel || arriving) return;
   closeSheets();
-  if (solo) { solo = null; myFig.headset.visible = false; }
+  if (solo) { solo = null; myFig.headset.visible = false; setAudioTrack(null); }
   groupOptOut = false;
   for (const r of [...teaRituals]) if (r.fig === myFig) endTeaRitual(r);
   const sat = mySeat !== null;
