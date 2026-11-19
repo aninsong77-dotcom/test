@@ -408,7 +408,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-134';
+const BUILD = '11.19-135';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -5638,15 +5638,18 @@ function buildSeoulReal(D) {
   const flat = (geo, y) => { geo.rotateX(-Math.PI / 2); geo.translate(0, y, 0); return geo; };
   const std = (o) => new THREE.MeshStandardMaterial(o);
   // 땅, 공원, 한강, 큰길 (가까운 높이의 납작한 층은 조금씩 띄워 깜박이지 않게)
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(80000, 80000), std({ color: '#d8d3c4', roughness: 1 })); ground.rotation.x = -Math.PI / 2; S.add(ground);
-  S.add(new THREE.Mesh(mergeGeos(D.parks.map(p => flat(new THREE.ShapeGeometry(shape(p)), 1.2))), std({ color: '#9fd08a', roughness: 1 })));
+  // 밤에는 땅이 따뜻한 도시 불빛을 머금어 (강물의 짙은 파랑과 또렷이 구분되게)
+  const groundMat = std({ color: '#d8d3c4', roughness: 1, emissive: '#4a3b28', emissiveIntensity: 0 }), parkMat = std({ color: '#9fd08a', roughness: 1, emissive: '#1f3320', emissiveIntensity: 0 });
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(80000, 80000), groundMat); ground.rotation.x = -Math.PI / 2; S.add(ground);
+  S.add(new THREE.Mesh(mergeGeos(D.parks.map(p => flat(new THREE.ShapeGeometry(shape(p)), 1.2))), parkMat));
   const waterMat = std({ color: '#86bde0', roughness: 0.35, metalness: 0 });
   S.add(new THREE.Mesh(mergeGeos(D.water.map(w => flat(new THREE.ShapeGeometry(shape(w[0], w.slice(1))), 2.4))), waterMat));
   const roadPts = [];
+  const roadMat = std({ color: '#8a8f98', roughness: 0.9, emissive: '#9a7a48', emissiveIntensity: 0 });
   { const pos = [], idx = []; let n = 0;
     D.roads.forEach(r => { const p = r.p, hw = r.w / 2; for (let i = 0; i < p.length - 1; i++) { const [x1, z1] = p[i], [x2, z2] = p[i + 1]; const dx = x2 - x1, dz = z2 - z1, L = Math.hypot(dx, dz) || 1, nx = -dz / L * hw, nz = dx / L * hw;
       pos.push(x1 + nx, 1.8, z1 + nz, x1 - nx, 1.8, z1 - nz, x2 + nx, 1.8, z2 + nz, x2 - nx, 1.8, z2 - nz); idx.push(n, n + 2, n + 1, n + 1, n + 2, n + 3); n += 4; if (L > 40) roadPts.push([x1, z1, x2, z2, r.w]); } });
-    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); S.add(new THREE.Mesh(g, std({ color: '#8a8f98', roughness: 0.9 }))); }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); S.add(new THREE.Mesh(g, roadMat)); }
   const streetLights = (() => { const pts = []; D.roads.forEach(r => { const p = r.p; for (let i = 0; i < p.length - 1; i++) { const [x1, z1] = p[i], [x2, z2] = p[i + 1]; const L = Math.hypot(x2 - x1, z2 - z1); for (let t = 0; t < L; t += 45) { const f = t / L; pts.push(x1 + (x2 - x1) * f, 6, z1 + (z2 - z1) * f); } } }); const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3)); const o = new THREE.Points(g, new THREE.PointsMaterial({ color: '#ffcf80', size: 3, sizeAttenuation: false, transparent: true, opacity: 0, depthWrite: false })); S.add(o); return o; })();
   const bridgeMat = std({ color: '#f0ede6', roughness: 0.7, emissive: '#7fb8ff', emissiveIntensity: 0 });
   S.add(new THREE.Mesh(mergeGeos(D.bridges.map(b => { const g = new THREE.ExtrudeGeometry(shape(b), { depth: 2.5, bevelEnabled: false }); g.rotateX(-Math.PI / 2); g.translate(0, 12, 0); return g; })), bridgeMat));
@@ -5690,10 +5693,10 @@ function buildSeoulReal(D) {
         objectNormal = vec3(objectNormal.x * cU.x - objectNormal.z * cU.y, objectNormal.y, objectNormal.x * cU.y + objectNormal.z * cU.x);`)
       .replace('#include <begin_vertex>', `#include <begin_vertex>
         transformed *= cS;
-        transformed = vec3(cP.x + transformed.x * cU.x - transformed.z * cU.y, transformed.y + 2.6, cP.y + transformed.x * cU.y + transformed.z * cU.x);`);
+        transformed = vec3(cP.x + transformed.x * cU.x - transformed.z * cU.y, transformed.y + 3.4, cP.y + transformed.x * cU.y + transformed.z * cU.x);`);
   };
   { const N = Math.min(light ? 1500 : 5000, roadPts.length * 3);
-    const geo = new THREE.BoxGeometry(4.6, 1.6, 2);
+    const geo = new THREE.BoxGeometry(9, 3, 4);   // 높이 떠서도 보이게 실제보다 조금 크게
     const cm = new THREE.InstancedMesh(geo, carMat, N);
     const seg = new Float32Array(N * 4), car = new Float32Array(N * 4), c = new THREE.Color(), cols = ['#ff6b6b', '#ffd166', '#4dabf7', '#69db7c', '#ffffff', '#f783ac', '#ffa94d'];
     const pick = () => { const a = roadPts[Math.floor(rnd() * roadPts.length)], b = roadPts[Math.floor(rnd() * roadPts.length)]; return a[4] >= b[4] ? a : b; };   // 넓은 길에 차가 더 많게
@@ -5780,7 +5783,7 @@ function buildSeoulReal(D) {
     const day = sm(-4, 8, altDeg), night = 1 - sm(-12, -2, altDeg), dusk = Math.max(0, 1 - Math.abs(altDeg - 1) / 9);
     skyU.uSun.value.copy(sd); skyU.uMoon.value.copy(md); skyU.uDay.value = day; skyU.uNight.value = night; skyU.uDusk.value = dusk;
     sunS.position.copy(sd).multiplyScalar(5000); sunS.intensity = 2.4 * day + 0.6 * dusk; sunS.color.set(dusk > 0.3 ? '#ffb27a' : '#fff4e0');
-    hemiS.intensity = 0.25 + 0.9 * day + 0.2 * dusk; hemiS.color.set(night > 0.5 ? '#6a7fb8' : '#cfe6ff'); hemiS.groundColor.set(night > 0.5 ? '#202434' : '#8a8f78');
+    hemiS.intensity = 0.25 + 0.9 * day + 0.2 * dusk; hemiS.color.set(night > 0.5 ? '#6a7fb8' : '#cfe6ff'); hemiS.groundColor.set(night > 0.5 ? '#3a3328' : '#8a8f78');
     if (dusk > 0.2) hemiS.color.lerp(new THREE.Color('#ffb08a'), dusk * 0.6);
     moonS.position.copy(md).multiplyScalar(5000); moonS.intensity = night * Math.max(0, md.y) * 0.5;
     const haze = new THREE.Color('#c4e2fa').lerp(new THREE.Color('#f0b48e'), dusk * 0.75).lerp(new THREE.Color('#0e1428'), night);
@@ -5788,8 +5791,9 @@ function buildSeoulReal(D) {
     S.fog.color.copy(haze); S.background.copy(haze);
     stars.material.opacity = night * 0.9; moonM.position.copy(md).multiplyScalar(20000); moonM.lookAt(0, 0, 0); moonM.material.uniforms.uPhase.value = mA.phase; moonM.material.uniforms.uVis.value = md.y > -0.05 ? 1 : 0;
     bldMat.emissiveIntensity = night * 1.1 + dusk * 0.2; streetLights.material.opacity = night; bridgeMat.emissiveIntensity = night * 0.6;
-    carMat.emissiveIntensity = night * 0.9; boatWin.emissiveIntensity = night * 1.2 + dusk * 0.3;
-    waterMat.color.set('#86bde0').lerp(new THREE.Color('#1b2a48'), night).lerp(new THREE.Color('#e7a27f'), dusk * 0.35 * (1 - night));
+    carMat.emissiveIntensity = night * 1.2 + 0.08;
+    groundMat.emissiveIntensity = night * 0.9; parkMat.emissiveIntensity = night * 0.8; roadMat.emissiveIntensity = night * 0.9; boatWin.emissiveIntensity = night * 1.2 + dusk * 0.3;
+    waterMat.color.set('#86bde0').lerp(new THREE.Color('#0d1a33'), night).lerp(new THREE.Color('#e7a27f'), dusk * 0.35 * (1 - night));
     Object.assign(lightOut, { day, night, dusk }); lightOut.sunDir.copy(sd); };
   let lastTime = 0;
   // 높이: 고른 높이 + 남산 가까이에서는 더 높이 (탑에 닿지 않게)
