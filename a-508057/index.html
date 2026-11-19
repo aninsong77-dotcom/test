@@ -266,7 +266,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
   <div class="row" id="soundRow" hidden>
     <button type="button" class="primary" id="soundBtn">🔊 눌러서 명상 소리 듣기</button>
   </div>
-  <p class="copyline"><span>© 2026. An In-song (안인성). Distributed for free. · 무료 배포</span></p>
+  <p class="copyline"><span>© 2026 An In-song (안인성). All rights reserved.</span></p>
 </div>
 
 <div class="sheet" id="linkSheet" hidden>
@@ -337,7 +337,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
         <li>대본: 김주완 명상수업 실습편</li>
         <li>배경 피아노: Serge Quadrado, “Piano for Meditation” (Pixabay)</li>
       </ul>
-      <p class="credits-c">© 2026. An In-song (안인성). Distributed for free.<br>(2026. 안인성. 무료 배포)</p>
+      <p class="credits-c">© 2026 An In-song (안인성). All rights reserved.</p>
     </div>
     <div class="actions">
       <button type="button" id="endDive">다시 들어오기</button>
@@ -381,7 +381,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-119';
+const BUILD = '11.19-120';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
