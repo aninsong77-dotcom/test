@@ -108,6 +108,8 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 .peer-menu.is-hidden{display:none}
 #dimMenu{flex-wrap:wrap;justify-content:center;border-radius:18px;max-width:calc(100vw - 16px);box-sizing:border-box}
 #dimMenu button[aria-disabled="true"]{opacity:.5}
+#altMenu button:disabled{opacity:.4}
+#altNow{min-width:44px;text-align:center;font-variant-numeric:tabular-nums}
 #dimMenu button small{opacity:.75;font-size:10.5px;margin-left:3px}
 .gnote{
   position:fixed;z-index:6;left:50%;transform:translateX(-50%);
@@ -254,6 +256,11 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
   <button type="button" data-dim="seoul" role="menuitem">🏙️ 서울 하늘</button>
   <button type="button" data-dim="space" role="menuitem">🌍 지구 우주</button>
 </div>
+<div class="peer-menu is-hidden" id="altMenu" role="group" aria-label="서울 하늘 돔 고도">
+  <button type="button" id="altDown" aria-label="내려가기">▼ 낮게</button>
+  <span id="altNow" aria-live="polite"></span>
+  <button type="button" id="altUp" aria-label="올라가기">▲ 높게</button>
+</div>
 <div class="peer-menu is-hidden" id="peerMenu" role="menu" aria-label="함께하는 사람에게">
   <span id="peerMenuName"></span>
   <button type="button" id="pmBow" role="menuitem">합장 인사</button>
@@ -270,6 +277,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
     <button type="button" id="soloBtn">🎧 혼자 명상</button>
     <button type="button" id="exBtn">🤸 몸풀기</button>
     <button type="button" id="dimBtn">🌀 차원이동</button>
+    <button type="button" id="altBtn" hidden>🛫 고도</button>
     <button type="button" id="stopBellBtn" hidden>명상 그만하기</button>
     <button type="button" id="joinGroupBtn" hidden>함께하기</button>
   </div>
@@ -399,7 +407,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-127';
+const BUILD = '11.19-128';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -5237,10 +5245,15 @@ function puffTexture() {
   }
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
+/* 서울 하늘 돔의 고도 (내 화면에서만, 기억해 둠): 60m ~ 300m */
+const ALT_MIN = 60, ALT_MAX = 300, ALT_STEP = 40;
+const seoulAlt = { want: 140, now: 140 };
+try { const v = Number(localStorage.getItem('a508057:seoulAlt')); if (v >= ALT_MIN && v <= ALT_MAX) seoulAlt.want = seoulAlt.now = v; } catch (e) {}
 /* 서울 하늘 (임시 배경: 2단계에서 실제 지도 장면으로 바꿀 예정) */
 function buildSeoul() {
   const g = new THREE.Group(), R = mulberry32(1225);
-  const C = DOME_CENTER, GY = C.y - 70;
+  const C = DOME_CENTER, GY = 0;   // 땅 높이는 고도에 따라 아래 묶음(land)을 올리고 내림
+  const land = new THREE.Group(); land.position.y = C.y - seoulAlt.now; g.add(land);
   const sky = new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false, fog: false,
     uniforms: { uTop: { value: new THREE.Color('#3f8fdc') }, uMid: { value: new THREE.Color('#cfeaf8') }, uLow: { value: new THREE.Color('#d6e6e0') }, uNight: { value: 0 }, uSun: { value: new THREE.Vector3(0.55, 0.42, -0.72).normalize() } },
@@ -5263,7 +5276,7 @@ function buildSeoul() {
   const ORBIT = 260, SIZE = 1700;
   const city = new THREE.Group();
   city.position.set(C.x + ORBIT, GY, C.z);
-  g.add(city);
+  land.add(city);
   // 땅 그림: 초록 공원, 파란 한강, 밝은 동네와 길 + 밤 불빛 그림
   const cv = document.createElement('canvas'), lv = document.createElement('canvas');
   cv.width = cv.height = lv.width = lv.height = 1024;
@@ -5338,7 +5351,7 @@ function buildSeoul() {
   for (let i = 0; i < 16; i++) {
     const a = i / 16 * Math.PI * 2 + R() * 0.2, r = 480 + R() * 40, h = 60 + R() * 90;
     const mt = noRay(new THREE.Mesh(new THREE.ConeGeometry(90 + R() * 60, h, 7), std(R() < 0.5 ? '#6f9a74' : '#7fa680')));
-    mt.position.set(C.x + Math.cos(a) * r, GY + h / 2 - 4, C.z + Math.sin(a) * r); g.add(mt);
+    mt.position.set(C.x + Math.cos(a) * r, GY + h / 2 - 4, C.z + Math.sin(a) * r); land.add(mt);
   }
   // 구름
   const puff = puffTexture(), clouds = [];
@@ -5359,6 +5372,9 @@ function buildSeoul() {
     clouds.forEach(c => { c.sp.material.color.setScalar(mix(1, 0.35, nt)); });
   };
   W.tick = (dt) => {
+    // 고도: 고른 높이로 천천히 오르내림
+    seoulAlt.now += (seoulAlt.want - seoulAlt.now) * Math.min(1, dt * 0.8);
+    land.position.y = C.y - seoulAlt.now;
     // 돔은 그대로, 아래 도시가 천천히 돌아 지나감 = 돔이 도시 위를 날아감 (초속 약 5m)
     city.rotation.y = (Date.now() / 1000 * 5 / ORBIT) % (Math.PI * 2);
     clouds.forEach(c => { c.sp.position.x += c.v * dt; if (c.sp.position.x > C.x + 320) c.sp.position.x -= 640; });
@@ -5476,6 +5492,8 @@ function applyDim(k) {
   $('dimName').textContent = myDim === 'sea' ? '' : DIMS[myDim].name + ' ';
   if (domeUiShown) { domeUiShown = null; updateDomeUi(true); }   // 안내 글도 이 차원에 맞게
   setGlassFloor(myDim !== 'sea');
+  $('altBtn').hidden = myDim !== 'seoul';
+  closeAltMenu();
   setLook(camera.position.y);
   if (peersReady) renderPeers(lastPeers);
 }
@@ -5741,6 +5759,34 @@ $('dimMenu').addEventListener('click', e => {
 });
 $('exBtn').addEventListener('click', closeDimMenu);
 canvas.addEventListener('pointerdown', closeDimMenu);
+/* 고도 버튼 (서울 하늘 돔에서만) */
+function closeAltMenu() { $('altMenu').classList.add('is-hidden'); }
+function showAlt() {
+  $('altNow').textContent = `${seoulAlt.want}m`;
+  $('altDown').disabled = seoulAlt.want <= ALT_MIN;
+  $('altUp').disabled = seoulAlt.want >= ALT_MAX;
+}
+function setAlt(d) {
+  seoulAlt.want = Math.max(ALT_MIN, Math.min(ALT_MAX, seoulAlt.want + d));
+  try { localStorage.setItem('a508057:seoulAlt', String(seoulAlt.want)); } catch (e) {}
+  showAlt();
+}
+$('altBtn').addEventListener('click', e => {
+  e.stopPropagation();
+  const m = $('altMenu');
+  if (!m.classList.contains('is-hidden')) { closeAltMenu(); return; }
+  closeDimMenu(); closeExMenu();
+  showAlt();
+  m.classList.remove('is-hidden');
+  const r = $('altBtn').getBoundingClientRect(), w = m.offsetWidth, h = m.offsetHeight;
+  m.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, r.left + r.width / 2 - w / 2)) + 'px';
+  m.style.top = Math.max(8, r.top - h - 10) + 'px';
+});
+$('altDown').addEventListener('click', () => setAlt(-ALT_STEP));
+$('altUp').addEventListener('click', () => setAlt(ALT_STEP));
+$('dimBtn').addEventListener('click', closeAltMenu);
+$('exBtn').addEventListener('click', closeAltMenu);
+canvas.addEventListener('pointerdown', closeAltMenu);
 window.addEventListener('keydown', e => { if (e.key === 'Escape') closeDimMenu(); });
 
 /* ---------- 움직이기 ---------- */
