@@ -399,7 +399,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-125';
+const BUILD = '11.19-126';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -560,9 +560,9 @@ sunLight.position.set(20, 60, 10);
 scene.add(sunLight);
 /* 차원: 바다(처음 돔) · 서울 하늘 · 지구 우주. 같은 차원 사람끼리만 보임 */
 const DIMS = {
-  sea: { name: '바다', icon: '🌊', a: '#7fe0f2', b: '#1d6f9c', stars: 0 },
-  seoul: { name: '서울 하늘', icon: '🏙️', a: '#5aa6e6', b: '#e9f2f6', stars: 0 },
-  space: { name: '지구 우주', icon: '🌍', a: '#3a5bc4', b: '#03040f', stars: 1 },
+  sea: { name: '바다', view: '바다를', icon: '🌊', a: '#7fe0f2', b: '#1d6f9c', stars: 0 },
+  seoul: { name: '서울 하늘', view: '서울 하늘을', icon: '🏙️', a: '#5aa6e6', b: '#e9f2f6', stars: 0 },
+  space: { name: '지구 우주', view: '우주를', icon: '🌍', a: '#3a5bc4', b: '#03040f', stars: 1 },
 };
 let myDim = 'sea';
 let lastPeers = [], dimPeerCount = { sea: 0, seoul: 0, space: 0 };
@@ -2311,7 +2311,7 @@ function glassHint() {
   const near = nearGlass() && !edgeSit && mySeat === null && teaSitting === null && onMat === null && !arriving && !leaving && !(moveTarget && (moveTarget.edge || (moveTarget.then && moveTarget.then.edge)));
   if (near && !wasNearGlass && performance.now() - glassHintAt > 45000 && domeUiShown) {
     glassHintAt = performance.now();
-    toast(coarse ? '유리 앞이에요 · 화면을 두 번 톡 하면 앉아서 바다를 볼 수 있어요' : '유리 앞이에요 · 두 번 클릭하면 앉아서 바다를 볼 수 있어요');
+    toast(coarse ? `유리 앞이에요 · 화면을 두 번 톡 하면 앉아서 ${DIMS[myDim].view} 볼 수 있어요` : `유리 앞이에요 · 두 번 클릭하면 앉아서 ${DIMS[myDim].view} 볼 수 있어요`);
   }
   wasNearGlass = near;
 }
@@ -2323,7 +2323,7 @@ function startEdgeSit() {
   lastLookAt = performance.now();
   keepTP = false;
   if (!firstPerson) setView(true);        // 내 눈으로 넓게 바다를 봄
-  toast('바다를 보며 앉았어요 · 끌어서 둘러봐요');
+  toast(`${DIMS[myDim].view} 보며 앉았어요 · 끌어서 둘러봐요`);
   sendPresence(true);
 }
 const exActive = () => !!(myGesture && EX_T[myGesture.k] && performance.now() - myGesture.at < EX_T[myGesture.k] * 1000);
@@ -4114,7 +4114,7 @@ function updateDomeUi(near) {
   $('toDome').hidden = near;
   $('toDome').textContent = '돔으로 가기';
   $('hint').textContent = near
-    ? (coarse ? '손가락으로 끌면 그쪽으로 걸어가요 (옆으로 끌면 돌아요) · 두 손가락으로 끌면 둘러보기 · 방석을 누르면 앉아요 · 유리 가까이 바닥을 누르면 바다를 보며 앉아요 · 싱잉볼을 누르면 소리만 울려요 · 사람을 누르면 합장 인사 · 나가기를 누르면 빛을 타고 돌아가요' : '바닥 누르기·방향키로 움직여요 · 방석을 누르거나 F로 앉기 · 유리 가까이 바닥을 누르면 바다를 보며 앉기 · 1 안녕하세요, 2 합장, 3 종, 4 차, P 사진, V 시점 · 싱잉볼을 누르면 소리만 · 끌어서 둘러보기 · 나가기를 누르면 빛을 타고 돌아가요')
+    ? (coarse ? `손가락으로 끌면 그쪽으로 걸어가요 (옆으로 끌면 돌아요) · 두 손가락으로 끌면 둘러보기 · 방석을 누르면 앉아요 · 유리 가까이 바닥을 누르면 ${DIMS[myDim].view} 보며 앉아요 · 싱잉볼을 누르면 소리만 울려요 · 사람을 누르면 합장 인사 · 나가기를 누르면 빛을 타고 돌아가요` : `바닥 누르기·방향키로 움직여요 · 방석을 누르거나 F로 앉기 · 유리 가까이 바닥을 누르면 ${DIMS[myDim].view} 보며 앉기 · 1 안녕하세요, 2 합장, 3 종, 4 차, P 사진, V 시점 · 싱잉볼을 누르면 소리만 · 끌어서 둘러보기 · 나가기를 누르면 빛을 타고 돌아가요`)
     : (coarse ? '바닥을 누르거나 왼쪽 아래 원으로 움직여요 · 끌어서 둘러보기' : '바닥을 누르거나 방향키로 움직여요 · 끌어서 둘러보기 · 휠로 가까이·멀리');
 }
 
@@ -5464,6 +5464,7 @@ function applyDim(k) {
   for (const [key, W] of Object.entries(dimWorlds)) W.g.visible = key === myDim;
   if (myDim === 'sea') { hemi.groundColor.copy(SEA_LIGHT.ground); sunLight.position.copy(SEA_LIGHT.sunPos); }
   $('dimName').textContent = myDim === 'sea' ? '' : DIMS[myDim].name + ' ';
+  if (domeUiShown) { domeUiShown = null; updateDomeUi(true); }   // 안내 글도 이 차원에 맞게
   setLook(camera.position.y);
   if (peersReady) renderPeers(lastPeers);
 }
