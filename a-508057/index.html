@@ -225,7 +225,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 <header class="hud fade is-hidden" id="hud">
   <div class="plate">
     <div class="id">A-508057</div>
-    <div class="sub"><span hidden><span id="found"></span><span id="lightCount"></span></span><span id="dimName"></span>유리 돔 · <span id="together">혼자 있어요</span> <span id="buildTag" style="opacity:.55;font-size:10px"></span> <span id="osmTag" hidden style="opacity:.6;font-size:10px">지도 © OpenStreetMap</span></div>
+    <div class="sub"><span hidden><span id="found"></span><span id="lightCount"></span></span><span id="dimName"></span>유리 돔 · <span id="together">혼자 있어요</span> <span id="buildTag" style="opacity:.55;font-size:10px"></span> <span id="osmTag" hidden style="opacity:.6;font-size:10px">지도 © OpenStreetMap</span> <span id="wxTag" hidden style="font-size:11px"></span></div>
     <div class="hint" id="hint"></div>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button type="button" id="toDome" hidden>돔으로 가기</button><button type="button" id="galleryBtn" hidden>기록 사진</button><span id="hostRow" hidden style="display:contents"><button type="button" id="linksBtn">링크 넣기</button></span><button type="button" id="ambBtn" aria-pressed="false">🎵 음악 켜기</button><button type="button" id="nameBtn">이름</button><button type="button" id="viewBtn">내 모습 보기</button><button type="button" id="replay">나가기</button></div>
@@ -408,7 +408,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-137';
+const BUILD = '11.19-138';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -5581,6 +5581,34 @@ function mergeGeos(geos) {
   m.setAttribute('position', new THREE.BufferAttribute(pos, 3)); m.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
   return m;
 }
+/* 서울의 지금 날씨 (Open-Meteo, 열쇠 없이 쓰는 무료 날씨 정보). 15분마다 새로 받음. 못 받으면 맑은 날로 */
+let seoulWx = null, seoulWxAt = -1e9, firstWxDone = false;
+function wxFrom(c) {
+  const code = Number(c.weather_code) || 0, cc = clamp01((Number.isFinite(c.cloud_cover) ? c.cloud_cover : 30) / 100), pr = Number(c.precipitation) || 0;
+  let icon = '☀️', name = '맑음', w = { cloud: Math.min(cc, 0.35), gray: 0, rain: 0, snow: 0, fog: 0, storm: 0 };
+  if (code >= 95) { icon = '⛈'; name = '천둥번개'; w = { cloud: 1, gray: 0.85, rain: Math.min(1, 0.6 + pr / 6), snow: 0, fog: 0.15, storm: 1 }; }
+  else if ((code >= 71 && code <= 77) || code === 85 || code === 86) { icon = '❄️'; name = '눈'; w = { cloud: 1, gray: 0.7, rain: 0, snow: Math.min(1, 0.45 + pr / 2), fog: 0.2, storm: 0 }; }
+  else if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) { icon = '🌧'; name = code <= 57 ? '이슬비' : '비'; w = { cloud: 1, gray: 0.75, rain: code <= 57 ? 0.3 : Math.min(1, 0.4 + pr / 5), snow: 0, fog: 0.15, storm: 0 }; }
+  else if (code === 45 || code === 48) { icon = '🌫'; name = '안개'; w = { cloud: 0.6, gray: 0.5, rain: 0, snow: 0, fog: 1, storm: 0 }; }
+  else if (code === 3) { icon = '☁️'; name = '흐림'; w = { cloud: 1, gray: 0.55, rain: 0, snow: 0, fog: 0, storm: 0 }; }
+  else if (code === 1 || code === 2) { icon = '⛅'; name = '구름 조금'; w = { cloud: Math.max(cc, 0.5), gray: cc > 0.7 ? 0.2 : 0, rain: 0, snow: 0, fog: 0, storm: 0 }; }
+  const temp = Number(c.temperature_2m);
+  return { w, label: `${icon} 서울 지금 ${name}` + (Number.isFinite(temp) ? ` ${Math.round(temp)}°C` : '') };
+}
+function fetchSeoulWeather() {
+  if (Date.now() - seoulWxAt < 15 * 60e3) return;
+  seoulWxAt = Date.now();
+  fetch('https://api.open-meteo.com/v1/forecast?latitude=37.5665&longitude=126.978&current=temperature_2m,weather_code,cloud_cover,precipitation&timezone=Asia%2FSeoul')
+    .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)))
+    .then(j => {
+      seoulWx = wxFrom(j.current || {});
+      if (seoulReal) seoulReal.setWeather(seoulWx.w, !firstWxDone);
+      firstWxDone = true;
+      $('wxTag').textContent = seoulWx.label;
+      $('wxTag').hidden = myDim !== 'seoul';
+    })
+    .catch(() => { seoulWxAt = Date.now() - 10 * 60e3; });   // 못 받으면 5분 뒤 다시
+}
 function loadSeoulReal() {
   if (seoulReal || seoulLoading) return;
   seoulLoading = true;
@@ -5589,6 +5617,7 @@ function loadSeoulReal() {
     setTimeout(() => {
       try { seoulReal = buildSeoulReal(D); }
       catch (e) { console.warn('서울 지도 만들기 실패', e); seoulLoading = false; return; }
+      if (seoulWx) seoulReal.setWeather(seoulWx.w, true);
       if (myDim === 'seoul') applyDim('seoul');
     }, 30);
   }).catch(e => { console.warn('서울 지도 불러오기 실패', e); seoulLoading = false; });
@@ -5600,10 +5629,10 @@ function buildSeoulReal(D) {
   const light = coarse;   // 휴대폰은 가벼운 모드 (나무·차를 줄임)
   const HAZE = new THREE.Color('#c4e2fa');
   S.fog = new THREE.Fog(HAZE.clone(), 2500, 16000); S.background = HAZE.clone();
-  const skyU = { uSun: { value: new THREE.Vector3(0, 1, 0) }, uMoon: { value: new THREE.Vector3(0, 1, 0) }, uDay: { value: 1 }, uDusk: { value: 0 }, uNight: { value: 0 } };
+  const skyU = { uSun: { value: new THREE.Vector3(0, 1, 0) }, uMoon: { value: new THREE.Vector3(0, 1, 0) }, uDay: { value: 1 }, uDusk: { value: 0 }, uNight: { value: 0 }, uGray: { value: 0 }, uFlash: { value: 0 } };
   const sky = new THREE.Mesh(new THREE.SphereGeometry(40000, 48, 32), new THREE.ShaderMaterial({ side: THREE.BackSide, depthWrite: false, fog: false, uniforms: skyU,
     vertexShader: 'varying vec3 vD; void main(){ vD = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-    fragmentShader: `varying vec3 vD; uniform vec3 uSun; uniform vec3 uMoon; uniform float uDay; uniform float uDusk; uniform float uNight; void main(){
+    fragmentShader: `varying vec3 vD; uniform vec3 uSun; uniform vec3 uMoon; uniform float uDay; uniform float uDusk; uniform float uNight; uniform float uGray; uniform float uFlash; void main(){
       vec3 d = normalize(vD); float h = clamp(d.y, 0., 1.);
       vec3 zen = mix(vec3(0.01, 0.025, 0.08), vec3(0.04, 0.33, 0.86), uDay), hor = mix(vec3(0.05, 0.08, 0.18), vec3(0.66, 0.85, 0.99), uDay);
       vec3 c = mix(hor, zen, pow(h, 0.45));
@@ -5613,7 +5642,10 @@ function buildSeoulReal(D) {
       float sn = max(0., dot(d, uSun)); c += vec3(1., 0.95, 0.85) * (pow(sn, 600.) * 3. + pow(sn, 12.) * 0.18) * clamp(uDay + uDusk, 0., 1.);
       float m = max(0., dot(d, uMoon)); c += vec3(0.6, 0.7, 0.9) * pow(m, 40.) * 0.15 * uNight;
       c += uNight * vec3(0.5, 0.35, 0.25) * exp(-h * 14.0) * 0.25;
-      if (d.y < 0.) c = hor; gl_FragColor = vec4(c, 1.);
+      if (d.y < 0.) c = hor;
+      float lum = dot(c, vec3(0.3, 0.59, 0.11)); c = mix(c, vec3(lum) * vec3(0.93, 0.96, 1.0) * 0.92, uGray);   // 흐린 날은 잿빛 하늘
+      c += uFlash * vec3(0.7, 0.75, 0.9);   // 번개
+      gl_FragColor = vec4(c, 1.);
       #include <colorspace_fragment>
     }` }));
   sky.renderOrder = -10; S.add(sky);
@@ -5791,19 +5823,78 @@ function buildSeoulReal(D) {
     moonS.position.copy(md).multiplyScalar(5000); moonS.intensity = night * Math.max(0, md.y) * 0.5;
     const haze = new THREE.Color('#c4e2fa').lerp(new THREE.Color('#f0b48e'), dusk * 0.75).lerp(new THREE.Color('#0e1428'), night);
     const cc = new THREE.Color('#ffffff').lerp(new THREE.Color('#ffb48f'), dusk * 0.9).lerp(new THREE.Color('#36405e'), night); clouds.forEach(c => c.material.color.copy(cc));
+    baseHaze.copy(haze); baseCloud.copy(cc); baseSun = sunS.intensity; baseHemi = hemiS.intensity;
     S.fog.color.copy(haze); S.background.copy(haze);
     stars.material.opacity = night * 0.9; moonM.position.copy(md).multiplyScalar(20000); moonM.lookAt(0, 0, 0); moonM.material.uniforms.uPhase.value = mA.phase; moonM.material.uniforms.uVis.value = md.y > -0.05 ? 1 : 0;
     bldMat.emissiveIntensity = night * 1.1 + dusk * 0.2; streetLights.material.opacity = night; bridgeMat.emissiveIntensity = night * 0.6;
     carMat.emissiveIntensity = night * 1.2 + 0.18;
     groundMat.emissiveIntensity = night * 0.9; parkMat.emissiveIntensity = night * 0.8; roadMat.emissiveIntensity = night * 0.9; boatWin.emissiveIntensity = night * 1.2 + dusk * 0.3;
     waterMat.color.set('#86bde0').lerp(new THREE.Color('#0d1a33'), night).lerp(new THREE.Color('#e7a27f'), dusk * 0.35 * (1 - night));
-    Object.assign(lightOut, { day, night, dusk }); lightOut.sunDir.copy(sd); };
+    Object.assign(lightOut, { day, night, dusk }); lightOut.sunDir.copy(sd); applyWx(); };
   let lastTime = 0;
+  // ---- 서울 날씨 (실제 날씨를 받아 천천히 바뀜): 구름 양, 잿빛 하늘, 비, 눈, 안개, 번개 ----
+  const baseHaze = new THREE.Color('#c4e2fa'), baseCloud = new THREE.Color('#ffffff'); let baseSun = 2.4, baseHemi = 1.15;
+  const wx = { cloud: 0.35, gray: 0, rain: 0, snow: 0, fog: 0, storm: 0 }, wxWant = { ...wx };
+  let flash = 0, nextFlash = 8;
+  const cloudShuffle = clouds.map((c, i) => i).sort(() => rnd() - 0.5);
+  function applyWx() {
+    const g = wx.gray;
+    sunS.intensity = baseSun * (1 - 0.7 * g);
+    hemiS.intensity = baseHemi * (1 - 0.25 * g) + flash * 1.6;
+    const lum = baseHaze.r * 0.3 + baseHaze.g * 0.59 + baseHaze.b * 0.11;
+    const hz = baseHaze.clone().lerp(new THREE.Color(lum * 0.95, lum * 0.98, lum * 1.03), g * 0.8);
+    S.fog.color.copy(hz); S.background.copy(hz);
+    S.fog.near = mix(2500, 150, wx.fog); S.fog.far = mix(mix(16000, 9000, g), 1600, wx.fog);
+    const cl = baseCloud.clone().lerp(new THREE.Color(0.55, 0.58, 0.62).multiplyScalar(0.4 + 0.6 * lightOut.day), g * 0.85);
+    const show = Math.round(clouds.length * (0.15 + 0.85 * wx.cloud));
+    cloudShuffle.forEach((ci, k) => { clouds[ci].visible = k < show; clouds[ci].material.color.copy(cl); });
+    skyU.uGray.value = g; skyU.uFlash.value = flash;
+    lightOut.gray = g; lightOut.flash = flash;
+  }
+  // 비와 눈: 돔 유리 바깥에서만 내림 (돔 안 장면에 붙여 돔과 함께 다님)
+  const fx = new THREE.Group(); fx.position.copy(DOME_CENTER); fx.visible = false; scene.add(fx);
+  const RN = light ? 1400 : 3200, rainPos = new Float32Array(RN * 6);
+  const ring = () => { const a = Math.random() * 6.283, r = 9.5 + Math.pow(Math.random(), 0.7) * 70; return [Math.cos(a) * r, Math.sin(a) * r]; };
+  for (let i = 0; i < RN; i++) { const [x, z] = ring(), y = -50 + Math.random() * 90; rainPos.set([x, y, z, x + 0.25, y + 3, z], i * 6); }
+  const rainGeo = new THREE.BufferGeometry(); rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPos, 3)); rainGeo.setDrawRange(0, 0);
+  const rainMat = new THREE.LineBasicMaterial({ color: '#a9b8c9', transparent: true, opacity: 0.55, depthWrite: false });
+  const rainL = noRay(new THREE.LineSegments(rainGeo, rainMat)); rainL.frustumCulled = false; fx.add(rainL);
+  const SN = light ? 1200 : 2600, snowPos = new Float32Array(SN * 3), snowPh = new Float32Array(SN);
+  for (let i = 0; i < SN; i++) { const [x, z] = ring(); snowPos.set([x, -40 + Math.random() * 75, z], i * 3); snowPh[i] = Math.random() * 6.28; }
+  const snowGeo = new THREE.BufferGeometry(); snowGeo.setAttribute('position', new THREE.BufferAttribute(snowPos, 3)); snowGeo.setDrawRange(0, 0);
+  const snowP = noRay(new THREE.Points(snowGeo, new THREE.PointsMaterial({ color: '#ffffff', size: 3, sizeAttenuation: false, transparent: true, opacity: 0.9, depthWrite: false })));
+  snowP.frustumCulled = false; fx.add(snowP);
+  function tickWx(dt) {
+    const k = Math.min(1, dt * 0.25);   // 날씨는 몇 초에 걸쳐 천천히 바뀜
+    for (const key in wx) wx[key] += (wxWant[key] - wx[key]) * k;
+    // 번개
+    flash = Math.max(0, flash - dt * 5);
+    if (wx.storm > 0.5) { nextFlash -= dt; if (nextFlash <= 0) { flash = 1; nextFlash = 6 + Math.random() * 14; setTimeout(() => { flash = 0.8; }, 140); } }
+    applyWx();
+    // 비
+    const rn = Math.floor(RN * wx.rain);
+    rainGeo.setDrawRange(0, rn * 2);
+    if (rn) {
+      const v = 28 * dt;
+      for (let i = 0; i < rn; i++) { const o = i * 6; rainPos[o + 1] -= v; rainPos[o + 4] -= v; if (rainPos[o + 1] < -50) { const [x, z] = ring(); rainPos[o] = x; rainPos[o + 2] = z; rainPos[o + 1] = 40; rainPos[o + 3] = x + 0.25; rainPos[o + 4] = 43; rainPos[o + 5] = z; } }
+      rainGeo.attributes.position.needsUpdate = true;
+      rainMat.opacity = 0.45 + 0.35 * wx.rain;
+    }
+    // 눈
+    const sn = Math.floor(SN * wx.snow);
+    snowGeo.setDrawRange(0, sn);
+    if (sn) {
+      const t = performance.now() / 1000;
+      for (let i = 0; i < sn; i++) { const o = i * 3; snowPos[o + 1] -= 1.6 * dt; snowPos[o] += Math.sin(t * 0.8 + snowPh[i]) * 0.4 * dt; if (snowPos[o + 1] < -40) { const [x, z] = ring(); snowPos[o] = x; snowPos[o + 2] = z; snowPos[o + 1] = 35; } }
+      snowGeo.attributes.position.needsUpdate = true;
+    }
+  }
   // 높이: 고른 높이 + 남산 가까이에서는 더 높이 (탑에 닿지 않게)
   const NS = L.namsan;
   const dome = new THREE.Vector3();
   const R = {
-    scene: S, cam, light: lightOut,
+    scene: S, cam, light: lightOut, fx,
+    setWeather(w, now) { Object.assign(wxWant, w); if (now) Object.assign(wx, w); },   // now: 들어올 때는 바로 그 날씨로
     tick(dt) {
       const now = Date.now();
       if (now - lastTime > 5000) { lastTime = now; setTime(new Date(now)); }
@@ -5814,6 +5905,8 @@ function buildSeoulReal(D) {
       seoulAlt.now += (seoulAlt.want - seoulAlt.now) * Math.min(1, dt * 0.8);
       dome.set(x, seoulAlt.now + lift, z);
       carT.value = (now / 1000) % 100000;
+      fx.visible = myDim === 'seoul';
+      tickWx(dt);
       for (const b of boats) {
         let bd = ((now / 1000 * b.v / rvTot) + b.ph) % 2 * rvTot, back = false;
         if (bd > rvTot) { bd = rvTot * 2 - bd; back = true; }
@@ -5839,7 +5932,8 @@ function seoulRealLook() {
   hemi.color.set('#eaf6ff').lerp(new THREE.Color('#8ea3d6'), Lt.night); hemi.groundColor.set('#b9b39e').lerp(new THREE.Color('#2a3048'), Lt.night);
   hemi.intensity = mix(1.6, 1.1, Lt.night);
   sunLight.color.set('#fff1d8').lerp(new THREE.Color('#ffb27a'), Lt.dusk * 0.6).lerp(new THREE.Color('#c9d7ff'), Lt.night);
-  sunLight.intensity = mix(2.2, 0.8, Lt.night);
+  sunLight.intensity = mix(2.2, 0.8, Lt.night) * (1 - 0.6 * (Lt.gray || 0));
+  hemi.intensity += (Lt.flash || 0) * 1.2;
   const sd = Lt.sunDir.y > 0.05 ? Lt.sunDir : new THREE.Vector3(0.3, 0.8, 0.4).normalize();
   sunLight.position.copy(DOME_CENTER).addScaledVector(sd, 60);
 }
@@ -5891,6 +5985,8 @@ function applyDim(k) {
   if (myDim !== 'sea') dimWorld(myDim);
   for (const [key, W] of Object.entries(dimWorlds)) W.g.visible = key === myDim && !(key === 'seoul' && seoulReal);
   $('osmTag').hidden = !(myDim === 'seoul' && seoulReal);
+  if (seoulReal) seoulReal.fx.visible = myDim === 'seoul';
+  $('wxTag').hidden = !(myDim === 'seoul' && seoulWx);
   if (myDim === 'sea') { hemi.groundColor.copy(SEA_LIGHT.ground); sunLight.position.copy(SEA_LIGHT.sunPos); }
   $('dimName').textContent = myDim === 'sea' ? '' : DIMS[myDim].name + ' ';
   if (domeUiShown) { domeUiShown = null; updateDomeUi(true); }   // 안내 글도 이 차원에 맞게
@@ -6128,6 +6224,7 @@ function updatePortalRun() {
 function updateDims(dt, t) {
   if (portalRun) { updatePortalRun(); targetRing.visible = false; }
   updatePortals(dt, t);
+  if (myDim === 'seoul') fetchSeoulWeather();
   if (myDim === 'seoul' && seoulReal) seoulReal.tick(dt);
   const W = dimWorlds[myDim];
   if (W && W.g.visible) W.tick(dt, t);
