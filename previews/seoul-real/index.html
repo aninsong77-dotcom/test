@@ -1,0 +1,102 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style></head><body>
+<script type="module">
+import * as T from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+const D = await (await fetch('data.json')).json();
+const W=innerWidth,H=innerHeight;
+const R=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,logarithmicDepthBuffer:true}); R.setSize(W,H); R.toneMapping=T.ACESFilmicToneMapping; R.toneMappingExposure=1.08; R.outputColorSpace=T.SRGBColorSpace; document.body.appendChild(R.domElement);
+const scene=new T.Scene(); const cam=new T.PerspectiveCamera(70,W/H,0.5,60000);
+let s=5; const rnd=()=> (s=(s*16807)%2147483647)/2147483647;
+const HAZE=new T.Color('#c4e2fa'); scene.fog=new T.Fog(HAZE,2500,16000); scene.background=HAZE;
+const sunDir=new T.Vector3(0.35,0.62,0.7).normalize();
+scene.add(new T.Mesh(new T.SphereGeometry(40000,48,32),new T.ShaderMaterial({side:T.BackSide,depthWrite:false,fog:false,uniforms:{uSun:{value:sunDir}},
+ vertexShader:'#include <common>\n#include <logdepthbuf_pars_vertex>\nvarying vec3 vD; void main(){ vD=normalize(position); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);\n#include <logdepthbuf_vertex>\n}',
+ fragmentShader:`#include <logdepthbuf_pars_fragment>
+ varying vec3 vD; uniform vec3 uSun; void main(){
+  #include <logdepthbuf_fragment>
+  vec3 d=normalize(vD); float h=clamp(d.y,0.,1.); vec3 zen=vec3(0.04,0.33,0.86), hor=vec3(0.66,0.85,0.99); vec3 c=mix(hor,zen,pow(h,0.45));
+  float s=max(0.,dot(d,uSun)); c+=vec3(1.,0.95,0.85)*(pow(s,600.)*3.+pow(s,12.)*0.18); if(d.y<0.) c=hor; gl_FragColor=vec4(c,1.);
+  #include <colorspace_fragment>
+ }`})));
+scene.add(new T.HemisphereLight('#cfe6ff','#8a8f78',1.1)); const sun=new T.DirectionalLight('#fff4e0',2.2); sun.position.copy(sunDir).multiplyScalar(5000); scene.add(sun);
+const canvasTex=(w,h,draw)=>{ const c=document.createElement('canvas'); c.width=w; c.height=h; draw(c.getContext('2d'),w,h); const t=new T.CanvasTexture(c); t.colorSpace=T.SRGBColorSpace; t.anisotropy=4; return t; };
+const winTex=canvasTex(64,128,(g,w,h)=>{ g.fillStyle='#ffffff'; g.fillRect(0,0,w,h); for(let y=6;y<h;y+=11) for(let x=6;x<w;x+=11){ g.fillStyle= Math.random()<0.2?'#a8c6e0':'#c9dceb'; g.fillRect(x,y,6,7);} });
+const glassTex=canvasTex(64,128,(g,w,h)=>{ const gr=g.createLinearGradient(0,0,0,h); gr.addColorStop(0,'#d3e5f3'); gr.addColorStop(1,'#9fbbd4'); g.fillStyle=gr; g.fillRect(0,0,w,h); g.strokeStyle='rgba(255,255,255,.35)'; for(let x=0;x<w;x+=6){g.beginPath();g.moveTo(x,0);g.lineTo(x,h);g.stroke();} });
+const shape=(pts,holes=[])=>{ const sh=new T.Shape(pts.map(p=>new T.Vector2(p[0],-p[1]))); holes.forEach(hh=>sh.holes.push(new T.Path(hh.map(p=>new T.Vector2(p[0],-p[1]))))); return sh; };
+const flat=(geo,y)=>{ geo.rotateX(-Math.PI/2); geo.translate(0,y,0); return geo; };
+// 땅
+const [X0,X1,Z0,Z1]=D.bounds;
+const ground=new T.Mesh(new T.PlaneGeometry(80000,80000),new T.MeshStandardMaterial({color:'#d8d3c4',roughness:1})); ground.rotation.x=-Math.PI/2; scene.add(ground);
+// 공원
+{ const geos=D.parks.map(p=>flat(new T.ShapeGeometry(shape(p)),0.6)); const m=new T.MeshStandardMaterial({color:'#9fd08a',roughness:1}); geos.forEach(g=>scene.add(new T.Mesh(g,m))); }
+// 한강
+{ const m=new T.MeshStandardMaterial({color:'#86bde0',roughness:0.5,metalness:0.0}); D.water.forEach(w=>scene.add(new T.Mesh(flat(new T.ShapeGeometry(shape(w[0],w.slice(1))),1.0),m))); }
+// 큰길 (리본)
+const roadPts=[];
+{ const m=new T.MeshStandardMaterial({color:'#8a8f98',roughness:0.9}); const pos=[],idx=[]; let n=0;
+  D.roads.forEach(r=>{ const p=r.p, hw=r.w/2; for(let i=0;i<p.length-1;i++){ const [x1,z1]=p[i],[x2,z2]=p[i+1]; const dx=x2-x1,dz=z2-z1,L=Math.hypot(dx,dz)||1, nx=-dz/L*hw, nz=dx/L*hw;
+    pos.push(x1+nx,0.8,z1+nz, x1-nx,0.8,z1-nz, x2+nx,0.8,z2+nz, x2-nx,0.8,z2-nz); idx.push(n,n+2,n+1, n+1,n+2,n+3); n+=4; if(L>40 && rnd()<0.6) roadPts.push([x1,z1,x2,z2,r.w]); } });
+  const g=new T.BufferGeometry(); g.setAttribute('position',new T.Float32BufferAttribute(pos,3)); g.setIndex(idx); g.computeVertexNormals(); scene.add(new T.Mesh(g,m)); }
+// 다리 (실제 모양, 물 위 12m)
+{ const m=new T.MeshStandardMaterial({color:'#f0ede6',roughness:0.7}); D.bridges.forEach(b=>{ const g=new T.ExtrudeGeometry(shape(b),{depth:2.5,bevelEnabled:false}); g.rotateX(-Math.PI/2); g.translate(0,12,0); scene.add(new T.Mesh(g,m)); }); }
+// 건물 (파스텔, 지붕 색)
+{ const N=D.buildings.length, geo=new T.BoxGeometry(1,1,1); geo.translate(0,0.5,0); const A=new T.InstancedMesh(geo,new T.MeshStandardMaterial({map:winTex,roughness:0.8}),N), RM=new T.InstancedMesh(geo,new T.MeshStandardMaterial({roughness:0.9}),N);
+  const P=['#f7c9c4','#cfe9d9','#fbe6b8','#cfe1f5','#e3d7f3','#fff4e3','#f6d6b8','#d5ecec'], RC=['#7fb76a','#e98b78','#8fb3d9','#f0c46c','#b7a3d8','#9fcf8b']; const m=new T.Matrix4(), c=new T.Color(), q=new T.Quaternion();
+  D.buildings.forEach(([x,z],i)=>{ const w=18+rnd()*26, d=18+rnd()*26, h=12+Math.pow(rnd(),2)*70+(rnd()<0.03?90:0); q.setFromAxisAngle(new T.Vector3(0,1,0),rnd()*0.3);
+    m.compose(new T.Vector3(x,0,z),q,new T.Vector3(w,h,d)); A.setMatrixAt(i,m); A.setColorAt(i,c.set(P[Math.floor(rnd()*P.length)]));
+    m.compose(new T.Vector3(x,h,z),q,new T.Vector3(w*0.82,1.6,d*0.82)); RM.setMatrixAt(i,m); RM.setColorAt(i,c.set(RC[Math.floor(rnd()*RC.length)])); });
+  A.frustumCulled=RM.frustumCulled=false; scene.add(A,RM); }
+// 공원 나무
+{ const N=9000, tm=new T.InstancedMesh(new T.SphereGeometry(1,8,6),new T.MeshStandardMaterial({color:'#6fb35a',roughness:1}),N), m=new T.Matrix4(), c=new T.Color(); let k=0;
+  for (const p of D.parks) { const xs=p.map(a=>a[0]), zs=p.map(a=>a[1]); const minx=Math.min(...xs),maxx=Math.max(...xs),minz=Math.min(...zs),maxz=Math.max(...zs); const area=(maxx-minx)*(maxz-minz); const n=Math.min(300,Math.floor(area/6000));
+    for(let i=0;i<n && k<N;i++){ const x=minx+rnd()*(maxx-minx), z=minz+rnd()*(maxz-minz); let inside=false; for(let a=0,b=p.length-1;a<p.length;b=a++){ const [xa,za]=p[a],[xb,zb]=p[b]; if(((za>z)!==(zb>z)) && (x<(xb-xa)*(z-za)/(zb-za)+xa)) inside=!inside; } if(!inside) continue;
+      const r=4+rnd()*3; m.makeScale(r,r*1.15,r); m.setPosition(x,r,z); tm.setMatrixAt(k,m); tm.setColorAt(k,c.setHSL(0.27+rnd()*0.06,0.5,0.42+rnd()*0.14)); k++; } }
+  tm.count=k; tm.frustumCulled=false; scene.add(tm); }
+// 차 (큰길 위)
+{ const N=Math.min(5000,roadPts.length*3), cm=new T.InstancedMesh(new T.BoxGeometry(4.6,1.6,2),new T.MeshStandardMaterial({roughness:0.4}),N), m=new T.Matrix4(), c=new T.Color(), q=new T.Quaternion(); const cols=['#ff6b6b','#ffd166','#4dabf7','#69db7c','#ffffff','#f783ac','#ffa94d'];
+  for(let i=0;i<N;i++){ const [x1,z1,x2,z2,w]=roadPts[i%roadPts.length]; const t=rnd(); const a=Math.atan2(z2-z1,x2-x1); const off=(rnd()-0.5)*w*0.7; q.setFromAxisAngle(new T.Vector3(0,1,0),-a);
+    m.compose(new T.Vector3(x1+(x2-x1)*t-Math.sin(a)*off,1.6,z1+(z2-z1)*t+Math.cos(a)*off),q,new T.Vector3(1,1,1)); cm.setMatrixAt(i,m); cm.setColorAt(i,c.set(cols[i%cols.length])); }
+  cm.frustumCulled=false; scene.add(cm); }
+// 랜드마크
+const L=D.landmarks;
+{ // 63빌딩: 금빛 유리
+  const g=new T.Mesh(new T.BoxGeometry(46,250,26),new T.MeshStandardMaterial({color:'#f2cf74',metalness:0.6,roughness:0.25,map:glassTex})); g.position.set(L['63'][0],125,L['63'][1]); g.rotation.y=0.6; scene.add(g);
+  // 국회의사당: 넓은 건물과 초록 돔
+  const gk=new T.Group(); gk.add(new T.Mesh(new T.BoxGeometry(150,30,100),new T.MeshStandardMaterial({color:'#f1ece2'}))); gk.children[0].position.y=15; const dm=new T.Mesh(new T.SphereGeometry(36,32,16,0,Math.PI*2,0,Math.PI/2),new T.MeshStandardMaterial({color:'#8fbfa3',roughness:0.6})); dm.position.y=30; gk.add(dm); gk.position.set(L.gukhoe[0],0,L.gukhoe[1]); scene.add(gk);
+  // 남산과 서울타워
+  const hill=new T.Mesh(new T.SphereGeometry(900,40,20,0,Math.PI*2,0,Math.PI/2),new T.MeshStandardMaterial({color:'#7fb36a',roughness:1})); hill.scale.y=0.26; hill.position.set(L.namsan[0],0,L.namsan[1]); scene.add(hill);
+  const tw=new T.Group(); const tm=new T.MeshStandardMaterial({color:'#f6f4ef'}); const sh=new T.Mesh(new T.CylinderGeometry(6,9,180,16),tm); sh.position.y=90; tw.add(sh); const pod=new T.Mesh(new T.CylinderGeometry(20,16,24,24),tm); pod.position.y=160; tw.add(pod); const sp=new T.Mesh(new T.CylinderGeometry(1.5,3,80,8),tm); sp.position.y=212; tw.add(sp); tw.position.set(L.namsan[0],230,L.namsan[1]); scene.add(tw);
+  // 세빛섬: 물 위의 둥근 섬 셋
+  [[0,0,40],[70,-30,30],[-60,40,26]].forEach(([dx,dz,r],i)=>{ const b=new T.Mesh(new T.SphereGeometry(r,24,16),new T.MeshStandardMaterial({color:['#ffd57a','#9fd3f0','#f4a9c0'][i],metalness:0.3,roughness:0.3})); b.scale.y=0.55; b.position.set(L.sebit[0]+dx,8,L.sebit[1]+dz); scene.add(b); });
+  // 롯데월드타워
+  const lt=new T.Mesh(new T.CylinderGeometry(5,36,555,4,1),new T.MeshStandardMaterial({map:glassTex,roughness:0.2,metalness:0.5,color:'#eef6ff'})); lt.rotation.y=Math.PI/4; lt.position.set(L.lotte[0],277,L.lotte[1]); scene.add(lt);
+}
+// 보트 (돔 길을 따라 강 위에)
+{ const hm=new T.MeshStandardMaterial({color:'#ffffff'}), cm=new T.MeshStandardMaterial({color:'#4d8fd6'}); const path=D.path;
+  for(let i=0;i<40;i++){ const k=Math.floor(rnd()*(path.length-1)), t=rnd(); const [x1,z1]=path[k],[x2,z2]=path[k+1]; const g=new T.Group(); const big=rnd()<0.3, Lb=big?34:10;
+    const hull=new T.Mesh(new T.BoxGeometry(Lb,big?3:1.4,big?9:3),hm); hull.position.y=1.6; g.add(hull); const cab=new T.Mesh(new T.BoxGeometry(Lb*0.5,big?4:1.4,big?7:2.2),big?hm:cm); cab.position.y=big?5:2.6; g.add(cab);
+    g.position.set(x1+(x2-x1)*t+(rnd()-0.5)*160, 0.5, z1+(z2-z1)*t+(rnd()-0.5)*160); g.rotation.y=-Math.atan2(z2-z1,x2-x1); scene.add(g); } }
+// 구름
+{ const ct=canvasTex(256,256,(g,w,h)=>{ for(let i=0;i<26;i++){ const x=40+Math.random()*176, y=90+Math.random()*90-(Math.abs(x-128)<60?30:0), r=26+Math.random()*34; const gr=g.createRadialGradient(x,y-r*0.3,r*0.1,x,y,r); gr.addColorStop(0,'rgba(255,255,255,1)'); gr.addColorStop(0.7,'rgba(246,249,252,.95)'); gr.addColorStop(1,'rgba(230,238,246,0)'); g.fillStyle=gr; g.beginPath(); g.arc(x,y,r,0,7); g.fill(); } });
+  for(let i=0;i<90;i++){ const sp=new T.Sprite(new T.SpriteMaterial({map:ct,transparent:true,depthWrite:false})); const sc=500+rnd()*900; sp.scale.set(sc*1.6,sc,1); sp.position.set(X0-4000+rnd()*(X1-X0+8000), 900+rnd()*900, Z0-6000+rnd()*(Z1-Z0+12000)); scene.add(sp);} }
+// 돔
+const domeG=new T.Group(); { const g=domeG; const floor=new T.Mesh(new T.CylinderGeometry(6.1,6.25,0.4,56),new T.MeshStandardMaterial({color:'#efe7da'})); g.add(floor);
+  const gf=new T.Mesh(new T.RingGeometry(6.1,8.8,72),new T.MeshStandardMaterial({color:'#d9f0ff',transparent:true,opacity:0.14,side:T.DoubleSide,depthWrite:false})); gf.rotation.x=-Math.PI/2; gf.position.y=0.2; g.add(gf);
+  const glass=new T.Mesh(new T.SphereGeometry(8.5,64,32,0,Math.PI*2,0,Math.PI/2),new T.MeshPhysicalMaterial({color:'#ffffff',transparent:true,opacity:0.08,roughness:0,side:T.DoubleSide,depthWrite:false})); g.add(glass);
+  const under=new T.Mesh(new T.SphereGeometry(6.2,40,16,0,Math.PI*2,Math.PI/2,Math.PI/2),new T.MeshStandardMaterial({color:'#e9e3d6'})); under.scale.y=0.22; under.position.y=-0.2; g.add(under);
+  const cush=new T.MeshStandardMaterial({color:'#e2d8c6'}); for(let k=0;k<18;k++){ const a=k/18*6.283; const c=new T.Mesh(new T.CylinderGeometry(0.42,0.46,0.12,20),cush); c.position.set(Math.cos(a)*5.15,0.26,Math.sin(a)*5.15); g.add(c);} scene.add(g); }
+// 길 위 위치 (0~1)
+const P=D.path; const segL=[]; let tot=0; for(let i=0;i<P.length-1;i++){ const l=Math.hypot(P[i+1][0]-P[i][0],P[i+1][1]-P[i][1]); segL.push(l); tot+=l; }
+function along(u){ let d=u*tot; for(let i=0;i<segL.length;i++){ if(d<=segL[i]){ const t=d/segL[i]; return [P[i][0]+(P[i+1][0]-P[i][0])*t, P[i][1]+(P[i+1][1]-P[i][1])*t, Math.atan2(P[i+1][1]-P[i][1],P[i+1][0]-P[i][0])]; } d-=segL[i]; } const n=P.length-1; return [P[n][0],P[n][1],0]; }
+window.totalLen=tot;
+// 지도 보기용: 돔이 다니는 길 표시
+const routeLine=new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(P.map(p=>new T.Vector3(p[0],30,p[1]))),200,45,8,false),new T.MeshBasicMaterial({color:'#ff6fa3'})); routeLine.visible=false; scene.add(routeLine);
+const markers=[]; [[P[0],'#ff3b7a'],[P[P.length-1],'#ff3b7a']].forEach(([p,c])=>{ const mk=new T.Mesh(new T.SphereGeometry(120,20,14),new T.MeshBasicMaterial({color:c})); mk.position.set(p[0],60,p[1]); mk.visible=false; scene.add(mk); markers.push(mk); });
+const FOG=scene.fog;
+window.shot=(v)=>{ const [x,z,a]=along(v.u); const y=v.alt||140; domeG.position.set(x,y,z);
+  if(v.mode==='in'){ const ang=(v.dir||0)+a; cam.fov=v.fov||78; cam.position.set(x+Math.cos(ang)*5.2,y+1.2,z+Math.sin(ang)*5.2); cam.lookAt(x+Math.cos(ang)*1000,y-(v.down||220),z+Math.sin(ang)*1000); }
+  else if(v.mode==='map'){ cam.fov=50; cam.position.set(0,15500,6500); cam.lookAt(0,0,-500); }
+  else { const ang=a+(v.dir||2.4); cam.fov=v.fov||60; cam.position.set(x+Math.cos(ang)*(v.dist||60),y+(v.h||25),z+Math.sin(ang)*(v.dist||60)); cam.lookAt(x,y-10,z); }
+  const isMap=v.mode==='map'; scene.fog=isMap?null:FOG; routeLine.visible=isMap; markers.forEach(m=>m.visible=isMap); domeG.visible=!isMap;
+  cam.updateProjectionMatrix(); R.render(scene,cam); return R.domElement.toDataURL('image/jpeg',0.92); };
+window.ready=true;
+</script></body></html>
