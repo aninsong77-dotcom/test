@@ -106,6 +106,9 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 }
 .peer-menu button{font-size:12px;padding:6px 11px}
 .peer-menu.is-hidden{display:none}
+#dimMenu{flex-wrap:wrap;justify-content:center;border-radius:18px;max-width:calc(100vw - 16px);box-sizing:border-box}
+#dimMenu button[aria-disabled="true"]{opacity:.5}
+#dimMenu button small{opacity:.75;font-size:10.5px;margin-left:3px}
 .gnote{
   position:fixed;z-index:6;left:50%;transform:translateX(-50%);
   top:calc(env(safe-area-inset-top,0px) + 64px);
@@ -220,7 +223,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 <header class="hud fade is-hidden" id="hud">
   <div class="plate">
     <div class="id">A-508057</div>
-    <div class="sub"><span hidden><span id="found"></span><span id="lightCount"></span></span>유리 돔 · <span id="together">혼자 있어요</span> <span id="buildTag" style="opacity:.55;font-size:10px"></span></div>
+    <div class="sub"><span hidden><span id="found"></span><span id="lightCount"></span></span><span id="dimName"></span>유리 돔 · <span id="together">혼자 있어요</span> <span id="buildTag" style="opacity:.55;font-size:10px"></span></div>
     <div class="hint" id="hint"></div>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button type="button" id="toDome" hidden>돔으로 가기</button><button type="button" id="galleryBtn" hidden>기록 사진</button><span id="hostRow" hidden style="display:contents"><button type="button" id="linksBtn">링크 넣기</button></span><button type="button" id="ambBtn" aria-pressed="false">🎵 음악 켜기</button><button type="button" id="nameBtn">이름</button><button type="button" id="viewBtn">내 모습 보기</button><button type="button" id="replay">나가기</button></div>
@@ -245,6 +248,12 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
   <button type="button" id="exTumble" role="menuitem">덤블링</button>
   <button type="button" id="exStretch" role="menuitem">스트레칭</button>
 </div>
+<div class="peer-menu is-hidden" id="dimMenu" role="menu" aria-label="차원이동: 갈 곳 고르기">
+  <span>어디로 갈까요?</span>
+  <button type="button" data-dim="sea" role="menuitem">🌊 바다</button>
+  <button type="button" data-dim="seoul" role="menuitem">🏙️ 서울 하늘</button>
+  <button type="button" data-dim="space" role="menuitem">🌍 지구 우주</button>
+</div>
 <div class="peer-menu is-hidden" id="peerMenu" role="menu" aria-label="함께하는 사람에게">
   <span id="peerMenuName"></span>
   <button type="button" id="pmBow" role="menuitem">합장 인사</button>
@@ -260,6 +269,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
     <button type="button" id="backSeatBtn">자리로 가기</button>
     <button type="button" id="soloBtn">🎧 혼자 명상</button>
     <button type="button" id="exBtn">🤸 몸풀기</button>
+    <button type="button" id="dimBtn">🌀 차원이동</button>
     <button type="button" id="stopBellBtn" hidden>명상 그만하기</button>
     <button type="button" id="joinGroupBtn" hidden>함께하기</button>
   </div>
@@ -389,7 +399,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-123';
+const BUILD = '11.19-124';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -548,8 +558,19 @@ scene.add(hemi);
 const sunLight = new THREE.DirectionalLight('#fff4dc', 2.0);
 sunLight.position.set(20, 60, 10);
 scene.add(sunLight);
+/* 차원: 바다(처음 돔) · 서울 하늘 · 지구 우주. 같은 차원 사람끼리만 보임 */
+const DIMS = {
+  sea: { name: '바다', icon: '🌊', a: '#7fe0f2', b: '#1d6f9c', stars: 0 },
+  seoul: { name: '서울 하늘', icon: '🏙️', a: '#5aa6e6', b: '#e9f2f6', stars: 0 },
+  space: { name: '지구 우주', icon: '🌍', a: '#3a5bc4', b: '#03040f', stars: 1 },
+};
+let myDim = 'sea';
+let lastPeers = [], dimPeerCount = { sea: 0, seoul: 0, space: 0 };
+const peerDim = new Map();
+const dimOf = pr => (pr && typeof pr.dim === 'string' && DIMS[pr.dim]) ? pr.dim : 'sea';
 let above = false, moonGlow = null;
 function setLook(camY) {
+  if (myDim !== 'sea') { dimLook(); return; }
   above = camY > SURF;
   if (above) {
     scene.background.copy(daySea.sky);
@@ -3340,6 +3361,7 @@ function updateWalk(dt, t) {
     camYaw -= dz(dragMove.x) * dt * 1.8;
     lastLookAt = performance.now();
   }
+  if (portalRun) { ix = 0; iy = 0; }   // 차원의 문을 지나는 동안에는 저절로 걸어감
   let mag = Math.min(1, Math.hypot(ix, iy));
   if (mySeat !== null && mag > 0.15) standUp();
   if (mySeat !== null) { const st = SEATS[mySeat]; pos2.set(st.x, st.z); heading = st.heading; mag = 0; moveTarget = null; }
@@ -3655,6 +3677,7 @@ canvas.addEventListener('pointerup', e => {
   if (!quick) return;
   ndc.set(e.clientX / window.innerWidth * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
   raycaster.setFromCamera(ndc, camera);
+  if (portalRun) return;
   const dh = raycaster.intersectObjects(domeTap, false)[0];
   if (dh) {
     const tap = dh.object.userData.tap;
@@ -3854,7 +3877,27 @@ async function renderPeers(peers) {
   peersReady = true;
   const mine = peers.find(p => p.isMe && p.sameTab);
   if (mine) { setMyColor(colorFor(mine.peer)); myPeerId = mine.peer; }
-  const others = peers.filter(p => p.kind === 'viewer' && !p.isMe);
+  lastPeers = peers;
+  const allOthers = peers.filter(p => p.kind === 'viewer' && !p.isMe);
+  // 같은 차원 사람만 보임. 다른 차원 사람은 수만 셈 (종소리도 같은 차원끼리)
+  const others = [], dimCount = { sea: 0, seoul: 0, space: 0 };
+  for (const p of allOthers) {
+    const d = dimOf(p.presence);
+    dimCount[d]++;
+    const prev = peerDim.get(p.peer);
+    peerDim.set(p.peer, d);
+    if (d === myDim) {
+      others.push(p);
+      // 다른 차원에서 막 건너온 사람: 그 자리에 차원의 문이 잠깐 열림
+      if (prev !== undefined && prev !== d && !peerViews.has(p.peer)) { const pr = p.presence || {}; if (Number.isFinite(pr.x) && Number.isFinite(pr.z)) spawnPortal(pr.x, pr.z, Number.isFinite(pr.h) ? pr.h + Math.PI : 0, prev, true); }
+    } else {
+      const v = peerViews.get(p.peer);
+      if (v && prev === myDim && v.g.visible) spawnPortal(v.target.x, v.target.z, v.g.rotation.y + Math.PI, d, true);   // 내 차원에서 떠난 사람
+      const r = p.presence && p.presence.r;
+      if (r && Number.isFinite(r.n)) seenRings.set(p.peer, r.n);   // 다른 차원의 종은 울리지 않음
+    }
+  }
+  dimPeerCount = dimCount;
   const alive = new Set();
   takenSeats.clear();
   const seatOwner = new Map();
@@ -3914,8 +3957,9 @@ async function renderPeers(peers) {
     v.nick = typeof pr.n === 'string' ? pr.n.slice(0, 12) : '';
   }
   for (const [k, v] of peerViews) if (!alive.has(k)) { dropPeerView(v); peerViews.delete(k); }
-  const n = others.length + 1;
-  $('together').textContent = n === 1 ? '혼자 있어요' : `함께 ${n}명`;
+  const n = others.length + 1, elsewhere = allOthers.length - others.length;
+  $('together').textContent = (n === 1 ? '혼자 있어요' : `함께 ${n}명`) + (elsewhere > 0 ? ` · 다른 차원 ${elsewhere}명` : '');
+  for (const k of [...peerDim.keys()]) if (!allOthers.some(p => p.peer === k)) peerDim.delete(k);
   if (mySeat !== null && takenSeats.has(mySeat) && mine && String(mine.peer) > String(seatOwner.get(mySeat))) {
     const other = freeSeat();
     if (other !== null) { mySeat = null; sitAt(other); }
@@ -3999,7 +4043,7 @@ function sendPresence(force) {
   if (!room) return;
   const now = performance.now();
   if (!force && now - lastPresenceAt < 100) return;
-  const obj = { ms: myExSpot(), eo: edgeSit ? 1 : 0, n: myNick, rs: arriving && !arriving.landed && arriving.seat !== null ? arriving.seat : -1, hp: solo ? 1 : 0, ts: teaPending !== null ? teaPending : teaSitting !== null ? teaSitting : -1, o: iAmOut ? 1 : leaving ? 2 : 0, p: (mySeat !== null || atBeach || teaSitting !== null || edgeSit) ? 1 : 0, x: +orb.position.x.toFixed(2), y: +orb.position.y.toFixed(2), z: +orb.position.z.toFixed(2), h: +orb.rotation.y.toFixed(2), b: (travel || bubbleOn) ? 1 : 0, s: mySeat, g: Object.assign({ k: myGesture.k, n: myGesture.n }, Number.isInteger(myGesture.c) ? { c: myGesture.c } : {}, myGesture.to ? { to: myGesture.to } : {}, myGesture.re ? { re: 1 } : {}), r: Object.assign({ n: myRing.n, at: myRing.at }, myRing.m ? { m: myRing.m } : {}) };
+  const obj = { dim: myDim, ms: myExSpot(), eo: edgeSit ? 1 : 0, n: myNick, rs: arriving && !arriving.landed && arriving.seat !== null ? arriving.seat : -1, hp: solo ? 1 : 0, ts: teaPending !== null ? teaPending : teaSitting !== null ? teaSitting : -1, o: iAmOut ? 1 : leaving ? 2 : 0, p: (mySeat !== null || atBeach || teaSitting !== null || edgeSit) ? 1 : 0, x: +orb.position.x.toFixed(2), y: +orb.position.y.toFixed(2), z: +orb.position.z.toFixed(2), h: +orb.rotation.y.toFixed(2), b: (travel || bubbleOn) ? 1 : 0, s: mySeat, g: Object.assign({ k: myGesture.k, n: myGesture.n }, Number.isInteger(myGesture.c) ? { c: myGesture.c } : {}, myGesture.to ? { to: myGesture.to } : {}, myGesture.re ? { re: 1 } : {}), r: Object.assign({ n: myRing.n, at: myRing.at }, myRing.m ? { m: myRing.m } : {}) };
   if (myGaze.on && !leaving && !arriving) { obj.ly = +Math.atan2(Math.sin(myGaze.y), Math.cos(myGaze.y)).toFixed(1); obj.lp = +Math.max(-1.2, Math.min(1.5, myGaze.p)).toFixed(1); }
   const str = JSON.stringify(obj);
   if (str === lastPresence && !(fb && now - lastPresenceAt > 10000)) return;
@@ -5168,6 +5212,485 @@ resize();
 camera.position.set(DOME_CENTER.x, HOUSE_BASE + 2, DOME_CENTER.z + 5);
 lookTarget.copy(beachSpot());
 
+/* ---------- 차원이동 ----------
+   누른 자리(아바타 바로 앞)에 둥근 차원의 문이 열림 → 아바타가 걸어 들어감 → 화면이 물결치며 바뀜
+   → 새 돔의 같은 문에서 걸어 나오고 문이 닫힘. 돔 안 모습은 그대로, 바깥 풍경만 차원마다 다름 */
+// 바다에만 있는 것들(바닥, 물, 물고기, 해·달빛…)은 한 묶음으로: 다른 차원에서는 통째로 숨김 (자리·모양은 그대로)
+const seaWorld = new THREE.Group();
+{
+  const keep = new Set([dome, camera, orb, hemi, sunLight, targetRing, beam, arriveGlow, ...motes.map(m => m.sp), ...Object.values(myBubbles)]);
+  for (const o of [...scene.children]) if (!keep.has(o)) seaWorld.add(o);
+  scene.add(seaWorld);
+}
+const SEA_LIGHT = { ground: hemi.groundColor.clone(), sunPos: sunLight.position.clone() };
+const dimWorlds = {};
+const DIR_VS = `varying vec3 vDir; void main(){ vDir = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`;
+function puffTexture() {
+  const c = document.createElement('canvas'); c.width = 256; c.height = 128;
+  const g = c.getContext('2d'), R = mulberry32(77);
+  for (let i = 0; i < 22; i++) {
+    const x = 50 + R() * 156, y = 55 + (R() - 0.5) * 30, r = 18 + R() * 30;
+    const gr = g.createRadialGradient(x, y, 0, x, y, r);
+    gr.addColorStop(0, 'rgba(255,255,255,.75)'); gr.addColorStop(0.6, 'rgba(255,255,255,.35)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+/* 서울 하늘 (임시 배경: 2단계에서 실제 지도 장면으로 바꿀 예정) */
+function buildSeoul() {
+  const g = new THREE.Group(), R = mulberry32(1225);
+  const C = DOME_CENTER, GY = C.y - 160;
+  const sky = new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite: false, fog: false,
+    uniforms: { uTop: { value: new THREE.Color('#3f8fdc') }, uMid: { value: new THREE.Color('#c4e4f5') }, uLow: { value: new THREE.Color('#cfdcdc') }, uNight: { value: 0 }, uSun: { value: new THREE.Vector3(0.55, 0.42, -0.72).normalize() } },
+    vertexShader: DIR_VS,
+    fragmentShader: `uniform vec3 uTop, uMid, uLow, uSun; uniform float uNight; varying vec3 vDir;
+      void main(){
+        vec3 d = normalize(vDir); float y = d.y;
+        vec3 c = y > 0.0 ? mix(uMid, uTop, pow(smoothstep(0.0, 0.9, y), 0.7)) : mix(uMid, uLow, smoothstep(0.0, -0.25, y));
+        float s = max(dot(d, uSun), 0.0);
+        c += vec3(1.0, 0.93, 0.75) * (pow(s, 900.0) * 6.0 + pow(s, 10.0) * 0.22) * (1.0 - uNight);
+        c = mix(c, c * vec3(0.16, 0.2, 0.36), uNight);
+        gl_FragColor = vec4(c, 1.0);
+        #include <colorspace_fragment>
+      }`,
+  });
+  const skyM = noRay(new THREE.Mesh(new THREE.SphereGeometry(430, 32, 16), sky));
+  skyM.position.copy(C); skyM.renderOrder = -10; g.add(skyM);
+  // 땅: 한강이 가로지르는 도시 (그림)
+  const cv = document.createElement('canvas'); cv.width = cv.height = 1024;
+  const x = cv.getContext('2d');
+  x.fillStyle = '#9ba48d'; x.fillRect(0, 0, 1024, 1024);
+  for (let i = 0; i < 900; i++) { x.fillStyle = `rgba(${R() < 0.5 ? '120,140,105' : '190,188,175'},${0.25 + R() * 0.3})`; const s = 6 + R() * 26; x.fillRect(R() * 1024, R() * 1024, s, s * (0.6 + R() * 0.8)); }
+  x.strokeStyle = 'rgba(230,228,220,.55)'; x.lineWidth = 2;
+  for (let i = 0; i < 26; i++) { x.beginPath(); const p = R() * 1024; if (i % 2) { x.moveTo(p, 0); x.lineTo(p + (R() - 0.5) * 200, 1024); } else { x.moveTo(0, p); x.lineTo(1024, p + (R() - 0.5) * 200); } x.stroke(); }
+  const riverY = u => 560 + Math.sin(u * 0.006) * 70 + Math.sin(u * 0.017 + 1) * 22;
+  x.lineCap = 'round';
+  [[120, '#86ad74'], [78, '#5f8fae']].forEach(([w, col]) => { x.strokeStyle = col; x.lineWidth = w; x.beginPath(); for (let u = -20; u <= 1044; u += 8) { u < 0 ? x.moveTo(u, riverY(u)) : x.lineTo(u, riverY(u)); } x.stroke(); });
+  x.strokeStyle = 'rgba(235,235,230,.8)'; x.lineWidth = 3;
+  for (let u = 80; u < 1024; u += 120) { x.beginPath(); x.moveTo(u, riverY(u) - 50); x.lineTo(u + 6, riverY(u) + 50); x.stroke(); }   // 다리
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+  const SIZE = 1400;
+  const ground = noRay(new THREE.Mesh(new THREE.PlaneGeometry(SIZE, SIZE), new THREE.MeshLambertMaterial({ map: tex })));
+  ground.rotation.x = -Math.PI / 2; ground.position.set(C.x, GY, C.z); g.add(ground);
+  const riverZ = wx => { const u = (wx - C.x) / SIZE * 1024 + 512; return (riverY(u) - 512) / 1024 * SIZE + C.z; };
+  // 건물
+  const N = 520, box = new THREE.BoxGeometry(1, 1, 1); box.translate(0, 0.5, 0);
+  const bm = noRay(new THREE.InstancedMesh(box, new THREE.MeshLambertMaterial({ color: '#ffffff' }), N));
+  const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), ps = new THREE.Vector3(), col = new THREE.Color();
+  const tones = ['#e9e6df', '#d5d9dd', '#c9cfd6', '#efe8da', '#b9c3cc', '#dcd3c3'];
+  let n = 0;
+  for (let tries = 0; n < N && tries < 5000; tries++) {
+    const a = R() * Math.PI * 2, r = 25 + Math.pow(R(), 0.7) * 520, wx = C.x + Math.cos(a) * r, wz = C.z + Math.sin(a) * r;
+    if (Math.abs(wz - riverZ(wx)) < 70) continue;
+    const w = 8 + R() * 16, d = 8 + R() * 16, h = 6 + Math.pow(R(), 2.2) * 90;
+    q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), R() * 0.4);
+    m4.compose(ps.set(wx, GY, wz), q, sc.set(w, h, d));
+    bm.setMatrixAt(n, m4); bm.setColorAt(n, col.set(tones[n % tones.length])); n++;
+  }
+  bm.count = n; g.add(bm);
+  // 남산 위 탑, 아주 높은 탑 (느낌만)
+  const std = c => new THREE.MeshLambertMaterial({ color: c });
+  const hill = noRay(new THREE.Mesh(new THREE.SphereGeometry(70, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), std('#6f8f5f')));
+  hill.scale.y = 0.55; hill.position.set(C.x - 170, GY, C.z - 230); g.add(hill);
+  const tw = new THREE.Group(); tw.position.set(C.x - 170, GY + 38, C.z - 230);
+  [[new THREE.CylinderGeometry(1.6, 3, 60, 10), '#e8e8e4', 30], [new THREE.CylinderGeometry(6, 5, 8, 16), '#f1efe9', 62], [new THREE.CylinderGeometry(0.5, 0.9, 30, 6), '#d9534f', 80]].forEach(([geo, c, y]) => { const m = noRay(new THREE.Mesh(geo, std(c))); m.position.y = y; tw.add(m); });
+  g.add(tw);
+  const lt = noRay(new THREE.Mesh(new THREE.CylinderGeometry(2, 14, 230, 4), std('#dfe6ec')));
+  lt.position.set(C.x + 240, GY + 115, C.z - 300); lt.rotation.y = Math.PI / 4; g.add(lt);
+  // 멀리 산
+  for (let i = 0; i < 16; i++) {
+    const a = i / 16 * Math.PI * 2 + R() * 0.2, r = 470 + R() * 40, h = 60 + R() * 90;
+    const mt = noRay(new THREE.Mesh(new THREE.ConeGeometry(90 + R() * 60, h, 7), std(R() < 0.5 ? '#7d8f7a' : '#8a9a88')));
+    mt.position.set(C.x + Math.cos(a) * r, GY + h / 2 - 4, C.z + Math.sin(a) * r); g.add(mt);
+  }
+  // 구름
+  const puff = puffTexture(), clouds = [];
+  for (let i = 0; i < 30; i++) {
+    const sp = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: puff, color: '#ffffff', transparent: true, opacity: 0.85, depthWrite: false })));
+    const a = R() * Math.PI * 2, r = 45 + R() * 260, s = 30 + R() * 70;
+    sp.position.set(C.x + Math.cos(a) * r, C.y + (R() - 0.65) * 120, C.z + Math.sin(a) * r);
+    sp.scale.set(s, s * 0.5, 1); g.add(sp); clouds.push({ sp, v: 0.6 + R() * 1.2 });
+  }
+  const W = { g, sky, clouds, bg: new THREE.Color(), fog: 0.0032, hemi: new THREE.Color(), hemiG: new THREE.Color('#9aa58c'), hemiI: 1.5, sun: new THREE.Color(), sunI: 2, sunDir: new THREE.Vector3(0.55, 0.42, -0.72).normalize() };
+  W.look = () => {
+    const nt = daySea.night;
+    sky.uniforms.uNight.value = nt * 0.92;
+    W.bg.copy(sky.uniforms.uMid.value).lerp(new THREE.Color('#1c2846'), nt * 0.9);
+    W.hemi.set('#eaf6ff').lerp(new THREE.Color('#8ea3d6'), nt); W.hemiI = mix(1.55, 1.15, nt);
+    W.sun.set('#fff1d8').lerp(new THREE.Color('#c9d7ff'), nt); W.sunI = mix(2.1, 0.85, nt);
+    clouds.forEach(c => { c.sp.material.color.setScalar(mix(1, 0.35, nt)); });
+  };
+  W.tick = (dt) => { clouds.forEach(c => { c.sp.position.x += c.v * dt; if (c.sp.position.x > C.x + 320) c.sp.position.x -= 640; }); };
+  return W;
+}
+/* 지구 우주 (임시 배경: 3단계에서 earth-orbit 예시로 바꿀 예정) */
+function buildSpace() {
+  const g = new THREE.Group(), R = mulberry32(42);
+  const C = DOME_CENTER;
+  const sky = new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite: false, fog: false,
+    vertexShader: DIR_VS,
+    fragmentShader: `varying vec3 vDir;
+      void main(){
+        vec3 d = normalize(vDir);
+        float b = exp(-pow(dot(d, normalize(vec3(0.35, 0.8, 0.5))) / 0.2, 2.0));
+        float w = 0.6 + 0.4 * sin(d.x * 13.0 + d.z * 9.0) * sin(d.y * 11.0 - d.x * 5.0);
+        vec3 c = vec3(0.004, 0.006, 0.022) + vec3(0.05, 0.07, 0.17) * b * w;
+        gl_FragColor = vec4(c, 1.0);
+        #include <colorspace_fragment>
+      }`,
+  });
+  const skyM = noRay(new THREE.Mesh(new THREE.SphereGeometry(430, 32, 16), sky));
+  skyM.position.copy(C); skyM.renderOrder = -10; g.add(skyM);
+  // 별
+  const starLayer = (count, size, op) => {
+    const pos = new Float32Array(count * 3), cols = new Float32Array(count * 3), c = new THREE.Color();
+    for (let i = 0; i < count; i++) {
+      const u = R() * 2 - 1, a = R() * Math.PI * 2, s = Math.sqrt(1 - u * u);
+      pos.set([C.x + Math.cos(a) * s * 400, C.y + u * 400, C.z + Math.sin(a) * s * 400], i * 3);
+      c.setHSL(0.58 + (R() - 0.5) * 0.15, 0.5, 0.75 + R() * 0.25); cols.set([c.r, c.g, c.b], i * 3);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('color', new THREE.BufferAttribute(cols, 3));
+    const pts = noRay(new THREE.Points(geo, new THREE.PointsMaterial({ size, sizeAttenuation: false, vertexColors: true, transparent: true, opacity: op, depthWrite: false, fog: false })));
+    g.add(pts); return pts;
+  };
+  const stars = [starLayer(1800, 1.4, 0.9), starLayer(260, 2.6, 1)];
+  // 지구: 바다, 땅, 구름을 그 자리에서 그림
+  const TW = 384, TH = 192, cv = document.createElement('canvas'); cv.width = TW; cv.height = TH;
+  const x = cv.getContext('2d'), img = x.createImageData(TW, TH);
+  const vals = new Float32Array(TW * TH), clouds = new Float32Array(TW * TH);
+  for (let j = 0; j < TH; j++) for (let i = 0; i < TW; i++) {
+    const lon = i / TW * Math.PI * 2, lat = (0.5 - j / TH) * Math.PI;
+    const dx = Math.cos(lat) * Math.cos(lon), dy = Math.sin(lat), dz = Math.cos(lat) * Math.sin(lon);
+    vals[j * TW + i] = fbm(dx * 1.7 + 11, dy * 1.7, dz * 1.7);
+    clouds[j * TW + i] = fbm(dx * 3.2 - 7, dy * 4.5, dz * 3.2 + 3);
+  }
+  const sorted = Float32Array.from(vals).sort(), lvl = sorted[Math.floor(sorted.length * 0.68)];
+  const sc = Float32Array.from(clouds).sort(), cl = sc[Math.floor(sc.length * 0.62)], ch = sc[sc.length - 1];
+  for (let j = 0; j < TH; j++) for (let i = 0; i < TW; i++) {
+    const k = j * TW + i, lat = Math.abs(0.5 - j / TH) * 2, v = vals[k];
+    let r, gg, b;
+    if (lat > 0.86) { r = 235; gg = 240; b = 248; }
+    else if (v > lvl) { const h = Math.min(1, (v - lvl) * 6); r = mix(84, 150, h) + lat * 30; gg = mix(128, 128, h); b = mix(70, 86, h); }
+    else { const dpt = Math.min(1, (lvl - v) * 5); r = mix(40, 14, dpt); gg = mix(110, 54, dpt); b = mix(170, 128, dpt); }
+    const cw = clamp01((clouds[k] - cl) / ((ch - cl) * 0.6)) * 0.85;
+    img.data[k * 4] = mix(r, 250, cw); img.data[k * 4 + 1] = mix(gg, 252, cw); img.data[k * 4 + 2] = mix(b, 255, cw); img.data[k * 4 + 3] = 255;
+  }
+  x.putImageData(img, 0, 0);
+  const etex = new THREE.CanvasTexture(cv); etex.colorSpace = THREE.SRGBColorSpace;
+  const earth = noRay(new THREE.Mesh(new THREE.SphereGeometry(170, 64, 32), new THREE.MeshStandardMaterial({ map: etex, roughness: 0.85, metalness: 0, emissive: '#0b1a3a', emissiveIntensity: 0.25, fog: false })));
+  earth.position.set(C.x, C.y - 150, C.z - 260); earth.rotation.z = 0.35; g.add(earth);
+  const atm = noRay(new THREE.Mesh(new THREE.SphereGeometry(176, 64, 32), new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
+    vertexShader: `varying vec3 vN; varying vec3 vV; void main(){ vec4 mv = modelViewMatrix * vec4(position,1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`,
+    fragmentShader: `varying vec3 vN; varying vec3 vV; void main(){ float f = 1.0 - max(dot(normalize(vN), normalize(vV)), 0.0); float a = pow(f, 3.5); gl_FragColor = vec4(vec3(0.35, 0.62, 1.0) * a * 1.6, a);
+      #include <colorspace_fragment>
+    }`,
+  })));
+  atm.position.copy(earth.position); g.add(atm);
+  // 해
+  const sunDir = new THREE.Vector3(-0.75, 0.32, -0.58).normalize();
+  const sunG = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: '#fff3d6', transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })));
+  sunG.position.copy(C).addScaledVector(sunDir, 380); sunG.scale.setScalar(110); g.add(sunG);
+  const sunC = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: '#ffffff', transparent: true, opacity: 1, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })));
+  sunC.position.copy(sunG.position); sunC.scale.setScalar(26); g.add(sunC);
+  const W = { g, bg: new THREE.Color('#020309'), fog: 0.0006, hemi: new THREE.Color('#a9b8ff'), hemiG: new THREE.Color('#1c2236'), hemiI: 0.8, sun: new THREE.Color('#ffffff'), sunI: 2.5, sunDir };
+  W.look = () => {};
+  W.tick = (dt, t) => { earth.rotation.y += dt * 0.006; stars[1].material.opacity = 0.75 + 0.25 * Math.sin(t * 1.7); };
+  return W;
+}
+function dimWorld(k) {
+  if (k === 'sea') return null;
+  if (!dimWorlds[k]) { const W = k === 'seoul' ? buildSeoul() : buildSpace(); W.g.visible = false; scene.add(W.g); dimWorlds[k] = W; }
+  return dimWorlds[k];
+}
+/* 다른 차원의 빛과 하늘색 (바다는 원래 setLook 그대로) */
+function dimLook() {
+  above = false;
+  const W = dimWorld(myDim);
+  if (!W) return;
+  W.look();
+  scene.background.copy(W.bg); scene.fog.color.copy(W.bg); scene.fog.density = W.fog;
+  hemi.color.copy(W.hemi); hemi.groundColor.copy(W.hemiG); hemi.intensity = W.hemiI;
+  sunLight.color.copy(W.sun); sunLight.intensity = W.sunI;
+  sunLight.position.copy(DOME_CENTER).addScaledVector(W.sunDir, 60);
+}
+function applyDim(k) {
+  myDim = DIMS[k] ? k : 'sea';
+  seaWorld.visible = myDim === 'sea';
+  if (myDim !== 'sea') dimWorld(myDim);
+  for (const [key, W] of Object.entries(dimWorlds)) W.g.visible = key === myDim;
+  if (myDim === 'sea') { hemi.groundColor.copy(SEA_LIGHT.ground); sunLight.position.copy(SEA_LIGHT.sunPos); }
+  $('dimName').textContent = myDim === 'sea' ? '' : DIMS[myDim].name + ' ';
+  setLook(camera.position.y);
+  if (peersReady) renderPeers(lastPeers);
+}
+
+/* 둥근 차원의 문: 빛나는 고리가 소용돌이치고, 안쪽은 물결처럼 울렁이며 갈 차원의 하늘빛이 어른거림 */
+const PORTAL_FS = `uniform float uT, uOpen, uStars; uniform vec3 uA, uB; varying vec2 vUv;
+  float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+  void main(){
+    vec2 p = (vUv - 0.5) * 2.0;
+    float r = length(p), a = atan(p.y, p.x);
+    float R = 0.74 * uOpen;
+    if (r > 1.0 || uOpen < 0.002) discard;
+    float band = 0.5 + 0.5 * sin(a * 3.0 + r * 10.0 - uT * 2.6);
+    float band2 = 0.5 + 0.5 * sin(a * 7.0 - r * 16.0 + uT * 3.9);
+    float ring = exp(-pow((r - R) / (0.05 + 0.05 * band), 2.0));
+    float halo = exp(-pow((r - R) / 0.2, 2.0)) * 0.45;
+    float inside = 1.0 - smoothstep(R - 0.07, R, r);
+    vec2 q = p + 0.05 * vec2(sin(p.y * 9.0 + uT * 2.2), cos(p.x * 8.0 - uT * 1.8));
+    float rip = 0.5 + 0.5 * sin(length(q) * 24.0 - uT * 3.2);
+    float sw = 0.5 + 0.5 * sin(atan(q.y, q.x) * 2.0 + length(q) * 6.0 - uT * 1.3);
+    vec3 sky = mix(uB, uA, clamp(0.45 + q.y * 0.55 + 0.15 * sw, 0.0, 1.0));
+    sky *= 0.85 + 0.25 * rip;
+    float st = step(0.975, hash(floor((q + vec2(uT * 0.01, 0.0)) * 34.0))) * uStars;
+    sky += vec3(st);
+    vec3 ringCol = mix(vec3(0.5, 0.88, 1.0), vec3(1.0, 0.85, 0.55), band);
+    vec3 col = sky * inside * 0.8 + ringCol * ring * (0.55 + 0.45 * band2) + ringCol * halo * 0.5;
+    float alpha = clamp(inside * 0.85 + ring * 0.9 + halo * 0.6, 0.0, 1.0);
+    gl_FragColor = vec4(col, alpha);
+    #include <colorspace_fragment>
+  }`;
+const PORTAL_VS = `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+const PORTAL_Y = 1.12;   // 문 가운데 높이 (돔 바닥에서)
+const portals = [];
+function setPortalDim(P, k) {
+  const D = DIMS[k] || DIMS.sea;
+  P.mat.uniforms.uA.value.set(D.a); P.mat.uniforms.uB.value.set(D.b); P.mat.uniforms.uStars.value = D.stars;
+  P.pool.material.color.set(D.a);
+}
+function spawnPortal(x, z, yaw, k, auto) {
+  const g = new THREE.Group();
+  g.position.set(x, HOUSE_BASE + 0.17 + PORTAL_Y, z);
+  g.rotation.y = yaw;
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { uT: { value: 0 }, uOpen: { value: 0 }, uA: { value: new THREE.Color() }, uB: { value: new THREE.Color() }, uStars: { value: 0 } },
+    vertexShader: PORTAL_VS, fragmentShader: PORTAL_FS, transparent: true, depthWrite: false, side: THREE.DoubleSide, fog: false,
+  });
+  const disc = noRay(new THREE.Mesh(new THREE.PlaneGeometry(2.8, 2.8), mat));
+  disc.renderOrder = 3;
+  g.add(disc);
+  const halo = noRay(new THREE.Sprite(glowMat('#bfefff', 0)));
+  halo.scale.setScalar(4.4); g.add(halo);
+  const pool = noRay(new THREE.Mesh(new THREE.PlaneGeometry(3.2, 2.2), new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })));
+  pool.rotation.x = -Math.PI / 2; pool.position.y = -PORTAL_Y + 0.02; g.add(pool);
+  const dots = [];
+  for (let i = 0; i < 26; i++) {
+    const sp = noRay(new THREE.Sprite(glowMat(i % 3 ? '#e8fbff' : '#ffe9b0', 0)));
+    g.add(sp);
+    dots.push({ sp, a: Math.random() * 6.28, r: 0.5 + Math.random() * 1.3, z: (Math.random() - 0.5) * 0.7, v: 0.12 + Math.random() * 0.22, s: 0.04 + Math.random() * 0.06, ph: Math.random() * 6.28 });
+  }
+  scene.add(g);
+  const P = { g, mat, halo, pool, dots, k: 0, want: 1, auto: !!auto, born: performance.now() };
+  setPortalDim(P, k);
+  portals.push(P);
+  return P;
+}
+function updatePortals(dt, t) {
+  for (let i = portals.length - 1; i >= 0; i--) {
+    const P = portals[i];
+    if (P.auto && performance.now() - P.born > 1600) P.want = 0;   // 다른 사람이 지나간 문은 잠깐 열렸다 닫힘
+    P.k += Math.sign(P.want - P.k) * Math.min(Math.abs(P.want - P.k), dt / (P.want > P.k ? (P.auto ? 0.5 : 1.0) : 0.9));
+    const o = smooth(clamp01(P.k));
+    P.mat.uniforms.uT.value = t;
+    P.mat.uniforms.uOpen.value = o;
+    P.halo.material.opacity = 0.08 * o;
+    P.pool.material.opacity = 0.22 * o;
+    for (const d of P.dots) {
+      // 빛 알갱이: 고리 둘레를 천천히 돌며 안쪽으로 빨려 듦
+      d.a += dt * d.v * (2.2 - d.r);
+      d.r -= dt * 0.1;
+      if (d.r < 0.25) { d.r = 1.6 + Math.random() * 0.3; d.a = Math.random() * 6.28; }
+      d.sp.position.set(Math.cos(d.a) * d.r * o, Math.sin(d.a) * d.r * o, d.z * (d.r - 0.2));
+      d.sp.material.opacity = o * 0.55 * clamp01((1.85 - d.r) * 2) * clamp01((d.r - 0.25) * 3) * (0.7 + 0.3 * Math.sin(t * 2 + d.ph));
+      d.sp.scale.setScalar(d.s * (1 + o));
+    }
+    if (P.want === 0 && P.k <= 0) {
+      scene.remove(P.g);
+      P.g.traverse(o2 => { if (o2.geometry) o2.geometry.dispose(); if (o2.material) o2.material.dispose(); });
+      portals.splice(i, 1);
+    }
+  }
+}
+
+/* 화면이 물결치며 바뀜: 그 순간만 장면을 한 번 그려 물결 무늬로 일렁이게 */
+const dimFx = { rt: null, amt: 0, tint: new THREE.Color('#ffffff'), scene: new THREE.Scene(), cam: new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1) };
+const dimFxMat = new THREE.ShaderMaterial({
+  uniforms: { tMap: { value: null }, uT: { value: 0 }, uAmt: { value: 0 }, uAspect: { value: 1 }, uTint: { value: new THREE.Color() } },
+  vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
+  fragmentShader: `uniform sampler2D tMap; uniform float uT, uAmt, uAspect; uniform vec3 uTint; varying vec2 vUv;
+    void main(){
+      vec2 p = vUv - 0.5; p.x *= uAspect;
+      float r = length(p);
+      float w = sin(r * 34.0 - uT * 6.0) * 0.6 + sin(p.x * 13.0 + uT * 2.1) * 0.2 + sin(p.y * 15.0 - uT * 1.7) * 0.2;
+      vec2 dir = r > 0.0001 ? p / r : vec2(0.0);
+      vec2 off = dir * w * 0.022 * uAmt + vec2(sin(vUv.y * 22.0 + uT * 3.0), cos(vUv.x * 19.0 - uT * 2.6)) * 0.007 * uAmt;
+      off.x /= uAspect;
+      vec4 c = texture2D(tMap, vUv + off);
+      float glow = uAmt * uAmt;
+      c.rgb = mix(c.rgb, uTint, glow * (0.18 + 0.22 * smoothstep(0.1, 0.8, r)));
+      gl_FragColor = vec4(c.rgb, 1.0);
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+    }`,
+  depthTest: false, depthWrite: false,
+});
+dimFx.scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), dimFxMat));
+const _fxSize = new THREE.Vector2();
+function renderWorld() {
+  if (dimFx.amt > 0.002) {
+    renderer.getDrawingBufferSize(_fxSize);
+    if (!dimFx.rt) dimFx.rt = new THREE.WebGLRenderTarget(_fxSize.x, _fxSize.y, { type: THREE.HalfFloatType });
+    else if (dimFx.rt.width !== _fxSize.x || dimFx.rt.height !== _fxSize.y) dimFx.rt.setSize(_fxSize.x, _fxSize.y);
+    renderer.setRenderTarget(dimFx.rt);
+    renderer.render(scene, camera);
+    renderer.setRenderTarget(null);
+    const u = dimFxMat.uniforms;
+    u.tMap.value = dimFx.rt.texture; u.uT.value = performance.now() / 1000; u.uAmt.value = dimFx.amt; u.uAspect.value = _fxSize.x / Math.max(1, _fxSize.y);
+    u.uTint.value.copy(dimFx.tint);
+    renderer.render(dimFx.scene, dimFx.cam);
+  } else renderer.render(scene, camera);
+}
+
+/* 소리: 문이 열릴 때 맑은 울림, 건널 때 '쉬익' 하며 음악이 잠깐 늘어짐 */
+function portalChime() {
+  const c = ensureCtx(); if (!c || c.state !== 'running') return;
+  [523.25, 783.99, 1046.5].forEach((f, i) => {
+    const o = c.createOscillator(), gn = c.createGain(), t0 = c.currentTime + i * 0.12;
+    o.type = 'sine'; o.frequency.value = f;
+    gn.gain.setValueAtTime(0, t0); gn.gain.linearRampToValueAtTime(0.07, t0 + 0.4); gn.gain.exponentialRampToValueAtTime(0.0001, t0 + 2.6);
+    o.connect(gn); gn.connect(sfxBus(c)); o.start(t0); o.stop(t0 + 2.7);
+  });
+}
+function portalWhoosh() {
+  noiseBurst(1.8, 900, 0.5, 0.32);
+  const c = ensureCtx(); if (!c || c.state !== 'running') return;
+  const o = c.createOscillator(), gn = c.createGain(), t0 = c.currentTime;
+  o.type = 'sine'; o.frequency.setValueAtTime(330, t0); o.frequency.exponentialRampToValueAtTime(140, t0 + 1.8);
+  gn.gain.setValueAtTime(0, t0); gn.gain.linearRampToValueAtTime(0.09, t0 + 0.5); gn.gain.exponentialRampToValueAtTime(0.0001, t0 + 2);
+  o.connect(gn); gn.connect(sfxBus(c)); o.start(t0); o.stop(t0 + 2.1);
+  // 흐르던 음악이 잠깐 느려졌다 돌아옴 (명상 음성은 그대로)
+  if (bgm && !bgm.paused) {
+    const setPP = v => { try { bgm.preservesPitch = v; bgm.webkitPreservesPitch = v; } catch (e) {} };
+    setPP(false);
+    const s0 = performance.now();
+    const step = () => {
+      const k = (performance.now() - s0) / 2000;
+      try { bgm.playbackRate = k >= 1 ? 1 : 1 - 0.3 * Math.sin(Math.PI * k); } catch (e) {}
+      if (k < 1) requestAnimationFrame(step); else setPP(true);
+    };
+    step();
+  }
+}
+
+/* 차원이동 진행 */
+let portalRun = null;
+function startDimMove(target) {
+  if (!DIMS[target]) return;
+  if (target === myDim) { toast(`지금 ${DIMS[target].name} 돔에 있어요`); return; }
+  if (portalRun || leaving || arriving || travel || atBeach || iAmOut || !inDome()) return;
+  closeSheets(); closeDimMenu(); closeExMenu();
+  unlockAudio();
+  for (const r of [...teaRituals]) if (r.fig === myFig) endTeaRitual(r);
+  if (mySeat !== null) { mySeat = null; $('seatBtn').textContent = '방석에 앉기'; }
+  teaSitting = null; teaPending = null; edgeSit = null; onMat = null; moveTarget = null;
+  // 아바타 바로 앞에 문 (유리에 닿지 않게 안쪽으로)
+  const fx = -Math.sin(heading), fz = -Math.cos(heading);
+  let px = pos2.x + fx * 1.9, pz = pos2.y + fz * 1.9;
+  const lim = DOME_R - 1.8;
+  { const dx = px - DOME_CENTER.x, dz = pz - DOME_CENTER.z, d = Math.hypot(dx, dz); if (d > lim) { px = DOME_CENTER.x + dx / d * lim; pz = DOME_CENTER.z + dz / d * lim; } }
+  let ax = px - pos2.x, az = pz - pos2.y, al = Math.hypot(ax, az);
+  if (al < 1.2) {   // 유리 가까이서 바깥을 보고 있었으면 돔 가운데 쪽에 문을 엶
+    const cx = DOME_CENTER.x - pos2.x, cz = DOME_CENTER.z - pos2.y, cd = Math.hypot(cx, cz) || 1;
+    px = pos2.x + cx / cd * 1.9; pz = pos2.y + cz / cd * 1.9; ax = px - pos2.x; az = pz - pos2.y; al = Math.hypot(ax, az);
+  }
+  const dx = ax / al, dz = az / al, yaw = Math.atan2(-dx, -dz);
+  let ex = px + dx * 1.5, ez = pz + dz * 1.5;
+  { const ox = ex - DOME_CENTER.x, oz = ez - DOME_CENTER.z, d = Math.hypot(ox, oz), m = DOME_R - 0.9; if (d > m) { ex = DOME_CENTER.x + ox / d * m; ez = DOME_CENTER.z + oz / d * m; } }
+  heading = yaw;
+  const wasFP = firstPerson;
+  if (firstPerson) setView(false);
+  camYaw = yaw; camZoom = 1; camPitchOff = 0; lastLookAt = performance.now();
+  portalRun = { target, from: myDim, P: spawnPortal(px, pz, yaw, target, false), px, pz, ex, ez, yaw, wasFP, phase: 'open', t0: performance.now() };
+  dimFx.tint.set(DIMS[target].a);
+  portalChime();
+  toast(`🌀 ${DIMS[target].name}(으)로 가는 문이 열렸어요`);
+  sendPresence(true);
+}
+function updatePortalRun() {
+  const R = portalRun, now = performance.now(), e = (now - R.t0) / 1000;
+  const h = HOUSE_BASE + 0.17;
+  if (R.phase === 'open') {
+    if (e > 1.1) { R.phase = 'in'; moveTarget = { x: R.px, y: R.pz, h, sp: 1.35 }; }
+  } else if (R.phase === 'in') {
+    if (Math.hypot(pos2.x - R.px, pos2.y - R.pz) < 0.75 || e > 9) { R.phase = 'cross'; R.tc = now; portalWhoosh(); }
+  } else if (R.phase === 'cross') {
+    const k = (now - R.tc) / 1000;
+    dimFx.amt = smooth(clamp01(k / 0.9));
+    if (k >= 0.9) {
+      // 새 돔으로: 같은 자리의 문에서 걸어 나옴 (문 안에는 떠나온 차원이 비침)
+      if (bellSession) { bellSession = null; tick(); }   // 종치기 명상은 같은 차원끼리 (9시 명상은 어디서나 그대로)
+      applyDim(R.target);
+      setPortalDim(R.P, R.from);
+      pos2.set(R.px, R.pz); heading = R.yaw;
+      camYaw = R.yaw + Math.PI; snapCam = true;   // 나오는 쪽에서 문을 바라봄
+      moveTarget = { x: R.ex, y: R.ez, h, sp: 1.1 };
+      R.phase = 'out'; R.to = now;
+      sendPresence(true);
+    }
+  } else if (R.phase === 'out') {
+    const k = (now - R.to) / 1000;
+    dimFx.amt = 1 - smooth(clamp01(k / 1.4));
+    if ((!moveTarget && k > 1.2) || k > 5) { R.P.want = 0; R.phase = 'close'; R.tcl = now; }
+  } else if (R.phase === 'close') {
+    dimFx.amt = 0;
+    if ((now - R.tcl) / 1000 > 1.0) {
+      portalRun = null;
+      if (R.wasFP) { camYaw = heading; setView(true); }
+      toast(`${DIMS[R.target].icon} ${DIMS[R.target].name} 돔이에요` + (R.target === 'sea' ? '' : ' · 9시 명상은 모든 차원이 함께해요'));
+    }
+  }
+}
+function updateDims(dt, t) {
+  if (portalRun) { updatePortalRun(); targetRing.visible = false; }
+  updatePortals(dt, t);
+  const W = dimWorlds[myDim];
+  if (W && W.g.visible) W.tick(dt, t);
+}
+
+/* 차원이동 버튼: 갈 곳 고르기 */
+function closeDimMenu() { $('dimMenu').classList.add('is-hidden'); }
+$('dimBtn').addEventListener('click', e => {
+  e.stopPropagation();
+  const m = $('dimMenu');
+  if (!m.classList.contains('is-hidden')) { closeDimMenu(); return; }
+  closeExMenu();
+  m.querySelectorAll('button[data-dim]').forEach(b => {
+    const k = b.dataset.dim, D = DIMS[k], here = k === myDim, n = dimPeerCount[k] || 0;
+    b.textContent = `${D.icon} ${D.name}`;
+    const note = here ? '지금 여기' : n ? `${n}명` : '';
+    if (note) { const sm = document.createElement('small'); sm.textContent = note; b.appendChild(sm); }
+    b.setAttribute('aria-disabled', here ? 'true' : 'false');
+  });
+  m.classList.remove('is-hidden');
+  const r = $('dimBtn').getBoundingClientRect(), w = m.offsetWidth, h = m.offsetHeight;
+  m.style.left = Math.max(8, Math.min(window.innerWidth - w - 8, r.left + r.width / 2 - w / 2)) + 'px';
+  m.style.top = Math.max(8, r.top - h - 10) + 'px';
+});
+$('dimMenu').addEventListener('click', e => {
+  const b = e.target.closest('button[data-dim]');
+  if (!b) return;
+  if (b.dataset.dim === myDim) { closeDimMenu(); toast(`지금 ${DIMS[myDim].name} 돔에 있어요`); return; }
+  closeDimMenu();
+  startDimMove(b.dataset.dim);
+});
+$('exBtn').addEventListener('click', closeDimMenu);
+canvas.addEventListener('pointerdown', closeDimMenu);
+window.addEventListener('keydown', e => { if (e.key === 'Escape') closeDimMenu(); });
+
 /* ---------- 움직이기 ---------- */
 const clock = new THREE.Clock();
 function frame() {
@@ -5182,12 +5705,14 @@ function frame() {
     else updateWalk(dt, t);
     if (!travel) setLook(camera.position.y);
     updateWater(t);
-    updateJellies(t);
-    updateFish(t);
-    updateWhales(t);
-    updateKelp(t);
+    if (myDim === 'sea') {   // 다른 차원에 있을 때는 바다 생물을 움직이지 않음 (가볍게)
+      updateJellies(t);
+      updateFish(t);
+      updateWhales(t);
+      updateKelp(t);
+      updateSnow(dt, t);
+    }
     updateBurst(dt, t);
-    updateSnow(dt, t);
     updateHouseBits(dt, t);
     if (autoTP && mySeat === null && !keepTP) setView(true);
     updateTea(dt, t);
@@ -5196,7 +5721,8 @@ function frame() {
     updateCreatures(t);
     updateLights(dt, t);
     updatePeers(dt, t);
-    renderer.render(scene, camera);
+    updateDims(dt, t);
+    renderWorld();
   }
   requestAnimationFrame(frame);
 }
