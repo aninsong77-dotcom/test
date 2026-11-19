@@ -408,7 +408,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-135';
+const BUILD = '11.19-136';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -5695,11 +5695,14 @@ function buildSeoulReal(D) {
         transformed *= cS;
         transformed = vec3(cP.x + transformed.x * cU.x - transformed.z * cU.y, transformed.y + 3.4, cP.y + transformed.x * cU.y + transformed.z * cU.x);`);
   };
-  { const N = Math.min(light ? 1500 : 5000, roadPts.length * 3);
+  // 돔이 다니는 길 둘레(1.5km 안)의 길에 차를 모아 둠: 어디를 날든 아래로 차가 많이 보이게
+  const nearPts = roadPts.filter(r => nearRoute((r[0] + r[2]) / 2, (r[1] + r[3]) / 2, 1500));
+  const carPts = nearPts.length > 50 ? nearPts : roadPts;
+  { const N = light ? 4000 : 9000;
     const geo = new THREE.BoxGeometry(9, 3, 4);   // 높이 떠서도 보이게 실제보다 조금 크게
     const cm = new THREE.InstancedMesh(geo, carMat, N);
     const seg = new Float32Array(N * 4), car = new Float32Array(N * 4), c = new THREE.Color(), cols = ['#ff6b6b', '#ffd166', '#4dabf7', '#69db7c', '#ffffff', '#f783ac', '#ffa94d'];
-    const pick = () => { const a = roadPts[Math.floor(rnd() * roadPts.length)], b = roadPts[Math.floor(rnd() * roadPts.length)]; return a[4] >= b[4] ? a : b; };   // 넓은 길에 차가 더 많게
+    const pick = () => { const a = carPts[Math.floor(rnd() * carPts.length)], b = carPts[Math.floor(rnd() * carPts.length)]; return a[4] >= b[4] ? a : b; };   // 넓은 길에 차가 더 많게
     for (let i = 0; i < N; i++) { const [x1, z1, x2, z2, w] = pick(); const dir = rnd() < 0.5 ? 1 : -1;
       seg.set([x1, z1, x2, z2], i * 4); car.set([rnd(), 8 + rnd() * 9, dir * (0.12 + rnd() * 0.25) * w, dir], i * 4); cm.setColorAt(i, c.set(cols[i % cols.length])); }
     geo.setAttribute('aSeg', new THREE.InstancedBufferAttribute(seg, 4)); geo.setAttribute('aCar', new THREE.InstancedBufferAttribute(car, 4));
@@ -5791,7 +5794,7 @@ function buildSeoulReal(D) {
     S.fog.color.copy(haze); S.background.copy(haze);
     stars.material.opacity = night * 0.9; moonM.position.copy(md).multiplyScalar(20000); moonM.lookAt(0, 0, 0); moonM.material.uniforms.uPhase.value = mA.phase; moonM.material.uniforms.uVis.value = md.y > -0.05 ? 1 : 0;
     bldMat.emissiveIntensity = night * 1.1 + dusk * 0.2; streetLights.material.opacity = night; bridgeMat.emissiveIntensity = night * 0.6;
-    carMat.emissiveIntensity = night * 1.2 + 0.08;
+    carMat.emissiveIntensity = night * 1.2 + 0.18;
     groundMat.emissiveIntensity = night * 0.9; parkMat.emissiveIntensity = night * 0.8; roadMat.emissiveIntensity = night * 0.9; boatWin.emissiveIntensity = night * 1.2 + dusk * 0.3;
     waterMat.color.set('#86bde0').lerp(new THREE.Color('#0d1a33'), night).lerp(new THREE.Color('#e7a27f'), dusk * 0.35 * (1 - night));
     Object.assign(lightOut, { day, night, dusk }); lightOut.sunDir.copy(sd); };
