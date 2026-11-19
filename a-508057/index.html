@@ -399,7 +399,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-126';
+const BUILD = '11.19-127';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -1639,6 +1639,7 @@ const dome = new THREE.Group();
 dome.position.set(HOUSE_POS.x, HOUSE_BASE, HOUSE_POS.z);
 scene.add(dome);
 const domeTap = [];   // 누를 수 있는 것들
+const domeFloors = [];   // 돔 바닥 (서울·우주에서는 투명한 유리로)
 const SEATS = [];     // 방석 자리 (세계 좌표)
 const steam = [];
 const TEA_POS = new THREE.Vector3(6.7, 0, -1.7), TEA_R = 0.46, TEA_TOP = 0.2, TEA_CUP_R = 0.27;
@@ -1660,8 +1661,8 @@ let centerGlow = null, centerCore = null;
   const std = (color, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.8, ...extra });
   const add = (geo, mat, x, y, z, parent = dome) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); parent.add(m); return m; };
   // 바닥
-  add(new THREE.CylinderGeometry(DOME_R + 0.3, DOME_R + 0.55, 0.4, 56), std('#efe7da'), 0, -0.05, 0);
-  add(new THREE.CylinderGeometry(2.9, 2.9, 0.03, 56), std('#d9cbb5'), 0, 0.165, 0);
+  domeFloors.push(add(new THREE.CylinderGeometry(DOME_R + 0.3, DOME_R + 0.55, 0.4, 56), std('#efe7da'), 0, -0.05, 0));
+  domeFloors.push(add(new THREE.CylinderGeometry(2.9, 2.9, 0.03, 56), std('#d9cbb5'), 0, 0.165, 0));
   // 유리: 가운데는 거의 안 보이고 가장자리만 은은하게 빛나는 맑은 유리
   const glassMat = new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, side: THREE.DoubleSide,
@@ -5457,6 +5458,15 @@ function dimLook() {
   sunLight.color.copy(W.sun); sunLight.intensity = W.sunI;
   sunLight.position.copy(DOME_CENTER).addScaledVector(W.sunDir, 60);
 }
+/* 서울·우주 돔은 바닥이 투명한 유리 (방석·매트·찻상·등불 같은 앉는 자리와 물건은 그대로) */
+const glassFloorMat = new THREE.MeshStandardMaterial({ color: '#e4f4ff', roughness: 0.08, metalness: 0, transparent: true, opacity: 0.13, depthWrite: false });
+const glassFloorRim = noRay(new THREE.Mesh(new THREE.TorusGeometry(DOME_R + 0.32, 0.035, 6, 120), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.45 })));
+glassFloorRim.rotation.x = Math.PI / 2; glassFloorRim.position.y = 0.15; glassFloorRim.visible = false; dome.add(glassFloorRim);
+domeFloors.forEach(m => { m.userData.solidMat = m.material; });
+function setGlassFloor(on) {
+  domeFloors.forEach(m => { m.material = on ? glassFloorMat : m.userData.solidMat; });
+  glassFloorRim.visible = on;
+}
 function applyDim(k) {
   myDim = DIMS[k] ? k : 'sea';
   seaWorld.visible = myDim === 'sea';
@@ -5465,6 +5475,7 @@ function applyDim(k) {
   if (myDim === 'sea') { hemi.groundColor.copy(SEA_LIGHT.ground); sunLight.position.copy(SEA_LIGHT.sunPos); }
   $('dimName').textContent = myDim === 'sea' ? '' : DIMS[myDim].name + ' ';
   if (domeUiShown) { domeUiShown = null; updateDomeUi(true); }   // 안내 글도 이 차원에 맞게
+  setGlassFloor(myDim !== 'sea');
   setLook(camera.position.y);
   if (peersReady) renderPeers(lastPeers);
 }
