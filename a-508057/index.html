@@ -407,7 +407,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-128';
+const BUILD = '11.19-130';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -5355,12 +5355,16 @@ function buildSeoul() {
   }
   // 구름
   const puff = puffTexture(), clouds = [];
-  for (let i = 0; i < 30; i++) {
-    const sp = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: puff, color: '#ffffff', transparent: true, opacity: 0.85, depthWrite: false })));
-    const a = R() * Math.PI * 2, r = 45 + R() * 260, s = 30 + R() * 70;
-    sp.position.set(C.x + Math.cos(a) * r, C.y + (R() - 0.65) * 120, C.z + Math.sin(a) * r);
-    sp.scale.set(s, s * 0.5, 1); g.add(sp); clouds.push({ sp, v: 0.6 + R() * 1.2 });
-  }
+  // 구름은 땅을 기준으로 높이가 정해져 있어서, 고도를 바꾸면 구름 사이를 오르내림
+  // 낮은 구름(80~250m), 중간(250~450m), 높은 구름(450~700m: 가장 높이 떠도 위에 보임)
+  [[16, 80, 250, 1], [14, 250, 450, 1.25], [14, 450, 700, 1.6]].forEach(([cnt, lo, hi, big]) => {
+    for (let i = 0; i < cnt; i++) {
+      const sp = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: puff, color: '#ffffff', transparent: true, opacity: 0.85, depthWrite: false })));
+      const a = R() * Math.PI * 2, r = 70 + R() * 280, s = (30 + R() * 70) * big;
+      sp.position.set(C.x + Math.cos(a) * r, lo + R() * (hi - lo), C.z + Math.sin(a) * r);
+      sp.scale.set(s, s * 0.5, 1); land.add(sp); clouds.push({ sp, v: 0.6 + R() * 1.2 });
+    }
+  });
   const W = { g, sky, clouds, bg: new THREE.Color(), fog: 0.0024, hemi: new THREE.Color(), hemiG: new THREE.Color('#a9c48f'), hemiI: 1.5, sun: new THREE.Color(), sunI: 2, sunDir: new THREE.Vector3(0.55, 0.42, -0.72).normalize() };
   W.look = () => {
     const nt = daySea.night;
@@ -5377,7 +5381,12 @@ function buildSeoul() {
     land.position.y = C.y - seoulAlt.now;
     // 돔은 그대로, 아래 도시가 천천히 돌아 지나감 = 돔이 도시 위를 날아감 (초속 약 5m)
     city.rotation.y = (Date.now() / 1000 * 5 / ORBIT) % (Math.PI * 2);
-    clouds.forEach(c => { c.sp.position.x += c.v * dt; if (c.sp.position.x > C.x + 320) c.sp.position.x -= 640; });
+    clouds.forEach(c => {
+      c.sp.position.x += c.v * dt; if (c.sp.position.x > C.x + 360) c.sp.position.x -= 720;
+      // 돔 가까이 오면 스르르 옅어짐 (돔을 뚫고 지나가 보이지 않게)
+      const d = Math.hypot(c.sp.position.x - C.x, c.sp.position.y + land.position.y - C.y, c.sp.position.z - C.z) - c.sp.scale.x * 0.5;
+      c.sp.material.opacity = 0.85 * clamp01((d - 15) / 40);
+    });
   };
   return W;
 }
@@ -5681,8 +5690,10 @@ function startDimMove(target) {
   let ex = px + dx * 1.5, ez = pz + dz * 1.5;
   { const ox = ex - DOME_CENTER.x, oz = ez - DOME_CENTER.z, d = Math.hypot(ox, oz), m = DOME_R - 0.9; if (d > m) { ex = DOME_CENTER.x + ox / d * m; ez = DOME_CENTER.z + oz / d * m; } }
   heading = yaw;
-  const wasFP = firstPerson;
-  if (firstPerson) setView(false);
+  // 언제 어디서 떠나든 바다에서 처음 떠날 때와 똑같이: 아바타 뒤에서 문과 아바타를 함께 봄
+  // (방석에 앉았다 일어나면 저절로 '내 눈으로 보기'로 돌아가는 기능이 끼어들지 않게 끔)
+  const wasFP = firstPerson || autoTP;
+  setView(false); keepTP = false;
   camYaw = yaw; camZoom = 1; camPitchOff = 0; lastLookAt = performance.now();
   portalRun = { target, from: myDim, P: spawnPortal(px, pz, yaw, target, false), px, pz, ex, ez, yaw, wasFP, phase: 'open', t0: performance.now() };
   dimFx.tint.set(DIMS[target].a);
