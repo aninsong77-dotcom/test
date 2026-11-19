@@ -407,7 +407,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-130';
+const BUILD = '11.19-133';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -5426,6 +5426,8 @@ function buildSpace() {
   // 지구: 바다, 땅, 구름을 그 자리에서 그림
   const TW = 384, TH = 192, cv = document.createElement('canvas'); cv.width = TW; cv.height = TH;
   const x = cv.getContext('2d'), img = x.createImageData(TW, TH);
+  const ccv = document.createElement('canvas'); ccv.width = TW; ccv.height = TH;
+  const cimg = ccv.getContext('2d').createImageData(TW, TH);
   const vals = new Float32Array(TW * TH), clouds = new Float32Array(TW * TH);
   for (let j = 0; j < TH; j++) for (let i = 0; i < TW; i++) {
     const lon = i / TW * Math.PI * 2, lat = (0.5 - j / TH) * Math.PI;
@@ -5442,12 +5444,19 @@ function buildSpace() {
     else if (v > lvl) { const h = Math.min(1, (v - lvl) * 6); r = mix(84, 150, h) + lat * 30; gg = mix(128, 128, h); b = mix(70, 86, h); }
     else { const dpt = Math.min(1, (lvl - v) * 5); r = mix(40, 14, dpt); gg = mix(110, 54, dpt); b = mix(170, 128, dpt); }
     const cw = clamp01((clouds[k] - cl) / ((ch - cl) * 0.6)) * 0.85;
-    img.data[k * 4] = mix(r, 250, cw); img.data[k * 4 + 1] = mix(gg, 252, cw); img.data[k * 4 + 2] = mix(b, 255, cw); img.data[k * 4 + 3] = 255;
+    img.data[k * 4] = r; img.data[k * 4 + 1] = gg; img.data[k * 4 + 2] = b; img.data[k * 4 + 3] = 255;
+    cimg.data[k * 4] = 252; cimg.data[k * 4 + 1] = 253; cimg.data[k * 4 + 2] = 255; cimg.data[k * 4 + 3] = cw * 255;
   }
   x.putImageData(img, 0, 0);
+  ccv.getContext('2d').putImageData(cimg, 0, 0);
   const etex = new THREE.CanvasTexture(cv); etex.colorSpace = THREE.SRGBColorSpace;
+  // 지구: 기울어진 축으로 돌고 (약 4분에 한 바퀴), 구름은 조금 더 빨리 흐름
+  const tilt = new THREE.Group(); tilt.position.set(C.x, C.y - 150, C.z - 260); tilt.rotation.z = 0.41; g.add(tilt);
   const earth = noRay(new THREE.Mesh(new THREE.SphereGeometry(170, 64, 32), new THREE.MeshStandardMaterial({ map: etex, roughness: 0.85, metalness: 0, emissive: '#0b1a3a', emissiveIntensity: 0.25, fog: false })));
-  earth.position.set(C.x, C.y - 150, C.z - 260); earth.rotation.z = 0.35; g.add(earth);
+  tilt.add(earth);
+  const ctex = new THREE.CanvasTexture(ccv); ctex.colorSpace = THREE.SRGBColorSpace;
+  const cloudsE = noRay(new THREE.Mesh(new THREE.SphereGeometry(171.5, 64, 32), new THREE.MeshStandardMaterial({ map: ctex, transparent: true, depthWrite: false, roughness: 1, fog: false })));
+  tilt.add(cloudsE);
   const atm = noRay(new THREE.Mesh(new THREE.SphereGeometry(176, 64, 32), new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
     vertexShader: `varying vec3 vN; varying vec3 vV; void main(){ vec4 mv = modelViewMatrix * vec4(position,1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`,
@@ -5455,7 +5464,7 @@ function buildSpace() {
       #include <colorspace_fragment>
     }`,
   })));
-  atm.position.copy(earth.position); g.add(atm);
+  atm.position.copy(tilt.position); g.add(atm);
   // 해
   const sunDir = new THREE.Vector3(-0.75, 0.32, -0.58).normalize();
   const sunG = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: '#fff3d6', transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })));
@@ -5464,7 +5473,93 @@ function buildSpace() {
   sunC.position.copy(sunG.position); sunC.scale.setScalar(26); g.add(sunC);
   const W = { g, bg: new THREE.Color('#020309'), fog: 0.0006, hemi: new THREE.Color('#a9b8ff'), hemiG: new THREE.Color('#1c2236'), hemiI: 0.8, sun: new THREE.Color('#ffffff'), sunI: 2.5, sunDir };
   W.look = () => {};
-  W.tick = (dt, t) => { earth.rotation.y += dt * 0.006; stars[1].material.opacity = 0.75 + 0.25 * Math.sin(t * 1.7); };
+  // 행성들: 저마다 제자리에서 돌고, 돔 둘레를 천천히 돎 (실제 시각 기준이라 모두에게 같은 자리)
+  const bandTex = (cols, seed) => {
+    const c = document.createElement('canvas'); c.width = 256; c.height = 128;
+    const q = c.getContext('2d'), Rr = mulberry32(seed);
+    let y = 0; while (y < 128) { const h = 3 + Rr() * 12; q.fillStyle = cols[Math.floor(Rr() * cols.length)]; q.fillRect(0, y, 256, h + 1); y += h; }
+    for (let i = 0; i < 40; i++) { q.fillStyle = `rgba(255,255,255,${Rr() * 0.12})`; q.fillRect(0, Rr() * 128, 256, 1 + Rr() * 2); }
+    const t2 = new THREE.CanvasTexture(c); t2.colorSpace = THREE.SRGBColorSpace; return t2;
+  };
+  const spotTex = (base, spots, seed) => {
+    const c = document.createElement('canvas'); c.width = 256; c.height = 128;
+    const q = c.getContext('2d'), Rr = mulberry32(seed);
+    q.fillStyle = base; q.fillRect(0, 0, 256, 128);
+    for (let i = 0; i < 160; i++) { const r = 2 + Rr() * 14, px = Rr() * 256, py = Rr() * 128; q.fillStyle = spots[i % spots.length]; q.globalAlpha = 0.25 + Rr() * 0.4; q.beginPath(); q.arc(px, py, r, 0, Math.PI * 2); q.fill(); }
+    q.globalAlpha = 1;
+    const t2 = new THREE.CanvasTexture(c); t2.colorSpace = THREE.SRGBColorSpace; return t2;
+  };
+  const planets = [];
+  const addPlanet = (o) => {
+    const pg = new THREE.Group(); g.add(pg);
+    const tiltP = new THREE.Group(); tiltP.rotation.z = o.tilt || 0; pg.add(tiltP);
+    const body = noRay(new THREE.Mesh(new THREE.SphereGeometry(o.r, 40, 20), new THREE.MeshStandardMaterial({ map: o.tex, roughness: 0.9, metalness: 0, emissive: '#10162a', emissiveIntensity: 0.3, fog: false })));
+    tiltP.add(body);
+    if (o.ring) {
+      const rg = new THREE.RingGeometry(o.r * 1.35, o.r * 2.3, 64);
+      const ring = noRay(new THREE.Mesh(rg, new THREE.MeshStandardMaterial({ color: '#e9dcb8', transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false, roughness: 1, fog: false })));
+      ring.rotation.x = -Math.PI / 2; tiltP.add(ring);
+    }
+    planets.push({ pg, body, ...o });
+  };
+  addPlanet({ name: '달', r: 14, tex: spotTex('#b9b7b2', ['#8d8b86', '#d6d4cf', '#77746f'], 3), orbit: 235, h: 30, per: 150, ph: 1.2, spin: 150, tilt: 0.1 });
+  addPlanet({ name: '화성', r: 10, tex: spotTex('#c8673d', ['#9c4527', '#e08a5a', '#7d3a22'], 5), orbit: 300, h: 95, per: 260, ph: 3.4, spin: 40, tilt: 0.44 });
+  addPlanet({ name: '목성', r: 30, tex: bandTex(['#d8b98f', '#c49a6c', '#efe1c6', '#b07f56', '#e6cfa6'], 9), orbit: 360, h: 150, per: 420, ph: 5.1, spin: 25, tilt: 0.05 });
+  addPlanet({ name: '토성', r: 22, tex: bandTex(['#e8d6a8', '#d9c18c', '#f2e6c4', '#c9ad78'], 11), orbit: 330, h: 60, per: 560, ph: 0.3, spin: 30, tilt: 0.47, ring: true });
+  // 유성: 가끔 (5~14초마다) 하늘을 가로질러 떨어짐. 빛 알갱이 줄이 꼬리처럼 남음
+  const meteors = [];
+  for (let m = 0; m < 3; m++) {
+    const trail = [];
+    for (let i = 0; i < 26; i++) {
+      const sp = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: i < 2 ? '#ffffff' : '#cfe4ff', transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })));
+      sp.visible = false; g.add(sp); trail.push(sp);
+    }
+    meteors.push({ trail, on: false, t: 0, life: 1, p0: new THREE.Vector3(), dir: new THREE.Vector3(), speed: 0 });
+  }
+  let nextMeteor = 3 + Math.random() * 5;
+  const _mp = new THREE.Vector3();
+  const updateMeteors = dt => {
+    nextMeteor -= dt;
+    if (nextMeteor <= 0) {
+      nextMeteor = 5 + Math.random() * 9;
+      const M = meteors.find(x => !x.on);
+      if (M) {
+        // 내가 보고 있는 쪽 하늘에 주로 떨어지게 (가끔은 다른 쪽에도)
+        camera.getWorldDirection(_mp);
+        const look = Math.atan2(_mp.z, _mp.x), az = look + (Math.random() - 0.5) * (Math.random() < 0.8 ? 1.2 : 6.28);
+        const el = 0.2 + Math.random() * 0.45, r = 210;
+        M.p0.set(C.x + Math.cos(az) * Math.cos(el) * r, C.y + Math.sin(el) * r, C.z + Math.sin(az) * Math.cos(el) * r);
+        const side = Math.random() < 0.5 ? 1 : -1;
+        M.dir.set(-Math.sin(az) * side, -0.55 - Math.random() * 0.4, Math.cos(az) * side).normalize();
+        M.speed = 110 + Math.random() * 70; M.life = 0.9 + Math.random() * 0.7; M.t = 0; M.on = true;
+        M.trail.forEach(sp => { sp.visible = true; });
+      }
+    }
+    for (const M of meteors) {
+      if (!M.on) continue;
+      M.t += dt;
+      const k = M.t / M.life, fade = Math.sin(Math.PI * Math.min(1, k));
+      M.trail.forEach((sp, i) => {
+        _mp.copy(M.p0).addScaledVector(M.dir, Math.max(0, M.speed * M.t - i * 3.2));
+        sp.position.copy(_mp);
+        sp.scale.setScalar((i === 0 ? 11 : 6.5) * (1 - i / 30));
+        sp.material.opacity = Math.min(1, fade * 1.3) * (1 - i / 26) * (i === 0 ? 1 : 0.85);
+      });
+      if (k >= 1) { M.on = false; M.trail.forEach(sp => { sp.visible = false; }); }
+    }
+  };
+  W.tick = (dt, t) => {
+    const s = Date.now() / 1000;
+    updateMeteors(dt);
+    earth.rotation.y = (s / 240 * Math.PI * 2) % (Math.PI * 2);          // 지구: 약 4분에 한 바퀴
+    cloudsE.rotation.y = (s / 190 * Math.PI * 2) % (Math.PI * 2);        // 구름은 조금 더 빨리
+    for (const P of planets) {
+      const a = P.ph + s / P.per * Math.PI * 2;
+      P.pg.position.set(C.x + Math.cos(a) * P.orbit, C.y + P.h + Math.sin(a * 0.5) * 20, C.z + Math.sin(a) * P.orbit);
+      P.body.rotation.y = (s / P.spin * Math.PI * 2) % (Math.PI * 2);
+    }
+    stars[1].material.opacity = 0.75 + 0.25 * Math.sin(t * 1.7);
+  };
   return W;
 }
 function dimWorld(k) {
@@ -5634,7 +5729,7 @@ function renderWorld() {
   } else renderer.render(scene, camera);
 }
 
-/* 소리: 문이 열릴 때 맑은 울림, 건널 때 '쉬익' 하며 음악이 잠깐 늘어짐 */
+/* 소리: 문이 열릴 때 맑은 울림, 건널 때 낮게 늘어지는 '쉬익' 소리 (효과음만) */
 function portalChime() {
   const c = ensureCtx(); if (!c || c.state !== 'running') return;
   [523.25, 783.99, 1046.5].forEach((f, i) => {
@@ -5651,18 +5746,7 @@ function portalWhoosh() {
   o.type = 'sine'; o.frequency.setValueAtTime(330, t0); o.frequency.exponentialRampToValueAtTime(140, t0 + 1.8);
   gn.gain.setValueAtTime(0, t0); gn.gain.linearRampToValueAtTime(0.09, t0 + 0.5); gn.gain.exponentialRampToValueAtTime(0.0001, t0 + 2);
   o.connect(gn); gn.connect(sfxBus(c)); o.start(t0); o.stop(t0 + 2.1);
-  // 흐르던 음악이 잠깐 느려졌다 돌아옴 (명상 음성은 그대로)
-  if (bgm && !bgm.paused) {
-    const setPP = v => { try { bgm.preservesPitch = v; bgm.webkitPreservesPitch = v; } catch (e) {} };
-    setPP(false);
-    const s0 = performance.now();
-    const step = () => {
-      const k = (performance.now() - s0) / 2000;
-      try { bgm.playbackRate = k >= 1 ? 1 : 1 - 0.3 * Math.sin(Math.PI * k); } catch (e) {}
-      if (k < 1) requestAnimationFrame(step); else setPP(true);
-    };
-    step();
-  }
+  // 음악·명상 음성 재생에는 손대지 않음 (속도·음높이를 바꾸면 일부 휴대폰에서 목소리 결이 달라짐)
 }
 
 /* 차원이동 진행 */
