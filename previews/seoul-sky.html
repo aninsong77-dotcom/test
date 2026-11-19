@@ -89,12 +89,12 @@ const BRIDGES=[-560,240,820,1380];
     for(let k=0;k<40;k++) cars.push({x:bx+(k%2?4:-4), z:RIVER_Z0-30+rnd()*(L-20), y:16, dir:k%2?1:-1, sp:12+rnd()*6, ax:'z'});
   }); carMesh.count=Math.min(1400,cars.length); { const c=new T.Color(); const cols=['#ff6b6b','#ffd166','#4dabf7','#69db7c','#ffffff','#f783ac','#ffa94d']; for(let j=0;j<carMesh.count;j++) carMesh.setColorAt(j,c.set(cols[j%cols.length])); } }
 // 보트
-const boats=[]; { const hm=new T.MeshStandardMaterial({color:'#ffffff',roughness:0.5}), cm=new T.MeshStandardMaterial({color:'#2f5aa8',roughness:0.5}), wm=new T.MeshBasicMaterial({color:'#f4fbff',transparent:true,opacity:0.2,depthWrite:false});
+const boats=[]; const boatHome=[]; { const hm=new T.MeshStandardMaterial({color:'#ffffff',roughness:0.5}), cm=new T.MeshStandardMaterial({color:'#2f5aa8',roughness:0.5}), wm=new T.MeshBasicMaterial({color:'#f4fbff',transparent:true,opacity:0.2,depthWrite:false});
   for(let i=0;i<34;i++){ const g=new T.Group(); const big=i<6; const L=big?34:9; const hull=new T.Mesh(new T.BoxGeometry(L,big?3:1.4,big?9:3),hm); hull.position.y=big?1.6:0.8; g.add(hull);
     const cab=new T.Mesh(new T.BoxGeometry(L*0.5,big?4:1.2,big?7:2.2),big?hm:cm); cab.position.set(-L*0.1,big?4.5:1.9,0); g.add(cab);
     if(big){ const deck2=new T.Mesh(new T.BoxGeometry(L*0.45,0.4,7.4),cm); deck2.position.set(-L*0.1,6.7,0); g.add(deck2); }
     const wake=new T.Mesh(new T.CircleGeometry(1,24,Math.PI*0.86,Math.PI*0.28),wm); wake.scale.set(L*1.5,L*1.5,1); wake.rotation.x=-Math.PI/2; wake.position.set(-L*0.45,0.45,0); g.add(wake);
-    const z=RIVER_Z0+25+rnd()*(RIVER_Z1-RIVER_Z0-50); g.position.set(i<14? -150+rnd()*400 : -900+rnd()*1800,0.3,z); const dir=rnd()<0.5?1:-1; g.rotation.y=dir>0?0:Math.PI; scene.add(g); boats.push({g,dir,sp:big?5:9}); } }
+    const z=RIVER_Z0+25+rnd()*(RIVER_Z1-RIVER_Z0-50); g.position.set(i<14? -150+rnd()*400 : -900+rnd()*1800,0.3,z); const dir=rnd()<0.5?1:-1; g.rotation.y=dir>0?0:Math.PI; scene.add(g); boats.push({g,dir,sp:big?5:9,x0:g.position.x}); } }
 // 남산타워, 롯데타워, 산
 { const tm=new T.MeshStandardMaterial({color:'#f2f1ec',roughness:0.6}); const hill=new T.Mesh(new T.SphereGeometry(260,32,16,0,Math.PI*2,0,Math.PI/2),new T.MeshStandardMaterial({color:'#6f9a5a',roughness:1})); hill.scale.y=0.42; hill.position.set(-250,0,-1250); scene.add(hill);
   const tw=new T.Group(); const sh=new T.Mesh(new T.CylinderGeometry(4,6,150,16),tm); sh.position.y=75; tw.add(sh); const pod=new T.Mesh(new T.CylinderGeometry(15,12,18,24),tm); pod.position.y=135; tw.add(pod); const sp=new T.Mesh(new T.CylinderGeometry(1,2,60,8),tm); sp.position.y=175; tw.add(sp); tw.position.set(-250,105,-1250); scene.add(tw);
@@ -118,13 +118,18 @@ const DOME=new T.Vector3(-60,58,RIVER_Z0-6);
   for(let k=0;k<9;k++){ const a=k/9*6.283; const c=new T.Mesh(new T.CylinderGeometry(0.42,0.46,0.12,20),cush); c.position.set(Math.cos(a)*3.1,0.26,Math.sin(a)*3.1); g.add(c);} 
   // 앉은 아바타 하나
   const av=new T.Group(); const bm=new T.MeshStandardMaterial({color:'#9fd0c6'}), sk=new T.MeshStandardMaterial({color:'#efe9df'}); const b=new T.Mesh(new T.SphereGeometry(0.2,16,12),bm); b.scale.set(1,1.08,0.9); b.position.y=0.42; av.add(b); const hd=new T.Mesh(new T.SphereGeometry(0.27,20,14),sk); hd.position.y=0.9; av.add(hd); av.position.set(5.15*Math.cos(1.2),0.3,5.15*Math.sin(1.2)); g.add(av);
-  g.position.copy(DOME); scene.add(g); }
+  g.position.copy(DOME); scene.add(g); window.domeG=g; }
 // 움직임 (몇 초 진행해서 찍기)
 const m4=new T.Matrix4();
 function step(t){ cars.forEach((c,i)=>{ if(i>=carMesh.count) return; let x=c.x,z=c.z,y=c.y||0.75+0.45; if(c.ax==='x'){ x=((c.x+c.dir*c.sp*t+1600)%3200+3200)%3200-1600; m4.makeRotationY(0);} else { const L=RIVER_Z1-RIVER_Z0+60; z=RIVER_Z0-30+(((c.z-RIVER_Z0+30)+c.dir*c.sp*t)%L+L)%L; m4.makeRotationY(Math.PI/2); y=c.y+0.75; } m4.setPosition(x,y,z); carMesh.setMatrixAt(i,m4); }); carMesh.instanceMatrix.needsUpdate=true;
-  boats.forEach(b=>{ b.g.position.x+=b.dir*b.sp*0.0; }); }
+  boats.forEach(b=>{ b.g.position.x=b.x0+b.dir*b.sp*t; }); }
 window.shot=(view)=>{ step(view.t||0);
   const [px,py,pz]=view.pos, [lx,ly,lz]=view.look; cam.fov=view.fov||70; cam.position.set(DOME.x+px,DOME.y+py,DOME.z+pz); cam.lookAt(DOME.x+lx,DOME.y+ly,DOME.z+lz); cam.updateProjectionMatrix();
   R.render(scene,cam); return R.domElement.toDataURL('image/jpeg',0.92); };
+window.frame=(t,mode)=>{ step(t);
+  const D=window.domeG; const x=DOME.x + t*6.0, y=DOME.y + Math.sin(t*0.5)*0.6, z=DOME.z + Math.sin(t*0.05)*6; D.position.set(x,y,z); D.rotation.y=t*0.02;
+  if (mode==='out') { cam.fov=58; cam.position.set(x-34+t*0.4, y+11, z-30); cam.lookAt(x, y-3, z+6); }
+  else { cam.fov=76; const a=1.2+t*0.02; cam.position.set(x+Math.cos(a)*5.0, y+1.2, z+Math.sin(a)*5.0); cam.lookAt(x+Math.cos(a)*60, y-26, z+Math.sin(a)*60); }
+  cam.updateProjectionMatrix(); R.render(scene,cam); return R.domElement.toDataURL('image/jpeg',0.9); };
 window.ready=true;
 </script></body></html>
