@@ -1,0 +1,125 @@
+<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000}canvas{display:block}</style></head><body>
+<script type="module">
+import * as T from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+const W=innerWidth,H=innerHeight;
+const R=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true}); R.setSize(W,H); R.toneMapping=T.ACESFilmicToneMapping; R.outputColorSpace=T.SRGBColorSpace; document.body.appendChild(R.domElement);
+const scene=new T.Scene(); scene.background=new T.Color('#020615'); const cam=new T.PerspectiveCamera(70,W/H,0.1,9000);
+let s=11; const rnd=()=> (s=(s*16807)%2147483647)/2147483647;
+const soft=(stops)=>{ const c=document.createElement('canvas'); c.width=c.height=128; const g=c.getContext('2d'); const gr=g.createRadialGradient(64,64,0,64,64,64); stops.forEach(([o,col])=>gr.addColorStop(o,col)); g.fillStyle=gr; g.fillRect(0,0,128,128); const t=new T.CanvasTexture(c); t.colorSpace=T.SRGBColorSpace; return t; };
+const dot=soft([[0,'rgba(255,255,255,1)'],[0.2,'rgba(255,255,255,.85)'],[0.55,'rgba(255,255,255,.12)'],[1,'rgba(255,255,255,0)']]);
+// 푸른 밤하늘과 은하수
+const MW=new T.Vector3(0.62,0.55,0.55).normalize();   // 은하수 띠의 축 (이 축에 수직인 큰 원)
+scene.add(new T.Mesh(new T.SphereGeometry(6000,64,32),new T.ShaderMaterial({side:T.BackSide,depthWrite:false,uniforms:{uMW:{value:MW}},
+ vertexShader:'varying vec3 vD; void main(){ vD=normalize(position); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }',
+ fragmentShader:`varying vec3 vD; uniform vec3 uMW;
+  float hash(vec3 p){ p=fract(p*0.3183099+.1); p*=17.0; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
+  float noise(vec3 x){ vec3 i=floor(x); vec3 f=fract(x); f=f*f*(3.0-2.0*f);
+   return mix(mix(mix(hash(i),hash(i+vec3(1,0,0)),f.x),mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z); }
+  float fbm(vec3 p){ float a=0.5,s=0.; for(int i=0;i<7;i++){ s+=a*noise(p); p*=2.07; a*=0.5; } return s; }
+  void main(){ vec3 d=normalize(vD);
+   vec3 top=vec3(0.004,0.010,0.045), low=vec3(0.012,0.045,0.16);
+   vec3 col=mix(low,top,clamp(d.y*0.5+0.5,0.,1.));
+   float m=dot(d,uMW); float band=exp(-m*m*14.0); float core=exp(-m*m*60.0);
+   float clump=fbm(d*6.0+vec3(2.,1.,5.)); float fine=fbm(d*18.0+vec3(7.,3.,1.));
+   vec3 milky=vec3(0.16,0.36,1.0)*band*(0.25+0.75*clump)*0.55 + vec3(0.55,0.75,1.0)*core*(0.3+0.7*fine)*0.45;
+   milky*=1.0-0.35*smoothstep(0.55,0.75,fbm(d*10.0+4.))*core;   // 옅은 먼지 띠
+   col+=milky;
+   // 은은한 파스텔 빛구름 (분홍, 청록)
+   float n1=fbm(d*2.5+vec3(5.,2.,1.)), n2=fbm(d*3.1+vec3(-3.,4.,2.));
+   col+=vec3(0.1,0.3,0.8)*smoothstep(0.55,0.8,n1)*0.10;
+   gl_FragColor=vec4(col,1.);
+   #include <colorspace_fragment>
+  }`})));
+// 별 (은하수 띠에 더 촘촘히)
+{ const n=16000,p=new Float32Array(n*3),c=new Float32Array(n*3); const v=new T.Vector3(); let i=0;
+  while(i<n){ const u=rnd()*2-1,a=rnd()*6.283,r=Math.sqrt(1-u*u); v.set(Math.cos(a)*r,u,Math.sin(a)*r); const m=v.dot(MW); if(rnd()>0.35+0.65*Math.exp(-m*m*10)) continue;
+    const D=4000; p.set([v.x*D,v.y*D,v.z*D],i*3); const k=rnd(); const b=0.5+Math.pow(rnd(),3)*1.8; const cl=k<0.45?[0.6,0.78,1]:k<0.5?[1,0.95,0.85]:[0.92,0.96,1]; c.set(cl.map(x=>x*b),i*3); i++; }
+  const g=new T.BufferGeometry(); g.setAttribute('position',new T.BufferAttribute(p,3)); g.setAttribute('color',new T.BufferAttribute(c,3)); scene.add(new T.Points(g,new T.PointsMaterial({size:2.4,sizeAttenuation:false,vertexColors:true,map:dot,transparent:true,depthWrite:false,blending:T.AdditiveBlending}))); }
+// 반짝이는 큰 별 (십자 빛)
+{ const c=document.createElement('canvas'); c.width=c.height=128; const g=c.getContext('2d');
+  const gr=g.createRadialGradient(64,64,0,64,64,22); gr.addColorStop(0,'rgba(255,255,255,1)'); gr.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=gr; g.fillRect(0,0,128,128);
+  for(const [w,h] of [[128,3],[3,128]]){ const lg=g.createLinearGradient(w>h?0:64,w>h?64:0,w>h?128:64,w>h?64:128); lg.addColorStop(0,'rgba(255,255,255,0)'); lg.addColorStop(0.5,'rgba(255,255,255,.9)'); lg.addColorStop(1,'rgba(255,255,255,0)'); g.fillStyle=lg; g.fillRect(64-w/2,64-h/2,w,h); }
+  const tx=new T.CanvasTexture(c); tx.colorSpace=T.SRGBColorSpace;
+  for(let i=0;i<90;i++){ const u=rnd()*1.6-0.6,a=rnd()*6.283,r=Math.sqrt(1-u*u),D=3500; const sp=new T.Sprite(new T.SpriteMaterial({map:tx,color: rnd()<0.6?'#8fc3ff':'#e8f3ff',transparent:true,blending:T.AdditiveBlending,depthWrite:false,rotation:rnd()*0.5}));
+    const sc=70+Math.pow(rnd(),2)*170; sp.scale.setScalar(sc); sp.position.set(Math.cos(a)*r*D,u*D,Math.sin(a)*r*D); scene.add(sp);} }
+// 가끔 떨어지는 운석 (빛 꼬리)
+{ const c=document.createElement('canvas'); c.width=256; c.height=16; const g=c.getContext('2d'); const lg=g.createLinearGradient(0,0,256,0); lg.addColorStop(0,'rgba(120,180,255,0)'); lg.addColorStop(0.85,'rgba(190,225,255,.85)'); lg.addColorStop(1,'rgba(255,255,255,1)'); g.fillStyle=lg; g.beginPath(); g.moveTo(0,8); g.lineTo(256,4); g.lineTo(256,12); g.closePath(); g.fill();
+  const tx=new T.CanvasTexture(c); tx.colorSpace=T.SRGBColorSpace;
+  for (const [x,y,z,rot,len] of [[-600,900,-1700,-0.55,320],[900,1100,-1500,-0.75,240],[-1300,600,700,-0.4,280]]) {
+    const m=new T.Mesh(new T.PlaneGeometry(len*1.4,16),new T.MeshBasicMaterial({map:tx,transparent:true,blending:T.AdditiveBlending,depthWrite:false,side:T.DoubleSide}));
+    m.position.set(x,y,z); m.lookAt(0,0,0); m.rotateZ(rot); scene.add(m); } }
+// 아래로 둥글게 펼쳐진 푸른 행성 (지구 같은)
+const SUN=new T.Vector3(0.82,0.06,-0.57).normalize();
+{ const ER=7000; const earth=new T.Mesh(new T.SphereGeometry(ER,160,120),new T.ShaderMaterial({uniforms:{uSun:{value:SUN}},
+   vertexShader:'varying vec3 vP; varying vec3 vN; varying vec3 vW; void main(){ vP=normalize(position); vN=normalize(mat3(modelMatrix)*normal); vec4 w=modelMatrix*vec4(position,1.); vW=w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }',
+   fragmentShader:`varying vec3 vP; varying vec3 vN; varying vec3 vW; uniform vec3 uSun;
+    float hash(vec3 p){ p=fract(p*0.3183099+.1); p*=17.0; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
+    float noise(vec3 x){ vec3 i=floor(x); vec3 f=fract(x); f=f*f*(3.0-2.0*f);
+     return mix(mix(mix(hash(i),hash(i+vec3(1,0,0)),f.x),mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z); }
+    float fbm(vec3 p){ float a=0.5,s=0.; for(int i=0;i<7;i++){ s+=a*noise(p); p*=2.1; a*=0.5; } return s; }
+    void main(){ vec3 p=vP*60.0;
+      float land=smoothstep(0.52,0.58,fbm(p*0.35+vec3(3.,1.,2.)));
+      vec3 ocean=mix(vec3(0.02,0.16,0.45),vec3(0.05,0.35,0.7),fbm(p*0.8)); vec3 shallow=vec3(0.1,0.6,0.75);
+      vec3 ground=mix(vec3(0.16,0.32,0.14),vec3(0.42,0.38,0.24),fbm(p*1.6));
+      float coast=smoothstep(0.45,0.52,fbm(p*0.35+vec3(3.,1.,2.)))*(1.-land);
+      vec3 c=mix(ocean,ground,land); c=mix(c,shallow,coast*0.6);
+      float cl=smoothstep(0.5,0.75,fbm(p*1.2+vec3(9.,2.,4.)))*0.95; c=mix(c,vec3(0.97,0.98,1.),cl);
+      float l=max(0.25,dot(normalize(vN),uSun)*0.6+0.6);
+      gl_FragColor=vec4(c*l*1.15,1.);
+      #include <colorspace_fragment>
+    }`}));
+  earth.position.set(0,-ER-140,0); scene.add(earth);
+  // 대기의 푸른 빛 테두리
+  const atm=new T.Mesh(new T.SphereGeometry(ER*1.012,160,120),new T.ShaderMaterial({transparent:true,depthWrite:false,blending:T.AdditiveBlending,side:T.BackSide,
+    vertexShader:'varying vec3 vN; varying vec3 vV; void main(){ vec4 mv=modelViewMatrix*vec4(position,1.); vN=normalize(normalMatrix*normal); vV=normalize(-mv.xyz); gl_Position=projectionMatrix*mv; }',
+    fragmentShader:'varying vec3 vN; varying vec3 vV; void main(){ float f=pow(1.0-abs(dot(normalize(vN),normalize(vV))),3.0); gl_FragColor=vec4(vec3(0.25,0.65,1.0)*f*2.2, f); }'}));
+  atm.position.copy(earth.position); scene.add(atm);
+  const atm2=new T.Mesh(new T.SphereGeometry(ER*1.002,160,120),new T.ShaderMaterial({transparent:true,depthWrite:false,blending:T.AdditiveBlending,
+    vertexShader:'varying vec3 vN; varying vec3 vV; void main(){ vec4 mv=modelViewMatrix*vec4(position,1.); vN=normalize(normalMatrix*normal); vV=normalize(-mv.xyz); gl_Position=projectionMatrix*mv; }',
+    fragmentShader:'varying vec3 vN; varying vec3 vV; void main(){ float f=pow(1.0-abs(dot(normalize(vN),normalize(vV))),2.0); gl_FragColor=vec4(vec3(0.45,0.8,1.0)*f*1.2, f*0.8); }'}));
+  atm2.position.copy(earth.position); scene.add(atm2); }
+// 지평선 위로 떠오르는 해 (빛살)
+{ const c=document.createElement('canvas'); c.width=c.height=512; const g=c.getContext('2d'); const gr=g.createRadialGradient(256,256,0,256,256,256); gr.addColorStop(0,'rgba(255,255,255,1)'); gr.addColorStop(0.06,'rgba(240,250,255,.95)'); gr.addColorStop(0.25,'rgba(120,190,255,.35)'); gr.addColorStop(1,'rgba(40,120,255,0)'); g.fillStyle=gr; g.fillRect(0,0,512,512);
+  g.translate(256,256); for(let i=0;i<16;i++){ g.rotate(Math.PI/8+(Math.random()-0.5)*0.1); const L=120+Math.random()*130; const lg=g.createLinearGradient(0,0,L,0); lg.addColorStop(0,'rgba(255,255,255,.9)'); lg.addColorStop(1,'rgba(160,210,255,0)'); g.fillStyle=lg; g.beginPath(); g.moveTo(0,-2); g.lineTo(L,0); g.lineTo(0,2); g.fill(); }
+  const tx=new T.CanvasTexture(c); tx.colorSpace=T.SRGBColorSpace; const sp=new T.Sprite(new T.SpriteMaterial({map:tx,transparent:true,blending:T.AdditiveBlending,depthWrite:false})); sp.scale.setScalar(900); sp.position.copy(SUN).multiplyScalar(4200); sp.position.y=-420; scene.add(sp); }
+// 하늘의 푸른 행성과 작은 달
+{ const pl=new T.Mesh(new T.SphereGeometry(150,64,48),new T.ShaderMaterial({uniforms:{uSun:{value:SUN}},vertexShader:'varying vec3 vN; varying vec3 vP; void main(){ vN=normalize(mat3(modelMatrix)*normal); vP=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+   fragmentShader:`varying vec3 vN; varying vec3 vP; uniform vec3 uSun; void main(){ float b=sin(vP.y*0.05+sin(vP.x*0.03)*1.5)*0.5+0.5; vec3 c=mix(vec3(0.05,0.25,0.6),vec3(0.35,0.65,0.95),b); float l=max(0.08,dot(normalize(vN),uSun)); gl_FragColor=vec4(c*l*1.3,1.);
+   #include <colorspace_fragment>
+   }`})); pl.position.set(-1500,900,-1300); scene.add(pl);
+  const rim=new T.Mesh(new T.SphereGeometry(162,64,48),new T.ShaderMaterial({transparent:true,depthWrite:false,blending:T.AdditiveBlending,side:T.BackSide,vertexShader:'varying vec3 vN; varying vec3 vV; void main(){ vec4 mv=modelViewMatrix*vec4(position,1.); vN=normalize(normalMatrix*normal); vV=normalize(-mv.xyz); gl_Position=projectionMatrix*mv; }',
+    fragmentShader:'varying vec3 vN; varying vec3 vV; void main(){ float f=pow(1.0-abs(dot(normalize(vN),normalize(vV))),3.0); gl_FragColor=vec4(vec3(0.4,0.75,1.0)*f*1.6,f); }'})); rim.position.copy(pl.position); scene.add(rim);
+  const moon=new T.Mesh(new T.SphereGeometry(24,32,24),new T.MeshStandardMaterial({color:'#dfe6f2',roughness:1})); moon.position.set(-1150,800,-1150); scene.add(moon); }
+// 별빛 먼지와 혜성
+{ const n=1500,p=new Float32Array(n*3); for(let i=0;i<n;i++){ const a=rnd()*6.283,r=10+rnd()*70,y=(rnd()-0.4)*50; p.set([Math.cos(a)*r,y,Math.sin(a)*r],i*3);} const g=new T.BufferGeometry(); g.setAttribute('position',new T.BufferAttribute(p,3)); scene.add(new T.Points(g,new T.PointsMaterial({size:0.4,color:'#cfe8ff',map:dot,transparent:true,opacity:0.85,depthWrite:false,blending:T.AdditiveBlending}))); }
+scene.add(new T.HemisphereLight('#cfe4ff','#2a5aa0',1.3)); const key=new T.DirectionalLight('#eaf4ff',1.5); key.position.set(800,60,-560); scene.add(key);
+// 떠 있는 유리 돔 (강 북쪽 강변 위)
+const DOME=new T.Vector3(0,0,0);
+{ const g=new T.Group(); const floor=new T.Mesh(new T.CylinderGeometry(6.1,6.25,0.4,56),new T.MeshStandardMaterial({color:'#f3ece0',roughness:0.8,emissive:'#4a4238',emissiveIntensity:0.6})); g.add(floor);
+  const gf=new T.Mesh(new T.RingGeometry(6.1,8.8,72),new T.MeshStandardMaterial({color:'#bfe3ff',transparent:true,opacity:0.16,roughness:0.05,metalness:0.2,side:T.DoubleSide,depthWrite:false})); gf.rotation.x=-Math.PI/2; gf.position.y=0.2; g.add(gf);
+  const edge=new T.Mesh(new T.TorusGeometry(8.8,0.06,8,96),new T.MeshStandardMaterial({color:'#e8f4ff',emissive:'#9fd4ff',emissiveIntensity:0.5})); edge.rotation.x=Math.PI/2; edge.position.y=0.2; g.add(edge);
+  const under=new T.Mesh(new T.SphereGeometry(6.2,40,16,0,Math.PI*2,Math.PI/2,Math.PI/2),new T.MeshStandardMaterial({color:'#e9e3d6',roughness:0.6})); under.scale.y=0.22; under.position.y=-0.2; g.add(under);
+  const ring=new T.Mesh(new T.TorusGeometry(8.6,0.08,8,64),new T.MeshStandardMaterial({color:'#dfe9ee',emissive:'#bfe8ff',emissiveIntensity:0.4})); ring.rotation.x=Math.PI/2; ring.position.y=-1.5; g.add(ring);
+  const glass=new T.Mesh(new T.SphereGeometry(8.5,64,32,0,Math.PI*2,0,Math.PI/2),new T.ShaderMaterial({transparent:true,depthWrite:false,side:T.DoubleSide,
+    vertexShader:'varying vec3 vN; varying vec3 vV; void main(){ vec4 mv=modelViewMatrix*vec4(position,1.); vN=normalize(normalMatrix*normal); vV=normalize(-mv.xyz); gl_Position=projectionMatrix*mv; }',
+    fragmentShader:'varying vec3 vN; varying vec3 vV; void main(){ float f=1.-abs(dot(normalize(vN),normalize(vV))); float rim=pow(f,3.); gl_FragColor=vec4(vec3(0.92,0.97,1.),0.012+rim*0.16); }'})); glass.position.y=0.15; g.add(glass);
+  // 두툼한 사각 좌복 (모서리가 둥글고 도톰하게)
+  const zabuGeo=(()=>{ const w=0.74, r=0.12, sh=new T.Shape(); sh.moveTo(-w/2+r,-w/2); sh.lineTo(w/2-r,-w/2); sh.quadraticCurveTo(w/2,-w/2,w/2,-w/2+r); sh.lineTo(w/2,w/2-r); sh.quadraticCurveTo(w/2,w/2,w/2-r,w/2); sh.lineTo(-w/2+r,w/2); sh.quadraticCurveTo(-w/2,w/2,-w/2,w/2-r); sh.lineTo(-w/2,-w/2+r); sh.quadraticCurveTo(-w/2,-w/2,-w/2+r,-w/2);
+    const g=new T.ExtrudeGeometry(sh,{depth:0.03,bevelEnabled:true,bevelThickness:0.065,bevelSize:0.07,bevelSegments:8,curveSegments:12}); g.rotateX(-Math.PI/2); g.translate(0,0.065,0);
+    const pa=g.attributes.position; for(let i=0;i<pa.count;i++){ const x=pa.getX(i), z=pa.getZ(i), y=pa.getY(i); if(y>0.08){ const d=Math.max(Math.abs(x),Math.abs(z))/0.42; pa.setY(i, y+0.035*Math.max(0,1-d*d)); } } g.computeVertexNormals(); return g; })();
+  // 테두리 선(바느질 띠)
+  const pipe=(()=>{ const w=0.80, r=0.15, pts=[]; for(let i=0;i<=64;i++){ const t=i/64*4; const side=Math.floor(t)%4, u=t-Math.floor(t); const h=w/2-r; let x,z; if(side===0){x=-h+u*2*h; z=-w/2;} else if(side===1){x=w/2; z=-h+u*2*h;} else if(side===2){x=h-u*2*h; z=w/2;} else {x=-w/2; z=h-u*2*h;} pts.push(new T.Vector3(x,0,z)); }
+    return new T.TubeGeometry(new T.CatmullRomCurve3(pts,true),96,0.012,6,true); })();
+  const zcol=['#c39563','#b88a5a','#c9a06e'];
+  const zRing=(n,R,a0)=>{ for(let k=0;k<n;k++){ const a=a0+k/n*6.283; const zg=new T.Group(); const m=new T.Mesh(zabuGeo,new T.MeshStandardMaterial({color:zcol[k%3],roughness:0.95})); zg.add(m);
+      const pp=new T.Mesh(pipe,new T.MeshStandardMaterial({color:'#7a5536',roughness:0.8})); pp.position.y=0.07; zg.add(pp);
+      const tuft=new T.Mesh(new T.SphereGeometry(0.03,10,8),new T.MeshStandardMaterial({color:'#7a5536',roughness:0.9})); tuft.scale.y=0.5; tuft.position.y=0.17; zg.add(tuft);
+      zg.position.set(Math.cos(a)*R,0.2,Math.sin(a)*R); zg.rotation.y=-a; g.add(zg);} };
+  zRing(3,1.6,Math.PI/2); zRing(9,3.4,0.2); zRing(16,5.25,0.1);
+  // 앉은 아바타 하나
+  const av=new T.Group(); const bm=new T.MeshStandardMaterial({color:'#9fd0c6'}), sk=new T.MeshStandardMaterial({color:'#efe9df'}); const b=new T.Mesh(new T.SphereGeometry(0.2,16,12),bm); b.scale.set(1,1.08,0.9); b.position.y=0.42; av.add(b); const hd=new T.Mesh(new T.SphereGeometry(0.27,20,14),sk); hd.position.y=0.9; av.add(hd); av.position.set(5.25*Math.cos(0.1+3*6.283/16),0.33,5.25*Math.sin(0.1+3*6.283/16)); g.add(av);
+  g.position.copy(DOME); scene.add(g); }
+
+window.shot=(view)=>{ const [px,py,pz]=view.pos,[lx,ly,lz]=view.look; cam.fov=view.fov||70; cam.position.set(px,py,pz); cam.lookAt(lx,ly,lz); cam.updateProjectionMatrix(); R.render(scene,cam); return R.domElement.toDataURL('image/jpeg',0.92); };
+window.ready=true;
+</script></body></html>
