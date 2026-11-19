@@ -6,6 +6,12 @@
 <title>A-508057</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="theme-color" content="#1f86b6">
+<meta name="description" content="누구나 자유롭게 들어와 명상할 수 있는 바닷속 명상 공간입니다.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="A-508057">
+<meta property="og:description" content="누구나 자유롭게 들어와 명상할 수 있는 바닷속 명상 공간입니다.">
+<meta property="og:url" content="https://aninsong77-dotcom.github.io/a-508057/">
+<meta property="og:locale" content="ko_KR">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231f86b6'/%3E%3Cpath d='M0 48c8-5 14-5 22-1s14 4 22-1 14-4 20 0v18H0z' fill='%23243440'/%3E%3Cpath d='M27 46v-9h10v9z' fill='%23e9dcc6'/%3E%3Cpath d='M25 37l7-6 7 6z' fill='%23a9564b'/%3E%3Ccircle cx='46' cy='20' r='5' fill='%238fe3ff' opacity='.9'/%3E%3Ccircle cx='17' cy='14' r='2' fill='%23cfe3ea' opacity='.7'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -189,6 +195,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 .copyline span{display:inline-block;font:400 10.5px/1.3 var(--f-body);color:rgba(240,248,255,.88);letter-spacing:.01em;
   background:rgba(2,20,34,.3);border-radius:999px;padding:3px 10px;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
 #endSheet .card{max-height:calc(100dvh - 32px);overflow-y:auto}
+#endSheet .welcome{text-align:center;color:var(--ink);font-size:13.5px}
 .credits{display:grid;gap:6px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid var(--line)}
 .credits-h{margin:0;font:600 13px/1.3 var(--f-body)!important;color:var(--ink)!important}
 .credits ul{margin:0;padding-left:18px;display:grid;gap:3px;font-size:12px;line-height:1.5;color:var(--muted)}
@@ -328,6 +335,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
       <a class="go" id="endPadlet" href="#" target="_blank" rel="noopener" hidden>패들렛에 남기기 ↗</a>
       <p id="endNoLinks" hidden>아직 넣은 링크가 없어요.</p>
     </nav>
+    <p class="welcome">누구나 자유롭게 들어와 명상할 수 있는 바닷속 명상 공간입니다.<br>언제든 다시 오세요.</p>
     <div class="credits" aria-label="출처">
       <p class="credits-h">명상 안내 음성 출처</p>
       <ul>
@@ -381,7 +389,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-120';
+const BUILD = '11.19-121';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
