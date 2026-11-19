@@ -185,6 +185,14 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 .gallery img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;background:rgba(255,255,255,.06);max-width:100%}
 .gallery a:focus-visible{outline:2px solid var(--glow);outline-offset:2px;border-radius:10px}
 .end-menu{display:grid;gap:10px}
+.copyline{flex-basis:100%;margin:2px 0 0;text-align:center;pointer-events:none;-webkit-user-select:none;user-select:none}
+.copyline span{display:inline-block;font:400 10.5px/1.3 var(--f-body);color:rgba(240,248,255,.88);letter-spacing:.01em;
+  background:rgba(2,20,34,.3);border-radius:999px;padding:3px 10px;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+#endSheet .card{max-height:calc(100dvh - 32px);overflow-y:auto}
+.credits{display:grid;gap:6px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid var(--line)}
+.credits-h{margin:0;font:600 13px/1.3 var(--f-body)!important;color:var(--ink)!important}
+.credits ul{margin:0;padding-left:18px;display:grid;gap:3px;font-size:12px;line-height:1.5;color:var(--muted)}
+.credits-c{margin:4px 0 0!important;font-size:11.5px!important;line-height:1.5!important;color:var(--muted)!important}
 .medList{display:grid;gap:8px}
 .medItem{display:grid;grid-template-columns:1fr auto;align-items:center;gap:4px 12px;text-align:left;width:100%;
   font:500 15px/1.3 var(--f-body);color:var(--ink);background:rgba(255,255,255,.07);border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer}
@@ -258,6 +266,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
   <div class="row" id="soundRow" hidden>
     <button type="button" class="primary" id="soundBtn">🔊 눌러서 명상 소리 듣기</button>
   </div>
+  <p class="copyline"><span>© 2026. An In-song (안인성). Distributed for free. · 무료 배포</span></p>
 </div>
 
 <div class="sheet" id="linkSheet" hidden>
@@ -319,6 +328,17 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
       <a class="go" id="endPadlet" href="#" target="_blank" rel="noopener" hidden>패들렛에 남기기 ↗</a>
       <p id="endNoLinks" hidden>아직 넣은 링크가 없어요.</p>
     </nav>
+    <div class="credits" aria-label="출처">
+      <p class="credits-h">명상 안내 음성 출처</p>
+      <ul>
+        <li>안내 음성은 AI로 만들었어요.</li>
+        <li>자비 명상(여성): AnyToSpeech AI 음성</li>
+        <li>자비 명상(남성) · 호흡 알아차리기(남성): INZEUM AI 음성</li>
+        <li>대본: 김주완 명상수업 실습편</li>
+        <li>배경 피아노: Serge Quadrado, “Piano for Meditation” (Pixabay)</li>
+      </ul>
+      <p class="credits-c">© 2026. An In-song (안인성). Distributed for free.<br>(2026. 안인성. 무료 배포)</p>
+    </div>
     <div class="actions">
       <button type="button" id="endDive">다시 들어오기</button>
     </div>
@@ -361,7 +381,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.16-118';
+const BUILD = '11.19-119';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
