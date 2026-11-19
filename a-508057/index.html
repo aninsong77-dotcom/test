@@ -225,7 +225,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 <header class="hud fade is-hidden" id="hud">
   <div class="plate">
     <div class="id">A-508057</div>
-    <div class="sub"><span hidden><span id="found"></span><span id="lightCount"></span></span><span id="dimName"></span>유리 돔 · <span id="together">혼자 있어요</span> <span id="buildTag" style="opacity:.55;font-size:10px"></span></div>
+    <div class="sub"><span hidden><span id="found"></span><span id="lightCount"></span></span><span id="dimName"></span>유리 돔 · <span id="together">혼자 있어요</span> <span id="buildTag" style="opacity:.55;font-size:10px"></span> <span id="osmTag" hidden style="opacity:.6;font-size:10px">지도 © OpenStreetMap</span></div>
     <div class="hint" id="hint"></div>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end"><button type="button" id="toDome" hidden>돔으로 가기</button><button type="button" id="galleryBtn" hidden>기록 사진</button><span id="hostRow" hidden style="display:contents"><button type="button" id="linksBtn">링크 넣기</button></span><button type="button" id="ambBtn" aria-pressed="false">🎵 음악 켜기</button><button type="button" id="nameBtn">이름</button><button type="button" id="viewBtn">내 모습 보기</button><button type="button" id="replay">나가기</button></div>
@@ -362,6 +362,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
         <li>자비 명상(남성) · 호흡 알아차리기(남성): INZEUM AI 음성</li>
         <li>대본: 김주완 명상수업 실습편</li>
         <li>배경 피아노: Serge Quadrado, “Piano for Meditation” (Pixabay)</li>
+        <li>서울 하늘 지도: © OpenStreetMap contributors (ODbL)</li>
       </ul>
       <p class="credits-c">© 2026 An In-song (안인성). All rights reserved.</p>
     </div>
@@ -407,7 +408,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-133';
+const BUILD = '11.19-134';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -4752,7 +4753,7 @@ const snapCanvas = document.createElement('canvas');
 const captured = new Set();
 function captureBlob(label) {
   return new Promise(res => {
-    renderer.render(scene, camera);
+    drawFrame();
     const src = renderer.domElement, w = src.width, h = src.height;
     snapCanvas.width = w; snapCanvas.height = h;
     const g = snapCanvas.getContext('2d');
@@ -5245,10 +5246,10 @@ function puffTexture() {
   }
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
-/* 서울 하늘 돔의 고도 (내 화면에서만, 기억해 둠): 60m ~ 300m */
-const ALT_MIN = 60, ALT_MAX = 300, ALT_STEP = 40;
-const seoulAlt = { want: 140, now: 140 };
-try { const v = Number(localStorage.getItem('a508057:seoulAlt')); if (v >= ALT_MIN && v <= ALT_MAX) seoulAlt.want = seoulAlt.now = v; } catch (e) {}
+/* 서울 하늘 돔의 고도 (내 화면에서만, 기억해 둠): 120m ~ 600m (남산 가까이에서는 저절로 더 높이) */
+const ALT_MIN = 120, ALT_MAX = 600, ALT_STEP = 60;
+const seoulAlt = { want: 180, now: 180 };
+try { const v = Number(localStorage.getItem('a508057:seoulAlt')); if (v > 0) seoulAlt.want = seoulAlt.now = Math.max(ALT_MIN, Math.min(ALT_MAX, Math.round(v / ALT_STEP) * ALT_STEP)); } catch (e) {}
 /* 서울 하늘 (임시 배경: 2단계에서 실제 지도 장면으로 바꿀 예정) */
 function buildSeoul() {
   const g = new THREE.Group(), R = mulberry32(1225);
@@ -5562,14 +5563,304 @@ function buildSpace() {
   };
   return W;
 }
+/* ---------- 서울 하늘 (실제 지도) ----------
+   OpenStreetMap 자료(seoul-data.json)로 만든 서울. 들어갈 때 처음 한 번만 불러옴 (불러오는 동안은 임시 배경)
+   도시는 따로 된 장면으로 먼저 그리고, 그 위에 돔 안을 겹쳐 그림 (아주 먼 곳까지 깨끗하게 보이게)
+   돔은 정해진 길(여의도 → 한남대교 → 남산 → 도심 한 바퀴 → 남산 → 한강 → 잠실)을 따라 날고, 끝에서 되돌아옴
+   모두에게 같은 자리 (실제 시각 기준). 차는 큰길을 달리고, 한강에는 가끔 유람선이 지나감 */
+const SEOUL_SPEED = 12;   // 돔이 나는 빠르기 (초속 m, 한쪽 끝까지 약 50분)
+let seoulReal = null, seoulLoading = false;
+function mergeGeos(geos) {
+  // 여러 모양을 한 덩어리로 (그리는 횟수를 줄여 가볍게)
+  const parts = geos.map(g => g.index ? g.toNonIndexed() : g);
+  let n = 0; parts.forEach(g => { n += g.attributes.position.count; });
+  const pos = new Float32Array(n * 3), nor = new Float32Array(n * 3);
+  let o = 0;
+  parts.forEach(g => { pos.set(g.attributes.position.array, o * 3); if (g.attributes.normal) nor.set(g.attributes.normal.array, o * 3); o += g.attributes.position.count; });
+  const m = new THREE.BufferGeometry();
+  m.setAttribute('position', new THREE.BufferAttribute(pos, 3)); m.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+  return m;
+}
+function loadSeoulReal() {
+  if (seoulReal || seoulLoading) return;
+  seoulLoading = true;
+  fetch('seoul-data.json?v=1').then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))).then(D => {
+    // 한 번에 다 만들면 화면이 잠깐 멈추므로, 다음 틈에 만듦
+    setTimeout(() => {
+      try { seoulReal = buildSeoulReal(D); }
+      catch (e) { console.warn('서울 지도 만들기 실패', e); seoulLoading = false; return; }
+      if (myDim === 'seoul') applyDim('seoul');
+    }, 30);
+  }).catch(e => { console.warn('서울 지도 불러오기 실패', e); seoulLoading = false; });
+}
+function buildSeoulReal(D) {
+  const S = new THREE.Scene();
+  const cam = new THREE.PerspectiveCamera(60, 1, 20, 50000);
+  let s = 5; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  const light = coarse;   // 휴대폰은 가벼운 모드 (나무·차를 줄임)
+  const HAZE = new THREE.Color('#c4e2fa');
+  S.fog = new THREE.Fog(HAZE.clone(), 2500, 16000); S.background = HAZE.clone();
+  const skyU = { uSun: { value: new THREE.Vector3(0, 1, 0) }, uMoon: { value: new THREE.Vector3(0, 1, 0) }, uDay: { value: 1 }, uDusk: { value: 0 }, uNight: { value: 0 } };
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(40000, 48, 32), new THREE.ShaderMaterial({ side: THREE.BackSide, depthWrite: false, fog: false, uniforms: skyU,
+    vertexShader: 'varying vec3 vD; void main(){ vD = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: `varying vec3 vD; uniform vec3 uSun; uniform vec3 uMoon; uniform float uDay; uniform float uDusk; uniform float uNight; void main(){
+      vec3 d = normalize(vD); float h = clamp(d.y, 0., 1.);
+      vec3 zen = mix(vec3(0.01, 0.025, 0.08), vec3(0.04, 0.33, 0.86), uDay), hor = mix(vec3(0.05, 0.08, 0.18), vec3(0.66, 0.85, 0.99), uDay);
+      vec3 c = mix(hor, zen, pow(h, 0.45));
+      float sd = max(0., dot(normalize(vec3(d.x, 0., d.z)), normalize(vec3(uSun.x, 0., uSun.z) + 1e-5)));
+      vec3 glow = mix(vec3(1.0, 0.45, 0.25), vec3(1.0, 0.72, 0.55), h); c = mix(c, glow, uDusk * (0.35 + 0.65 * pow(sd, 2.0)) * exp(-h * 4.0) * 0.95);
+      c += uDusk * vec3(0.55, 0.35, 0.6) * exp(-h * 3.0) * 0.25;
+      float sn = max(0., dot(d, uSun)); c += vec3(1., 0.95, 0.85) * (pow(sn, 600.) * 3. + pow(sn, 12.) * 0.18) * clamp(uDay + uDusk, 0., 1.);
+      float m = max(0., dot(d, uMoon)); c += vec3(0.6, 0.7, 0.9) * pow(m, 40.) * 0.15 * uNight;
+      c += uNight * vec3(0.5, 0.35, 0.25) * exp(-h * 14.0) * 0.25;
+      if (d.y < 0.) c = hor; gl_FragColor = vec4(c, 1.);
+      #include <colorspace_fragment>
+    }` }));
+  sky.renderOrder = -10; S.add(sky);
+  const hemiS = new THREE.HemisphereLight('#cfe6ff', '#8a8f78', 1.1); S.add(hemiS);
+  const sunS = new THREE.DirectionalLight('#fff4e0', 2.2); S.add(sunS);
+  const moonS = new THREE.DirectionalLight('#9fb6ff', 0); S.add(moonS);
+  const stars = (() => { const n = 4000, p = new Float32Array(n * 3); for (let i = 0; i < n; i++) { const u = Math.random(), a = Math.random() * 6.283, r = Math.sqrt(1 - u * u); p.set([Math.cos(a) * r * 30000, u * 30000, Math.sin(a) * r * 30000], i * 3); } const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(p, 3)); const o = new THREE.Points(g, new THREE.PointsMaterial({ size: 2, sizeAttenuation: false, color: '#ffffff', transparent: true, opacity: 0, depthWrite: false, fog: false })); S.add(o); return o; })();
+  const moonM = new THREE.Mesh(new THREE.CircleGeometry(1, 48), new THREE.ShaderMaterial({ transparent: true, depthWrite: false, fog: false, uniforms: { uPhase: { value: 0.5 }, uVis: { value: 1 } },
+    vertexShader: 'varying vec2 vU; void main(){ vU = position.xy; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }',
+    fragmentShader: `varying vec2 vU; uniform float uPhase; uniform float uVis; void main(){
+      float r = length(vU); if (r > 1.) discard; float z = sqrt(max(0., 1. - r * r)); float ang = uPhase * 6.2832; vec3 L = vec3(sin(ang), 0., -cos(ang)); float lit = dot(vec3(vU, z), L); float b = smoothstep(-0.05, 0.08, lit);
+      vec3 c = mix(vec3(0.12, 0.14, 0.2), vec3(0.98, 0.97, 0.9), b); gl_FragColor = vec4(c, uVis * (0.25 + 0.75 * b) * smoothstep(1., 0.96, r));
+      #include <colorspace_fragment>
+    }` }));
+  moonM.scale.setScalar(380); S.add(moonM);
+  const canvasTex = (w, h, draw) => { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; };
+  const litCells = [];
+  const winTex = canvasTex(64, 128, (g, w, h) => { g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h); for (let y = 6; y < h; y += 11) for (let x = 6; x < w; x += 11) { g.fillStyle = rnd() < 0.2 ? '#a8c6e0' : '#c9dceb'; g.fillRect(x, y, 6, 7); if (rnd() < 0.55) litCells.push([x, y]); } });
+  const litTex = canvasTex(64, 128, (g, w, h) => { g.fillStyle = '#000'; g.fillRect(0, 0, w, h); litCells.forEach(([x, y]) => { g.fillStyle = rnd() < 0.8 ? '#ffd28a' : '#cfe3ff'; g.fillRect(x, y, 6, 7); }); });
+  const glassTex = canvasTex(64, 128, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#d3e5f3'); gr.addColorStop(1, '#9fbbd4'); g.fillStyle = gr; g.fillRect(0, 0, w, h); g.strokeStyle = 'rgba(255,255,255,.35)'; for (let x = 0; x < w; x += 6) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); } });
+  const shape = (pts, holes = []) => { const sh = new THREE.Shape(pts.map(p => new THREE.Vector2(p[0], -p[1]))); holes.forEach(hh => sh.holes.push(new THREE.Path(hh.map(p => new THREE.Vector2(p[0], -p[1]))))); return sh; };
+  const flat = (geo, y) => { geo.rotateX(-Math.PI / 2); geo.translate(0, y, 0); return geo; };
+  const std = (o) => new THREE.MeshStandardMaterial(o);
+  // 땅, 공원, 한강, 큰길 (가까운 높이의 납작한 층은 조금씩 띄워 깜박이지 않게)
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(80000, 80000), std({ color: '#d8d3c4', roughness: 1 })); ground.rotation.x = -Math.PI / 2; S.add(ground);
+  S.add(new THREE.Mesh(mergeGeos(D.parks.map(p => flat(new THREE.ShapeGeometry(shape(p)), 1.2))), std({ color: '#9fd08a', roughness: 1 })));
+  const waterMat = std({ color: '#86bde0', roughness: 0.35, metalness: 0 });
+  S.add(new THREE.Mesh(mergeGeos(D.water.map(w => flat(new THREE.ShapeGeometry(shape(w[0], w.slice(1))), 2.4))), waterMat));
+  const roadPts = [];
+  { const pos = [], idx = []; let n = 0;
+    D.roads.forEach(r => { const p = r.p, hw = r.w / 2; for (let i = 0; i < p.length - 1; i++) { const [x1, z1] = p[i], [x2, z2] = p[i + 1]; const dx = x2 - x1, dz = z2 - z1, L = Math.hypot(dx, dz) || 1, nx = -dz / L * hw, nz = dx / L * hw;
+      pos.push(x1 + nx, 1.8, z1 + nz, x1 - nx, 1.8, z1 - nz, x2 + nx, 1.8, z2 + nz, x2 - nx, 1.8, z2 - nz); idx.push(n, n + 2, n + 1, n + 1, n + 2, n + 3); n += 4; if (L > 40) roadPts.push([x1, z1, x2, z2, r.w]); } });
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); S.add(new THREE.Mesh(g, std({ color: '#8a8f98', roughness: 0.9 }))); }
+  const streetLights = (() => { const pts = []; D.roads.forEach(r => { const p = r.p; for (let i = 0; i < p.length - 1; i++) { const [x1, z1] = p[i], [x2, z2] = p[i + 1]; const L = Math.hypot(x2 - x1, z2 - z1); for (let t = 0; t < L; t += 45) { const f = t / L; pts.push(x1 + (x2 - x1) * f, 6, z1 + (z2 - z1) * f); } } }); const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3)); const o = new THREE.Points(g, new THREE.PointsMaterial({ color: '#ffcf80', size: 3, sizeAttenuation: false, transparent: true, opacity: 0, depthWrite: false })); S.add(o); return o; })();
+  const bridgeMat = std({ color: '#f0ede6', roughness: 0.7, emissive: '#7fb8ff', emissiveIntensity: 0 });
+  S.add(new THREE.Mesh(mergeGeos(D.bridges.map(b => { const g = new THREE.ExtrudeGeometry(shape(b), { depth: 2.5, bevelEnabled: false }); g.rotateX(-Math.PI / 2); g.translate(0, 12, 0); return g; })), bridgeMat));
+  // 돔이 다니는 길: 한강(여의도→한남대교) → 남산 → 도심 한 바퀴 → 남산 → 한남대교 → 한강(→잠실)
+  const RV = D.path, LP = D.path2; const hn = RV.findIndex(p => p[0] > 200);
+  const P = [...RV.slice(0, hn + 1), [RV[hn][0] - 200, RV[hn][1] - 900], [-1500, -2500], ...LP, [-1500, -2500], [RV[hn][0] - 200, RV[hn][1] - 900], ...RV.slice(hn)];
+  const segL = []; let tot = 0; for (let i = 0; i < P.length - 1; i++) { const l = Math.hypot(P[i + 1][0] - P[i][0], P[i + 1][1] - P[i][1]); segL.push(l); tot += l; }
+  const atDist = d => { for (let i = 0; i < segL.length; i++) { if (d <= segL[i]) { const t = d / segL[i]; return [P[i][0] + (P[i + 1][0] - P[i][0]) * t, P[i][1] + (P[i + 1][1] - P[i][1]) * t]; } d -= segL[i]; } return P[P.length - 1]; };
+  const nearRoute = (x, z, r) => { for (let i = 0; i < P.length - 1; i++) { const [ax, az] = P[i], [bx, bz] = P[i + 1]; const dx = bx - ax, dz = bz - az, L2 = dx * dx + dz * dz || 1; const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / L2)); if (Math.hypot(x - ax - dx * t, z - az - dz * t) < r) return true; } return false; };
+  // 건물 (파스텔, 지붕 색). 돔이 지나가는 길 가까이는 높이를 낮춰 부딪히지 않게
+  const bldMat = std({ map: winTex, roughness: 0.8, emissive: '#ffffff', emissiveMap: litTex, emissiveIntensity: 0 });
+  { const N = D.buildings.length, geo = new THREE.BoxGeometry(1, 1, 1); geo.translate(0, 0.5, 0);
+    const A = new THREE.InstancedMesh(geo, bldMat, N), RM = new THREE.InstancedMesh(geo, std({ roughness: 0.9 }), N);
+    const PC = ['#f7c9c4', '#cfe9d9', '#fbe6b8', '#cfe1f5', '#e3d7f3', '#fff4e3', '#f6d6b8', '#d5ecec'], RC = ['#7fb76a', '#e98b78', '#8fb3d9', '#f0c46c', '#b7a3d8', '#9fcf8b'];
+    const m = new THREE.Matrix4(), c = new THREE.Color(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0);
+    D.buildings.forEach(([x, z], i) => { const w = 18 + rnd() * 26, d = 18 + rnd() * 26; let h = 12 + Math.pow(rnd(), 2) * 70 + (rnd() < 0.03 ? 90 : 0); q.setFromAxisAngle(up, rnd() * 0.3);
+      if (h > 90 && nearRoute(x, z, 90)) h = 90;
+      m.compose(new THREE.Vector3(x, 0, z), q, new THREE.Vector3(w, h, d)); A.setMatrixAt(i, m); A.setColorAt(i, c.set(PC[Math.floor(rnd() * PC.length)]));
+      m.compose(new THREE.Vector3(x, h, z), q, new THREE.Vector3(w * 0.82, 1.6, d * 0.82)); RM.setMatrixAt(i, m); RM.setColorAt(i, c.set(RC[Math.floor(rnd() * RC.length)])); });
+    A.frustumCulled = RM.frustumCulled = false; S.add(A, RM); }
+  // 공원 나무
+  { const N = light ? 3000 : 9000, tm = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 8, 6), std({ color: '#6fb35a', roughness: 1 }), N), m = new THREE.Matrix4(), c = new THREE.Color(); let k = 0;
+    const per = light ? 100 : 300;
+    for (const p of D.parks) { const xs = p.map(a => a[0]), zs = p.map(a => a[1]); const minx = Math.min(...xs), maxx = Math.max(...xs), minz = Math.min(...zs), maxz = Math.max(...zs); const n = Math.min(per, Math.floor((maxx - minx) * (maxz - minz) / (light ? 18000 : 6000)));
+      for (let i = 0; i < n && k < N; i++) { const x = minx + rnd() * (maxx - minx), z = minz + rnd() * (maxz - minz); let inside = false; for (let a = 0, b = p.length - 1; a < p.length; b = a++) { const [xa, za] = p[a], [xb, zb] = p[b]; if (((za > z) !== (zb > z)) && (x < (xb - xa) * (z - za) / (zb - za) + xa)) inside = !inside; } if (!inside) continue;
+        const r = 4 + rnd() * 3; m.makeScale(r, r * 1.15, r); m.setPosition(x, r, z); tm.setMatrixAt(k, m); tm.setColorAt(k, c.setHSL(0.27 + rnd() * 0.06, 0.5, 0.42 + rnd() * 0.14)); k++; } }
+    tm.count = k; tm.frustumCulled = false; S.add(tm); }
+  // 차: 큰길을 따라 달림 (움직임은 그래픽 카드에서 계산해 가벼움). 길 끝에서는 작아지며 사라졌다 다시 나타남
+  const carMat = std({ roughness: 0.4, emissive: '#fff1c8', emissiveIntensity: 0 });
+  const carT = { value: 0 };
+  carMat.onBeforeCompile = sh => {
+    sh.uniforms.uTime = carT;
+    sh.vertexShader = 'attribute vec4 aSeg; attribute vec4 aCar; uniform float uTime;\n' + sh.vertexShader
+      .replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>
+        vec2 cA = aSeg.xy, cB = aSeg.zw; vec2 cD = cB - cA; float cL = max(length(cD), 1.0); vec2 cU = cD / cL;
+        float cT = fract(aCar.x + uTime * aCar.y / cL);
+        if (aCar.w < 0.0) { cT = 1.0 - cT; cU = -cU; }
+        vec2 cP = mix(cA, cB, cT) + vec2(-cU.y, cU.x) * aCar.z;
+        float cS = smoothstep(0.0, 0.06, cT) * smoothstep(1.0, 0.94, cT);
+        if (aCar.w < 0.0) cS = smoothstep(0.0, 0.06, 1.0 - cT) * smoothstep(1.0, 0.94, 1.0 - cT);
+        objectNormal = vec3(objectNormal.x * cU.x - objectNormal.z * cU.y, objectNormal.y, objectNormal.x * cU.y + objectNormal.z * cU.x);`)
+      .replace('#include <begin_vertex>', `#include <begin_vertex>
+        transformed *= cS;
+        transformed = vec3(cP.x + transformed.x * cU.x - transformed.z * cU.y, transformed.y + 2.6, cP.y + transformed.x * cU.y + transformed.z * cU.x);`);
+  };
+  { const N = Math.min(light ? 1500 : 5000, roadPts.length * 3);
+    const geo = new THREE.BoxGeometry(4.6, 1.6, 2);
+    const cm = new THREE.InstancedMesh(geo, carMat, N);
+    const seg = new Float32Array(N * 4), car = new Float32Array(N * 4), c = new THREE.Color(), cols = ['#ff6b6b', '#ffd166', '#4dabf7', '#69db7c', '#ffffff', '#f783ac', '#ffa94d'];
+    const pick = () => { const a = roadPts[Math.floor(rnd() * roadPts.length)], b = roadPts[Math.floor(rnd() * roadPts.length)]; return a[4] >= b[4] ? a : b; };   // 넓은 길에 차가 더 많게
+    for (let i = 0; i < N; i++) { const [x1, z1, x2, z2, w] = pick(); const dir = rnd() < 0.5 ? 1 : -1;
+      seg.set([x1, z1, x2, z2], i * 4); car.set([rnd(), 8 + rnd() * 9, dir * (0.12 + rnd() * 0.25) * w, dir], i * 4); cm.setColorAt(i, c.set(cols[i % cols.length])); }
+    geo.setAttribute('aSeg', new THREE.InstancedBufferAttribute(seg, 4)); geo.setAttribute('aCar', new THREE.InstancedBufferAttribute(car, 4));
+    cm.frustumCulled = false; S.add(cm); }
+  // 랜드마크
+  const L = D.landmarks;
+  { const g = new THREE.Mesh(new THREE.BoxGeometry(46, 250, 26), std({ color: '#f2cf74', metalness: 0.6, roughness: 0.25, map: glassTex })); g.position.set(L['63'][0], 125, L['63'][1]); g.rotation.y = 0.6; S.add(g);
+    const gk = new THREE.Group(); const gb = new THREE.Mesh(new THREE.BoxGeometry(150, 30, 100), std({ color: '#f1ece2' })); gb.position.y = 15; gk.add(gb); const dm = new THREE.Mesh(new THREE.SphereGeometry(36, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), std({ color: '#8fbfa3', roughness: 0.6 })); dm.position.y = 30; gk.add(dm); gk.position.set(L.gukhoe[0], 0, L.gukhoe[1]); S.add(gk);
+    const hill = new THREE.Mesh(new THREE.SphereGeometry(900, 40, 20, 0, Math.PI * 2, 0, Math.PI / 2), std({ color: '#7fb36a', roughness: 1 })); hill.scale.y = 0.26; hill.position.set(L.namsan[0], 0, L.namsan[1]); S.add(hill);
+    const tw = new THREE.Group(); const tm = std({ color: '#f6f4ef' }); const sh = new THREE.Mesh(new THREE.CylinderGeometry(6, 9, 180, 16), tm); sh.position.y = 90; tw.add(sh); const pod = new THREE.Mesh(new THREE.CylinderGeometry(20, 16, 24, 24), tm); pod.position.y = 160; tw.add(pod); const sp = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 3, 80, 8), tm); sp.position.y = 212; tw.add(sp); tw.position.set(L.namsan[0], 230, L.namsan[1]); S.add(tw);
+    [[0, 0, 40], [70, -30, 30], [-60, 40, 26]].forEach(([dx, dz, r], i) => { const b = new THREE.Mesh(new THREE.SphereGeometry(r, 24, 16), std({ color: ['#ffd57a', '#9fd3f0', '#f4a9c0'][i], metalness: 0.3, roughness: 0.3 })); b.scale.y = 0.55; b.position.set(L.sebit[0] + dx, 8, L.sebit[1] + dz); S.add(b); });
+    const lt = new THREE.Mesh(new THREE.CylinderGeometry(5, 36, 555, 4, 1), std({ map: glassTex, roughness: 0.2, metalness: 0.5, color: '#eef6ff' })); lt.rotation.y = Math.PI / 4; lt.position.set(L.lotte[0], 277, L.lotte[1]); S.add(lt); }
+  // 궁궐 마당과 한양도성 성곽
+  { S.add(new THREE.Mesh(mergeGeos(D.palaces.map(pl => flat(new THREE.ShapeGeometry(shape(pl.p)), 1.5))), std({ color: '#eadfc6', roughness: 1 })));
+    const walls = D.walls.filter(w => w.length >= 2).map(w => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(w.map(a => new THREE.Vector3(a[0], 3, a[1]))), Math.max(8, w.length * 4), 3, 4, false));
+    if (walls.length) S.add(new THREE.Mesh(mergeGeos(walls), std({ color: '#d9d3c3', roughness: 1 }))); }
+  // 궁궐 안 전각들과 담장
+  { const roofM = std({ color: '#525d68', roughness: 0.7 }), wallM = std({ color: '#c9765c' }), baseM = std({ color: '#ddd5c4' });
+    const roofG = new THREE.CylinderGeometry(0.0001, 1, 1, 4, 1); roofG.rotateY(Math.PI / 4);
+    const inside = (p, x, z) => { let c = false; for (let a = 0, b = p.length - 1; a < p.length; b = a++) { const [xa, za] = p[a], [xb, zb] = p[b]; if (((za > z) !== (zb > z)) && (x < (xb - xa) * (z - za) / (zb - za) + xa)) c = !c; } return c; };
+    const items = [], fences = [];
+    D.palaces.filter(pl => /경복궁|덕수궁|창덕궁|창경궁|운현궁/.test(pl.n)).forEach(pl => { const xs = pl.p.map(a => a[0]), zs = pl.p.map(a => a[1]); const mnx = Math.min(...xs), mxx = Math.max(...xs), mnz = Math.min(...zs), mxz = Math.max(...zs);
+      for (let x = mnx + 25; x < mxx; x += 55) for (let z = mnz + 25; z < mxz; z += 48) { if (!inside(pl.p, x, z) || rnd() < 0.35) continue; items.push([x + (rnd() - 0.5) * 10, z + (rnd() - 0.5) * 8, 22 + rnd() * 18, 11 + rnd() * 5]); }
+      fences.push(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pl.p.map(a => new THREE.Vector3(a[0], 2.5, a[1])), true), pl.p.length * 6, 2.2, 4, true)); });
+    if (fences.length) S.add(new THREE.Mesh(mergeGeos(fences), std({ color: '#b9a58c' })));
+    const n = items.length, B = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), baseM, n), W2 = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), wallM, n), RF = new THREE.InstancedMesh(roofG, roofM, n), m = new THREE.Matrix4();
+    items.forEach(([x, z, w, d], i) => { m.makeScale(w * 1.05, 2, d * 1.1); m.setPosition(x, 1, z); B.setMatrixAt(i, m); m.makeScale(w * 0.9, 5, d * 0.75); m.setPosition(x, 4.5, z); W2.setMatrixAt(i, m); m.makeScale(w * 0.8, 6, d * 0.95); m.setPosition(x, 10, z); RF.setMatrixAt(i, m); });
+    [B, W2, RF].forEach(o => { o.frustumCulled = false; S.add(o); }); }
+  // 청계천
+  { const geos = D.streams.map(st => { const pos = [], idx = []; let n = 0; for (let i = 0; i < st.length - 1; i++) { const [x1, z1] = st[i], [x2, z2] = st[i + 1]; const dx = x2 - x1, dz = z2 - z1, L2 = Math.hypot(dx, dz) || 1, nx = -dz / L2 * 6, nz = dx / L2 * 6; pos.push(x1 + nx, 2.2, z1 + nz, x1 - nx, 2.2, z1 - nz, x2 + nx, 2.2, z2 + nz, x2 - nx, 2.2, z2 - nz); idx.push(n, n + 2, n + 1, n + 1, n + 2, n + 3); n += 4; } const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); return g; });
+    if (geos.length) S.add(new THREE.Mesh(mergeGeos(geos), std({ color: '#7fc0e6', roughness: 0.4 }))); }
+  // 한옥 지붕 건물 (광화문, 근정전, 숭례문)과 DDP, 명동성당, 시청, 옛 서울역, 북악산·인왕산
+  const hanok = (w, d, h, roofCol) => { const g = new THREE.Group(); const base = new THREE.Mesh(new THREE.BoxGeometry(w * 1.05, h * 0.35, d * 1.05), std({ color: '#d8d0c0' })); base.position.y = h * 0.175; g.add(base);
+    const body = new THREE.Mesh(new THREE.BoxGeometry(w * 0.9, h * 0.45, d * 0.8), std({ color: '#b5523f' })); body.position.y = h * 0.35 + h * 0.225; g.add(body);
+    const roof = new THREE.Mesh(new THREE.CylinderGeometry(0.0001, 1, 1, 4, 1), std({ color: roofCol, roughness: 0.7 })); roof.rotation.y = Math.PI / 4; roof.scale.set(w * 0.78, h * 0.5, d * 0.95); roof.position.y = h * 0.8 + h * 0.25; g.add(roof);
+    const eave = new THREE.Mesh(new THREE.BoxGeometry(w * 1.15, h * 0.05, d * 1.3), std({ color: roofCol })); eave.position.y = h * 0.8; g.add(eave); return g; };
+  { const gh = hanok(70, 22, 30, '#4f5b66'); gh.position.set(L.gwanghwamun[0], 0, L.gwanghwamun[1]); S.add(gh);
+    const gj = hanok(60, 34, 34, '#4f5b66'); gj.position.set(L.geunjeong[0], 0, L.geunjeong[1]); S.add(gj);
+    const sn = hanok(32, 14, 22, '#55606b'); sn.position.set(L.sungnyemun[0], 0, L.sungnyemun[1]); S.add(sn);
+    const ddp = new THREE.Mesh(new THREE.SphereGeometry(1, 40, 20, 0, Math.PI * 2, 0, Math.PI / 2), std({ color: '#e8edf2', metalness: 0.1, roughness: 0.35 })); ddp.scale.set(170, 32, 110); ddp.position.set(L.ddp[0], 0, L.ddp[1]); ddp.rotation.y = 0.4; S.add(ddp);
+    const md = new THREE.Group(); const mb = new THREE.Mesh(new THREE.BoxGeometry(24, 22, 60), std({ color: '#b36a52' })); mb.position.y = 11; md.add(mb); const msp = new THREE.Mesh(new THREE.ConeGeometry(6, 30, 4), std({ color: '#7d5a4a' })); msp.position.set(0, 52, -28); md.add(msp); const mtw = new THREE.Mesh(new THREE.BoxGeometry(10, 38, 10), std({ color: '#b36a52' })); mtw.position.set(0, 19, -28); md.add(mtw); md.position.set(L.myeongdong[0], 0, L.myeongdong[1]); S.add(md);
+    const ch = new THREE.Mesh(new THREE.CylinderGeometry(55, 60, 60, 24, 1, false, 0, Math.PI), std({ map: glassTex, metalness: 0.4, roughness: 0.2 })); ch.position.set(L.cityhall[0], 30, L.cityhall[1]); ch.rotation.y = Math.PI * 0.9; S.add(ch);
+    const sg = new THREE.Group(); const sb = new THREE.Mesh(new THREE.BoxGeometry(80, 18, 30), std({ color: '#c8805c' })); sb.position.y = 9; sg.add(sb); const sd = new THREE.Mesh(new THREE.SphereGeometry(10, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), std({ color: '#5f8f86' })); sd.position.y = 18; sg.add(sd); sg.position.set(L.seoulst[0], 0, L.seoulst[1]); S.add(sg);
+    [[L.bugak, 750, 342, 1], [L.inwang, 680, 338, 2]].forEach(([p, r, h, sdd]) => { const g = new THREE.SphereGeometry(r, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2); const pa = g.attributes.position, col = new Float32Array(pa.count * 3), c = new THREE.Color();
+      for (let i = 0; i < pa.count; i++) { const x = pa.getX(i), y = pa.getY(i), z = pa.getZ(i); const nrm = Math.sin(x * 0.011 + sdd) * Math.cos(z * 0.013 + sdd * 2) * 0.12 + Math.sin(x * 0.031 + z * 0.027) * 0.05; const k = 1 + nrm * (y / r); pa.setXYZ(i, x * k, y * k * (h / r) * (0.85 + 0.3 * Math.sin(Math.atan2(z, x) * 3 + sdd)), z * k);
+        const t = y / r; c.setHSL(0.27 - t * 0.03, 0.35, 0.36 + t * 0.12 + (Math.sin(x * 0.05) * Math.cos(z * 0.05)) * 0.03); if (t > 0.8) c.lerp(new THREE.Color('#b8b0a0'), (t - 0.8) * 2.5); col.set([c.r, c.g, c.b], i * 3); }
+      g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.computeVertexNormals(); const hl = new THREE.Mesh(g, std({ vertexColors: true, roughness: 1 })); hl.position.set(p[0], 0, p[1]); S.add(hl); }); }
+  // 한강 유람선: 강을 따라 천천히 오가고, 밤에는 창에 불이 켜짐
+  const rvL = []; let rvTot = 0; for (let i = 0; i < RV.length - 1; i++) { const l = Math.hypot(RV[i + 1][0] - RV[i][0], RV[i + 1][1] - RV[i][1]); rvL.push(l); rvTot += l; }
+  const rvAt = d => { for (let i = 0; i < rvL.length; i++) { if (d <= rvL[i]) { const t = d / rvL[i]; return [RV[i][0] + (RV[i + 1][0] - RV[i][0]) * t, RV[i][1] + (RV[i + 1][1] - RV[i][1]) * t, Math.atan2(RV[i + 1][1] - RV[i][1], RV[i + 1][0] - RV[i][0])]; } d -= rvL[i]; } const n = RV.length - 1; return [RV[n][0], RV[n][1], 0]; };
+  const boatWin = std({ color: '#2f4a66', emissive: '#ffd79a', emissiveIntensity: 0 });
+  const boats = [];
+  for (let i = 0; i < 6; i++) {
+    const g = new THREE.Group(), big = i % 2 === 0;
+    const Lb = big ? 46 : 26, Wb = big ? 11 : 7;
+    const hull = new THREE.Mesh(new THREE.BoxGeometry(Lb, 3.5, Wb), std({ color: '#ffffff', roughness: 0.5 })); hull.position.y = 3.2; g.add(hull);
+    const stripe = new THREE.Mesh(new THREE.BoxGeometry(Lb * 1.002, 0.8, Wb * 1.002), std({ color: big ? '#2f7fd0' : '#e05a4f' })); stripe.position.y = 2.2; g.add(stripe);
+    const deck1 = new THREE.Mesh(new THREE.BoxGeometry(Lb * 0.72, 3, Wb * 0.8), boatWin); deck1.position.y = 6.4; g.add(deck1);
+    const roof1 = new THREE.Mesh(new THREE.BoxGeometry(Lb * 0.76, 0.5, Wb * 0.86), std({ color: '#f4f4f0' })); roof1.position.y = 8.1; g.add(roof1);
+    if (big) { const deck2 = new THREE.Mesh(new THREE.BoxGeometry(Lb * 0.4, 2.6, Wb * 0.7), boatWin); deck2.position.set(-Lb * 0.1, 9.6, 0); g.add(deck2); const roof2 = new THREE.Mesh(new THREE.BoxGeometry(Lb * 0.44, 0.5, Wb * 0.76), std({ color: '#f4f4f0' })); roof2.position.set(-Lb * 0.1, 11.1, 0); g.add(roof2); }
+    S.add(g);
+    boats.push({ g, ph: i / 6 + rnd() * 0.05, off: (i % 3 - 1) * 70 + (rnd() - 0.5) * 30, v: big ? 4.5 : 6.5 });
+  }
+  // 구름: 낮은 구름(300~700m)과 높은 구름(900~1800m)
+  const clouds = [];
+  { const ct = canvasTex(256, 256, (g, w, h) => { for (let i = 0; i < 26; i++) { const x = 40 + rnd() * 176, y = 90 + rnd() * 90 - (Math.abs(x - 128) < 60 ? 30 : 0), r = 26 + rnd() * 34; const gr = g.createRadialGradient(x, y - r * 0.3, r * 0.1, x, y, r); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.7, 'rgba(246,249,252,.95)'); gr.addColorStop(1, 'rgba(230,238,246,0)'); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); } });
+    const [X0, X1, Z0, Z1] = D.bounds;
+    for (let i = 0; i < (light ? 60 : 100); i++) { const low = i % 3 === 0; const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: ct, transparent: true, depthWrite: false })); const sc = (low ? 260 : 500) + rnd() * (low ? 400 : 900); sp.scale.set(sc * 1.6, sc, 1); sp.position.set(X0 - 4000 + rnd() * (X1 - X0 + 8000), low ? 300 + rnd() * 400 : 900 + rnd() * 900, Z0 - 6000 + rnd() * (Z1 - Z0 + 12000)); S.add(sp); clouds.push(sp); } }
+  // 실제 서울 해·달 위치 (한국 시간)
+  const LAT = 37.55 * Math.PI / 180, LON = 126.98;
+  const eqToHor = (ra, dec, d) => { const gmst = (280.46061837 + 360.98564736629 * d) % 360; const ha = ((gmst + LON) * Math.PI / 180) - ra; const alt = Math.asin(Math.sin(LAT) * Math.sin(dec) + Math.cos(LAT) * Math.cos(dec) * Math.cos(ha)); const az = Math.atan2(-Math.sin(ha), Math.tan(dec) * Math.cos(LAT) - Math.sin(LAT) * Math.cos(ha)); return { alt, az }; };
+  const sunAltAz = date => { const d = (date.getTime() / 86400000) - 10957.5; const g = (357.529 + 0.98560028 * d) * Math.PI / 180, q = 280.459 + 0.98564736 * d; const Lr = (q + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) * Math.PI / 180; const e = (23.439 - 0.00000036 * d) * Math.PI / 180; return eqToHor(Math.atan2(Math.cos(e) * Math.sin(Lr), Math.cos(Lr)), Math.asin(Math.sin(e) * Math.sin(Lr)), d); };
+  const moonAltAz = date => { const d = (date.getTime() / 86400000) - 10957.5; const Lm = (218.316 + 13.176396 * d) * Math.PI / 180, M = (134.963 + 13.064993 * d) * Math.PI / 180, F = (93.272 + 13.229350 * d) * Math.PI / 180;
+    const lon = Lm + 6.289 * Math.PI / 180 * Math.sin(M), lat = 5.128 * Math.PI / 180 * Math.sin(F); const e = 23.439 * Math.PI / 180;
+    const ra = Math.atan2(Math.sin(lon) * Math.cos(e) - Math.tan(lat) * Math.sin(e), Math.cos(lon)), dec = Math.asin(Math.sin(lat) * Math.cos(e) + Math.cos(lat) * Math.sin(e) * Math.sin(lon));
+    const sg = (357.529 + 0.98560028 * d) * Math.PI / 180, sq = 280.459 + 0.98564736 * d; const sl = (sq + 1.915 * Math.sin(sg)) * Math.PI / 180; let ph = ((lon - sl) / (2 * Math.PI)) % 1; if (ph < 0) ph += 1; const h = eqToHor(ra, dec, d); h.phase = ph; return h; };
+  const dirOf = ({ alt, az }) => new THREE.Vector3(Math.sin(az) * Math.cos(alt), Math.sin(alt), -Math.cos(az) * Math.cos(alt));
+  const sm = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+  const lightOut = { day: 1, night: 0, dusk: 0, sunDir: new THREE.Vector3(0, 1, 0) };
+  const setTime = date => { const sA = sunAltAz(date), mA = moonAltAz(date); const sd = dirOf(sA), md = dirOf(mA); const altDeg = sA.alt * 180 / Math.PI;
+    const day = sm(-4, 8, altDeg), night = 1 - sm(-12, -2, altDeg), dusk = Math.max(0, 1 - Math.abs(altDeg - 1) / 9);
+    skyU.uSun.value.copy(sd); skyU.uMoon.value.copy(md); skyU.uDay.value = day; skyU.uNight.value = night; skyU.uDusk.value = dusk;
+    sunS.position.copy(sd).multiplyScalar(5000); sunS.intensity = 2.4 * day + 0.6 * dusk; sunS.color.set(dusk > 0.3 ? '#ffb27a' : '#fff4e0');
+    hemiS.intensity = 0.25 + 0.9 * day + 0.2 * dusk; hemiS.color.set(night > 0.5 ? '#6a7fb8' : '#cfe6ff'); hemiS.groundColor.set(night > 0.5 ? '#202434' : '#8a8f78');
+    if (dusk > 0.2) hemiS.color.lerp(new THREE.Color('#ffb08a'), dusk * 0.6);
+    moonS.position.copy(md).multiplyScalar(5000); moonS.intensity = night * Math.max(0, md.y) * 0.5;
+    const haze = new THREE.Color('#c4e2fa').lerp(new THREE.Color('#f0b48e'), dusk * 0.75).lerp(new THREE.Color('#0e1428'), night);
+    const cc = new THREE.Color('#ffffff').lerp(new THREE.Color('#ffb48f'), dusk * 0.9).lerp(new THREE.Color('#36405e'), night); clouds.forEach(c => c.material.color.copy(cc));
+    S.fog.color.copy(haze); S.background.copy(haze);
+    stars.material.opacity = night * 0.9; moonM.position.copy(md).multiplyScalar(20000); moonM.lookAt(0, 0, 0); moonM.material.uniforms.uPhase.value = mA.phase; moonM.material.uniforms.uVis.value = md.y > -0.05 ? 1 : 0;
+    bldMat.emissiveIntensity = night * 1.1 + dusk * 0.2; streetLights.material.opacity = night; bridgeMat.emissiveIntensity = night * 0.6;
+    carMat.emissiveIntensity = night * 0.9; boatWin.emissiveIntensity = night * 1.2 + dusk * 0.3;
+    waterMat.color.set('#86bde0').lerp(new THREE.Color('#1b2a48'), night).lerp(new THREE.Color('#e7a27f'), dusk * 0.35 * (1 - night));
+    Object.assign(lightOut, { day, night, dusk }); lightOut.sunDir.copy(sd); };
+  let lastTime = 0;
+  // 높이: 고른 높이 + 남산 가까이에서는 더 높이 (탑에 닿지 않게)
+  const NS = L.namsan;
+  const dome = new THREE.Vector3();
+  const R = {
+    scene: S, cam, light: lightOut,
+    tick(dt) {
+      const now = Date.now();
+      if (now - lastTime > 5000) { lastTime = now; setTime(new Date(now)); }
+      // 돔 자리: 길을 따라 가다 끝에서 되돌아옴 (모두에게 같은 자리)
+      let d = (now / 1000 * SEOUL_SPEED) % (tot * 2); if (d > tot) d = tot * 2 - d;
+      const [x, z] = atDist(d);
+      const lift = Math.max(0, 1 - Math.hypot(x - NS[0], z - NS[1]) / 1600) * 380;
+      seoulAlt.now += (seoulAlt.want - seoulAlt.now) * Math.min(1, dt * 0.8);
+      dome.set(x, seoulAlt.now + lift, z);
+      carT.value = (now / 1000) % 100000;
+      for (const b of boats) {
+        let bd = ((now / 1000 * b.v / rvTot) + b.ph) % 2 * rvTot, back = false;
+        if (bd > rvTot) { bd = rvTot * 2 - bd; back = true; }
+        const [bx, bz, a] = rvAt(bd);
+        b.g.position.set(bx - Math.sin(a) * b.off, 0, bz + Math.cos(a) * b.off);
+        b.g.rotation.y = -a + (back ? Math.PI : 0);
+      }
+    },
+    syncCam() {
+      if (cam.fov !== camera.fov || cam.aspect !== camera.aspect) { cam.fov = camera.fov; cam.aspect = camera.aspect; cam.updateProjectionMatrix(); }
+      cam.quaternion.copy(camera.quaternion);
+      cam.position.set(dome.x + camera.position.x - DOME_CENTER.x, dome.y + camera.position.y - DOME_CENTER.y, dome.z + camera.position.z - DOME_CENTER.z);
+    },
+  };
+  setTime(new Date()); lastTime = Date.now();
+  R.tick(0);
+  return R;
+}
+/* 실제 서울일 때 돔 안의 빛도 서울의 해·달에 맞춤 */
+function seoulRealLook() {
+  const Lt = seoulReal.light;
+  scene.background.set('#c4e2fa'); scene.fog.color.copy(scene.background); scene.fog.density = 0.0001;
+  hemi.color.set('#eaf6ff').lerp(new THREE.Color('#8ea3d6'), Lt.night); hemi.groundColor.set('#b9b39e').lerp(new THREE.Color('#2a3048'), Lt.night);
+  hemi.intensity = mix(1.6, 1.1, Lt.night);
+  sunLight.color.set('#fff1d8').lerp(new THREE.Color('#ffb27a'), Lt.dusk * 0.6).lerp(new THREE.Color('#c9d7ff'), Lt.night);
+  sunLight.intensity = mix(2.2, 0.8, Lt.night);
+  const sd = Lt.sunDir.y > 0.05 ? Lt.sunDir : new THREE.Vector3(0.3, 0.8, 0.4).normalize();
+  sunLight.position.copy(DOME_CENTER).addScaledVector(sd, 60);
+}
+/* 한 장면 그리기: 실제 서울이면 도시를 먼저, 그 위에 돔 안 */
+function drawFrame() {
+  if (myDim === 'seoul' && seoulReal) {
+    seoulReal.syncCam();
+    const bg = scene.background, fd = scene.fog.density;
+    renderer.autoClear = false;
+    renderer.clear();
+    renderer.render(seoulReal.scene, seoulReal.cam);
+    renderer.clearDepth();
+    scene.background = null; scene.fog.density = 0;
+    renderer.render(scene, camera);
+    scene.background = bg; scene.fog.density = fd;
+    renderer.autoClear = true;
+  } else renderer.render(scene, camera);
+}
 function dimWorld(k) {
   if (k === 'sea') return null;
   if (!dimWorlds[k]) { const W = k === 'seoul' ? buildSeoul() : buildSpace(); W.g.visible = false; scene.add(W.g); dimWorlds[k] = W; }
+  if (k === 'seoul') loadSeoulReal();   // 실제 지도는 처음 들어갈 때 불러옴 (그동안은 임시 배경)
   return dimWorlds[k];
 }
 /* 다른 차원의 빛과 하늘색 (바다는 원래 setLook 그대로) */
 function dimLook() {
   above = false;
+  if (myDim === 'seoul' && seoulReal) { seoulRealLook(); return; }
   const W = dimWorld(myDim);
   if (!W) return;
   W.look();
@@ -5591,7 +5882,8 @@ function applyDim(k) {
   myDim = DIMS[k] ? k : 'sea';
   seaWorld.visible = myDim === 'sea';
   if (myDim !== 'sea') dimWorld(myDim);
-  for (const [key, W] of Object.entries(dimWorlds)) W.g.visible = key === myDim;
+  for (const [key, W] of Object.entries(dimWorlds)) W.g.visible = key === myDim && !(key === 'seoul' && seoulReal);
+  $('osmTag').hidden = !(myDim === 'seoul' && seoulReal);
   if (myDim === 'sea') { hemi.groundColor.copy(SEA_LIGHT.ground); sunLight.position.copy(SEA_LIGHT.sunPos); }
   $('dimName').textContent = myDim === 'sea' ? '' : DIMS[myDim].name + ' ';
   if (domeUiShown) { domeUiShown = null; updateDomeUi(true); }   // 안내 글도 이 차원에 맞게
@@ -5720,13 +6012,13 @@ function renderWorld() {
     if (!dimFx.rt) dimFx.rt = new THREE.WebGLRenderTarget(_fxSize.x, _fxSize.y, { type: THREE.HalfFloatType });
     else if (dimFx.rt.width !== _fxSize.x || dimFx.rt.height !== _fxSize.y) dimFx.rt.setSize(_fxSize.x, _fxSize.y);
     renderer.setRenderTarget(dimFx.rt);
-    renderer.render(scene, camera);
+    drawFrame();
     renderer.setRenderTarget(null);
     const u = dimFxMat.uniforms;
     u.tMap.value = dimFx.rt.texture; u.uT.value = performance.now() / 1000; u.uAmt.value = dimFx.amt; u.uAspect.value = _fxSize.x / Math.max(1, _fxSize.y);
     u.uTint.value.copy(dimFx.tint);
     renderer.render(dimFx.scene, dimFx.cam);
-  } else renderer.render(scene, camera);
+  } else drawFrame();
 }
 
 /* 소리: 문이 열릴 때 맑은 울림, 건널 때 낮게 늘어지는 '쉬익' 소리 (효과음만) */
@@ -5822,6 +6114,7 @@ function updatePortalRun() {
 function updateDims(dt, t) {
   if (portalRun) { updatePortalRun(); targetRing.visible = false; }
   updatePortals(dt, t);
+  if (myDim === 'seoul' && seoulReal) seoulReal.tick(dt);
   const W = dimWorlds[myDim];
   if (W && W.g.visible) W.tick(dt, t);
 }
