@@ -402,9 +402,9 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
   <div class="s-name" id="startName">뿅</div>
   <p class="s-sub">어디에서 명상할까요?</p>
   <div class="s-pick" id="startPick">
-    <button type="button" data-dim="sea">🌊 바다<small>바닷속 유리 돔</small></button>
-    <button type="button" data-dim="seoul">🏙️ 서울 하늘<small>서울 위에 뜬 돔</small></button>
-    <button type="button" data-dim="space">🌍 지구 우주<small>지구가 보이는 우주</small></button>
+    <button type="button" data-dim="sea">🌊 바다 명상<small>바닷속 유리 돔</small></button>
+    <button type="button" data-dim="seoul">🏙️ 서울 하늘 명상<small>서울 위에 뜬 돔</small></button>
+    <button type="button" data-dim="space">🌍 우주 명상<small>지구가 보이는 우주</small></button>
   </div>
 </div>
 <div class="flash" id="flash"></div>
@@ -423,7 +423,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-172';
+const BUILD = '11.19-173';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -7199,7 +7199,7 @@ $('startPick').addEventListener('click', e => {
   unlockAudio();
   const k = b.dataset.dim;
   if (k !== myDim) applyDim(k);
-  $('tcLabel').textContent = k === 'sea' ? '바닷속' : DIMS[k].name;
+  $('tcLabel').textContent = b.firstChild.textContent.replace(/^\S+\s/, '').trim();
   enterDomeDirect();
   $('startScreen').classList.add('is-off');
   setTimeout(() => { if ($('startScreen').classList.contains('is-off')) $('startScreen').hidden = true; }, 800);
