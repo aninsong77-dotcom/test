@@ -408,7 +408,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-139';
+const BUILD = '11.19-140';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -5404,6 +5404,11 @@ function buildSpace() {
         float b = exp(-pow(dot(d, normalize(vec3(0.35, 0.8, 0.5))) / 0.2, 2.0));
         float w = 0.6 + 0.4 * sin(d.x * 13.0 + d.z * 9.0) * sin(d.y * 11.0 - d.x * 5.0);
         vec3 c = vec3(0.004, 0.006, 0.022) + vec3(0.05, 0.07, 0.17) * b * w;
+        // 은은한 파스텔 빛구름 (분홍, 청록)
+        float n1 = exp(-pow(acos(clamp(dot(d, normalize(vec3(-0.6, 0.5, -0.35))), -1.0, 1.0)) / 0.38, 2.0));
+        float n2 = exp(-pow(acos(clamp(dot(d, normalize(vec3(0.55, 0.4, -0.65))), -1.0, 1.0)) / 0.32, 2.0));
+        float tx = 0.55 + 0.45 * sin(d.x * 17.0 + d.y * 9.0) * sin(d.z * 13.0 - d.y * 7.0);
+        c += vec3(0.20, 0.05, 0.14) * n1 * tx + vec3(0.03, 0.15, 0.16) * n2 * (1.1 - tx * 0.5);
         gl_FragColor = vec4(c, 1.0);
         #include <colorspace_fragment>
       }`,
@@ -5467,11 +5472,63 @@ function buildSpace() {
   })));
   atm.position.copy(tilt.position); g.add(atm);
   // 해
-  const sunDir = new THREE.Vector3(-0.75, 0.32, -0.58).normalize();
+  const sunDir = new THREE.Vector3(-0.25, 0.16, -0.955).normalize();   // 지구 지평선 바로 위로 떠오르는 해
   const sunG = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: '#fff3d6', transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })));
   sunG.position.copy(C).addScaledVector(sunDir, 380); sunG.scale.setScalar(110); g.add(sunG);
   const sunC = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: '#ffffff', transparent: true, opacity: 1, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })));
   sunC.position.copy(sunG.position); sunC.scale.setScalar(26); g.add(sunC);
+  // 해의 빛살 (천천히 돎)과 지구 가장자리를 따라 번지는 햇빛
+  const rayCv = document.createElement('canvas'); rayCv.width = rayCv.height = 512;
+  { const q = rayCv.getContext('2d'), Rr = mulberry32(17); q.translate(256, 256);
+    for (let i = 0; i < 28; i++) { const a = i / 28 * Math.PI * 2 + Rr() * 0.1, len = 140 + Rr() * 110, w = 0.012 + Rr() * 0.02;
+      const gr = q.createLinearGradient(0, 0, Math.cos(a) * len, Math.sin(a) * len); gr.addColorStop(0, 'rgba(255,245,220,.9)'); gr.addColorStop(1, 'rgba(255,245,220,0)');
+      q.fillStyle = gr; q.beginPath(); q.moveTo(0, 0); q.lineTo(Math.cos(a - w) * len, Math.sin(a - w) * len); q.lineTo(Math.cos(a + w) * len, Math.sin(a + w) * len); q.closePath(); q.fill(); } }
+  const rayTexS = new THREE.CanvasTexture(rayCv); rayTexS.colorSpace = THREE.SRGBColorSpace;
+  const sunRays = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: rayTexS, color: '#fff2d8', transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })));
+  sunRays.position.copy(sunG.position); sunRays.scale.setScalar(260); g.add(sunRays);
+  const limbGlow = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: '#ffd8a0', transparent: true, opacity: 0.45, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })));
+  limbGlow.position.copy(C).addScaledVector(new THREE.Vector3(sunDir.x, sunDir.y * 0.45, sunDir.z).normalize(), 375); limbGlow.scale.set(520, 55, 1); g.add(limbGlow);
+  // 십자 빛으로 반짝이는 큰 별
+  const crossCv = document.createElement('canvas'); crossCv.width = crossCv.height = 128;
+  { const q = crossCv.getContext('2d');
+    const rg = q.createRadialGradient(64, 64, 0, 64, 64, 22); rg.addColorStop(0, 'rgba(255,255,255,1)'); rg.addColorStop(1, 'rgba(255,255,255,0)'); q.fillStyle = rg; q.fillRect(0, 0, 128, 128);
+    [[0, 1], [1, 0]].forEach(([vx, vy]) => { const gr = vx ? q.createLinearGradient(0, 64, 128, 64) : q.createLinearGradient(64, 0, 64, 128); gr.addColorStop(0, 'rgba(220,235,255,0)'); gr.addColorStop(0.5, 'rgba(240,248,255,.95)'); gr.addColorStop(1, 'rgba(220,235,255,0)'); q.fillStyle = gr; if (vx) q.fillRect(0, 62.5, 128, 3); else q.fillRect(62.5, 0, 3, 128); }); }
+  const crossTex = new THREE.CanvasTexture(crossCv); crossTex.colorSpace = THREE.SRGBColorSpace;
+  const glints = [];
+  for (let i = 0; i < 24; i++) {
+    const az = R() * Math.PI * 2, el = 0.12 + R() * 1.2;
+    const sp = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: crossTex, color: R() < 0.3 ? '#cfe0ff' : '#ffffff', transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })));
+    sp.position.set(C.x + Math.cos(az) * Math.cos(el) * 395, C.y + Math.sin(el) * 395, C.z + Math.sin(az) * Math.cos(el) * 395);
+    const sz = 5 + R() * 7; sp.scale.setScalar(sz); g.add(sp); glints.push({ sp, sz, ph: R() * 6.28, v: 1 + R() * 2 });
+  }
+  // 혜성: 가끔 (40~100초마다) 긴 꼬리를 끌며 하늘을 천천히 가로지름
+  const comet = { trail: [], on: false, t: 0, life: 10, p0: new THREE.Vector3(), dir: new THREE.Vector3(), next: 15 + R() * 15 };
+  for (let i = 0; i < 46; i++) {
+    const sp = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: i < 2 ? '#ffffff' : i < 12 ? '#dff3ff' : '#9fd4ff', transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })));
+    sp.visible = false; g.add(sp); comet.trail.push(sp);
+  }
+  const _cv = new THREE.Vector3();
+  const updateComet = dt => {
+    if (!comet.on) {
+      comet.next -= dt;
+      if (comet.next > 0) return;
+      camera.getWorldDirection(_cv);
+      const look = Math.atan2(_cv.z, _cv.x), az = look + (Math.random() - 0.5) * 1.4, el = 0.35 + Math.random() * 0.4, r = 300;
+      comet.p0.set(C.x + Math.cos(az) * Math.cos(el) * r, C.y + Math.sin(el) * r, C.z + Math.sin(az) * Math.cos(el) * r);
+      const side = Math.random() < 0.5 ? 1 : -1;
+      comet.dir.set(-Math.sin(az) * side, -0.12, Math.cos(az) * side).normalize();
+      comet.t = 0; comet.life = 9 + Math.random() * 4; comet.on = true; comet.next = 40 + Math.random() * 60;
+      comet.trail.forEach(sp => { sp.visible = true; });
+    }
+    comet.t += dt;
+    const k = comet.t / comet.life, fade = Math.min(1, Math.sin(Math.PI * Math.min(1, k)) * 1.6);
+    comet.trail.forEach((sp, i) => {
+      sp.position.copy(comet.p0).addScaledVector(comet.dir, 16 * comet.t - i * 2.6);
+      sp.scale.setScalar((i === 0 ? 9 : 7) * (1 - i / 52));
+      sp.material.opacity = fade * (1 - i / 46) * (i === 0 ? 1 : 0.6);
+    });
+    if (k >= 1) { comet.on = false; comet.trail.forEach(sp => { sp.visible = false; }); }
+  };
   const W = { g, bg: new THREE.Color('#020309'), fog: 0.0006, hemi: new THREE.Color('#a9b8ff'), hemiG: new THREE.Color('#1c2236'), hemiI: 0.8, sun: new THREE.Color('#ffffff'), sunI: 2.5, sunDir };
   W.look = () => {};
   // 행성들: 저마다 제자리에서 돌고, 돔 둘레를 천천히 돎 (실제 시각 기준이라 모두에게 같은 자리)
@@ -5552,6 +5609,10 @@ function buildSpace() {
   W.tick = (dt, t) => {
     const s = Date.now() / 1000;
     updateMeteors(dt);
+    updateComet(dt);
+    sunRays.material.rotation = t * 0.02;
+    sunRays.material.opacity = 0.45 + 0.1 * Math.sin(t * 0.7);
+    for (const G of glints) { const tw = 0.75 + 0.25 * Math.sin(t * G.v + G.ph); G.sp.scale.setScalar(G.sz * tw); G.sp.material.opacity = 0.6 + 0.4 * tw; }
     earth.rotation.y = (s / 240 * Math.PI * 2) % (Math.PI * 2);          // 지구: 약 4분에 한 바퀴
     cloudsE.rotation.y = (s / 190 * Math.PI * 2) % (Math.PI * 2);        // 구름은 조금 더 빨리
     for (const P of planets) {
