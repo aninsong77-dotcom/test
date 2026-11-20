@@ -408,7 +408,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-141';
+const BUILD = '11.19-142';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -5686,6 +5686,7 @@ function loadSeoulReal() {
 function buildSeoulReal(D) {
   const S = new THREE.Scene();
   const cam = new THREE.PerspectiveCamera(60, 1, 20, 50000);
+  const L0 = D.landmarks;
   let s = 5; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
   const light = coarse;   // 휴대폰은 가벼운 모드 (나무·차를 줄임)
   const HAZE = new THREE.Color('#c4e2fa');
@@ -5763,17 +5764,41 @@ function buildSeoulReal(D) {
   const nearRoute = (x, z, r) => { for (let i = 0; i < P.length - 1; i++) { const [ax, az] = P[i], [bx, bz] = P[i + 1]; const dx = bx - ax, dz = bz - az, L2 = dx * dx + dz * dz || 1; const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / L2)); if (Math.hypot(x - ax - dx * t, z - az - dz * t) < r) return true; } return false; };
   // 건물 (파스텔, 지붕 색). 돔이 지나가는 길 가까이는 높이를 낮춰 부딪히지 않게
   const bldMat = std({ map: winTex, roughness: 0.8, emissive: '#ffffff', emissiveMap: litTex, emissiveIntensity: 0 });
-  { const N = D.buildings.length, geo = new THREE.BoxGeometry(1, 1, 1); geo.translate(0, 0.5, 0);
-    const A = new THREE.InstancedMesh(geo, bldMat, N), RM = new THREE.InstancedMesh(geo, std({ roughness: 0.9 }), N);
+  { const geo = new THREE.BoxGeometry(1, 1, 1); geo.translate(0, 0.5, 0);
     const PC = ['#f7c9c4', '#cfe9d9', '#fbe6b8', '#cfe1f5', '#e3d7f3', '#fff4e3', '#f6d6b8', '#d5ecec'], RC = ['#7fb76a', '#e98b78', '#8fb3d9', '#f0c46c', '#b7a3d8', '#9fcf8b'];
-    const m = new THREE.Matrix4(), c = new THREE.Color(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0);
-    D.buildings.forEach(([x, z], i) => { let w = 12 + rnd() * 20, d = 12 + rnd() * 20; let h = 12 + Math.pow(rnd(), 2) * 70 + (rnd() < 0.03 ? 90 : 0); q.setFromAxisAngle(up, rnd() * 0.3);
+    // 강·공원·궁궐 자리 그림 (20m 칸): 빈 땅에 건물을 채울 때 피함
+    const [X0, X1, Z0, Z1] = D.bounds, MS = 20, MW = Math.ceil((X1 - X0) / MS), MH = Math.ceil((Z1 - Z0) / MS);
+    const mc = document.createElement('canvas'); mc.width = MW; mc.height = MH;
+    const mx = mc.getContext('2d'); mx.fillStyle = '#000'; mx.fillRect(0, 0, MW, MH); mx.fillStyle = '#fff';
+    const ring = pts => { pts.forEach(([x, z], k) => { const u = (x - X0) / MS, v = (z - Z0) / MS; k ? mx.lineTo(u, v) : mx.moveTo(u, v); }); mx.closePath(); };
+    D.water.forEach(w => { mx.beginPath(); w.forEach(ring); mx.fill('evenodd'); });
+    D.parks.forEach(pk => { mx.beginPath(); ring(pk); mx.fill(); });
+    D.palaces.forEach(pl => { mx.beginPath(); ring(pl.p); mx.fill(); });
+    const mdata = mx.getImageData(0, 0, MW, MH).data;
+    const blocked = (x, z) => { const u = Math.floor((x - X0) / MS), v = Math.floor((z - Z0) / MS); if (u < 0 || v < 0 || u >= MW || v >= MH) return true; return mdata[(v * MW + u) * 4] > 100; };
+    const hills = [[L0.namsan, 750], [L0.bugak, 700], [L0.inwang, 640]];
+    // 건물 자리 칸 (서로 겹치지 않게)
+    const BG = 50, bgrid = new Map(), list = [];
+    const fits = (x, z, r) => { const gx = Math.floor(x / BG), gz = Math.floor(z / BG); for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { const l = bgrid.get((gx + a) + ',' + (gz + b)); if (l) for (const o of l) if (Math.hypot(o.x - x, o.z - z) < (o.r + r) * 0.72) return false; } return true; };
+    const put = o => { const k = Math.floor(o.x / BG) + ',' + Math.floor(o.z / BG); if (!bgrid.has(k)) bgrid.set(k, []); bgrid.get(k).push(o); list.push(o); };
+    const place = (x, z, w, d, h, filler) => {
+      // 길과 인도 위에는 짓지 않음: 너무 가까우면 작게, 아주 가까우면 빼기
+      const clr = roadClear(x, z); let half = Math.hypot(w, d) / 2;
+      if (clr < 5) return false;
+      if (half > clr) { const k = clr / half; w *= k; d *= k; half = clr; }
+      if (filler && (blocked(x, z) || hills.some(([p0, r]) => Math.hypot(x - p0[0], z - p0[1]) < r) || !fits(x, z, half))) return false;
       if (h > 90 && nearRoute(x, z, 90)) h = 90;
-      // 길과 인도 위에는 짓지 않음: 너무 가까우면 작게, 아주 가까우면 빼기 (건물 사이로 길이 보이게)
-      const clr = roadClear(x, z), half = Math.hypot(w, d) / 2;
-      if (clr < 5) { w = d = h = 0.0001; } else if (half > clr) { const k = clr / half; w *= k; d *= k; }
-      m.compose(new THREE.Vector3(x, 0, z), q, new THREE.Vector3(w, h, d)); A.setMatrixAt(i, m); A.setColorAt(i, c.set(PC[Math.floor(rnd() * PC.length)]));
-      m.compose(new THREE.Vector3(x, h, z), q, new THREE.Vector3(w * 0.82, 1.6, d * 0.82)); RM.setMatrixAt(i, m); RM.setColorAt(i, c.set(RC[Math.floor(rnd() * RC.length)])); });
+      put({ x, z, w, d, h, r: half, rot: rnd() * 0.3, c: PC[Math.floor(rnd() * PC.length)], rc: RC[Math.floor(rnd() * RC.length)] });
+      return true;
+    };
+    D.buildings.forEach(([x, z]) => place(x, z, 18 + rnd() * 26, 18 + rnd() * 26, 12 + Math.pow(rnd(), 2) * 70 + (rnd() < 0.03 ? 90 : 0), false));
+    // 빈 땅 채우기: 지도에 있는 건물 둘레에 낮은 건물들을 더해 실제 도시처럼 빽빽하게 (휴대폰은 조금만)
+    const N = list.length;
+    const A = new THREE.InstancedMesh(geo, bldMat, N), RM = new THREE.InstancedMesh(geo, std({ roughness: 0.9 }), N);
+    const m = new THREE.Matrix4(), c = new THREE.Color(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0);
+    list.forEach((o, i) => { q.setFromAxisAngle(up, o.rot);
+      m.compose(new THREE.Vector3(o.x, 0, o.z), q, new THREE.Vector3(o.w, o.h, o.d)); A.setMatrixAt(i, m); A.setColorAt(i, c.set(o.c));
+      m.compose(new THREE.Vector3(o.x, o.h, o.z), q, new THREE.Vector3(o.w * 0.82, 1.6, o.d * 0.82)); RM.setMatrixAt(i, m); RM.setColorAt(i, c.set(o.rc)); });
     A.frustumCulled = RM.frustumCulled = false; S.add(A, RM); }
   // 공원 나무
   { const N = light ? 3000 : 9000, tm = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 8, 6), std({ color: '#6fb35a', roughness: 1 }), N), m = new THREE.Matrix4(), c = new THREE.Color(); let k = 0;
@@ -5833,16 +5858,29 @@ function buildSeoulReal(D) {
   { const parts = [new THREE.CylinderGeometry(0.75, 1.0, 3.2, 8), new THREE.SphereGeometry(0.85, 10, 8)];
     parts[0].translate(0, 1.6, 0); parts[1].translate(0, 4.0, 0);
     const geo = mergeGeos(parts);
+    // 걷는 길: 큰길의 인도(off = 길 가운데에서의 거리)와 공원 가장자리 안쪽(pk = 공원 번호)
     const lines = [];
-    roadPts.forEach(r => { if (nearRoute((r[0] + r[2]) / 2, (r[1] + r[3]) / 2, 1500)) lines.push([r[0], r[1], r[2], r[3], r[4] / 2 + 2.2]); });
-    D.parks.forEach(pk => { for (let i = 0; i < pk.length - 1; i++) { const [x1, z1] = pk[i], [x2, z2] = pk[i + 1]; if (Math.hypot(x2 - x1, z2 - z1) > 25 && nearRoute((x1 + x2) / 2, (z1 + z2) / 2, 1500)) lines.push([x1, z1, x2, z2, -1]); } });
+    roadPts.forEach(r => { if (nearRoute((r[0] + r[2]) / 2, (r[1] + r[3]) / 2, 1500)) lines.push({ a: [r[0], r[1]], b: [r[2], r[3]], off: r[4] / 2 + 2.2 }); });
+    const inPoly = (pp, x, z) => { let c2 = false; for (let a2 = 0, b2 = pp.length - 1; a2 < pp.length; b2 = a2++) { const [xa, za] = pp[a2], [xb, zb] = pp[b2]; if (((za > z) !== (zb > z)) && (x < (xb - xa) * (z - za) / (zb - za) + xa)) c2 = !c2; } return c2; };
+    D.parks.forEach(pk => { for (let i = 0; i < pk.length - 1; i++) { const [x1, z1] = pk[i], [x2, z2] = pk[i + 1]; const L = Math.hypot(x2 - x1, z2 - z1); if (L < 25 || !nearRoute((x1 + x2) / 2, (z1 + z2) / 2, 1500)) continue;
+      const px = -(z2 - z1) / L, pz = (x2 - x1) / L, mx = (x1 + x2) / 2, mz = (z1 + z2) / 2;
+      lines.push({ a: [x1, z1], b: [x2, z2], inward: inPoly(pk, mx + px * 8, mz + pz * 8) ? 1 : -1 }); } });   // 공원 안쪽으로
     if (lines.length) {
       const N = light ? 2500 : 6000, seg = new Float32Array(N * 4), car = new Float32Array(N * 4), c = new THREE.Color();
       const cols = ['#e85d75', '#4dabf7', '#ffd43b', '#69db7c', '#f8f9fa', '#845ef7', '#ff922b', '#495057', '#f783ac'];
       const pm = new THREE.InstancedMesh(geo, walkMat, N);
-      for (let i = 0; i < N; i++) { const [x1, z1, x2, z2, off] = lines[Math.floor(rnd() * lines.length)]; const dir = rnd() < 0.5 ? 1 : -1;
-        const lat = off < 0 ? (rnd() - 0.5) * 8 : (rnd() < 0.5 ? 1 : -1) * (off + rnd() * 1.6);
-        seg.set([x1, z1, x2, z2], i * 4); car.set([rnd(), 1.1 + rnd() * 0.8, lat, dir], i * 4); pm.setColorAt(i, c.set(cols[Math.floor(rnd() * cols.length)])); }
+      // 걷는 자리가 차도에 닿으면 다른 자리를 고름 (차도 가운데에서 차로 폭 + 0.8m 넘게 떨어져야)
+      const onRoad = (x, z) => roadClear(x, z) < -4.2;
+      let n = 0;
+      for (let tries = 0; n < N && tries < N * 10; tries++) {
+        const Ln = lines[Math.floor(rnd() * lines.length)], [x1, z1] = Ln.a, [x2, z2] = Ln.b;
+        const L = Math.hypot(x2 - x1, z2 - z1) || 1, px = -(z2 - z1) / L, pz = (x2 - x1) / L;
+        const e = Ln.inward ? Ln.inward * (6 + rnd() * 8) : (rnd() < 0.5 ? 1 : -1) * (Ln.off + rnd() * 1.6);   // 실제로 서는 쪽
+        if ([0.08, 0.5, 0.92].some(t => onRoad(x1 + (x2 - x1) * t + px * e, z1 + (z2 - z1) * t + pz * e))) continue;
+        const dir = rnd() < 0.5 ? 1 : -1;
+        seg.set([x1, z1, x2, z2], n * 4); car.set([rnd(), 1.1 + rnd() * 0.8, e * dir, dir], n * 4); pm.setColorAt(n, c.set(cols[Math.floor(rnd() * cols.length)])); n++;
+      }
+      pm.count = n;
       geo.setAttribute('aSeg', new THREE.InstancedBufferAttribute(seg, 4)); geo.setAttribute('aCar', new THREE.InstancedBufferAttribute(car, 4));
       pm.frustumCulled = false; S.add(pm);
     } }
