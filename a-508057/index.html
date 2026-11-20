@@ -409,7 +409,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-155';
+const BUILD = '11.19-157';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -596,7 +596,7 @@ function setLook(camY) {
   underSurface.visible = !above;
   sunSprite.visible = above;
   if (beachMesh) beachMesh.visible = above;
-  rays.forEach(r => { r.s.visible = !above; r.s.material.uniforms.uCol.value.copy(daySea.ray); });
+  rays.forEach(r => { r.s.visible = !above; r.s.material.color.copy(daySea.ray); });
   // 빛과 물빛도 시간에 맞춰
   hemi.color.copy(daySea.hemi); hemi.intensity = daySea.hemiI;
   sunLight.color.copy(daySea.sun); sunLight.intensity = daySea.sunI;
@@ -1352,12 +1352,13 @@ for (let i = 0; i < 26; i++) {
   // 물속 햇살: 수면에서 비스듬히 내려와 바닥에 닿기 전에 흐려지는 부드러운 빛 기둥
   const a0 = rand() * Math.PI * 2, r0 = 4 + rand() * 40, w0 = 2 + rand() * 4;   // (예전과 같은 순서로 수를 뽑아 다른 것들의 자리는 그대로)
   const tilt = 0.12 + (rand() - 0.5) * 0.1;
-  if (i >= 10) { rand(); continue; }   // 햇살은 열 줄만
+  if (i >= 6) { rand(); continue; }   // 햇살은 여섯 줄만 (은은하게)
   // 돔과 떨어진 바다에만 (돔 둘레 16m 안에는 없음): 카메라가 햇살 속에 들어가 화면이 가로로 물들지 않게
-  const a = i / 10 * Math.PI * 2 + a0 * 0.25, r = 16 + (r0 - 4) * 0.85, w = 1.6 + (w0 - 2) * 0.6;
-  const s = noRay(new THREE.Mesh(new THREE.CylinderGeometry(w * 0.32, w * 0.55, 30, 14, 1, true), makeShaftMat('#f2fdff', 0.1, 0.6, 1.3)));
-  s.material.uniforms.uTop.value = 0.86; s.material.uniforms.uBot.value = 0.55;
-  s.position.set(HOUSE_POS.x + Math.cos(a) * r, SURF - 14, HOUSE_POS.z + Math.sin(a) * r);
+  const a = i / 6 * Math.PI * 2 + a0 * 0.25, r = 16 + (r0 - 4) * 0.85, w = 1.6 + (w0 - 2) * 0.6;
+  // 화면을 향한 부드러운 빛 무늬 (원통 모양은 끝이 잘려 가로 줄이 생겨서 쓰지 않음)
+  const s = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: rayTex, color: '#f2fdff', transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })));
+  s.scale.set(w, 28, 1);
+  s.position.set(HOUSE_POS.x + Math.cos(a) * r, SURF - 13, HOUSE_POS.z + Math.sin(a) * r);
   s.rotation.z = tilt;
   scene.add(s);
   rays.push({ s, ph: rand() * 6, tilt, w });
@@ -1397,7 +1398,19 @@ const sunUnder = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex,
 sunUnder.position.set(8, SURF - 0.4, -30);
 sunUnder.scale.setScalar(46);
 scene.add(sunUnder);
+/* 바다 속 햇살의 방향: 한국 시각의 해 높이에 맞춤. 물에 들어오면 꺾여서 실제보다 곧게 내려옴 */
+const sunK = { tilt: 0, amt: 1, at: -1 };
+function updateSunK() {
+  const now = Date.now(); if (now - sunK.at < 20000) return; sunK.at = now;
+  const k = new Date(now + 9 * 3600e3), h = k.getUTCHours() + k.getUTCMinutes() / 60;
+  const a = Math.min(Math.PI, Math.max(0, (h - 6.5) / 11.5 * Math.PI));        // 6:30 해 뜸 → 18:00 해 짐
+  const elev = Math.sin(a);
+  sunK.tilt = -Math.asin(Math.max(-0.74, Math.min(0.74, Math.cos(a) / 1.33)));   // 물속에서 꺾인 기울기 (동쪽 = +x)
+  sunK.amt = Math.max(0, Math.min(1, elev * 1.6)) * (1 - daySea.night);
+  sunUnder.position.set(HOUSE_POS.x - Math.tan(sunK.tilt) * 34, SURF - 0.4, HOUSE_POS.z - 18);
+}
 function updateWater(t) {
+  updateSunK();
   sunUnder.visible = !above;
   sunUnder.material.opacity = 0.7 + Math.sin(t * 0.7) * 0.12;
   // 노을 때: 물속에서 올려다본 해가 주황빛으로 크게 번짐
@@ -1417,8 +1430,9 @@ function updateWater(t) {
     // 햇살 기둥: 수면 물결에 따라 밝아졌다 흐려지고 천천히 흔들림
     // 카메라가 햇살 가까이 가면 그 햇살은 스르르 사라짐 (속에 들어가 화면 전체가 물드는 일이 없게)
     const cd = Math.hypot(camera.position.x - r.s.position.x, camera.position.z - r.s.position.z), near = clamp01((cd - r.w * 0.6 - 1) / 4);
-    r.s.material.uniforms.uOp.value = (0.13 + Math.sin(t * 0.5 + r.ph) * 0.05 + Math.sin(t * 1.7 + r.ph * 2) * 0.02) * near;
-    r.s.rotation.z = r.tilt + Math.sin(t * 0.15 + r.ph) * 0.06; r.s.rotation.x = Math.sin(t * 0.11 + r.ph * 1.7) * 0.04;
+    r.s.material.opacity = (0.11 + Math.sin(t * 0.5 + r.ph) * 0.04 + Math.sin(t * 1.7 + r.ph * 2) * 0.015) * near * sunK.amt;
+    // 모든 햇살이 해가 있는 쪽에서 나란히 비스듬히 들어옴 (아침엔 동쪽, 한낮엔 거의 곧게, 저녁엔 서쪽). 물결에 아주 살짝 흔들림
+    r.s.material.rotation = -sunK.tilt * 0.8 + Math.sin(t * 0.15 + r.ph) * 0.03;
   }
   updatePretty(t);
   updateReefFish(t);
@@ -2055,11 +2069,11 @@ function updateMoonlight(t) {
   moonDisk.visible = n > 0.02;
   for (const m of moonShafts) {
     m.sp.visible = n > 0.02;
-    m.sp.material.opacity = 0.5 * m.k * n * (0.8 + 0.2 * Math.sin(t * 0.4 + m.ph));
+    m.sp.material.opacity = 0.22 * m.k * n * (0.8 + 0.2 * Math.sin(t * 0.4 + m.ph));
     m.sp.material.rotation = -0.18 + Math.sin(t * 0.12 + m.ph) * 0.03;   // 비스듬히, 아주 천천히 흔들림
   }
   moonDisk.material.opacity = 0.85 * n * (0.92 + 0.08 * Math.sin(t * 0.6));
-  moonSpot.intensity = 1.1 * n;
+  moonSpot.intensity = 0.45 * n;
   sunUnder.material.opacity *= (1 - 0.85 * daySea.night);   // 밤에는 물속 해 빛 대신 달
 }
 const _glowW = new THREE.Vector3(), _glowA = new THREE.Vector3(), _glowB = new THREE.Vector3();
@@ -5255,7 +5269,8 @@ function lightPathCam(L, rise) {
   // 돔 안쪽(등불 쪽)에서 올려다보다가 함께 따라 올라감
   let ox = L.x - DOME_CENTER.x, oz = L.z - DOME_CENTER.z, ol = Math.hypot(ox, oz);
   if (ol < 0.3) { ox = 0; oz = -1; ol = 1; }
-  const goal = new THREE.Vector3(L.x - ox / ol * 3.6, HOUSE_BASE + 1.3 + rise * 0.62, L.z - oz / ol * 3.6);
+  // 카메라는 유리 돔 안에 머물며 올려다봄 (돔 밖으로 나가면 유리 테두리가 지나가 돔이 열렸다 닫히는 것처럼 보임)
+  const goal = new THREE.Vector3(L.x - ox / ol * 3.6, HOUSE_BASE + 1.3 + Math.min(rise * 0.62, 3.2), L.z - oz / ol * 3.6);
   if (Math.hypot(goal.x - DOME_CENTER.x, goal.z - DOME_CENTER.z) > DOME_R - 0.6) goal.set(L.x + ox / ol * 3.2, goal.y, L.z + oz / ol * 3.2);
   return goal;
 }
