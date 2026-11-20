@@ -408,7 +408,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-142';
+const BUILD = '11.19-143';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -5673,17 +5673,21 @@ function fetchSeoulWeather() {
 function loadSeoulReal() {
   if (seoulReal || seoulLoading) return;
   seoulLoading = true;
-  fetch('seoul-data.json?v=1').then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))).then(D => {
+  // 큰 지도(한강·큰길·랜드마크)와 자세한 지도(실제 건물 모양·골목·보행로)를 함께 받음. 자세한 지도를 못 받으면 큰 지도만
+  Promise.all([
+    fetch('seoul-data.json?v=1').then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))),
+    fetch('seoul-detail.json?v=1').then(r => r.ok ? r.json() : null).catch(() => null),
+  ]).then(([D, DD]) => {
     // 한 번에 다 만들면 화면이 잠깐 멈추므로, 다음 틈에 만듦
     setTimeout(() => {
-      try { seoulReal = buildSeoulReal(D); }
+      try { seoulReal = buildSeoulReal(D, DD); }
       catch (e) { console.warn('서울 지도 만들기 실패', e); seoulLoading = false; return; }
       if (seoulWx) seoulReal.setWeather(seoulWx.w, true);
       if (myDim === 'seoul') applyDim('seoul');
     }, 30);
   }).catch(e => { console.warn('서울 지도 불러오기 실패', e); seoulLoading = false; });
 }
-function buildSeoulReal(D) {
+function buildSeoulReal(D, DD) {
   const S = new THREE.Scene();
   const cam = new THREE.PerspectiveCamera(60, 1, 20, 50000);
   const L0 = D.landmarks;
@@ -5727,6 +5731,7 @@ function buildSeoulReal(D) {
   const litCells = [];
   const winTex = canvasTex(64, 128, (g, w, h) => { g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h); for (let y = 6; y < h; y += 11) for (let x = 6; x < w; x += 11) { g.fillStyle = rnd() < 0.2 ? '#a8c6e0' : '#c9dceb'; g.fillRect(x, y, 6, 7); if (rnd() < 0.55) litCells.push([x, y]); } });
   const litTex = canvasTex(64, 128, (g, w, h) => { g.fillStyle = '#000'; g.fillRect(0, 0, w, h); litCells.forEach(([x, y]) => { g.fillStyle = rnd() < 0.8 ? '#ffd28a' : '#cfe3ff'; g.fillRect(x, y, 6, 7); }); });
+  winTex.wrapS = winTex.wrapT = litTex.wrapS = litTex.wrapT = THREE.RepeatWrapping;   // 실제 모양 건물 벽에 창을 이어 붙임
   const glassTex = canvasTex(64, 128, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#d3e5f3'); gr.addColorStop(1, '#9fbbd4'); g.fillStyle = gr; g.fillRect(0, 0, w, h); g.strokeStyle = 'rgba(255,255,255,.35)'; for (let x = 0; x < w; x += 6) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); } });
   const shape = (pts, holes = []) => { const sh = new THREE.Shape(pts.map(p => new THREE.Vector2(p[0], -p[1]))); holes.forEach(hh => sh.holes.push(new THREE.Path(hh.map(p => new THREE.Vector2(p[0], -p[1]))))); return sh; };
   const flat = (geo, y) => { geo.rotateX(-Math.PI / 2); geo.translate(0, y, 0); return geo; };
@@ -5763,6 +5768,7 @@ function buildSeoulReal(D) {
   const atDist = d => { for (let i = 0; i < segL.length; i++) { if (d <= segL[i]) { const t = d / segL[i]; return [P[i][0] + (P[i + 1][0] - P[i][0]) * t, P[i][1] + (P[i + 1][1] - P[i][1]) * t]; } d -= segL[i]; } return P[P.length - 1]; };
   const nearRoute = (x, z, r) => { for (let i = 0; i < P.length - 1; i++) { const [ax, az] = P[i], [bx, bz] = P[i + 1]; const dx = bx - ax, dz = bz - az, L2 = dx * dx + dz * dz || 1; const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / L2)); if (Math.hypot(x - ax - dx * t, z - az - dz * t) < r) return true; } return false; };
   // 건물 (파스텔, 지붕 색). 돔이 지나가는 길 가까이는 높이를 낮춰 부딪히지 않게
+  const bldNightMats = [];
   const bldMat = std({ map: winTex, roughness: 0.8, emissive: '#ffffff', emissiveMap: litTex, emissiveIntensity: 0 });
   { const geo = new THREE.BoxGeometry(1, 1, 1); geo.translate(0, 0.5, 0);
     const PC = ['#f7c9c4', '#cfe9d9', '#fbe6b8', '#cfe1f5', '#e3d7f3', '#fff4e3', '#f6d6b8', '#d5ecec'], RC = ['#7fb76a', '#e98b78', '#8fb3d9', '#f0c46c', '#b7a3d8', '#9fcf8b'];
@@ -5791,7 +5797,8 @@ function buildSeoulReal(D) {
       put({ x, z, w, d, h, r: half, rot: rnd() * 0.3, c: PC[Math.floor(rnd() * PC.length)], rc: RC[Math.floor(rnd() * RC.length)] });
       return true;
     };
-    D.buildings.forEach(([x, z]) => place(x, z, 18 + rnd() * 26, 18 + rnd() * 26, 12 + Math.pow(rnd(), 2) * 70 + (rnd() < 0.03 ? 90 : 0), false));
+    const inDetail = (x, z) => !!(DD && DD.boxes.some(([a0, a1, b0, b1]) => x >= a0 && x <= a1 && z >= b0 && z <= b1));
+    D.buildings.forEach(([x, z]) => inDetail(x, z) || place(x, z, 18 + rnd() * 26, 18 + rnd() * 26, 12 + Math.pow(rnd(), 2) * 70 + (rnd() < 0.03 ? 90 : 0), false));
     // 빈 땅 채우기: 지도에 있는 건물 둘레에 낮은 건물들을 더해 실제 도시처럼 빽빽하게 (휴대폰은 조금만)
     const N = list.length;
     const A = new THREE.InstancedMesh(geo, bldMat, N), RM = new THREE.InstancedMesh(geo, std({ roughness: 0.9 }), N);
@@ -5800,6 +5807,54 @@ function buildSeoulReal(D) {
       m.compose(new THREE.Vector3(o.x, 0, o.z), q, new THREE.Vector3(o.w, o.h, o.d)); A.setMatrixAt(i, m); A.setColorAt(i, c.set(o.c));
       m.compose(new THREE.Vector3(o.x, o.h, o.z), q, new THREE.Vector3(o.w * 0.82, 1.6, o.d * 0.82)); RM.setMatrixAt(i, m); RM.setColorAt(i, c.set(o.rc)); });
     A.frustumCulled = RM.frustumCulled = false; S.add(A, RM); }
+  // ---- 자세한 지도: 실제 건물 모양 그대로 세움 (벽에는 층마다 창, 지붕은 색) ----
+  const walkLines = [], minorPts = [];
+  if (DD) {
+    const PCd = ['#f7c9c4', '#cfe9d9', '#fbe6b8', '#cfe1f5', '#e3d7f3', '#fff4e3', '#f6d6b8', '#d5ecec', '#ece7df', '#dfe3e8'], RCd = ['#7fb76a', '#e98b78', '#8fb3d9', '#f0c46c', '#b7a3d8', '#9fcf8b', '#c9c3b8'];
+    let nv = 0, ni = 0;
+    const polys = DD.b.map(b => { const h = b[0], r = []; for (let i = 1; i < b.length; i += 2) r.push([b[i], b[i + 1]]); let sA = 0; for (let i = 0; i < r.length; i++) { const [x1, z1] = r[i], [x2, z2] = r[(i + 1) % r.length]; sA += x1 * z2 - x2 * z1; } if (sA > 0) r.reverse(); return { h, r }; });
+    const tris = polys.map(o => { try { return THREE.ShapeUtils.triangulateShape(o.r.map(([x, z]) => new THREE.Vector2(x, z)), []); } catch (e) { return []; } });
+    polys.forEach((o, k) => { nv += o.r.length * 4 + o.r.length; ni += o.r.length * 6 + tris[k].length * 3; });
+    const pos = new Float32Array(nv * 3), nor = new Float32Array(nv * 3), uv = new Float32Array(nv * 2), col = new Float32Array(nv * 3), idx = new Uint32Array(ni);
+    let v = 0, q = 0; const cW = new THREE.Color(), cR = new THREE.Color();
+    polys.forEach((o, k) => {
+      let h = o.h; const r = o.r, n = r.length;
+      const cx = r.reduce((a, p) => a + p[0], 0) / n, cz = r.reduce((a, p) => a + p[1], 0) / n;
+      if (h > 90 && nearRoute(cx, cz, 90)) h = 90;   // 돔이 지나가는 길 가까이는 부딪히지 않게
+      cW.set(PCd[Math.floor(rnd() * PCd.length)]); cR.set(RCd[Math.floor(rnd() * RCd.length)]);
+      let per = 0;
+      for (let i = 0; i < n; i++) {
+        const [x1, z1] = r[i], [x2, z2] = r[(i + 1) % n], L = Math.hypot(x2 - x1, z2 - z1) || 1, nx = -(z2 - z1) / L, nz = (x2 - x1) / L;
+        const u0 = per / 17.5, u1 = (per + L) / 17.5; per += L;
+        const base = v;
+        [[x1, 0, z1, u0, 0], [x2, 0, z2, u1, 0], [x2, h, z2, u1, h / 39.4], [x1, h, z1, u0, h / 39.4]].forEach(([x, y, z, uu, vv]) => {
+          pos.set([x, y, z], v * 3); nor.set([nx, 0, nz], v * 3); uv.set([uu, vv], v * 2); col.set([cW.r, cW.g, cW.b], v * 3); v++; });
+        idx.set([base, base + 1, base + 2, base, base + 2, base + 3], q); q += 6;
+      }
+      const rb = v;
+      for (let i = 0; i < n; i++) { pos.set([r[i][0], h, r[i][1]], v * 3); nor.set([0, 1, 0], v * 3); uv.set([0.01, 0.99], v * 2); col.set([cR.r, cR.g, cR.b], v * 3); v++; }
+      for (const [a, b, c] of tris[k]) {
+        const [ax, az] = r[a], [bx, bz] = r[b], [qx, qz] = r[c];
+        const up = (bz - az) * (qx - ax) - (bx - ax) * (qz - az);   // 위를 보게
+        if (up >= 0) idx.set([rb + a, rb + b, rb + c], q); else idx.set([rb + a, rb + c, rb + b], q); q += 3;
+      }
+    });
+    const bg = new THREE.BufferGeometry();
+    bg.setAttribute('position', new THREE.BufferAttribute(pos, 3)); bg.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+    bg.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); bg.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    bg.setIndex(new THREE.BufferAttribute(idx, 1)); bg.setDrawRange(0, q);
+    const realBld = new THREE.Mesh(bg, std({ map: winTex, vertexColors: true, roughness: 0.8, emissive: '#ffffff', emissiveMap: litTex, emissiveIntensity: 0 }));
+    realBld.userData.night = true; S.add(realBld); bldNightMats.push(realBld.material);
+    // 골목 (작은 길)과 보행로
+    const ribbon = (lines, wOf, y, mat) => { const ps = [], ix = []; let m = 0;
+      lines.forEach(l => { const off = wOf(l), st = off.start; for (let i = st; i < l.length - 2; i += 2) { const x1 = l[i], z1 = l[i + 1], x2 = l[i + 2], z2 = l[i + 3], L = Math.hypot(x2 - x1, z2 - z1) || 1, hw = off.w / 2, nx = -(z2 - z1) / L * hw, nz = (x2 - x1) / L * hw;
+        ps.push(x1 + nx, y, z1 + nz, x1 - nx, y, z1 - nz, x2 + nx, y, z2 + nz, x2 - nx, y, z2 - nz); ix.push(m, m + 2, m + 1, m + 1, m + 2, m + 3); m += 4; } });
+      const g2 = new THREE.BufferGeometry(); g2.setAttribute('position', new THREE.Float32BufferAttribute(ps, 3)); g2.setIndex(ix); g2.computeVertexNormals(); S.add(new THREE.Mesh(g2, mat)); };
+    ribbon(DD.s, l => ({ w: l[0], start: 1 }), 1.7, roadMat);
+    ribbon(DD.w, () => ({ w: 3, start: 0 }), 1.65, sideMat);
+    DD.w.forEach(l => { for (let i = 0; i < l.length - 2; i += 2) { const x1 = l[i], z1 = l[i + 1], x2 = l[i + 2], z2 = l[i + 3]; if (Math.hypot(x2 - x1, z2 - z1) > 12) walkLines.push({ a: [x1, z1], b: [x2, z2], foot: true }); } });
+    DD.s.forEach(l => { if (l[0] < 6) return; for (let i = 1; i < l.length - 2; i += 2) { const x1 = l[i], z1 = l[i + 1], x2 = l[i + 2], z2 = l[i + 3]; if (Math.hypot(x2 - x1, z2 - z1) > 30) minorPts.push([x1, z1, x2, z2, l[0]]); } });
+  }
   // 공원 나무
   { const N = light ? 3000 : 9000, tm = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 8, 6), std({ color: '#6fb35a', roughness: 1 }), N), m = new THREE.Matrix4(), c = new THREE.Color(); let k = 0;
     const per = light ? 100 : 300;
@@ -5827,7 +5882,7 @@ function buildSeoulReal(D) {
   };
   // 돔이 다니는 길 둘레(1.5km 안)의 길에 차를 모아 둠: 어디를 날든 아래로 차가 많이 보이게
   const nearPts = roadPts.filter(r => nearRoute((r[0] + r[2]) / 2, (r[1] + r[3]) / 2, 1500));
-  const carPts = nearPts.length > 50 ? nearPts : roadPts;
+  const carPts = (nearPts.length > 50 ? nearPts : roadPts).concat(minorPts);
   { const N = light ? 4000 : 9000;
     const geo = new THREE.BoxGeometry(9, 3, 4);   // 높이 떠서도 보이게 실제보다 조금 크게
     const cm = new THREE.InstancedMesh(geo, carMat, N);
@@ -5865,6 +5920,7 @@ function buildSeoulReal(D) {
     D.parks.forEach(pk => { for (let i = 0; i < pk.length - 1; i++) { const [x1, z1] = pk[i], [x2, z2] = pk[i + 1]; const L = Math.hypot(x2 - x1, z2 - z1); if (L < 25 || !nearRoute((x1 + x2) / 2, (z1 + z2) / 2, 1500)) continue;
       const px = -(z2 - z1) / L, pz = (x2 - x1) / L, mx = (x1 + x2) / 2, mz = (z1 + z2) / 2;
       lines.push({ a: [x1, z1], b: [x2, z2], inward: inPoly(pk, mx + px * 8, mz + pz * 8) ? 1 : -1 }); } });   // 공원 안쪽으로
+    walkLines.forEach(l => lines.push(l));   // 실제 보행로 (자세한 지도)
     if (lines.length) {
       const N = light ? 2500 : 6000, seg = new Float32Array(N * 4), car = new Float32Array(N * 4), c = new THREE.Color();
       const cols = ['#e85d75', '#4dabf7', '#ffd43b', '#69db7c', '#f8f9fa', '#845ef7', '#ff922b', '#495057', '#f783ac'];
@@ -5875,7 +5931,7 @@ function buildSeoulReal(D) {
       for (let tries = 0; n < N && tries < N * 10; tries++) {
         const Ln = lines[Math.floor(rnd() * lines.length)], [x1, z1] = Ln.a, [x2, z2] = Ln.b;
         const L = Math.hypot(x2 - x1, z2 - z1) || 1, px = -(z2 - z1) / L, pz = (x2 - x1) / L;
-        const e = Ln.inward ? Ln.inward * (6 + rnd() * 8) : (rnd() < 0.5 ? 1 : -1) * (Ln.off + rnd() * 1.6);   // 실제로 서는 쪽
+        const e = Ln.foot ? (rnd() - 0.5) * 2 : Ln.inward ? Ln.inward * (6 + rnd() * 8) : (rnd() < 0.5 ? 1 : -1) * (Ln.off + rnd() * 1.6);   // 실제로 서는 쪽
         if ([0.08, 0.5, 0.92].some(t => onRoad(x1 + (x2 - x1) * t + px * e, z1 + (z2 - z1) * t + pz * e))) continue;
         const dir = rnd() < 0.5 ? 1 : -1;
         seg.set([x1, z1, x2, z2], n * 4); car.set([rnd(), 1.1 + rnd() * 0.8, e * dir, dir], n * 4); pm.setColorAt(n, c.set(cols[Math.floor(rnd() * cols.length)])); n++;
@@ -5971,7 +6027,7 @@ function buildSeoulReal(D) {
     baseHaze.copy(haze); baseCloud.copy(cc); baseSun = sunS.intensity; baseHemi = hemiS.intensity;
     S.fog.color.copy(haze); S.background.copy(haze);
     stars.material.opacity = night * 0.9; moonM.position.copy(md).multiplyScalar(20000); moonM.lookAt(0, 0, 0); moonM.material.uniforms.uPhase.value = mA.phase; moonM.material.uniforms.uVis.value = md.y > -0.05 ? 1 : 0;
-    bldMat.emissiveIntensity = night * 1.1 + dusk * 0.2; streetLights.material.opacity = night; bridgeMat.emissiveIntensity = night * 0.6;
+    bldMat.emissiveIntensity = night * 1.1 + dusk * 0.2; bldNightMats.forEach(m => { m.emissiveIntensity = bldMat.emissiveIntensity; }); streetLights.material.opacity = night; bridgeMat.emissiveIntensity = night * 0.6;
     carMat.emissiveIntensity = night * 1.2 + 0.18;
     sideMat.emissiveIntensity = night * 0.7;
     groundMat.emissiveIntensity = night * 0.9; parkMat.emissiveIntensity = night * 0.8; roadMat.emissiveIntensity = night * 0.9; boatWin.emissiveIntensity = night * 1.2 + dusk * 0.3;
