@@ -410,7 +410,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-166';
+const BUILD = '11.19-167';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -6226,7 +6226,7 @@ function buildSeoulReal(D, DD) {
   const canvasTex = (w, h, draw) => { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; };
   const litCells = [];
   // 벽: 층마다 은은한 가로 창 띠 (벽 빛깔과 가깝게, 촘촘한 바둑판 무늬 없이). 밤에는 창마다 불이 켜짐
-  const winTex = canvasTex(64, 128, (g, w, h) => { g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h); for (let y = 6; y < h; y += 11) { g.fillStyle = 'rgba(150,170,190,.22)'; g.fillRect(3, y, w - 6, 5); g.fillStyle = 'rgba(255,255,255,.5)'; for (let x = 3; x < w; x += 15) g.fillRect(x, y, 1, 5); for (let x = 6; x < w; x += 11) if (rnd() < 0.55) litCells.push([x, y]); } });
+  const winTex = canvasTex(64, 128, (g, w, h) => { g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h); for (let y = 6; y < h; y += 11) { g.fillStyle = 'rgba(150,170,190,.22)'; g.fillRect(3, y, w - 6, 5); g.fillStyle = 'rgba(255,255,255,.5)'; for (let x = 3; x < w; x += 15) g.fillRect(x, y, 1, 5); for (let x = 6; x < w; x += 11) if (rnd() < 0.3) litCells.push([x, y]); } });
   const litTex = canvasTex(64, 128, (g, w, h) => { g.fillStyle = '#000'; g.fillRect(0, 0, w, h); const LITC = [['#ffd28a', 38], ['#fff1d6', 22], ['#e6f0ff', 18], ['#d8ffe0', 9], ['#ff4a5a', 4], ['#5dff8a', 3], ['#5fd8ff', 3], ['#ff6ad5', 3]], litPick = () => { let r2 = rnd() * 100; for (const [c, w2] of LITC) { if ((r2 -= w2) < 0) return c; } return LITC[0][0]; }; litCells.forEach(([x, y]) => { g.fillStyle = litPick();   /* 따뜻한 불빛, 흰 LED, 푸르스름한 형광등, 군데군데 네온 */ g.fillRect(x, y, 8, 5); }); });
   winTex.wrapS = winTex.wrapT = litTex.wrapS = litTex.wrapT = THREE.RepeatWrapping;   // 실제 모양 건물 벽에 창을 이어 붙임
   const glassTex = canvasTex(64, 128, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#d3e5f3'); gr.addColorStop(1, '#9fbbd4'); g.fillStyle = gr; g.fillRect(0, 0, w, h); g.strokeStyle = 'rgba(255,255,255,.35)'; for (let x = 0; x < w; x += 6) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); } });
@@ -6266,7 +6266,10 @@ function buildSeoulReal(D, DD) {
   const nearRoute = (x, z, r) => { for (let i = 0; i < P.length - 1; i++) { const [ax, az] = P[i], [bx, bz] = P[i + 1]; const dx = bx - ax, dz = bz - az, L2 = dx * dx + dz * dz || 1; const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / L2)); if (Math.hypot(x - ax - dx * t, z - az - dz * t) < r) return true; } return false; };
   // 건물 (파스텔, 지붕 색). 돔이 지나가는 길 가까이는 높이를 낮춰 부딪히지 않게
   const bldNightMats = [], roofs = [];
+  // 멀리 있는 건물의 창 불빛은 서서히 옅게 (멀리서 창이 뭉쳐 벽 전체가 빛나 보이지 않게)
+  const farDim = m => { m.onBeforeCompile = sh => { sh.fragmentShader = sh.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  totalEmissiveRadiance *= mix(1.0, 0.18, smoothstep(500.0, 2600.0, length(vViewPosition)));'); }; m.customProgramCacheKey = () => 'farDim'; };
   const bldMat = std({ map: winTex, roughness: 0.8, emissive: '#ffffff', emissiveMap: litTex, emissiveIntensity: 0 });
+  farDim(bldMat);
   { const geo = new THREE.BoxGeometry(1, 1, 1); geo.translate(0, 0.5, 0);
     const PC = ['#f7c9c4', '#cfe9d9', '#fbe6b8', '#cfe1f5', '#e3d7f3', '#fff4e3', '#f6d6b8', '#d5ecec'], RC = ['#7fb76a', '#e98b78', '#8fb3d9', '#f0c46c', '#b7a3d8', '#9fcf8b'];
     // 강·공원·궁궐 자리 그림 (20m 칸): 빈 땅에 건물을 채울 때 피함
@@ -6343,6 +6346,7 @@ function buildSeoulReal(D, DD) {
     bg.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); bg.setAttribute('color', new THREE.BufferAttribute(col, 3));
     bg.setIndex(new THREE.BufferAttribute(idx, 1)); bg.setDrawRange(0, q);
     const realBld = new THREE.Mesh(bg, std({ map: winTex, vertexColors: true, roughness: 0.8, emissive: '#ffffff', emissiveMap: litTex, emissiveIntensity: 0 }));
+    farDim(realBld.material);
     realBld.userData.night = true; S.add(realBld); bldNightMats.push(realBld.material);
     // 골목 (작은 길)과 보행로
     const ribbon = (lines, wOf, y, mat) => { const ps = [], ix = []; let m = 0;
