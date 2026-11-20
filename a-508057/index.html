@@ -363,6 +363,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
         <li>대본: 김주완 명상수업 실습편</li>
         <li>배경 피아노: Serge Quadrado, “Piano for Meditation” (Pixabay)</li>
         <li>서울 하늘 지도: © OpenStreetMap contributors (ODbL)</li>
+        <li>바다 생물 3D 모델(고래·상어·만타가오리·돌고래·물고기): Quaternius (quaternius.com, CC0)</li>
       </ul>
       <p class="credits-c">© 2026 An In-song (안인성). All rights reserved.</p>
     </div>
@@ -408,7 +409,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-147';
+const BUILD = '11.19-148';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -589,7 +590,7 @@ function setLook(camY) {
     const k = clamp01((SURF - camY) / (SURF - 2));
     scene.background.lerpColors(daySea.top, daySea.bottom, k);
     scene.fog.color.copy(scene.background);
-    scene.fog.density = mix(0.009, 0.016, k);
+    scene.fog.density = mix(0.013, 0.022, k);   // 멀수록 짙은 물빛으로 흐려짐 (깊이감)
   }
   topSurface.visible = above;
   underSurface.visible = !above;
@@ -1025,7 +1026,7 @@ function updateFish(t) {
       fishPos(sc, f, t + 0.4, fB);
       dummy.position.copy(fA);
       dummy.lookAt(fB);
-      dummy.rotateY(Math.sin(t * 4 + f.ph) * 0.14);
+      dummy.rotateY(Math.sin(t * 4 + f.ph) * (sc.modelSwim ? 0.05 : 0.14));
       dummy.scale.setScalar(f.s);
       dummy.updateMatrix();
       sc.mesh.setMatrixAt(i, dummy.matrix);
@@ -1237,8 +1238,9 @@ function updateWater(t) {
   underTex.offset.set(-t * 0.006, t * 0.004);
   waterTopTex.offset.set(t * 0.004, t * 0.002);
   for (const r of rays) {
-    r.s.material.opacity = 0.12 + Math.sin(t * 0.5 + r.ph) * 0.06;
-    r.s.material.rotation = 0.12 + Math.sin(t * 0.15 + r.ph) * 0.06;
+    // 햇살 기둥: 수면 물결에 따라 밝아졌다 흐려지고 천천히 흔들림
+    r.s.material.opacity = 0.17 + Math.sin(t * 0.5 + r.ph) * 0.07 + Math.sin(t * 1.7 + r.ph * 2) * 0.03;
+    r.s.material.rotation = 0.12 + Math.sin(t * 0.15 + r.ph) * 0.09;
   }
   updatePretty(t);
   updateReefFish(t);
@@ -5222,6 +5224,162 @@ resize();
 camera.position.set(DOME_CENTER.x, HOUSE_BASE + 2, DOME_CENTER.z + 5);
 lookTarget.copy(beachSpot());
 
+/* ---------- 바다 생물 모델 (OBJ) ----------
+   고래·상어·만타가오리·돌고래·물고기 셋. 처음 화면을 연 뒤 따로 받아서, 받으면 지금 물고기 모양을 바꿔 끼움
+   헤엄: 물고기는 몸 전체가 S자로 좌우로, 고래·돌고래는 위아래로, 만타가오리는 날개가 물결치듯 */
+const swimU = { uSwimT: { value: 0 } };
+function parseMTL(t) { const o = {}; let cur = null; for (const l of t.split('\n')) { const a = l.trim().split(/\s+/); if (a[0] === 'newmtl') cur = a[1]; else if (a[0] === 'Kd' && cur) o[cur] = new THREE.Color().setRGB(+a[1], +a[2], +a[3]); } return o; }
+function parseOBJ(txt, cols, len, gray) {
+  const v = [], pos = [], col = []; let cur = new THREE.Color('#888888');
+  for (const line of txt.split('\n')) { const a = line.trim().split(/\s+/);
+    if (a[0] === 'v') v.push([+a[1], +a[2], +a[3]]);
+    else if (a[0] === 'usemtl') cur = cols[a[1]] || new THREE.Color('#888888');
+    else if (a[0] === 'f') { const ix = a.slice(1).map(s => parseInt(s, 10) - 1); for (let i = 1; i < ix.length - 1; i++) for (const k of [ix[0], ix[i], ix[i + 1]]) { if (!v[k]) continue; pos.push(...v[k]);
+      if (gray) { const l2 = cur.r * 0.3 + cur.g * 0.59 + cur.b * 0.11, k2 = 0.55 + l2 * 1.1; col.push(k2, k2, k2); } else col.push(cur.r, cur.g, cur.b); } } }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.computeBoundingBox(); const bb = g.boundingBox, c = bb.getCenter(new THREE.Vector3()), s = len / (bb.max.z - bb.min.z);
+  g.translate(-c.x, -c.y, -c.z); g.scale(s, s, s); g.computeVertexNormals(); g.computeBoundingBox();
+  g.userData.zHead = g.boundingBox.max.z; g.userData.zTail = g.boundingBox.min.z; g.userData.xMax = g.boundingBox.max.x;
+  return g;
+}
+// mode 0: 물고기(좌우), 1: 고래·돌고래(위아래), 2: 만타가오리(날개)
+function swimMat(geo, mode, amp, k, w, extra = {}) {
+  const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.55, flatShading: true, ...extra });
+  const zH = geo.userData.zHead.toFixed(3), zT = geo.userData.zTail.toFixed(3), xM = Math.max(0.01, geo.userData.xMax).toFixed(3);
+  m.onBeforeCompile = sh => {
+    sh.uniforms.uSwimT = swimU.uSwimT;
+    sh.vertexShader = 'uniform float uSwimT;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
+      float sPh = modelMatrix[3][0] * 0.37 + modelMatrix[3][2] * 0.23;
+      #ifdef USE_INSTANCING
+      sPh += float(gl_InstanceID) * 1.93;
+      #endif
+      float sS = clamp((${zH} - transformed.z) / (${zH} - (${zT})), 0.0, 1.0);
+      float sW = sin(transformed.z * ${k.toFixed(3)} - uSwimT * ${w.toFixed(3)} + sPh);
+      ${mode === 0 ? `transformed.x += sW * ${amp.toFixed(4)} * (0.15 + sS * sS);` : mode === 1 ? `transformed.y += sW * ${amp.toFixed(4)} * sS * sS;` :
+      `float sX = abs(transformed.x) / ${xM}; transformed.y += sin(uSwimT * ${w.toFixed(3)} - abs(transformed.x) * ${k.toFixed(3)} + sPh) * ${amp.toFixed(4)} * pow(sX, 1.5);`}`);
+  };
+  m.customProgramCacheKey = () => 'swim' + mode + amp + k + w + zH + zT;
+  return m;
+}
+const seaModels = {};
+const bigSwimmers = [];   // 돌고래, 만타가오리, 상어 (새로 들어온 친구들)
+(async () => {
+  try {
+    const load = async (n, len, gray) => { const [o, m] = await Promise.all([fetch('sea/' + n + '.obj?v=1').then(r => r.text()), fetch('sea/' + n + '.mtl?v=1').then(r => r.text())]); return parseOBJ(o, parseMTL(m), len, gray); };
+    const [fish1, fish2, fish3, whale, shark, manta, dolphin] = await Promise.all([
+      load('Fish1', 0.85, true), load('Fish2', 0.62), load('Fish3', 0.42), load('Whale', 16.5), load('Shark', 3.2), load('Manta_ray', 4.6), load('Dolphin', 2.3)]);
+    Object.assign(seaModels, { fish1, fish2, fish3, whale, shark, manta, dolphin });
+    // 기존 물고기는 그대로 두고, 새 모델 물고기 무리를 더함
+    const mFish = swimMat(fish1, 0, 0.05, 5.5, 7), mBlue = swimMat(fish2, 0, 0.035, 6, 6), mClown = swimMat(fish3, 0, 0.03, 9, 9);
+    const addSchool = (geo, mat, def, tint) => {
+      const mesh = noRay(new THREE.InstancedMesh(geo, mat, def.n)); mesh.frustumCulled = false;
+      const fish = [], c = new THREE.Color();
+      for (let i = 0; i < def.n; i++) {
+        c.set(tint).offsetHSL((Math.random() - 0.5) * 0.04, 0, (Math.random() - 0.5) * 0.08); mesh.setColorAt(i, c);
+        fish.push({ col: c.clone(), o: new THREE.Vector3((Math.random() - 0.5) * 2, (Math.random() - 0.5), (Math.random() - 0.5) * 2).multiplyScalar(def.spread), ph: Math.random() * 6, w: 0.35 + Math.random() * 0.45, s: def.size * (0.85 + Math.random() * 0.3) });
+      }
+      mesh.instanceColor.needsUpdate = true; seaWorld.add(mesh);
+      schools.push({ ...def, mesh, fish, ph0: def.ph0 !== undefined ? def.ph0 : Math.random() * 6, sw0: Math.random() * 6, modelSwim: true });
+    };
+    addSchool(fish1, mFish, { n: 14, size: 1, cx: -18, cz: -26, rx: 13, rz: 9, y: 3.5, sp: 0.07, spread: 2.4 }, '#ffffff');                 // 날씬한 물고기 (제 빛깔)
+    addSchool(fish1, mFish, { n: 10, size: 0.9, swing: { R: 13.5, dr: 1.8, amp: 1.6 }, ph0: 1.0, y: 4.2, sp: 0.06, spread: 1.8 }, '#ffffff');   // 돔 곁을 오가는 무리
+    addSchool(fish2, mBlue, { n: 9, size: 1, cx: 16, cz: -20, rx: 11, rz: 12, y: 2.6, sp: -0.06, spread: 2.2 }, '#ffffff');                   // 파란 물고기
+    addSchool(fish2, mBlue, { n: 6, size: 1, wander: { rMin: 11, rMax: 55, pr: 150, pa: 0.014, y0: 2, y1: 12, py: 101 }, ph0: 3.3, sp: 0, spread: 1.8 }, '#ffffff');
+    addSchool(fish3, mClown, { n: 6, size: 1, swing: { R: 10.4, dr: 1.0, amp: 1.2 }, ph0: 3.1, y: 1.6, sp: 0.08, spread: 1.1 }, '#ffffff');      // 줄무늬 흰동가리
+    // 혹등고래 하나 더 (기존 고래 엄마·새끼와 다른 길로, 더 멀리)
+    const mWhale = swimMat(whale, 1, 0.55, 0.32, 1.1);
+    // 새 친구들: 돌고래 셋(함께 물결치며), 만타가오리 하나(천천히 날듯이), 상어 하나(멀리 바닥 가까이 조용히)
+    const mDol = swimMat(dolphin, 1, 0.14, 1.6, 6), mManta = swimMat(manta, 2, 0.55, 0.8, 1.6), mShark = swimMat(shark, 0, 0.16, 1.4, 3.2);
+    // 바다에만 (다른 차원에서는 숨김)
+    const addSwimmer = (geo, mat, path) => { const m = noRay(new THREE.Mesh(geo, mat)); seaWorld.add(m); bigSwimmers.push({ m, ...path }); return m; };
+    addSwimmer(whale, mWhale, { R: 58, w: -0.012, ph: 1.0, y: 12, bob: 2, bobW: 0.15, dir: 1 });
+    [0, 1, 2].forEach(i => addSwimmer(dolphin, mDol, { R: 26 + i * 2.2, w: 0.075, ph: i * 0.09, y: 7 + i * 0.8, bob: 1.6, bobW: 0.5, dir: 1 }));
+    addSwimmer(manta, mManta, { R: 19, w: -0.032, ph: 2.2, y: 9.5, bob: 1.2, bobW: 0.13, dir: -1, ex: 0.85 });
+    addSwimmer(shark, mShark, { R: 46, w: 0.022, ph: 4.1, y: 2.4, bob: 0.6, bobW: 0.2, dir: 1 });
+  } catch (e) { console.warn('바다 생물 모델을 불러오지 못함', e); }
+})();
+const _bs = new THREE.Vector3(), _bs2 = new THREE.Vector3();
+function bigSwimPos(b, t, out) {
+  const a = b.ph + b.w * t * (b.dir || 1);
+  const x = DOME_CENTER.x + Math.cos(a) * b.R, z = DOME_CENTER.z + Math.sin(a) * b.R * (b.ex || 0.9);
+  return keepOutOfDome(out.set(x, Math.min(SURF - 2.5, groundH(x, z) + b.y + Math.sin(t * b.bobW + b.ph * 3) * b.bob), z));
+}
+function updateSeaModels(dt, t) {
+  swimU.uSwimT.value = t;
+  for (const b of bigSwimmers) {
+    bigSwimPos(b, t, _bs); bigSwimPos(b, t + 0.3, _bs2);
+    b.m.position.copy(_bs); b.m.lookAt(_bs2);
+  }
+}
+
+/* ---------- 더 실제 같은 바다 ----------
+   ① 물결 빛(코스틱): 수면을 지난 햇빛이 그물처럼 일렁이며 모래 바닥, 돔 바닥, 방석 위를 지나감
+   ② 깊이감: 멀수록 짙은 청록으로 흐려짐 (setLook의 물빛 짙기)
+   ③ 흔들리는 햇살 기둥 (updateWater)
+   ④ 바닥 틈에서 가끔 올라오는 공기 방울 줄기 */
+const causticU = { uCT: { value: 0 }, uCA: { value: 1 } };
+function addCaustics(mat, strength, scale) {
+  const prev = mat.onBeforeCompile;
+  mat.onBeforeCompile = (sh, r) => {
+    if (prev) prev(sh, r);
+    sh.uniforms.uCT = causticU.uCT; sh.uniforms.uCA = causticU.uCA;
+    sh.vertexShader = 'varying vec3 vCW;\n' + sh.vertexShader.replace('#include <project_vertex>', `#include <project_vertex>
+      { vec4 cw = vec4(transformed, 1.0);
+        #ifdef USE_INSTANCING
+        cw = instanceMatrix * cw;
+        #endif
+        vCW = (modelMatrix * cw).xyz; }`);
+    sh.fragmentShader = `varying vec3 vCW; uniform float uCT; uniform float uCA;
+      float causticV(vec2 uv, float time) {
+        vec2 p = mod(uv * 6.28318, 6.28318) - 250.0, i = p; float c = 1.0, inten = 0.005;
+        for (int n = 0; n < 4; n++) { float t = time * (1.0 - (3.5 / float(n + 1)));
+          i = p + vec2(cos(t - i.x) + sin(t + i.y), sin(t - i.y) + cos(t + i.x));
+          c += 1.0 / length(vec2(p.x / (sin(i.x + t) / inten), p.y / (cos(i.y + t) / inten))); }
+        c /= 4.0; c = 1.17 - pow(c, 1.4); return clamp(pow(abs(c), 8.0), 0.0, 1.5);
+      }\n` + sh.fragmentShader.replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+      totalEmissiveRadiance += vec3(0.78, 0.96, 1.0) * causticV(vCW.xz * ${scale.toFixed(3)}, uCT) * ${strength.toFixed(3)} * uCA;`);
+  };
+  mat.customProgramCacheKey = () => 'caustic' + strength + '/' + scale;
+  mat.needsUpdate = true;
+}
+addCaustics(floor.material, 1.0, 0.11);
+floor.material.emissiveIntensity = 0.12;   // 예전의 고정된 빛 무늬는 옅게
+domeFloors.forEach(m => addCaustics(m.material, 0.6, 0.13));
+{ const seen = new Set(); domeTap.forEach(m => { const t = m.userData.tap; if (t && (t.kind === 'seat' || t.kind === 'mat') && !seen.has(m.material)) { seen.add(m.material); addCaustics(m.material, 0.4, 0.13); } }); }
+// 공기 방울 줄기: 돔 둘레 모래 틈 몇 곳에서 보글보글 올라감
+const ventBubbles = [], vents = [];
+{ const R2 = mulberry32(31);
+  for (let i = 0; i < 5; i++) { const a = R2() * Math.PI * 2, r = 11 + R2() * 12, x = DOME_CENTER.x + Math.cos(a) * r, z = DOME_CENTER.z + Math.sin(a) * r; vents.push({ x, z, y: groundH(x, z) + 0.05, next: R2() * 2, burst: 0 }); }
+  for (let i = 0; i < 90; i++) { const s = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: bubbleTex, transparent: true, opacity: 0, depthWrite: false }))); s.visible = false; scene.add(s); ventBubbles.push({ s, life: 0, vy: 0, ph: 0, x: 0, z: 0, size: 0.1 }); } }
+let ventIdx = 0;
+function updateSeaRealism(dt, t) {
+  causticU.uCT.value = t * 0.45;
+  causticU.uCA.value = myDim === 'sea' ? 1 - 0.75 * daySea.night : 0;
+  if (myDim !== 'sea') return;
+  for (const v of vents) {
+    v.next -= dt;
+    if (v.next <= 0) {
+      if (v.burst <= 0 && Math.random() < 0.25) v.burst = 6 + Math.floor(Math.random() * 10);   // 가끔 한꺼번에 보글보글
+      v.next = v.burst > 0 ? 0.08 + Math.random() * 0.1 : 0.5 + Math.random() * 1.4;
+      if (v.burst > 0) v.burst--;
+      const b = ventBubbles[ventIdx++ % ventBubbles.length];
+      b.life = 1; b.vy = 0.9 + Math.random() * 0.8; b.ph = Math.random() * 6.28; b.x = v.x + (Math.random() - 0.5) * 0.2; b.z = v.z + (Math.random() - 0.5) * 0.2; b.size = 0.06 + Math.random() * 0.12;
+      b.s.position.set(b.x, v.y, b.z); b.s.visible = true;
+    }
+  }
+  for (const b of ventBubbles) {
+    if (b.life <= 0) continue;
+    b.s.position.y += b.vy * dt;
+    b.vy = Math.min(2.6, b.vy + dt * 0.25);   // 올라갈수록 조금 빨라짐
+    b.s.position.x = b.x + Math.sin(t * 3 + b.ph) * 0.06; b.s.position.z = b.z + Math.cos(t * 2.6 + b.ph) * 0.06;
+    b.life -= dt / 9;
+    const grow = 1 + (1 - b.life) * 0.8;
+    b.s.scale.setScalar(b.size * grow);
+    b.s.material.opacity = Math.min(1, b.life * 3) * 0.85;
+    if (b.life <= 0 || b.s.position.y > SURF - 0.5) { b.life = 0; b.s.visible = false; }
+  }
+}
+
 /* ---------- 차원이동 ----------
    누른 자리(아바타 바로 앞)에 둥근 차원의 문이 열림 → 아바타가 걸어 들어감 → 화면이 물결치며 바뀜
    → 새 돔의 같은 문에서 걸어 나오고 문이 닫힘. 돔 안 모습은 그대로, 바깥 풍경만 차원마다 다름 */
@@ -6691,6 +6849,8 @@ function frame() {
     updateCreatures(t);
     updateLights(dt, t);
     updatePeers(dt, t);
+    updateSeaRealism(dt, t);
+    if (myDim === 'sea') updateSeaModels(dt, t);
     updateDims(dt, t);
     renderWorld();
   }
