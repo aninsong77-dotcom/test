@@ -182,12 +182,13 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 #endSheet .sp-copy{font-size:9.5px!important;line-height:1.3!important;color:#6a6155!important;padding-top:.4em}
 #endSheet .welcome{font-size:13.5px!important;line-height:1.8!important}
 @media (max-width:640px){   /* 스마트폰: 줄 간격을 줄여 한 화면에 */
-  #endSheet .card{gap:8px}
+  #endSheet .card{gap:6px}
   #endSheet .welcome{line-height:1.45!important;font-size:13px!important}
   #endSheet .credits-h{line-height:1.45!important;font-size:12.5px!important}
   #endSheet .credits ul{line-height:1.45;font-size:11px}
 }
-#endSheet .actions{position:fixed;left:18px;bottom:18px;writing-mode:horizontal-tb;margin:0!important}
+#endSheet .actions{margin:0!important;margin-block-start:6px!important;justify-content:flex-start}   /* 출처 맨 끝(왼쪽)에 세로로 */
+#endSheet .actions button{font-size:15px!important;padding:8px 4px!important;letter-spacing:.12em;border-bottom:none!important;border-left:1px solid #1d1a16!important}
 /* 이름 '쨘': 먹 글씨 위로 칼날이 번득이듯 가는 빛줄기가 한 번 쓱 지나감 */
 #spName{display:inline-block;color:transparent!important;-webkit-background-clip:text;background-clip:text;
   background-image:linear-gradient(115deg,#1d1a16 0%,#1d1a16 45.5%,#8d8676 47.8%,#f7f3ea 49.3%,#ffffff 50%,#f7f3ea 50.7%,#8d8676 52.2%,#1d1a16 54.5%,#1d1a16 100%);
@@ -413,6 +414,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
       <ul>
         <li>배경 피아노: Serge Quadrado, “Piano for Meditation” (Pixabay)</li>
         <li>서울 하늘 지도: © OpenStreetMap contributors (ODbL)</li>
+        <li>지구 지도: Natural Earth (world-atlas, Mike Bostock, ISC)</li>
         <li>서울 밤하늘·우주의 별 자료: Hipparcos 목록, d3-celestial (Olaf Frohn, BSD-3-Clause)</li>
         <li>바다 생물 3D 모델(고래·상어·만타가오리·돌고래·물고기): Quaternius (quaternius.com, CC0)</li>
       </ul>
@@ -459,7 +461,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-189';
+const BUILD = '11.19-193';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -619,6 +621,8 @@ const sunLight = new THREE.DirectionalLight('#fff4dc', 2.0);
 sunLight.position.set(20, 60, 10);
 scene.add(sunLight);
 /* 차원: 바다(처음 돔) · 서울 하늘 · 지구 우주. 같은 차원 사람끼리만 보임 */
+/* 받침에 맞춰 '로/으로' 붙이기 (받침 없거나 ㄹ 받침이면 '로') */
+const withRo = w => { const c = String(w).trim().slice(-1).charCodeAt(0); if (c < 0xac00 || c > 0xd7a3) return w + '(으)로'; const jong = (c - 0xac00) % 28; return w + (jong === 0 || jong === 8 ? '로' : '으로'); };
 const DIMS = {
   sea: { name: '바다', view: '바다를', icon: '🌊', a: '#7fe0f2', b: '#1d6f9c', stars: 0 },
   seoul: { name: '서울 하늘', view: '서울 하늘을', icon: '🏙️', a: '#5aa6e6', b: '#e9f2f6', stars: 0 },
@@ -4311,7 +4315,7 @@ const saveNick = () => {
   myNick = $('nameInput').value.trim().slice(0, 12);
   try { if (myNick) localStorage.setItem('a508057:nick', myNick); else localStorage.removeItem('a508057:nick'); } catch (e) {}
   $('nameSheet').hidden = true;
-  toast(myNick ? `'${myNick}'(으)로 보여요` : '이름 없이 아바타만 보여요');
+  toast(myNick ? `'${myNick}'${withRo(myNick).slice(myNick.length)} 보여요` : '이름 없이 아바타만 보여요');
   sendPresence(true);
 };
 $('nameOk').addEventListener('click', saveNick);
@@ -5884,28 +5888,41 @@ function buildSpace() {
   const VS = `varying vec3 vObj; varying vec3 vWN; varying vec3 vWP;
     void main(){ vObj = normalize(position); vWN = normalize(mat3(modelMatrix) * normal); vec4 w = modelMatrix * vec4(position, 1.0); vWP = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`;
   const sunU = { value: new THREE.Vector3(0.88, 0.3, -0.36).normalize() };
+  // 실제 지구 지도 (오대양 육대주): R=땅, G=해안 가까움(번진 땅), B=실제 큰 도시들 둘레의 밤 불빛. Natural Earth 자료(world-atlas)로 만든 그림
+  const earthMapU = { value: null }, earthHasU = { value: 0 };
+  new THREE.TextureLoader().load('earth-map.png?v=1', t => { t.wrapS = THREE.RepeatWrapping; t.generateMipmaps = false; t.minFilter = THREE.LinearFilter; t.colorSpace = THREE.NoColorSpace; t.needsUpdate = true; earthMapU.value = t; earthHasU.value = 1; });
   const earthMat = new THREE.ShaderMaterial({
-    uniforms: { uSun: sunU }, vertexShader: VS, fog: false,
-    fragmentShader: `uniform vec3 uSun; varying vec3 vObj; varying vec3 vWN; varying vec3 vWP;
+    uniforms: { uSun: sunU, uMap: earthMapU, uHas: earthHasU }, vertexShader: VS, fog: false,
+    fragmentShader: `uniform vec3 uSun; uniform sampler2D uMap; uniform float uHas; varying vec3 vObj; varying vec3 vWN; varying vec3 vWP;
       ${NOISE}
       void main(){
         vec3 p = vObj; float lat = abs(p.y);
-        float n = 0.5 + (fbm(p * 1.55 + vec3(3.1, 7.7, 1.3), ${lowQ ? 5 : 7}) - 0.5) * 2.2;   // 대비를 키워 대륙이 또렷하게
-        float coast = 0.65;   // 바다가 7할쯤
-        float land = smoothstep(coast, coast + 0.012, n);
+        // 지도 좌표: 경도·위도 (별자리와 같은 방향 규칙)
+        vec2 uv = vec2(atan(-p.z, p.x) / 6.2831853 + 0.5, asin(clamp(p.y, -1.0, 1.0)) / 3.14159265 + 0.5);
+        vec2 wv = (vec2(vn(p * 60.0), vn(p * 60.0 + 9.0)) - 0.5) * 0.0018;   // 해안선에 잔 굴곡
+        vec3 M = uHas > 0.5 ? texture2D(uMap, uv + wv).rgb : vec3(0.0);
+        float nP = 0.5 + (fbm(p * 1.55 + vec3(3.1, 7.7, 1.3), ${lowQ ? 5 : 7}) - 0.5) * 2.2;   // 지도를 받기 전 임시 대륙
+        float landM = smoothstep(0.38, 0.62, M.r + (fbm(p * 30.0, 3) - 0.5) * 0.18);
+        float coast = 0.65;
+        float land = mix(smoothstep(coast, coast + 0.012, nP), landM, uHas);
+        float n = mix(nP, coast + (M.g - 0.5) * 0.3, uHas);
         // 바다: 깊을수록 짙은 남색, 해안 가까이는 맑은 청록
-        float depth = clamp((coast - n) * 6.0, 0.0, 1.0);
+        float depth = mix(clamp((coast - nP) * 6.0, 0.0, 1.0), clamp(1.0 - M.g * 1.6, 0.0, 1.0), uHas);
         vec3 ocean = mix(vec3(0.02, 0.14, 0.3), vec3(0.003, 0.022, 0.085), pow(depth, 0.45));
         ocean = mix(ocean, ocean * vec3(0.8, 1.0, 1.15), vn(p * 9.0) * 0.4);
         // 땅: 습한 곳은 초록, 마른 곳은 사막빛, 산은 짙은 갈색
         float wet = 0.5 + (fbm(p * 3.1 + 5.0, 4) - 0.5) * 2.0 + (0.25 - abs(abs(p.y) - 0.45)) * 0.4;
-        float mtn = smoothstep(0.7, 0.9, n) * fbm(p * 14.0, 3);
+        wet -= uHas * 0.45 * smoothstep(0.17, 0.3, lat) * smoothstep(0.62, 0.45, lat);   // 위도 15~35도 사막 띠 (사하라·아라비아·호주)
+        wet += uHas * 0.25 * smoothstep(0.2, 0.05, lat);                                  // 적도는 숲
+        float mtn = mix(smoothstep(0.7, 0.9, nP), smoothstep(0.6, 0.85, fbm(p * 5.0 + 3.0, 4)), uHas) * fbm(p * 14.0, 3);
         vec3 green = mix(vec3(0.04, 0.11, 0.03), vec3(0.1, 0.17, 0.06), vn(p * 22.0));
         vec3 dry = mix(vec3(0.36, 0.29, 0.17), vec3(0.52, 0.42, 0.27), vn(p * 18.0));
         vec3 ground = mix(dry, green, smoothstep(0.3, 0.46, wet));
         ground = mix(ground, vec3(0.26, 0.21, 0.16), mtn * 0.8);
         // 극지방 얼음
-        float ice = smoothstep(0.82, 0.9, lat + (fbm(p * 6.0, 3) - 0.5) * 0.12);
+        float ice = mix(smoothstep(0.82, 0.9, lat + (fbm(p * 6.0, 3) - 0.5) * 0.12),
+          max(smoothstep(0.86, 0.9, -p.y + (fbm(p * 6.0, 3) - 0.5) * 0.05) , smoothstep(0.93, 0.97, p.y + (fbm(p * 6.0, 3) - 0.5) * 0.06)) + land * smoothstep(0.9, 0.95, p.y + (fbm(p * 6.0, 3) - 0.5) * 0.08), uHas);   // 남극 대륙, 북극 바다 얼음, 그린란드 북쪽
+        ice = clamp(ice, 0.0, 1.0);
         vec3 alb = mix(ocean, ground, land);
         alb = mix(alb, vec3(0.86, 0.9, 0.95), ice);
         // 빛: 낮과 밤의 경계는 부드럽게, 밤은 거의 까맣게
@@ -5916,14 +5933,15 @@ function buildSpace() {
         float coastNear = 1.0 - smoothstep(0.0, 0.07, n - coast);
         float region = smoothstep(0.5, 0.74, fbm(p * 4.3 + vec3(11.0, 3.0, 7.0), 4)) * (0.45 + 0.9 * coastNear);
         float temperate = smoothstep(0.78, 0.35, lat) * smoothstep(0.0, 0.12, lat + 0.06);
-        float grain = smoothstep(0.72, 0.97, vn(p * 150.0)) + 0.7 * smoothstep(0.86, 0.99, vn(p * 330.0 + 3.0));
-        float city = land * (1.0 - ice) * temperate * clamp(region * (0.18 + grain * 2.0), 0.0, 1.8);   // 가는 줄(길) 없이 점점이 모인 불빛만
+        float grain = smoothstep(0.66, 0.96, vn(p * 260.0)) + 0.8 * smoothstep(0.72, 0.97, vn(p * 540.0 + 3.0)) + 0.55 * smoothstep(0.78, 0.98, vn(p * 1100.0 + 7.0));   // 멀리서 본 서울 야경처럼 아주 잘고 촘촘한 불빛 알갱이
+        float city = land * (1.0 - ice) * mix(temperate * clamp(region * (0.22 + grain * 1.6), 0.0, 1.8), clamp(M.b * (0.35 + grain * 1.3), 0.0, 1.8), uHas);   // 실제 큰 도시 둘레에 점점이 모인 불빛
         float nightK = 1.0 - smoothstep(-0.15, 0.08, nl);
         // 서울 야경처럼: 주황 가로등 빛 바탕에 하얀·노란 불빛 알갱이, 군데군데 푸르스름한 흰빛. 도시 둘레엔 은은한 주황 빛무리
         float tint = vn(p * 60.0 + 5.0);
-        vec3 lc = mix(vec3(1.0, 0.62, 0.25), vec3(1.0, 0.9, 0.7), smoothstep(0.45, 0.8, grain));
-        lc = mix(lc, vec3(0.82, 0.9, 1.0), smoothstep(0.82, 0.95, tint) * 0.6);
-        float halo = land * (1.0 - ice) * temperate * region * 0.22;
+        vec3 lc = mix(vec3(1.0, 0.6, 0.24), vec3(1.0, 0.82, 0.48), smoothstep(0.3, 0.7, tint));   // 주황 가로등 ~ 노란 불빛
+        lc = mix(lc, vec3(1.0, 0.96, 0.86), smoothstep(0.55, 1.1, grain) * 0.7);                   // 밝은 알갱이는 하얗게
+        lc = mix(lc, vec3(0.84, 0.9, 1.0), smoothstep(0.86, 0.97, tint) * 0.5);                    // 군데군데 푸르스름한 흰빛
+        float halo = land * (1.0 - ice) * mix(temperate * region * 0.3, M.b * 0.35, uHas);
         col += (lc * city + vec3(1.0, 0.55, 0.22) * halo) * nightK * 0.95;
         // 바다에 비친 해 (반짝임)
         vec3 H = normalize(L + V); float nh = max(dot(N, H), 0.0), spec = (pow(nh, 320.0) * 0.7 + pow(nh, 24.0) * 0.06) * (1.0 - land) * (1.0 - ice) * day;
@@ -6074,11 +6092,26 @@ function buildSpace() {
     q.globalAlpha = 1;
     const t2 = new THREE.CanvasTexture(c); t2.colorSpace = THREE.SRGBColorSpace; return t2;
   };
+  // 달: 어두운 바다(현무암 평원), 밝은 고지대, 크고 작은 운석구덩이(밝은 테두리·그늘진 안쪽), 밝은 빛줄기를 뻗은 젊은 구덩이
+  const moonTex = (() => {
+    const W2 = 1024, H2 = 512, c = document.createElement('canvas'); c.width = W2; c.height = H2; const q = c.getContext('2d'), Rr = mulberry32(31);
+    q.fillStyle = '#a9a7a2'; q.fillRect(0, 0, W2, H2);
+    for (let i = 0; i < 2500; i++) { const v = 150 + Rr() * 40 | 0; q.fillStyle = `rgba(${v},${v - 2},${v - 6},.06)`; q.beginPath(); q.arc(Rr() * W2, Rr() * H2, 4 + Rr() * 30, 0, 7); q.fill(); }   // 고지대 결
+    const mare = (x, y, rx, ry) => { for (let k = 0; k < 26; k++) { const a = Rr() * 6.28, d = Rr(); const px = x + Math.cos(a) * rx * d * 0.8, py = y + Math.sin(a) * ry * d * 0.8, r = (rx + ry) * 0.25 * (0.4 + Rr() * 0.6);
+      const gr = q.createRadialGradient(px, py, 0, px, py, r); gr.addColorStop(0, 'rgba(78,78,82,.55)'); gr.addColorStop(0.7, 'rgba(84,84,88,.35)'); gr.addColorStop(1, 'rgba(90,90,94,0)'); q.fillStyle = gr; q.beginPath(); q.arc(px, py, r, 0, 7); q.fill(); } };
+    [[300, 170, 110, 70], [380, 230, 70, 50], [250, 260, 60, 55], [440, 300, 80, 40], [210, 190, 50, 60], [520, 210, 60, 45], [330, 330, 50, 30], [760, 250, 50, 40], [150, 300, 40, 30]].forEach(m => mare(...m));
+    const crater = (x, y, r) => { const sh = q.createRadialGradient(x - r * 0.2, y - r * 0.2, 0, x, y, r); sh.addColorStop(0, 'rgba(95,94,92,.28)'); sh.addColorStop(0.8, 'rgba(120,119,116,.12)'); sh.addColorStop(1, 'rgba(0,0,0,0)'); q.fillStyle = sh; q.beginPath(); q.arc(x, y, r, 0, 7); q.fill();
+      q.strokeStyle = 'rgba(215,213,206,.22)'; q.lineWidth = Math.max(0.6, r * 0.12); q.beginPath(); q.arc(x, y, r * 0.9, 2.4, 5.4); q.stroke(); };   // 은은하게 (거품처럼 보이지 않게)
+    for (let i = 0; i < 1600; i++) { const r = Math.pow(Rr(), 4.5) * 20 + 0.7; crater(Rr() * W2, 20 + Rr() * (H2 - 40), r); }
+    [[620, 380, 9], [480, 140, 6], [820, 160, 7]].forEach(([x, y, r]) => { for (let k = 0; k < 22; k++) { const a = Rr() * 6.28, L = r * (6 + Rr() * 14); const gr = q.createLinearGradient(x, y, x + Math.cos(a) * L, y + Math.sin(a) * L); gr.addColorStop(0, 'rgba(240,238,230,.4)'); gr.addColorStop(1, 'rgba(240,238,230,0)'); q.strokeStyle = gr; q.lineWidth = 1 + Rr() * 2; q.beginPath(); q.moveTo(x, y); q.lineTo(x + Math.cos(a) * L, y + Math.sin(a) * L); q.stroke(); }
+      q.fillStyle = 'rgba(245,243,236,.85)'; q.beginPath(); q.arc(x, y, r, 0, 7); q.fill(); });   // 빛줄기를 뻗은 젊은 구덩이
+    const t2 = new THREE.CanvasTexture(c); t2.colorSpace = THREE.SRGBColorSpace; t2.anisotropy = 4; return t2;
+  })();
   const planets = [];
   const addPlanet = (o) => {
     const pg = new THREE.Group(); g.add(pg);
     const tiltP = new THREE.Group(); tiltP.rotation.z = o.tilt || 0; pg.add(tiltP);
-    const body = noRay(new THREE.Mesh(new THREE.SphereGeometry(o.r, 40, 20), new THREE.MeshStandardMaterial({ map: o.tex, roughness: 0.9, metalness: 0, emissive: '#10162a', emissiveIntensity: 0.3, fog: false })));
+    const body = noRay(new THREE.Mesh(new THREE.SphereGeometry(o.r, o.bump ? 64 : 40, o.bump ? 32 : 20), new THREE.MeshStandardMaterial({ map: o.tex, roughness: 0.95, metalness: 0, emissive: o.bump ? '#2a2a2c' : '#10162a', emissiveIntensity: o.bump ? 0.25 : 0.3, fog: false, ...(o.bump ? { bumpMap: o.tex, bumpScale: 0.35 } : {}) })));
     tiltP.add(body);
     if (o.ring) {
       // 고리: 안쪽에서 바깥쪽으로 가는 여러 겹의 띠 (짙은 띠, 가는 틈, 바깥으로 갈수록 옅어짐)
@@ -6107,7 +6140,7 @@ function buildSpace() {
     }
     planets.push({ pg, body, ...o });
   };
-  addPlanet({ name: '달', r: 14, tex: spotTex('#b9b7b2', ['#8d8b86', '#d6d4cf', '#77746f'], 3), orbit: 235, h: 30, per: 75, ph: 1.2, spin: 150, tilt: 0.1 });
+  addPlanet({ name: '달', r: 14, tex: moonTex, bump: true, orbit: 235, h: 30, per: 75, ph: 1.2, spin: 150, tilt: 0.1 });
   addPlanet({ name: '화성', r: 10, tex: spotTex('#c8673d', ['#9c4527', '#e08a5a', '#7d3a22'], 5), orbit: 300, h: 95, per: 130, ph: 3.4, spin: 40, tilt: 0.44 });
   addPlanet({ name: '목성', r: 30, tex: bandTex(['#d8b98f', '#c49a6c', '#efe1c6', '#b07f56', '#e6cfa6'], 9), orbit: 360, h: 150, per: 210, ph: 5.1, spin: 25, tilt: 0.05 });
   addPlanet({ name: '토성', r: 22, tex: bandTex(['#e8d6a8', '#d9c18c', '#f2e6c4', '#c9ad78'], 11), orbit: 330, h: 60, per: 280, ph: 0.3, spin: 30, tilt: 0.47, ring: true });
@@ -7152,7 +7185,7 @@ function startDimMove(target) {
   if (target === 'seoul') dimWorld('seoul');   // 서울 지도는 빛에 감싸여 있는 동안 미리 불러옴
   portalRun = { target, from: myDim, P: spawnPortal(orb.position.x, orb.position.z, 0, target, false), phase: 'gather', t0: performance.now() };
   portalChime();
-  toast(`✨ ${DIMS[target].name}(으)로 가요`);
+  toast(`✨ ${withRo(DIMS[target].name)} 가요`);
   sendPresence(true);
 }
 function updatePortalRun() {
