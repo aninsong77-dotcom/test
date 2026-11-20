@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>A-508057</title>
+<title>뿅</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="theme-color" content="#1f86b6">
 <meta name="description" content="누구나 자유롭게 들어와 명상할 수 있는 바닷속 명상 공간입니다.">
 <meta property="og:type" content="website">
-<meta property="og:title" content="A-508057">
+<meta property="og:title" content="뿅">
 <meta property="og:description" content="누구나 자유롭게 들어와 명상할 수 있는 바닷속 명상 공간입니다.">
 <meta property="og:url" content="https://aninsong77-dotcom.github.io/a-508057/">
 <meta property="og:locale" content="ko_KR">
@@ -147,6 +147,15 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 .title-card .t-label{font:400 15px/1 var(--f-display);color:var(--muted);letter-spacing:.4em;padding-left:.4em}
 .title-card .t-id{font:500 clamp(34px,9vw,66px)/1 var(--f-mono);letter-spacing:.22em;padding-left:.22em;color:var(--ink)}
 
+.start{position:fixed;inset:0;z-index:10;display:grid;place-content:center;gap:22px;text-align:center;padding:0 16px;
+  background:radial-gradient(120% 90% at 50% 30%,#1a6f99 0%,#0b3a58 45%,#04182a 100%);transition:opacity .7s ease}
+.start.is-off{opacity:0;pointer-events:none}
+.start[hidden]{display:none}
+.start .s-name{font:700 clamp(54px,16vw,104px)/1 var(--f-display);color:var(--ink);letter-spacing:.06em;text-shadow:0 0 28px rgba(143,227,255,.35)}
+.start .s-sub{margin:0;font:400 15px/1.6 var(--f-display);color:var(--muted);letter-spacing:.08em}
+.start .s-pick{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:6px}
+.start .s-pick button{padding:14px 20px;font-size:15px;min-width:132px}
+.start .s-pick button small{display:block;margin-top:4px;font-size:11px;opacity:.7}
 .flash{position:fixed;inset:0;z-index:7;background:#ffffff;opacity:0;pointer-events:none}
 .notice{position:fixed;inset:0;z-index:7;display:grid;place-items:center;text-align:center;padding:0 24px;color:var(--muted);line-height:1.7}
 .dome-bar{
@@ -224,7 +233,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 
 <header class="hud fade is-hidden" id="hud">
   <div class="plate">
-    <div class="id">A-508057</div>
+    <div class="id">뿅</div>
     <div class="sub"><span hidden><span id="found"></span><span id="lightCount"></span></span><span id="dimName"></span>유리 돔 · <span id="together">혼자 있어요</span> <span id="buildTag" style="opacity:.55;font-size:10px"></span> <span id="osmTag" hidden style="opacity:.6;font-size:10px">지도 © OpenStreetMap</span> <span id="wxTag" hidden style="font-size:11px"></span></div>
     <div class="hint" id="hint"></div>
   </div>
@@ -347,12 +356,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 <div class="sheet" id="endSheet" hidden>
   <div class="card" role="dialog" aria-labelledby="endTitle">
     <h2 id="endTitle">함께해 주셔서 고마워요</h2>
-    <p>빛을 타고 돌아갔어요. 오늘의 마음을 남겨 주세요. 창을 닫으면 끝나요.</p>
-    <nav class="end-menu" id="endMenu" aria-label="나간 뒤 메뉴">
-      <a class="go" id="endForm" href="#" target="_blank" rel="noopener" hidden>구글 폼 쓰기 ↗</a>
-      <a class="go" id="endPadlet" href="#" target="_blank" rel="noopener" hidden>패들렛에 남기기 ↗</a>
-      <p id="endNoLinks" hidden>아직 넣은 링크가 없어요.</p>
-    </nav>
+    <p>빛을 타고 돌아갔어요. 창을 닫으면 끝나요.</p>
     <p class="welcome">누구나 자유롭게 들어와 명상할 수 있는 바닷속 명상 공간입니다.<br>언제든 다시 오세요.</p>
     <div class="credits" aria-label="출처">
       <p class="credits-h">명상 안내 음성 출처</p>
@@ -390,10 +394,19 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 </div>
 
 <div class="title-card fade is-hidden" id="titleCard">
-  <div class="t-label">바닷속</div>
-  <div class="t-id">A-508057</div>
+  <div class="t-label" id="tcLabel">바닷속</div>
+  <div class="t-id">뿅</div>
 </div>
 
+<div class="start" id="startScreen" role="dialog" aria-labelledby="startName">
+  <div class="s-name" id="startName">뿅</div>
+  <p class="s-sub">어디에서 명상할까요?</p>
+  <div class="s-pick" id="startPick">
+    <button type="button" data-dim="sea">🌊 바다<small>바닷속 유리 돔</small></button>
+    <button type="button" data-dim="seoul">🏙️ 서울 하늘<small>서울 위에 뜬 돔</small></button>
+    <button type="button" data-dim="space">🌍 지구 우주<small>지구가 보이는 우주</small></button>
+  </div>
+</div>
 <div class="flash" id="flash"></div>
 <div class="notice" id="notice" hidden></div>
 
@@ -410,7 +423,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-171';
+const BUILD = '11.19-172';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -3500,7 +3513,7 @@ function updateBeach(dt, t) {
   camera.lookAt(lookTarget);
   sendPresence();
 }
-$('endDive').addEventListener('click', () => enterDomeDirect());
+$('endDive').addEventListener('click', () => showStart());
 
 /* ---------- 다니기 ---------- */
 const pos2 = new THREE.Vector2(0, 0);
@@ -4350,12 +4363,6 @@ function updateDomeUi(near) {
 /* 링크 */
 const SAFE_URL = u => typeof u === 'string' && /^https:\/\/[^\s"'<>]+$/i.test(u.trim()) && u.length < 600;
 function applyLinks() {
-  let any = false;
-  [['form', 'endForm'], ['padlet', 'endPadlet']].forEach(([k, id]) => {
-    const a = $(id);
-    if (SAFE_URL(links[k])) { a.href = links[k].trim(); a.hidden = false; any = true; } else { a.removeAttribute('href'); a.hidden = true; }
-  });
-  $('endNoLinks').hidden = any;
   [['form', 'formLink'], ['padlet', 'padletLink']].forEach(([k, id]) => {
     const a = $(id);
     if (SAFE_URL(links[k])) { a.href = links[k].trim(); a.hidden = false; } else { a.removeAttribute('href'); a.hidden = true; }
@@ -7180,7 +7187,25 @@ function frame() {
   requestAnimationFrame(frame);
 }
 setLook(HOUSE_BASE + 2);
-enterDomeDirect();
+/* 시작 화면: 공간 이름 '뿅'과 명상할 곳 고르기 → 고른 곳의 돔으로 빛을 타고 내려옴 */
+function showStart() {
+  closeSheets(); $('endSheet').hidden = true;
+  $('startScreen').hidden = false;
+  requestAnimationFrame(() => $('startScreen').classList.remove('is-off'));
+}
+$('startPick').addEventListener('click', e => {
+  const b = e.target.closest('button[data-dim]');
+  if (!b || $('startScreen').classList.contains('is-off')) return;
+  unlockAudio();
+  const k = b.dataset.dim;
+  if (k !== myDim) applyDim(k);
+  $('tcLabel').textContent = k === 'sea' ? '바닷속' : DIMS[k].name;
+  enterDomeDirect();
+  $('startScreen').classList.add('is-off');
+  setTimeout(() => { if ($('startScreen').classList.contains('is-off')) $('startScreen').hidden = true; }, 800);
+});
+iAmOut = true;   // 고르기 전에는 다른 사람 화면에 안 보임
+showStart();
 frame();
 </script>
 </body>
