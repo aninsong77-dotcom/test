@@ -409,7 +409,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-161';
+const BUILD = '11.19-162';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -2083,10 +2083,7 @@ function updateHouseBits(dt, t) {
   wispT.value = t;
   for (const st of steam) {
     st.s.visible = false;   // 예전 동그란 김은 쓰지 않음
-    const ts = teaSets[st.t] || teaSet;
-    if (!ts.wisp) { ts.wisp = makeSteam(ts.potGroup, 0.09); ts.wisp.wisps.forEach(w => { w.position.y += 0.2; }); }
-  }
-  for (const ts of teaSets) if (ts.wisp) { ts.wisp.strength = 0.85; updateSteam(ts.wisp, dt, t); }
+  }   // 주전자에서는 김이 오르지 않음 (찻잔에서만)
   const playing = session.state === 'playing' && Date.now() >= session.startAt;
   const breath = playing ? (Math.sin(t * Math.PI * 2 / 10) + 1) / 2 : (Math.sin(t * 1.4) + 1) / 2;
   centerGlow.scale.setScalar(playing ? 1.9 + breath * 0.8 : 1.9 + breath * 0.25);
