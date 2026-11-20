@@ -450,7 +450,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-183';
+const BUILD = '11.19-184';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -6286,7 +6286,17 @@ function buildSeoulReal(D, DD) {
   const litCells = [];
   // 벽: 층마다 은은한 가로 창 띠 (벽 빛깔과 가깝게, 촘촘한 바둑판 무늬 없이). 밤에는 창마다 불이 켜짐
   const winTex = canvasTex(64, 128, (g, w, h) => { g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h); for (let y = 6; y < h; y += 11) { g.fillStyle = 'rgba(150,170,190,.22)'; g.fillRect(3, y, w - 6, 5); g.fillStyle = 'rgba(255,255,255,.5)'; for (let x = 3; x < w; x += 15) g.fillRect(x, y, 1, 5); for (let x = 6; x < w; x += 11) if (rnd() < 0.3) litCells.push([x, y]); } });
-  const litTex = canvasTex(64, 128, (g, w, h) => { g.fillStyle = '#000'; g.fillRect(0, 0, w, h); const LITC = [['#ffc66e', 44], ['#ffdc9a', 22], ['#fff0d2', 16], ['#e2ecff', 9], ['#d8ffe0', 4], ['#ff5a6a', 2], ['#5fd8ff', 2], ['#ff6ad5', 1]], litPick = () => { let r2 = rnd() * 100; for (const [c, w2] of LITC) { if ((r2 -= w2) < 0) return c; } return LITC[0][0]; }; litCells.forEach(([x, y]) => { g.fillStyle = litPick();   /* 따뜻한 불빛, 흰 LED, 푸르스름한 형광등, 군데군데 네온 */ g.fillRect(x, y, 8, 5); }); });
+  // 밤 창 불빛: 낮 창 무늬 4×4칸을 한 장으로 크게 그려서 같은 무늬가 되풀이되지 않게.
+  // 층마다 다르게 (어떤 층은 사무실처럼 여러 칸이 켜지고, 대부분은 드문드문, 꺼진 층도 많음). 빛은 거의 따뜻한 전등색, 밝기도 제각각. 네온 빛 없음
+  const litTex = canvasTex(256, 512, (g, w, h) => { g.fillStyle = '#000'; g.fillRect(0, 0, w, h);
+    const LITC = [['#ffcf8a', 40], ['#ffe0ab', 30], ['#fff0d8', 18], ['#e6eeff', 12]], litPick = () => { let r2 = rnd() * 100; for (const [c, w2] of LITC) { if ((r2 -= w2) < 0) return c; } return LITC[0][0]; };
+    for (let ty = 0; ty < 4; ty++) for (let tx = 0; tx < 4; tx++) for (let y = 6; y < 128; y += 11) {
+      const m = rnd(), p = m < 0.1 ? 0.65 : m < 0.45 ? 0.02 : 0.1 + rnd() * 0.12;   // 환한 층 / 꺼진 층 / 드문드문
+      let run = 0;
+      for (let x = 6; x < 64; x += 11) { if (run > 0 || rnd() < p) { run = run > 0 ? run - 1 : (rnd() < 0.3 ? 1 + Math.floor(rnd() * 2) : 0);
+        g.globalAlpha = 0.35 + rnd() * 0.65; g.fillStyle = litPick(); g.fillRect(tx * 64 + x, ty * 128 + y, 8, 5); } }
+    } g.globalAlpha = 1; });
+  litTex.wrapS = litTex.wrapT = THREE.RepeatWrapping; litTex.repeat.set(0.25, 0.25);   // 한 칸 = 낮 창 무늬 한 장
   winTex.wrapS = winTex.wrapT = litTex.wrapS = litTex.wrapT = THREE.RepeatWrapping;   // 실제 모양 건물 벽에 창을 이어 붙임
   const glassTex = canvasTex(64, 128, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#d3e5f3'); gr.addColorStop(1, '#9fbbd4'); g.fillStyle = gr; g.fillRect(0, 0, w, h); g.strokeStyle = 'rgba(255,255,255,.35)'; for (let x = 0; x < w; x += 6) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); } });
   const shape = (pts, holes = []) => { const sh = new THREE.Shape(pts.map(p => new THREE.Vector2(p[0], -p[1]))); holes.forEach(hh => sh.holes.push(new THREE.Path(hh.map(p => new THREE.Vector2(p[0], -p[1]))))); return sh; };
@@ -6383,12 +6393,12 @@ function buildSeoulReal(D, DD) {
       if (h > 90 && nearRoute(cx, cz, 90)) h = 90;   // 돔이 지나가는 길 가까이는 부딪히지 않게
       roofs.push({ x: cx, z: cz, h });
       cW.set(PCd[Math.floor(rnd() * PCd.length)]); cR.set(RCd[Math.floor(rnd() * RCd.length)]);
-      let per = 0;
+      let per = Math.floor(rnd() * 4) * 17.5; const vOff = Math.floor(rnd() * 4);   // 건물마다 밤 창 무늬의 다른 자리를 씀
       for (let i = 0; i < n; i++) {
         const [x1, z1] = r[i], [x2, z2] = r[(i + 1) % n], L = Math.hypot(x2 - x1, z2 - z1) || 1, nx = -(z2 - z1) / L, nz = (x2 - x1) / L;
         const u0 = per / 17.5, u1 = (per + L) / 17.5; per += L;
         const base = v;
-        [[x1, 0, z1, u0, 0], [x2, 0, z2, u1, 0], [x2, h, z2, u1, h / 39.4], [x1, h, z1, u0, h / 39.4]].forEach(([x, y, z, uu, vv]) => {
+        [[x1, 0, z1, u0, vOff], [x2, 0, z2, u1, vOff], [x2, h, z2, u1, vOff + h / 39.4], [x1, h, z1, u0, vOff + h / 39.4]].forEach(([x, y, z, uu, vv]) => {
           pos.set([x, y, z], v * 3); nor.set([nx, 0, nz], v * 3); uv.set([uu, vv], v * 2); col.set([cW.r, cW.g, cW.b], v * 3); v++; });
         idx.set([base, base + 1, base + 2, base, base + 2, base + 3], q); q += 6;
       }
@@ -6596,12 +6606,27 @@ function buildSeoulReal(D, DD) {
   { const [X0, X1, Z0, Z1] = D.bounds;
     // 구름 모양을 여러 가지로: 뭉게구름(크기·퍼짐이 제각각, 밑이 평평), 옆으로 넓게 깔린 층구름, 높은 곳의 가는 새털구름
     const blob = (g, x, y, r, a) => { const gr = g.createRadialGradient(x, y - r * 0.3, r * 0.1, x, y, r); gr.addColorStop(0, `rgba(255,255,255,${a})`); gr.addColorStop(0.7, `rgba(246,249,252,${a * 0.95})`); gr.addColorStop(1, 'rgba(230,238,246,0)'); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); };
+    // 뭉게구름: 동그라미를 겹쳐 그리지 않고, 덩어리들을 하나의 '구름 밀도'로 합친 뒤 잔결(노이즈)을 더해 가장자리를 몽글몽글하게.
+    // 안쪽에 동그라미 테두리가 생기지 않고, 위는 밝고 아래로 갈수록 살짝 그늘, 밑면은 평평
     const cumulus = k => canvasTex(256, 256, (g) => {
-      const n = 16 + Math.floor(rnd() * 20), spread = 75 + rnd() * 40, tall = 0.5 + rnd() * 0.9, base = 170 + rnd() * 30;
-      for (let i = 0; i < n; i++) { const x = 128 + (rnd() - 0.5) * 2 * spread * (0.5 + rnd() * 0.5), mid = 1 - Math.abs(x - 128) / (spread + 1), r = 14 + rnd() * 30 * (0.6 + mid * 0.6), y = base - r * 0.6 - rnd() * 70 * tall * mid; blob(g, x, y, r, 0.9 + rnd() * 0.1); }
-      for (let i = 0; i < n * 0.8; i++) { const x = 128 + (rnd() - 0.5) * 1.6 * spread, mid = 1 - Math.abs(x - 128) / (spread + 1), r = 8 + rnd() * 14; blob(g, x, base - 30 - rnd() * 80 * tall * mid, r, 1); }   // 윗면의 몽글몽글한 작은 덩이
-      g.globalCompositeOperation = 'source-atop'; const sh = g.createLinearGradient(0, base - 60, 0, base); sh.addColorStop(0, 'rgba(160,172,190,0)'); sh.addColorStop(1, 'rgba(150,163,182,.55)'); g.fillStyle = sh; g.fillRect(0, base - 60, 256, 70);   // 아랫면은 살짝 그늘
-      g.globalCompositeOperation = 'destination-out'; const fl = g.createLinearGradient(0, base - 6, 0, base + 10); fl.addColorStop(0, 'rgba(0,0,0,0)'); fl.addColorStop(1, 'rgba(0,0,0,1)'); g.fillStyle = fl; g.fillRect(0, base - 6, 256, 100);   // 밑은 평평하게
+      const N = 16, grid = []; for (let i = 0; i < (N + 1) * (N + 1); i++) grid.push(rnd());
+      const vn = (x, y) => { x = x / 256 * N; y = y / 256 * N; const i = Math.floor(x), j = Math.floor(y), fx = x - i, fy = y - j, sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+        const G = (a, b) => grid[Math.min(N, b) * (N + 1) + Math.min(N, a)]; return (G(i, j) * (1 - sx) + G(i + 1, j) * sx) * (1 - sy) + (G(i, j + 1) * (1 - sx) + G(i + 1, j + 1) * sx) * sy; };
+      const nz = (x, y) => vn(x, y) * 0.55 + vn(x * 2.3 + 40, y * 2.3 + 17) * 0.3 + vn(x * 5.1 + 9, y * 5.1 + 77) * 0.15;
+      const spread = 70 + rnd() * 35, tall = 0.55 + rnd() * 0.8, base = 182 + rnd() * 20, blobs = [];
+      const n = 9 + Math.floor(rnd() * 9);
+      for (let i = 0; i < n; i++) { const x = 128 + (rnd() - 0.5) * 2 * spread * (0.4 + rnd() * 0.6), mid = 1 - Math.abs(x - 128) / (spread + 1), r = 20 + rnd() * 26 * (0.6 + mid * 0.7); blobs.push([x, base - r * 0.5 - rnd() * 80 * tall * mid, r]); }
+      const img = g.createImageData(256, 256), D = img.data;
+      for (let y = 0; y < 256; y++) for (let x = 0; x < 256; x++) {
+        let d = 0; for (const [bx, by, r] of blobs) { const q = ((x - bx) * (x - bx) + (y - by) * (y - by)) / (r * r); if (q < 4) d += Math.exp(-q * 1.6); }
+        const e = nz(x, y);
+        let a = Math.min(1, Math.max(0, (d + (e - 0.5) * 0.55 - 0.3) / 0.28)); a = a * a * (3 - 2 * a);
+        a *= Math.min(1, Math.max(0, (base + 4 - y) / 12));   // 밑면 평평
+        if (a <= 0.003) continue;
+        const shade = Math.min(1, Math.max(0, (y - (base - 90)) / 95)) * 0.3 + (0.5 - e) * 0.08;   // 아래로 갈수록 그늘, 잔결 따라 미세한 명암
+        const o = (y * 256 + x) * 4; D[o] = 255 * (1 - shade * 0.42); D[o + 1] = 255 * (1 - shade * 0.36); D[o + 2] = 255 * (1 - shade * 0.25); D[o + 3] = a * 245;
+      }
+      g.putImageData(img, 0, 0);
     });
     const stratus = () => canvasTex(256, 128, (g) => {
       for (let i = 0; i < 40; i++) { const x = 20 + rnd() * 216, y = 50 + rnd() * 30, rx = 30 + rnd() * 60, ry = 6 + rnd() * 12; g.save(); g.translate(x, y); g.scale(1, ry / rx); const gr = g.createRadialGradient(0, 0, 0, 0, 0, rx); gr.addColorStop(0, 'rgba(255,255,255,.55)'); gr.addColorStop(1, 'rgba(240,244,250,0)'); g.fillStyle = gr; g.beginPath(); g.arc(0, 0, rx, 0, 7); g.fill(); g.restore(); }
@@ -6642,7 +6667,7 @@ function buildSeoulReal(D, DD) {
     baseHaze.copy(haze); baseCloud.copy(cc); baseSun = sunS.intensity; baseHemi = hemiS.intensity;
     S.fog.color.copy(haze); S.background.copy(haze);
     starMat.uniforms.uOp.value = night * 0.95; placeStars(date); moonM.position.copy(md).multiplyScalar(20000); moonM.lookAt(0, 0, 0); moonM.material.uniforms.uPhase.value = mA.phase; moonM.material.uniforms.uVis.value = md.y > -0.05 ? 1 : 0;
-    bldMat.emissiveIntensity = night * 1.1 + dusk * 0.2; bldNightMats.forEach(m => { m.emissiveIntensity = bldMat.emissiveIntensity; }); streetLights.material.opacity = night; nightLights.forEach(o => { o.material.uniforms.uOp.value = night; }); bridgeMat.emissiveIntensity = night * 0.6;
+    bldMat.emissiveIntensity = night * 0.9 + dusk * 0.15; bldNightMats.forEach(m => { m.emissiveIntensity = bldMat.emissiveIntensity; }); streetLights.material.opacity = night; nightLights.forEach(o => { o.material.uniforms.uOp.value = night; }); bridgeMat.emissiveIntensity = night * 0.6;
     carMat.emissiveIntensity = night * 1.6 + 0.18;
     landmarkGlows.forEach(g2 => { g2.material.opacity = night * 0.9; }); landmarkLit.forEach(m => { m.emissiveIntensity = night * 0.35; });
     sideMat.emissiveIntensity = night * 0.35;
