@@ -409,7 +409,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-160';
+const BUILD = '11.19-161';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -2080,14 +2080,13 @@ const _glowW = new THREE.Vector3(), _glowA = new THREE.Vector3(), _glowB = new T
 let glowCover = 1;
 function updateHouseBits(dt, t) {
   updateMoonlight(t);
+  wispT.value = t;
   for (const st of steam) {
-    st.life += dt * 0.25;
-    if (st.life > 1) st.life -= 1;
-    const ts = teaSets[st.t] || teaSet, pp = ts.potGroup.position;
-    st.s.position.set(ts.pos.x + pp.x + Math.sin(t + st.life * 6) * 0.04, 0.17 + pp.y + 0.22 + st.life * 0.6, ts.pos.z + pp.z);
-    st.s.scale.setScalar(0.1 + st.life * 0.25);
-    st.s.material.opacity = Math.min(1, st.life * 5) * (1 - st.life) * 0.35;
+    st.s.visible = false;   // 예전 동그란 김은 쓰지 않음
+    const ts = teaSets[st.t] || teaSet;
+    if (!ts.wisp) { ts.wisp = makeSteam(ts.potGroup, 0.09); ts.wisp.wisps.forEach(w => { w.position.y += 0.2; }); }
   }
+  for (const ts of teaSets) if (ts.wisp) { ts.wisp.strength = 0.85; updateSteam(ts.wisp, dt, t); }
   const playing = session.state === 'playing' && Date.now() >= session.startAt;
   const breath = playing ? (Math.sin(t * Math.PI * 2 / 10) + 1) / 2 : (Math.sin(t * 1.4) + 1) / 2;
   centerGlow.scale.setScalar(playing ? 1.9 + breath * 0.8 : 1.9 + breath * 0.25);
@@ -2129,24 +2128,46 @@ const steamTex = (() => {
   t.colorSpace = THREE.SRGBColorSpace;
   return t;
 })();
+/* 김: 가늘고 긴 김 줄기가 살랑이며 피어올라, 위로 갈수록 넓게 퍼지고 끊어지며 연하게 사라짐
+   (늘 카메라를 향해 서는 얇은 띠를 그래픽 카드에서 휘게 그림) */
+const wispT = { value: 0 };
+const wispGeo = (() => { const g = new THREE.PlaneGeometry(1, 1, 1, 28); g.translate(0, 0.5, 0); return g; })();
+function makeWisp(H, W, seed) {
+  const m = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, side: THREE.DoubleSide, fog: false,
+    uniforms: { uT: wispT, uOp: { value: 0 }, uH: { value: H }, uW: { value: W }, uSeed: { value: seed } },
+    vertexShader: `uniform float uT, uH, uW, uSeed; varying vec2 vUv;
+      void main(){
+        vUv = uv; float y = position.y;
+        // 아래는 곧게, 위로 갈수록 천천히 크게 휘감김
+        float sway = (sin(y * 5.5 - uT * 1.1 + uSeed) * 0.55 + sin(y * 11.0 - uT * 1.9 + uSeed * 2.3) * 0.25) * y * y * uH * 0.32;
+        float wide = uW * (0.35 + 2.4 * y * y);
+        vec3 base = (modelMatrix * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+        vec3 toCam = cameraPosition - base; toCam.y = 0.0;
+        vec3 right = normalize(cross(vec3(0.0, 1.0, 0.0), normalize(toCam + vec3(1e-4, 0.0, 0.0))));
+        vec3 wp = base + right * (position.x * wide + sway) + vec3(0.0, y * uH, 0.0);
+        gl_Position = projectionMatrix * viewMatrix * vec4(wp, 1.0);
+      }`,
+    fragmentShader: `uniform float uT, uOp, uSeed; varying vec2 vUv;
+      void main(){
+        float y = vUv.y, x = (vUv.x - 0.5) * 2.0;
+        float core = exp(-x * x * 3.2);
+        // 올라가며 끊어지고 흩어지는 결
+        float br = 0.55 + 0.45 * sin(y * 15.0 - uT * 2.3 + uSeed) * sin(y * 6.2 - uT * 1.2 + uSeed * 3.1 + x * 1.5);
+        float a = core * smoothstep(0.0, 0.1, y) * (1.0 - smoothstep(0.35, 1.0, y)) * mix(1.0, br, smoothstep(0.1, 0.6, y)) * uOp;
+        gl_FragColor = vec4(vec3(0.97, 0.985, 1.0), a);
+      }`,
+  });
+  const w = noRay(new THREE.Mesh(wispGeo, m)); w.frustumCulled = false;
+  return w;
+}
 function makeSteam(parent, size) {
-  const puffs = [];
-  for (let i = 0; i < 6; i++) {
-    const sp = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: steamTex, color: '#ffffff', transparent: true, opacity: 0, depthWrite: false })));
-    parent.add(sp);
-    puffs.push({ sp, life: i / 6, w: Math.random() * 6 });
-  }
-  return { puffs, size, strength: 0 };
+  // 김 줄기 둘 (서로 조금 비켜서, 다른 박자로)
+  const wisps = [0, 1].map(i => { const w = makeWisp(size * 4.6, size * 0.7, Math.random() * 6.28 + i * 2.1); w.position.set((i - 0.5) * size * 0.25, size * 0.2, 0); parent.add(w); return w; });
+  return { wisps, size, strength: 0 };
 }
 function updateSteam(st, dt, t) {
-  for (const p of st.puffs) {
-    p.life += dt * 0.45;
-    if (p.life > 1) { p.life -= 1; p.w = Math.random() * 6; }
-    const L = p.life, sz = st.size;
-    p.sp.position.set(Math.sin(t * 1.3 + p.w + L * 4) * sz * 0.35 * L, sz * (0.3 + L * 2.6), Math.cos(t * 1.1 + p.w) * sz * 0.2 * L);
-    p.sp.scale.set(sz * (0.5 + L * 1.2), sz * (0.9 + L * 1.8), 1);
-    p.sp.material.opacity = Math.min(1, st.strength * Math.min(1, L * 5) * (1 - L) * 1.1);
-  }
+  st.wisps.forEach((w, i) => { w.material.uniforms.uOp.value = st.strength * (0.6 + 0.12 * Math.sin(t * 0.7 + i * 2)); });
 }
 /* ---------- 차 마시기: 찻상 앞에 앉아 주전자로 따르고, 잔을 들어 마시고, 다시 내려놓음 ---------- */
 const TEA_T = 19.3;
