@@ -408,7 +408,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-144';
+const BUILD = '11.19-145';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -6066,6 +6066,125 @@ function buildSeoulReal(D, DD) {
   const snowGeo = new THREE.BufferGeometry(); snowGeo.setAttribute('position', new THREE.BufferAttribute(snowPos, 3)); snowGeo.setDrawRange(0, 0);
   const snowP = noRay(new THREE.Points(snowGeo, new THREE.PointsMaterial({ color: '#ffffff', size: 3, sizeAttenuation: false, transparent: true, opacity: 0.9, depthWrite: false })));
   snowP.frustumCulled = false; fx.add(snowP);
+  // ---- 서울의 새: 가끔 돔 곁을 부드럽고 조용히 지나감 (종마다 생김새와 나는 모습이 다름) ----
+  // 돔 안 장면(fx)에 붙여 가까이에서도 또렷하게. 높이 떠서도 보이게 실제보다 1.6배
+  const BS = 1.6;
+  const bm = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.8, ...o });
+  // len: 몸 길이, span: 날개 편 길이, chord: 날개 폭, tip: 날개 끝 색이 시작되는 곳, round: 둥근 날개 끝
+  const BIRD = {
+    magpie: { name: '까치', body: '#15171c', belly: '#f4f4f2', wing: '#1c2a42', tip: '#f2f2f0', tipFrom: 0.58, bill: '#111', len: 0.22, span: 0.6, chord: 0.15, round: true, tailLen: 0.26, tailW: 0.05, tailCol: '#1a2638', flap: 6.5, glide: 0.45, speed: 8 },
+    egret: { name: '백로', body: '#f8f8f5', belly: '#f8f8f5', wing: '#fbfbf8', tip: '#f2f2ee', tipFrom: 0.9, bill: '#e8c440', len: 0.42, span: 1.45, chord: 0.3, round: true, tailLen: 0.1, tailW: 0.1, tailCol: '#f4f4f0', flap: 2.1, glide: 0.25, speed: 7, neck: true, legs: '#2a2a2a' },
+    heron: { name: '왜가리', body: '#a6aeb5', belly: '#dfe2e4', wing: '#97a1aa', tip: '#3a3f46', tipFrom: 0.6, bill: '#d8b048', len: 0.45, span: 1.6, chord: 0.33, round: true, tailLen: 0.1, tailW: 0.1, tailCol: '#8e98a1', flap: 1.9, glide: 0.2, speed: 7, neck: true, legs: '#6b6150' },
+    gull: { name: '갈매기', body: '#fbfbfb', belly: '#fbfbfb', wing: '#b8c1c9', tip: '#24272b', tipFrom: 0.8, bill: '#f0c43a', len: 0.3, span: 1.2, chord: 0.19, round: false, tailLen: 0.1, tailW: 0.09, tailCol: '#f6f6f6', flap: 3, glide: 0.75, speed: 9 },
+    goose: { name: '기러기', body: '#8a7d6c', belly: '#cbc1b0', wing: '#76695b', tip: '#3f3830', tipFrom: 0.7, bill: '#e2a050', len: 0.42, span: 1.5, chord: 0.26, round: false, tailLen: 0.12, tailW: 0.1, tailCol: '#4a4038', flap: 3.3, glide: 0.1, speed: 13, longNeck: true },
+    pigeon: { name: '비둘기', body: '#8f97a3', belly: '#a9b0ba', wing: '#9ba3ae', tip: '#3d434c', tipFrom: 0.75, bill: '#2c2c2c', len: 0.2, span: 0.64, chord: 0.13, round: false, tailLen: 0.1, tailW: 0.07, tailCol: '#6f7782', flap: 5.5, glide: 0.2, speed: 11, neckTint: '#5e8f74' },
+  };
+  // 날개 한 쪽 조각 (s0~s1: 어깨에서 날개 끝까지의 비율). 앞쪽은 매끈하게, 끝으로 갈수록 가늘어짐
+  function wingPart(sp, s0, s1, side) {
+    const half = sp.span / 2, c0 = sp.chord, N = 8, pos = [], col = [], idx = [];
+    const cA = new THREE.Color(sp.wing), cT = new THREE.Color(sp.tip), cc = new THREE.Color();
+    const chordAt = s => sp.round ? c0 * (1 - 0.25 * s) * (s > 0.82 ? Math.sqrt(Math.max(0.05, 1 - Math.pow((s - 0.82) / 0.18, 2))) : 1) : c0 * Math.max(0.06, 1 - 0.85 * Math.pow(s, 1.3));
+    for (let i = 0; i <= N; i++) {
+      const s = s0 + (s1 - s0) * i / N, ch = chordAt(s), x = side * (s - s0) * half;
+      const le = ch * 0.32 - (sp.round ? 0.02 : 0.12) * s * half;   // 뾰족한 날개는 뒤로 젖혀짐
+      cc.copy(cA).lerp(cT, Math.min(1, Math.max(0, (s - sp.tipFrom) / 0.08)));
+      pos.push(x, 0, le, x, 0, le - ch); col.push(cc.r, cc.g, cc.b, cc.r, cc.g, cc.b);
+      if (i) { const a = (i - 1) * 2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+    }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.setIndex(idx); g.computeVertexNormals();
+    return noRay(new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.75, side: THREE.DoubleSide, metalness: sp === BIRD.magpie ? 0.25 : 0 })));
+  }
+  function makeBird(sp) {
+    const g = new THREE.Group(), add = (geo, mat, x, y, z, parent = g) => { const m = noRay(new THREE.Mesh(geo, mat)); m.position.set(x, y, z); parent.add(m); return m; };
+    const L = sp.len;
+    // 몸: 앞이 둥글고 뒤로 가늘어지는 물방울 모양
+    const body = add(new THREE.SphereGeometry(1, 16, 12), bm(sp.body), 0, 0, 0); body.scale.set(L * 0.2, L * 0.19, L * 0.5);
+    const belly = add(new THREE.SphereGeometry(1, 14, 10), bm(sp.belly), 0, -L * 0.05, L * 0.04); belly.scale.set(L * 0.17, L * 0.15, L * 0.4);
+    const headZ = sp.neck ? L * 0.5 : sp.longNeck ? L * 1.0 : L * 0.5, headY = sp.neck ? L * 0.14 : L * 0.07;
+    if (sp.longNeck) { const nk = add(new THREE.CylinderGeometry(L * 0.05, L * 0.08, L * 0.6, 8), bm('#2d2a26'), 0, L * 0.04, L * 0.68); nk.rotation.x = Math.PI / 2; }
+    if (sp.neck) { const nk = add(new THREE.SphereGeometry(1, 12, 8), bm(sp.body), 0, L * 0.08, L * 0.36); nk.scale.set(L * 0.11, L * 0.15, L * 0.2); }   // S자로 접은 목
+    add(new THREE.SphereGeometry(L * (sp.neck ? 0.09 : sp.longNeck ? 0.09 : 0.13), 12, 10), bm(sp.longNeck ? '#2d2a26' : sp.neckTint || sp.body), 0, headY, headZ);
+    if (sp === BIRD.goose) { const ch = add(new THREE.SphereGeometry(L * 0.05, 8, 6), bm('#f2efe8'), 0, headY - L * 0.03, headZ + L * 0.02); ch.scale.set(1.1, 0.7, 1); }   // 흰 뺨
+    const billLen = sp.neck ? L * 0.4 : sp.longNeck ? L * 0.16 : L * 0.13;
+    const bill = add(new THREE.ConeGeometry(L * 0.03, billLen, 8), bm(sp.bill), 0, headY - L * 0.015, headZ + billLen / 2 + L * 0.07); bill.rotation.x = Math.PI / 2;
+    // 꼬리: 부채꼴 (까치는 길고 좁음)
+    { const tl = sp.tailLen, tw = sp.tailW, pos = [0, 0, 0, -tw, 0, -tl, 0, 0, -tl * 1.05, tw, 0, -tl], tg = new THREE.BufferGeometry();
+      tg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); tg.setIndex([0, 1, 2, 0, 2, 3]); tg.computeVertexNormals();
+      add(tg, bm(sp.tailCol, { side: THREE.DoubleSide }), 0, 0, -L * 0.4); }
+    if (sp.legs) [-1, 1].forEach(s => { const lg = add(new THREE.CylinderGeometry(L * 0.012, L * 0.012, L * 0.95, 5), bm(sp.legs), s * L * 0.03, -L * 0.04, -L * 0.85); lg.rotation.x = Math.PI / 2; });   // 뒤로 뻗은 다리
+    // 날개: 어깨 쪽 절반 + 바깥 절반 (바깥이 한 박자 늦게 부드럽게 휨)
+    const wings = [-1, 1].map(s => {
+      const sh = new THREE.Group(); sh.position.set(s * L * 0.12, L * 0.08, L * 0.08); g.add(sh);
+      sh.add(wingPart(sp, 0, 0.5, s));
+      const el = new THREE.Group(); el.position.set(s * 0.5 * sp.span / 2, 0, 0); sh.add(el);
+      el.add(wingPart(sp, 0.5, 1, s));
+      return { sh, el, s };
+    });
+    g.scale.setScalar(BS);
+    return { g, wings, sp, ph: Math.random() * 10 };
+  }
+  const birdGroup = new THREE.Group(); fx.add(birdGroup);
+  let flight = null, nextFlight = 6 + Math.random() * 8;
+  const _bp = new THREE.Vector3(), _bq = new THREE.Vector3();
+  function startFlight() {
+    const r = Math.random(), kind = r < 0.24 ? 'magpie' : r < 0.36 ? 'egret' : r < 0.46 ? 'heron' : r < 0.64 ? 'gull' : r < 0.8 ? 'goose' : 'pigeon';
+    const sp = BIRD[kind];
+    const n = kind === 'goose' ? 7 + Math.floor(Math.random() * 6) : kind === 'pigeon' ? 14 + Math.floor(Math.random() * 10) : kind === 'gull' ? 2 : kind === 'magpie' && Math.random() < 0.4 ? 2 : 1;
+    // 길: 멀리서 들어와 돔 곁(18~45m)을 지나 반대쪽으로 나감. 비둘기는 돔을 한 바퀴 휘돌고 나감
+    const a0 = Math.random() * Math.PI * 2, R0 = 150, dmin = 18 + Math.random() * 27, side = Math.random() < 0.5 ? 1 : -1;
+    const y0 = kind === 'goose' ? 30 + Math.random() * 25 : 4 + Math.random() * 22;
+    const pts = [];
+    if (kind === 'pigeon') {
+      const rr = 26 + Math.random() * 12;
+      pts.push(new THREE.Vector3(Math.cos(a0) * R0, y0 + 8, Math.sin(a0) * R0));
+      for (let k = 0; k <= 8; k++) { const a = a0 + side * k / 8 * Math.PI * 2.3; pts.push(new THREE.Vector3(Math.cos(a) * rr, y0 + Math.sin(k) * 3, Math.sin(a) * rr)); }
+      const ae = a0 + side * Math.PI * 2.6; pts.push(new THREE.Vector3(Math.cos(ae) * R0, y0 + 10, Math.sin(ae) * R0));
+    } else {
+      const a1 = a0 + Math.PI + (Math.random() - 0.5) * 0.8;
+      const P0 = new THREE.Vector3(Math.cos(a0) * R0, y0, Math.sin(a0) * R0), P1 = new THREE.Vector3(Math.cos(a1) * R0, y0 + (Math.random() - 0.5) * 10, Math.sin(a1) * R0);
+      const dir = P1.clone().sub(P0).setY(0).normalize(), perp = new THREE.Vector3(-dir.z, 0, dir.x).multiplyScalar(side * dmin);
+      pts.push(P0, P0.clone().lerp(P1, 0.35).add(perp).setY(y0 + 2), P0.clone().lerp(P1, 0.65).add(perp).setY(y0 - 1), P1);
+    }
+    const curve = new THREE.CatmullRomCurve3(pts), len = curve.getLength();
+    const birds = [];
+    for (let i = 0; i < n; i++) {
+      const b = makeBird(sp);
+      // 무리 모양: 기러기는 V자, 비둘기는 느슨한 무리, 둘이면 나란히
+      if (kind === 'goose') { const k2 = Math.ceil(i / 2), s = i % 2 ? 1 : -1; b.off = new THREE.Vector3(s * k2 * 2.2, 0, -k2 * 2.6); }
+      else if (kind === 'pigeon') b.off = new THREE.Vector3((Math.random() - 0.5) * 9, (Math.random() - 0.5) * 4, (Math.random() - 0.5) * 9);
+      else b.off = new THREE.Vector3(i * 2.6, (Math.random() - 0.5) * 1.5, -i * 2);
+      birdGroup.add(b.g); birds.push(b);
+    }
+    flight = { curve, len, t: 0, dur: len / sp.speed, birds, sp };
+  }
+  function endFlight() { flight.birds.forEach(b => { birdGroup.remove(b.g); b.g.traverse(o => { if (o.geometry) o.geometry.dispose(); }); }); flight = null; }
+  function tickBirds(dt) {
+    if (!flight) {
+      nextFlight -= dt;
+      if (nextFlight <= 0) { nextFlight = 20 + Math.random() * 30; if (lightOut.night < 0.5 && wx.rain < 0.3 && wx.snow < 0.3) startFlight(); }
+      return;
+    }
+    const F = flight; F.t += dt;
+    const u = F.t / F.dur;
+    if (u >= 1) { endFlight(); return; }
+    const now = performance.now() / 1000;
+    F.curve.getPointAt(u, _bp); F.curve.getTangentAt(u, _bq);
+    const fwd = _bq.clone().normalize(), right = new THREE.Vector3(-fwd.z, 0, fwd.x).normalize();
+    // 굽는 정도로 몸을 살짝 기울임
+    const ahead = F.curve.getTangentAt(Math.min(1, u + 0.02)); const turn = fwd.x * ahead.z - fwd.z * ahead.x;
+    for (const b of F.birds) {
+      const sp = b.sp, o = b.off;
+      const jit = F.sp === BIRD.pigeon ? Math.sin(now * 1.3 + b.ph) * 1.2 : Math.sin(now * 0.6 + b.ph) * 0.3;
+      b.g.position.copy(_bp).addScaledVector(right, o.x + jit).addScaledVector(fwd, o.z).add(new THREE.Vector3(0, o.y + Math.sin(now * 0.8 + b.ph) * 0.4, 0));
+      b.g.lookAt(b.g.position.clone().add(fwd).add(fx.position));   // lookAt은 세상 좌표
+      b.g.rotateZ(-turn * 8);
+      // 날갯짓: 몇 번 치고 미끄러지듯 활공 (종마다 박자와 활공 길이가 다름)
+      const cyc = (now * 0.25 + b.ph) % 1, gliding = cyc < sp.glide;
+      const flap = gliding ? 0.1 + Math.sin(now * 1.5 + b.ph) * 0.04 : Math.sin(now * sp.flap * Math.PI * 2 + b.ph) * 0.5;
+      const flap2 = gliding ? -0.04 : Math.sin(now * sp.flap * Math.PI * 2 + b.ph - 0.6) * 0.4;   // 바깥 날개는 한 박자 늦게
+      for (const w of b.wings) { w.sh.rotation.z = w.s * flap; w.el.rotation.z = w.s * flap2; }
+    }
+  }
   function tickWx(dt) {
     const k = Math.min(1, dt * 0.25);   // 날씨는 몇 초에 걸쳐 천천히 바뀜
     for (const key in wx) wx[key] += (wxWant[key] - wx[key]) * k;
@@ -6110,6 +6229,7 @@ function buildSeoulReal(D, DD) {
       walkT.value = carT.value;
       fx.visible = myDim === 'seoul';
       tickWx(dt);
+      tickBirds(dt);
       for (const b of boats) {
         let bd = ((now / 1000 * b.v / rvTot) + b.ph) % 2 * rvTot, back = false;
         if (bd > rvTot) { bd = rvTot * 2 - bd; back = true; }
