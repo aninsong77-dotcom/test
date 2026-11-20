@@ -363,6 +363,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
         <li>대본: 김주완 명상수업 실습편</li>
         <li>배경 피아노: Serge Quadrado, “Piano for Meditation” (Pixabay)</li>
         <li>서울 하늘 지도: © OpenStreetMap contributors (ODbL)</li>
+        <li>서울 밤하늘 별 자료: Hipparcos 목록, d3-celestial (Olaf Frohn, BSD-3-Clause)</li>
         <li>바다 생물 3D 모델(고래·상어·만타가오리·돌고래·물고기): Quaternius (quaternius.com, CC0)</li>
       </ul>
       <p class="credits-c">© 2026 An In-song (안인성). All rights reserved.</p>
@@ -409,7 +410,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-164';
+const BUILD = '11.19-165';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -6130,7 +6131,9 @@ function loadSeoulReal() {
   Promise.all([
     fetch('seoul-data.json?v=1').then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))),
     fetch('seoul-detail.json?v=1').then(r => r.ok ? r.json() : null).catch(() => null),
-  ]).then(([D, DD]) => {
+    fetch('seoul-stars.json?v=1').then(r => r.ok ? r.json() : null).catch(() => null),
+  ]).then(([D, DD, ST]) => {
+    D.stars = ST;
     // 한 번에 다 만들면 화면이 잠깐 멈추므로, 다음 틈에 만듦
     setTimeout(() => {
       try { seoulReal = buildSeoulReal(D, DD); }
@@ -6171,7 +6174,30 @@ function buildSeoulReal(D, DD) {
   const hemiS = new THREE.HemisphereLight('#cfe6ff', '#8a8f78', 1.1); S.add(hemiS);
   const sunS = new THREE.DirectionalLight('#fff4e0', 2.2); S.add(sunS);
   const moonS = new THREE.DirectionalLight('#9fb6ff', 0); S.add(moonS);
-  const stars = (() => { const n = 1400, p = new Float32Array(n * 3); for (let i = 0; i < n; i++) { const u = Math.random(), a = Math.random() * 6.283, r = Math.sqrt(1 - u * u); p.set([Math.cos(a) * r * 30000, u * 30000, Math.sin(a) * r * 30000], i * 3); } const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(p, 3)); const o = new THREE.Points(g, new THREE.PointsMaterial({ size: 2, sizeAttenuation: false, color: '#ffffff', transparent: true, opacity: 0, depthWrite: false, fog: false })); S.add(o); return o; })();
+  // 별: 실제 별 목록(맨눈으로 보이는 5등급까지 약 1,600개)을 서울의 지금 시각 하늘 자리에 놓음 (별자리가 실제처럼). 밝은 별일수록 크게, 제 빛깔로
+  const STAR = (D.stars && D.stars.s) || [];
+  const starN = STAR.length / 4, sPos = new Float32Array(starN * 3), sSize = new Float32Array(starN), sCol = new Float32Array(starN * 3);
+  const bvRGB = (bv, c) => { const t = Math.max(-0.4, Math.min(2, bv)); if (t < 0) c.setRGB(0.68, 0.78, 1); else if (t < 0.4) c.setRGB(0.85 + t * 0.35, 0.9 + t * 0.2, 1); else if (t < 1.0) c.setRGB(1, 0.98 - (t - 0.4) * 0.25, 0.92 - (t - 0.4) * 0.55); else c.setRGB(1, 0.83 - (t - 1) * 0.2, 0.6 - (t - 1) * 0.25); return c; };
+  { const c = new THREE.Color(); for (let i = 0; i < starN; i++) { const m = STAR[i * 4 + 2]; sSize[i] = Math.max(1.8, 8.0 - m * 1.25); bvRGB(STAR[i * 4 + 3], c); sCol.set([c.r, c.g, c.b], i * 3); } }
+  const starGeo = new THREE.BufferGeometry();
+  starGeo.setAttribute('position', new THREE.BufferAttribute(sPos, 3)); starGeo.setAttribute('aSize', new THREE.BufferAttribute(sSize, 1)); starGeo.setAttribute('aCol', new THREE.BufferAttribute(sCol, 3));
+  const starMat = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, fog: false, blending: THREE.AdditiveBlending, uniforms: { uOp: { value: 0 }, uPR: { value: Math.min(window.devicePixelRatio || 1, 2) } },
+    vertexShader: 'attribute float aSize; attribute vec3 aCol; uniform float uPR; varying vec3 vC; void main(){ vC = aCol; gl_PointSize = aSize * uPR; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: 'uniform float uOp; varying vec3 vC; void main(){ vec2 d = gl_PointCoord - 0.5; float r = length(d) * 2.0; float a = smoothstep(1.0, 0.0, r); a = pow(a, 1.6) + 0.6 * smoothstep(0.35, 0.0, r); gl_FragColor = vec4(vC * a * uOp, min(1.0, a) * uOp); }' });
+  const stars = new THREE.Points(starGeo, starMat); stars.frustumCulled = false; S.add(stars);
+  stars.material.opacity = 0;   // (아래 setTime에서 밤의 정도로 밝기를 정함)
+  const placeStars = date => {
+    const dd = (date.getTime() / 86400000) - 10957.5, gmst = (280.46061837 + 360.98564736629 * dd) % 360;
+    for (let i = 0; i < starN; i++) {
+      const ra = STAR[i * 4] * Math.PI / 180, dec = STAR[i * 4 + 1] * Math.PI / 180;
+      const ha = ((gmst + 126.98) * Math.PI / 180) - ra, lat = 37.55 * Math.PI / 180;
+      const alt = Math.asin(Math.sin(lat) * Math.sin(dec) + Math.cos(lat) * Math.cos(dec) * Math.cos(ha));
+      const az = Math.atan2(-Math.sin(ha), Math.tan(dec) * Math.cos(lat) - Math.sin(lat) * Math.cos(ha));
+      const R = alt > -0.02 ? 30000 : 0;   // 지평선 아래 별은 숨김
+      sPos[i * 3] = Math.sin(az) * Math.cos(alt) * R; sPos[i * 3 + 1] = Math.sin(alt) * R; sPos[i * 3 + 2] = -Math.cos(az) * Math.cos(alt) * R;
+    }
+    starGeo.attributes.position.needsUpdate = true;
+  };
   const moonM = new THREE.Mesh(new THREE.CircleGeometry(1, 48), new THREE.ShaderMaterial({ transparent: true, depthWrite: false, fog: false, uniforms: { uPhase: { value: 0.5 }, uVis: { value: 1 } },
     vertexShader: 'varying vec2 vU; void main(){ vU = position.xy; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }',
     fragmentShader: `varying vec2 vU; uniform float uPhase; uniform float uVis; void main(){
@@ -6480,7 +6506,7 @@ function buildSeoulReal(D, DD) {
     const cc = new THREE.Color('#ffffff').lerp(new THREE.Color('#ffb48f'), dusk * 0.9).lerp(new THREE.Color('#36405e'), night); clouds.forEach(c => c.material.color.copy(cc));
     baseHaze.copy(haze); baseCloud.copy(cc); baseSun = sunS.intensity; baseHemi = hemiS.intensity;
     S.fog.color.copy(haze); S.background.copy(haze);
-    stars.material.opacity = night * 0.9; moonM.position.copy(md).multiplyScalar(20000); moonM.lookAt(0, 0, 0); moonM.material.uniforms.uPhase.value = mA.phase; moonM.material.uniforms.uVis.value = md.y > -0.05 ? 1 : 0;
+    starMat.uniforms.uOp.value = night * 0.95; placeStars(date); moonM.position.copy(md).multiplyScalar(20000); moonM.lookAt(0, 0, 0); moonM.material.uniforms.uPhase.value = mA.phase; moonM.material.uniforms.uVis.value = md.y > -0.05 ? 1 : 0;
     bldMat.emissiveIntensity = night * 1.1 + dusk * 0.2; bldNightMats.forEach(m => { m.emissiveIntensity = bldMat.emissiveIntensity; }); streetLights.material.opacity = night; bridgeMat.emissiveIntensity = night * 0.6;
     carMat.emissiveIntensity = night * 1.2 + 0.18;
     sideMat.emissiveIntensity = night * 0.7;
