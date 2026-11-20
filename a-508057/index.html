@@ -408,7 +408,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-146';
+const BUILD = '11.19-147';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -6131,11 +6131,13 @@ function buildSeoulReal(D, DD) {
     const sp = BIRD[kind];
     const n = kind === 'goose' ? 7 + Math.floor(Math.random() * 6) : kind === 'pigeon' ? 14 + Math.floor(Math.random() * 10) : kind === 'gull' ? 2 : kind === 'magpie' && Math.random() < 0.4 ? 2 : 1;
     // 길: 멀리서 들어와 돔 곁(11~20m)을 지나 반대쪽으로 나감. 비둘기는 돔을 한 바퀴 휘돌고 나감
-    const a0 = Math.random() * Math.PI * 2, R0 = 80, dmin = 11 + Math.random() * 9, side = Math.random() < 0.5 ? 1 : -1;   // 유리 바로 바깥(11~20m)을 지나감
-    const y0 = kind === 'goose' ? 12 + Math.random() * 14 : 1 + Math.random() * 7;   // 눈높이 가까이
+    // 대개는 멀리(30~90m) 여러 높이로, 가끔(10번 중 4번)은 유리 바로 바깥(11~20m) 눈높이로
+    const near = Math.random() < (kind === 'goose' ? 0.2 : 0.4);
+    const a0 = Math.random() * Math.PI * 2, R0 = near ? 80 : 170, dmin = near ? 11 + Math.random() * 9 : 30 + Math.random() * 60, side = Math.random() < 0.5 ? 1 : -1;
+    const y0 = kind === 'goose' ? (near ? 12 : 20) + Math.random() * 25 : near ? 1 + Math.random() * 7 : -15 + Math.random() * 50;
     const pts = [];
     if (kind === 'pigeon') {
-      const rr = 13 + Math.random() * 5;
+      const rr = near ? 13 + Math.random() * 5 : 30 + Math.random() * 25;
       pts.push(new THREE.Vector3(Math.cos(a0) * R0, y0 + 8, Math.sin(a0) * R0));
       for (let k = 0; k <= 8; k++) { const a = a0 + side * k / 8 * Math.PI * 2.3; pts.push(new THREE.Vector3(Math.cos(a) * rr, y0 + Math.sin(k) * 3, Math.sin(a) * rr)); }
       const ae = a0 + side * Math.PI * 2.6; pts.push(new THREE.Vector3(Math.cos(ae) * R0, y0 + 10, Math.sin(ae) * R0));
@@ -6155,8 +6157,63 @@ function buildSeoulReal(D, DD) {
       else b.off = new THREE.Vector3(i * 2.6, (Math.random() - 0.5) * 1.5, -i * 2);
       birdGroup.add(b.g); birds.push(b);
     }
-    flight = { curve, len, u: 0, birds, sp };
+    flight = { curve, len, u: 0, birds, sp, near };
     tickBirds(0);   // 처음부터 제자리에 (돔 가운데에 잠깐 보이지 않게)
+  }
+  // ---- 아주 가끔 먼 하늘을 지나는 비행기 (2.5~4.5km 밖, 하얀 비행운, 밤에는 깜박이는 불빛) ----
+  const plane = new THREE.Group(); plane.visible = false; S.add(plane);
+  { const wm = std({ color: '#f4f6f8', roughness: 0.5, metalness: 0.2 }), bm2 = std({ color: '#2f6fd0', roughness: 0.5 }), gm = std({ color: '#c9ced4', roughness: 0.5, metalness: 0.3 });
+    const add = (geo, m, x, y, z) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); plane.add(o); return o; };
+    add(new THREE.CylinderGeometry(2, 2, 38, 12), wm, 0, 0, 0).rotation.x = Math.PI / 2;
+    add(new THREE.SphereGeometry(2, 12, 8), wm, 0, 0, 19).scale.set(1, 1, 1.6);
+    add(new THREE.ConeGeometry(2, 8, 12), wm, 0, 0.4, -23).rotation.x = -Math.PI / 2;
+    const wing = new THREE.Shape([new THREE.Vector2(0, 3), new THREE.Vector2(17, -4), new THREE.Vector2(17, -6.5), new THREE.Vector2(0, -3), new THREE.Vector2(-17, -6.5), new THREE.Vector2(-17, -4)]);
+    const wg = new THREE.ExtrudeGeometry(wing, { depth: 0.5, bevelEnabled: false }); wg.rotateX(Math.PI / 2); add(wg, gm, 0, -0.8, 0);
+    const tl = new THREE.Shape([new THREE.Vector2(0, 0), new THREE.Vector2(6, -3), new THREE.Vector2(6, -4.5), new THREE.Vector2(0, -2.5), new THREE.Vector2(-6, -4.5), new THREE.Vector2(-6, -3)]);
+    const tg = new THREE.ExtrudeGeometry(tl, { depth: 0.3, bevelEnabled: false }); tg.rotateX(Math.PI / 2); add(tg, gm, 0, 1, -17);
+    const fin = add(new THREE.BoxGeometry(0.5, 8, 6), bm2, 0, 5, -18); fin.rotation.x = -0.35;
+    [-7, 7].forEach(x => { add(new THREE.CylinderGeometry(1.1, 1.1, 5, 10), gm, x, -2.4, 3).rotation.x = Math.PI / 2; }); }
+  plane.scale.setScalar(6);   // 멀리서도 비행기 모양이 보이게
+  const navL = (c, x, y, z) => { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: c, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false })); sp.position.set(x, y, z); plane.add(sp); return sp; };
+  const navs = [navL('#ff3b3b', -17, 0, -5), navL('#3bff6a', 17, 0, -5), navL('#ffffff', 0, 2.5, -24)];
+  const trailN = 70, trail = [];
+  for (let i = 0; i < trailN; i++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: '#ffffff', transparent: true, opacity: 0, depthWrite: false })); sp.visible = false; S.add(sp); trail.push({ sp, born: -1 }); }
+  let flyP = null, nextPlane = 90 + Math.random() * 120, trailAt = 0, trailIdx = 0;
+  function tickPlane(dt) {
+    const tnow = performance.now() / 1000;
+    if (!flyP) {
+      nextPlane -= dt;
+      if (nextPlane <= 0) {
+        nextPlane = 180 + Math.random() * 240;
+        if (wx.fog < 0.5 && wx.rain < 0.7) {
+          const hd = Math.random() * Math.PI * 2, dir = new THREE.Vector3(Math.cos(hd), 0, Math.sin(hd)), perp = new THREE.Vector3(-dir.z, 0, dir.x);
+          const D = (2500 + Math.random() * 2000) * (Math.random() < 0.5 ? 1 : -1), alt = 800 + Math.random() * 600;
+          const from = dome.clone().addScaledVector(perp, D).addScaledVector(dir, -9000).setY(alt);
+          flyP = { from, dir, t: 0, dur: 18000 / 230 };
+          plane.visible = true;
+        }
+      }
+    }
+    if (flyP) {
+      flyP.t += dt;
+      const k = flyP.t / flyP.dur;
+      plane.position.copy(flyP.from).addScaledVector(flyP.dir, 18000 * k);
+      plane.lookAt(plane.position.clone().add(flyP.dir));
+      const nt = lightOut.night, blink = (tnow % 1.2) < 0.12 ? 1 : 0;
+      navs[0].material.opacity = navs[1].material.opacity = 0.35 + 0.6 * nt; navs[2].material.opacity = blink * (0.5 + 0.5 * nt);
+      navs.forEach(n => n.scale.setScalar(8 + 45 * nt));
+      // 비행운: 지나간 자리에 하얀 줄이 남았다가 천천히 흩어짐
+      trailAt -= dt;
+      if (trailAt <= 0) { trailAt = 0.6; const T2 = trail[trailIdx++ % trailN]; T2.born = tnow; T2.sp.position.copy(plane.position).addScaledVector(flyP.dir, -180); T2.sp.visible = true; }
+      if (k >= 1) { flyP = null; plane.visible = false; }
+    }
+    for (const T2 of trail) {
+      if (T2.born < 0) continue;
+      const age = tnow - T2.born;
+      if (age > 40) { T2.born = -1; T2.sp.visible = false; continue; }
+      T2.sp.scale.set(150 + age * 6, 45 + age * 4, 1);
+      T2.sp.material.opacity = 0.45 * (1 - age / 40) * (1 - 0.6 * lightOut.night);
+    }
   }
   function endFlight() { flight.birds.forEach(b => { birdGroup.remove(b.g); b.g.traverse(o => { if (o.geometry) o.geometry.dispose(); }); }); flight = null; }
   function tickBirds(dt) {
@@ -6167,7 +6224,7 @@ function buildSeoulReal(D, DD) {
     }
     const F = flight;
     // 돔 곁을 지날 때는 천천히 (잘 보이게), 멀 때는 제 빠르기로
-    F.u += dt * F.sp.speed * (1 - 0.55 * Math.exp(-Math.pow((F.u - 0.5) / 0.2, 2))) / F.len;
+    F.u += dt * F.sp.speed * (1 - (F.near ? 0.55 : 0) * Math.exp(-Math.pow((F.u - 0.5) / 0.2, 2))) / F.len;
     const u = F.u;
     if (u >= 1) { endFlight(); return; }
     const now = performance.now() / 1000;
@@ -6236,6 +6293,7 @@ function buildSeoulReal(D, DD) {
       fx.visible = myDim === 'seoul';
       tickWx(dt);
       tickBirds(dt);
+      tickPlane(dt);
       for (const b of boats) {
         let bd = ((now / 1000 * b.v / rvTot) + b.ph) % 2 * rvTot, back = false;
         if (bd > rvTot) { bd = rvTot * 2 - bd; back = true; }
