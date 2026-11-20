@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>하</title>
+<title>쨘 (명상 메타버스)</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="theme-color" content="#1f86b6">
 <meta name="description" content="누구나 자유롭게 들어와 명상할 수 있는 바닷속 명상 공간입니다.">
 <meta property="og:type" content="website">
-<meta property="og:title" content="하">
+<meta property="og:title" content="쨘 (명상 메타버스)">
 <meta property="og:description" content="누구나 자유롭게 들어와 명상할 수 있는 바닷속 명상 공간입니다.">
 <meta property="og:url" content="https://aninsong77-dotcom.github.io/a-508057/">
 <meta property="og:locale" content="ko_KR">
@@ -147,25 +147,39 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 .title-card .t-label{font:400 15px/1 var(--f-display);color:var(--muted);letter-spacing:.4em;padding-left:.4em}
 .title-card .t-id{font:500 clamp(34px,9vw,66px)/1 var(--f-mono);letter-spacing:.22em;padding-left:.22em;color:var(--ink)}
 
-.sp-name{margin:4px 0 0!important;text-align:center;font:700 clamp(48px,13vw,76px)/1.1 var(--f-display)!important;color:var(--ink)!important;letter-spacing:.04em}
-.sp-copy{margin:0!important;text-align:center;font-size:12px!important;color:var(--muted)!important}
-/* 이름 '하': 명조체 글자 위로 칼날이 번득이듯 가는 빛줄기가 한 번 쓱 지나가고, 끝에서 작은 별빛이 반짝 */
-.sp-name{position:relative}
-.sp-name span{position:relative;display:inline-block;color:transparent;-webkit-background-clip:text;background-clip:text;
-  background-image:linear-gradient(115deg,#c3d9e5 0%,#c3d9e5 45.5%,#e8f6ff 48%,#ffffff 49.3%,#ffffff 50.7%,#e8f6ff 52%,#c3d9e5 54.5%,#c3d9e5 100%);
-  background-size:400% 100%;background-position:100% 0}
-.sp-name span::after{content:"";position:absolute;right:-.12em;top:.04em;width:.5em;height:.5em;opacity:0;transform:scale(0) rotate(0deg);pointer-events:none;
-  background:radial-gradient(circle,#fff 0 10%,transparent 13%),linear-gradient(0deg,transparent 45%,#fff 50%,transparent 55%),linear-gradient(90deg,transparent 45%,#fff 50%,transparent 55%);
-  -webkit-mask:radial-gradient(circle,#000 0 30%,transparent 70%);mask:radial-gradient(circle,#000 0 30%,transparent 70%)}
-.sp-name.up span{animation:glint .8s cubic-bezier(.55,0,.35,1) forwards}
-.sp-name.up span::after{animation:spark .5s ease-out .62s forwards}
-@keyframes glint{from{background-position:100% 0}to{background-position:0 0}}
-@keyframes spark{0%{opacity:0;transform:scale(0) rotate(0deg)}40%{opacity:1;transform:scale(1) rotate(45deg)}100%{opacity:0;transform:scale(.2) rotate(90deg)}}
-@media (prefers-reduced-motion:reduce){.sp-name.up span,.sp-name.up span::after{animation:none}}
-/* 처음 열 때: 같은 안내 화면을 잠시 보여 주고 바다로 */
-#endSheet.opening{background:radial-gradient(120% 90% at 50% 30%,#1a6f99 0%,#0b3a58 45%,#04182a 100%);transition:opacity .8s ease}
+/* 처음 화면·나가기 화면: 한지 바탕에 검은 먹 글씨(명조체), 네모 칸 없이 */
+#endSheet{background-color:#faf8f2;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='3' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 .55 0 0 0 0 .52 0 0 0 0 .45 0 0 0 .3 -.11'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012' numOctaves='2' seed='9'/%3E%3CfeColorMatrix values='0 0 0 0 .6 0 0 0 0 .57 0 0 0 0 .5 0 0 0 .14 -.03'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  transition:opacity .8s ease}
+#endSheet.off{opacity:0;pointer-events:none}
+#endSheet .card{background:none!important;border:none!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;color:#1d1a16;max-width:520px}
+#endSheet .card,#endSheet .card p,#endSheet .card li,#endSheet .card button{font-family:var(--f-display)!important;color:#1d1a16!important}
+#endSheet .sp-name{margin:4px 0 0;text-align:center;font:700 clamp(56px,15vw,88px)/1.1 var(--f-display);letter-spacing:.04em}
+#endSheet .sp-sub{margin:-4px 0 0!important;text-align:center;font-size:14px!important;letter-spacing:.3em;padding-left:.3em;color:#4a4237!important}
+#endSheet .sp-copy{margin:6px 0 0!important;text-align:center;font-size:12px!important;color:#5b5246!important}
+#endSheet .welcome{font-size:14px!important;margin-top:6px!important}
+#endSheet .credits{background:none!important;border:none!important;padding:0 4px!important;gap:4px}
+#endSheet .credits-h{font:700 13.5px/1.4 var(--f-display)!important;color:#1d1a16!important;margin-top:4px!important}
+#endSheet .credits ul{color:#3b352d!important;font-size:12.5px}
+#endSheet .actions button{background:none!important;border:none!important;border-bottom:1px solid #1d1a16!important;border-radius:0!important;padding:4px 2px!important;font-size:15px!important}
 #endSheet.opening .end-only{display:none}
-#endSheet.opening.off{opacity:0;pointer-events:none}
+/* 세로쓰기: 오른쪽에서 왼쪽으로 */
+#endSheet .card{writing-mode:vertical-rl;text-orientation:mixed;max-height:min(84dvh,620px);max-width:calc(100vw - 24px);overflow-x:auto;overflow-y:hidden;gap:14px;padding:8px 4px}
+#endSheet .card > *{margin:0!important}
+#endSheet .sp-name{text-align:start;line-height:1}
+#endSheet .sp-sub{text-align:start;padding:0!important}
+#endSheet .sp-copy,#endSheet .welcome{text-align:start}
+#endSheet .credits ul{list-style:none;padding:0!important;gap:6px}
+#endSheet .credits-h{margin:0!important}
+#endSheet .actions{justify-content:flex-end}
+/* 이름 '쨘': 먹 글씨 위로 칼날이 번득이듯 가는 빛줄기가 한 번 쓱 지나감 */
+#spName{display:inline-block;color:transparent!important;-webkit-background-clip:text;background-clip:text;
+  background-image:linear-gradient(115deg,#1d1a16 0%,#1d1a16 45.5%,#8d8676 47.8%,#f7f3ea 49.3%,#ffffff 50%,#f7f3ea 50.7%,#8d8676 52.2%,#1d1a16 54.5%,#1d1a16 100%);
+  background-size:400% 100%;background-position:100% 0}
+#spName.up{animation:glint .8s cubic-bezier(.55,0,.35,1) forwards}
+@keyframes glint{from{background-position:100% 0}to{background-position:0 0}}
+@media (prefers-reduced-motion:reduce){#spName.up{animation:none}}
 .flash{position:fixed;inset:0;z-index:7;background:#ffffff;opacity:0;pointer-events:none}
 .notice{position:fixed;inset:0;z-index:7;display:grid;place-items:center;text-align:center;padding:0 24px;color:var(--muted);line-height:1.7}
 .dome-bar{
@@ -219,7 +233,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 .copyline span{display:inline-block;font:500 10.5px/1.3 var(--f-body);color:rgba(72,92,104,.82);letter-spacing:.01em;
   text-shadow:0 0 3px rgba(255,255,255,.45)}
 #endSheet .card{max-height:calc(100dvh - 32px);overflow-y:auto}
-#endSheet .welcome{text-align:center;color:var(--ink);font-size:13.5px}
+#endSheet .welcome{color:var(--ink);font-size:13.5px}
 .credits{display:grid;gap:6px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.05);border:1px solid var(--line)}
 .credits-h{margin:0;font:600 13px/1.3 var(--f-body)!important;color:var(--ink)!important}
 .credits ul{margin:0;padding-left:18px;display:grid;gap:3px;font-size:12px;line-height:1.5;color:var(--muted)}
@@ -243,7 +257,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 
 <header class="hud fade is-hidden" id="hud">
   <div class="plate">
-    <div class="id">하</div>
+    <div class="id">쨘</div>
     <div class="sub"><span hidden><span id="found"></span><span id="lightCount"></span></span><span id="dimName"></span>유리 돔 · <span id="together">혼자 있어요</span> <span id="buildTag" style="opacity:.55;font-size:10px"></span> <span id="osmTag" hidden style="opacity:.6;font-size:10px">지도 © OpenStreetMap</span> <span id="wxTag" hidden style="font-size:11px"></span></div>
     <div class="hint" id="hint"></div>
   </div>
@@ -365,11 +379,10 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 
 <div class="sheet" id="endSheet" hidden>
   <div class="card" role="dialog" aria-labelledby="endTitle">
-    <h2 id="endTitle" class="end-only">함께해 주셔서 고마워요</h2>
-    <p class="end-only">빛을 타고 돌아갔어요. 창을 닫으면 끝나요.</p>
-    <p class="sp-name" id="spName" aria-label="하"><span>하</span></p>
+    <h2 id="endTitle" class="sp-name" aria-label="쨘, 명상 메타버스"><span id="spName">쨘</span></h2>
+    <p class="sp-sub">명상 메타버스</p>
     <p class="sp-copy">© 2026 An In-song (안인성). All rights reserved.</p>
-    <p class="welcome">누구나 자유롭게 들어와 명상할 수 있는 바닷속 명상 공간입니다.<br>언제든 다시 오세요.</p>
+    <p class="welcome">누구나 자유롭게 명상할 수 있는 공간입니다.<br>언제든 다시 오세요.</p>
     <div class="credits" aria-label="명상 안내 음성 출처">
       <p class="credits-h">명상 안내 음성 출처</p>
       <ul>
@@ -379,8 +392,8 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
         <li>대본: 김주완 명상수업 실습편</li>
       </ul>
     </div>
-    <div class="credits" aria-label="제작에 쓴 자료 출처">
-      <p class="credits-h">제작에 쓴 자료 출처</p>
+    <div class="credits" aria-label="기타 자료 출처">
+      <p class="credits-h">기타 자료 출처</p>
       <ul>
         <li>배경 피아노: Serge Quadrado, “Piano for Meditation” (Pixabay)</li>
         <li>서울 하늘 지도: © OpenStreetMap contributors (ODbL)</li>
@@ -411,7 +424,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 
 <div class="title-card fade is-hidden" id="titleCard">
   <div class="t-label" id="tcLabel">바닷속</div>
-  <div class="t-id">하</div>
+  <div class="t-id">쨘</div>
 </div>
 
 <div class="flash" id="flash"></div>
@@ -430,7 +443,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-177';
+const BUILD = '11.19-180';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -5284,10 +5297,6 @@ function enterDomeDirect() {
   whiteFlash(1, 1, 0);   // 하얀 빛에서 시작
   beam.visible = true;
   motes.forEach(m => { m.sp.visible = true; });
-  const tc = $('titleCard');
-  tc.classList.remove('is-hidden');
-  clearTimeout(titleTimer);
-  titleTimer = setTimeout(() => tc.classList.add('is-hidden'), 1800);
   sendPresence(true);
 }
 /* 나가기와 들어오기는 한 장면을 앞으로/거꾸로 돌린 것
@@ -5883,10 +5892,19 @@ function buildSpace() {
         float ice = smoothstep(0.82, 0.9, lat + (fbm(p * 6.0, 3) - 0.5) * 0.12);
         vec3 alb = mix(ocean, ground, land);
         alb = mix(alb, vec3(0.86, 0.9, 0.95), ice);
-        // 빛: 낮과 밤의 경계는 부드럽게, 밤은 거의 까맣게 (불빛 없음)
+        // 빛: 낮과 밤의 경계는 부드럽게, 밤은 거의 까맣게
         vec3 N = normalize(vWN), V = normalize(cameraPosition - vWP), L = normalize(uSun);
         float nl = dot(N, L), day = smoothstep(-0.08, 0.25, nl);
         vec3 col = alb * (0.012 + 1.35 * max(nl, 0.0) * day);
+        // 밤 쪽 도시 불빛: 해안과 중위도에 많이, 큰 도시 덩어리 + 자잘한 불빛 알갱이 + 도시를 잇는 가는 길
+        float coastNear = 1.0 - smoothstep(0.0, 0.07, n - coast);
+        float region = smoothstep(0.58, 0.78, fbm(p * 4.3 + vec3(11.0, 3.0, 7.0), 4)) * (0.35 + 0.9 * coastNear);
+        float temperate = smoothstep(0.78, 0.35, lat) * smoothstep(0.0, 0.12, lat + 0.06);
+        float grain = smoothstep(0.72, 0.97, vn(p * 150.0)) + 0.7 * smoothstep(0.86, 0.99, vn(p * 330.0 + 3.0));
+        float roadsL = smoothstep(0.02, 0.0, abs(fbm(p * 9.0 + 2.0, 3) - 0.5)) * smoothstep(0.4, 0.6, fbm(p * 4.3 + vec3(11.0, 3.0, 7.0), 3));
+        float city = land * (1.0 - ice) * temperate * clamp(region * (0.12 + grain * 1.7) + roadsL * region * 0.5, 0.0, 1.6);
+        float nightK = 1.0 - smoothstep(-0.15, 0.08, nl);
+        col += vec3(1.0, 0.68, 0.32) * city * nightK * 0.75;
         // 바다에 비친 해 (반짝임)
         vec3 H = normalize(L + V); float nh = max(dot(N, H), 0.0), spec = (pow(nh, 320.0) * 0.7 + pow(nh, 24.0) * 0.06) * (1.0 - land) * (1.0 - ice) * day;
         col += vec3(1.0, 0.95, 0.85) * spec;
@@ -6569,9 +6587,30 @@ function buildSeoulReal(D, DD) {
   }
   // 구름: 낮은 구름(300~700m)과 높은 구름(900~1800m)
   const clouds = [];
-  { const ct = canvasTex(256, 256, (g, w, h) => { for (let i = 0; i < 26; i++) { const x = 40 + rnd() * 176, y = 90 + rnd() * 90 - (Math.abs(x - 128) < 60 ? 30 : 0), r = 26 + rnd() * 34; const gr = g.createRadialGradient(x, y - r * 0.3, r * 0.1, x, y, r); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.7, 'rgba(246,249,252,.95)'); gr.addColorStop(1, 'rgba(230,238,246,0)'); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); } });
-    const [X0, X1, Z0, Z1] = D.bounds;
-    for (let i = 0; i < (light ? 60 : 100); i++) { const low = i % 3 === 0; const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: ct, transparent: true, depthWrite: false })); const sc = (low ? 260 : 500) + rnd() * (low ? 400 : 900); sp.scale.set(sc * 1.6, sc, 1); sp.position.set(X0 - 4000 + rnd() * (X1 - X0 + 8000), low ? 300 + rnd() * 400 : 900 + rnd() * 900, Z0 - 6000 + rnd() * (Z1 - Z0 + 12000)); S.add(sp); clouds.push(sp); } }
+  { const [X0, X1, Z0, Z1] = D.bounds;
+    // 구름 모양을 여러 가지로: 뭉게구름(크기·퍼짐이 제각각, 밑이 평평), 옆으로 넓게 깔린 층구름, 높은 곳의 가는 새털구름
+    const blob = (g, x, y, r, a) => { const gr = g.createRadialGradient(x, y - r * 0.3, r * 0.1, x, y, r); gr.addColorStop(0, `rgba(255,255,255,${a})`); gr.addColorStop(0.7, `rgba(246,249,252,${a * 0.95})`); gr.addColorStop(1, 'rgba(230,238,246,0)'); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); };
+    const cumulus = k => canvasTex(256, 256, (g) => {
+      const n = 10 + Math.floor(rnd() * 22), spread = 50 + rnd() * 80, tall = 0.5 + rnd() * 0.9, base = 170 + rnd() * 30;
+      for (let i = 0; i < n; i++) { const x = 128 + (rnd() - 0.5) * 2 * spread * (0.5 + rnd() * 0.5), mid = 1 - Math.abs(x - 128) / (spread + 1), r = 14 + rnd() * 30 * (0.6 + mid * 0.6), y = base - r * 0.6 - rnd() * 70 * tall * mid; blob(g, x, y, r, 0.9 + rnd() * 0.1); }
+      g.globalCompositeOperation = 'destination-out'; const fl = g.createLinearGradient(0, base - 6, 0, base + 14); fl.addColorStop(0, 'rgba(0,0,0,0)'); fl.addColorStop(1, 'rgba(0,0,0,1)'); g.fillStyle = fl; g.fillRect(0, base - 6, 256, 100);   // 밑은 평평하게
+    });
+    const stratus = () => canvasTex(256, 128, (g) => {
+      for (let i = 0; i < 40; i++) { const x = 20 + rnd() * 216, y = 50 + rnd() * 30, rx = 30 + rnd() * 60, ry = 6 + rnd() * 12; g.save(); g.translate(x, y); g.scale(1, ry / rx); const gr = g.createRadialGradient(0, 0, 0, 0, 0, rx); gr.addColorStop(0, 'rgba(255,255,255,.55)'); gr.addColorStop(1, 'rgba(240,244,250,0)'); g.fillStyle = gr; g.beginPath(); g.arc(0, 0, rx, 0, 7); g.fill(); g.restore(); }
+    });
+    const cirrus = () => canvasTex(256, 128, (g) => {
+      const tilt = (rnd() - 0.5) * 0.5;
+      for (let i = 0; i < 26; i++) { const x = 30 + rnd() * 196, y = 30 + rnd() * 68, rx = 20 + rnd() * 50, ry = 1.5 + rnd() * 3.5; g.save(); g.translate(x, y); g.rotate(tilt + (rnd() - 0.5) * 0.25); g.scale(1, ry / rx); const gr = g.createRadialGradient(0, 0, 0, 0, 0, rx); gr.addColorStop(0, 'rgba(255,255,255,.7)'); gr.addColorStop(1, 'rgba(240,244,250,0)'); g.fillStyle = gr; g.beginPath(); g.arc(0, 0, rx, 0, 7); g.fill(); g.restore(); }
+    });
+    const lowT = [0, 1, 2, 3, 4].map(cumulus).concat([stratus()]), highT = [stratus(), stratus(), cirrus(), cirrus(), cumulus(9)];
+    for (let i = 0; i < (light ? 60 : 100); i++) {
+      const low = i % 3 === 0, ti = Math.floor(rnd() * (low ? lowT.length : highT.length)), tex = low ? lowT[ti] : highT[ti];
+      const flat = tex.image.height < tex.image.width;   // 층구름·새털구름은 옆으로 길게
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, rotation: flat ? (rnd() - 0.5) * 0.12 : 0 }));
+      const sc = (low ? 260 : 500) + rnd() * (low ? 400 : 900);
+      sp.scale.set(sc * (flat ? 2.6 + rnd() * 1.4 : 1.2 + rnd() * 0.9) * (rnd() < 0.5 ? -1 : 1), sc * (flat ? 0.55 + rnd() * 0.3 : 0.8 + rnd() * 0.5), 1);
+      sp.position.set(X0 - 4000 + rnd() * (X1 - X0 + 8000), low ? 300 + rnd() * 400 : 900 + rnd() * 900, Z0 - 6000 + rnd() * (Z1 - Z0 + 12000)); S.add(sp); clouds.push(sp);
+    } }
   // 실제 서울 해·달 위치 (한국 시간)
   const LAT = 37.55 * Math.PI / 180, LON = 126.98;
   const eqToHor = (ra, dec, d) => { const gmst = (280.46061837 + 360.98564736629 * d) % 360; const ha = ((gmst + LON) * Math.PI / 180) - ra; const alt = Math.asin(Math.sin(LAT) * Math.sin(dec) + Math.cos(LAT) * Math.cos(dec) * Math.cos(ha)); const az = Math.atan2(-Math.sin(ha), Math.tan(dec) * Math.cos(LAT) - Math.sin(LAT) * Math.cos(ha)); return { alt, az }; };
@@ -7197,11 +7236,11 @@ function frame() {
   requestAnimationFrame(frame);
 }
 setLook(HOUSE_BASE + 2);
-/* 처음 열 때: 이름 '하'와 출처가 있는 화면을 잠시 보여 주고 → 바다 돔으로 빛을 타고 내려옴 (누르면 바로) */
+/* 처음 열 때: 이름 '쨘'과 출처가 있는 화면을 잠시 보여 주고 → 바다 돔으로 빛을 타고 내려옴 (누르면 바로) */
 function standName() {   // 명조체가 다 불러와진 뒤에 번득임 (글씨체가 바뀌는 도중에 지나가지 않게)
   const nm = $('spName'); nm.classList.remove('up'); void nm.offsetWidth;
   const go = () => setTimeout(() => nm.classList.add('up'), 600);
-  try { Promise.race([document.fonts.load('700 64px "Nanum Myeongjo"', '하'), new Promise(r => setTimeout(r, 2500))]).then(go, go); } catch (e) { go(); }
+  try { Promise.race([document.fonts.load('700 64px "Nanum Myeongjo"', '쨘'), new Promise(r => setTimeout(r, 2500))]).then(go, go); } catch (e) { go(); }
 }
 let openingGo = null;
 function finishOpening() {
@@ -7210,7 +7249,7 @@ function finishOpening() {
   const sh = $('endSheet');
   flash.style.transition = 'none'; flash.style.opacity = '1';   // 화면 뒤를 하얀 빛으로
   sh.classList.add('off');
-  setTimeout(() => { sh.classList.remove('opening', 'off'); enterDomeDirect(); }, 800);
+  setTimeout(() => { sh.hidden = true; sh.classList.remove('opening', 'off'); enterDomeDirect(); }, 800);
 }
 $('endSheet').addEventListener('click', () => { if ($('endSheet').classList.contains('opening')) { unlockAudio(); finishOpening(); } });
 iAmOut = true;   // 들어가기 전에는 다른 사람 화면에 안 보임
