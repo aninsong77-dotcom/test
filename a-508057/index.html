@@ -408,7 +408,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-145';
+const BUILD = '11.19-146';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -6067,8 +6067,8 @@ function buildSeoulReal(D, DD) {
   const snowP = noRay(new THREE.Points(snowGeo, new THREE.PointsMaterial({ color: '#ffffff', size: 3, sizeAttenuation: false, transparent: true, opacity: 0.9, depthWrite: false })));
   snowP.frustumCulled = false; fx.add(snowP);
   // ---- 서울의 새: 가끔 돔 곁을 부드럽고 조용히 지나감 (종마다 생김새와 나는 모습이 다름) ----
-  // 돔 안 장면(fx)에 붙여 가까이에서도 또렷하게. 높이 떠서도 보이게 실제보다 1.6배
-  const BS = 1.6;
+  // 돔 안 장면(fx)에 붙여 가까이에서도 또렷하게
+  const BS = 2.4;   // 돔 안에서도 종이 잘 보이게 실제보다 크게
   const bm = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.8, ...o });
   // len: 몸 길이, span: 날개 편 길이, chord: 날개 폭, tip: 날개 끝 색이 시작되는 곳, round: 둥근 날개 끝
   const BIRD = {
@@ -6130,12 +6130,12 @@ function buildSeoulReal(D, DD) {
     const r = Math.random(), kind = r < 0.24 ? 'magpie' : r < 0.36 ? 'egret' : r < 0.46 ? 'heron' : r < 0.64 ? 'gull' : r < 0.8 ? 'goose' : 'pigeon';
     const sp = BIRD[kind];
     const n = kind === 'goose' ? 7 + Math.floor(Math.random() * 6) : kind === 'pigeon' ? 14 + Math.floor(Math.random() * 10) : kind === 'gull' ? 2 : kind === 'magpie' && Math.random() < 0.4 ? 2 : 1;
-    // 길: 멀리서 들어와 돔 곁(18~45m)을 지나 반대쪽으로 나감. 비둘기는 돔을 한 바퀴 휘돌고 나감
-    const a0 = Math.random() * Math.PI * 2, R0 = 150, dmin = 18 + Math.random() * 27, side = Math.random() < 0.5 ? 1 : -1;
-    const y0 = kind === 'goose' ? 30 + Math.random() * 25 : 4 + Math.random() * 22;
+    // 길: 멀리서 들어와 돔 곁(11~20m)을 지나 반대쪽으로 나감. 비둘기는 돔을 한 바퀴 휘돌고 나감
+    const a0 = Math.random() * Math.PI * 2, R0 = 80, dmin = 11 + Math.random() * 9, side = Math.random() < 0.5 ? 1 : -1;   // 유리 바로 바깥(11~20m)을 지나감
+    const y0 = kind === 'goose' ? 12 + Math.random() * 14 : 1 + Math.random() * 7;   // 눈높이 가까이
     const pts = [];
     if (kind === 'pigeon') {
-      const rr = 26 + Math.random() * 12;
+      const rr = 13 + Math.random() * 5;
       pts.push(new THREE.Vector3(Math.cos(a0) * R0, y0 + 8, Math.sin(a0) * R0));
       for (let k = 0; k <= 8; k++) { const a = a0 + side * k / 8 * Math.PI * 2.3; pts.push(new THREE.Vector3(Math.cos(a) * rr, y0 + Math.sin(k) * 3, Math.sin(a) * rr)); }
       const ae = a0 + side * Math.PI * 2.6; pts.push(new THREE.Vector3(Math.cos(ae) * R0, y0 + 10, Math.sin(ae) * R0));
@@ -6155,7 +6155,8 @@ function buildSeoulReal(D, DD) {
       else b.off = new THREE.Vector3(i * 2.6, (Math.random() - 0.5) * 1.5, -i * 2);
       birdGroup.add(b.g); birds.push(b);
     }
-    flight = { curve, len, t: 0, dur: len / sp.speed, birds, sp };
+    flight = { curve, len, u: 0, birds, sp };
+    tickBirds(0);   // 처음부터 제자리에 (돔 가운데에 잠깐 보이지 않게)
   }
   function endFlight() { flight.birds.forEach(b => { birdGroup.remove(b.g); b.g.traverse(o => { if (o.geometry) o.geometry.dispose(); }); }); flight = null; }
   function tickBirds(dt) {
@@ -6164,8 +6165,10 @@ function buildSeoulReal(D, DD) {
       if (nextFlight <= 0) { nextFlight = 20 + Math.random() * 30; if (lightOut.night < 0.5 && wx.rain < 0.3 && wx.snow < 0.3) startFlight(); }
       return;
     }
-    const F = flight; F.t += dt;
-    const u = F.t / F.dur;
+    const F = flight;
+    // 돔 곁을 지날 때는 천천히 (잘 보이게), 멀 때는 제 빠르기로
+    F.u += dt * F.sp.speed * (1 - 0.55 * Math.exp(-Math.pow((F.u - 0.5) / 0.2, 2))) / F.len;
+    const u = F.u;
     if (u >= 1) { endFlight(); return; }
     const now = performance.now() / 1000;
     F.curve.getPointAt(u, _bp); F.curve.getTangentAt(u, _bq);
@@ -6176,6 +6179,9 @@ function buildSeoulReal(D, DD) {
       const sp = b.sp, o = b.off;
       const jit = F.sp === BIRD.pigeon ? Math.sin(now * 1.3 + b.ph) * 1.2 : Math.sin(now * 0.6 + b.ph) * 0.3;
       b.g.position.copy(_bp).addScaledVector(right, o.x + jit).addScaledVector(fwd, o.z).add(new THREE.Vector3(0, o.y + Math.sin(now * 0.8 + b.ph) * 0.4, 0));
+      { // 유리 돔에 닿지 않게: 돔 둘레 10.5m 안으로 들어오면 바깥으로 밀어냄 (돔 꼭대기보다 높으면 그대로)
+        const bp = b.g.position, hr = Math.hypot(bp.x, bp.z), lim = 10.5;
+        if (hr < lim && bp.y < 9.5) { const k = lim / Math.max(0.01, hr); bp.x *= k; bp.z *= k; } }
       b.g.lookAt(b.g.position.clone().add(fwd).add(fx.position));   // lookAt은 세상 좌표
       b.g.rotateZ(-turn * 8);
       // 날갯짓: 몇 번 치고 미끄러지듯 활공 (종마다 박자와 활공 길이가 다름)
