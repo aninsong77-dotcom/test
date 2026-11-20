@@ -409,7 +409,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-163';
+const BUILD = '11.19-164';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -5813,7 +5813,7 @@ function buildSpace() {
     const pts = noRay(new THREE.Points(geo, new THREE.PointsMaterial({ size, sizeAttenuation: false, vertexColors: true, transparent: true, opacity: op, depthWrite: false, fog: false })));
     g.add(pts); return pts;
   };
-  const stars = [starLayer(1800, 1.4, 0.9), starLayer(260, 2.6, 1)];
+  const stars = [starLayer(650, 1.2, 0.75), starLayer(70, 2.2, 0.9)];   // 별은 성글게
   // 지구: 사진처럼 실제 같은 푸른 지구를 그래픽 카드에서 바로 그림 (그림 파일 없이, 가까이 봐도 또렷)
   //   짙은 남색 바다와 해 반사, 해안의 옅은 바다, 초록·갈색·사막 땅, 극지방 얼음, 소용돌이치는 구름, 낮과 밤의 부드러운 경계, 가는 푸른 대기 띠 (밤 불빛은 없음)
   const lowQ = coarse;
@@ -5934,7 +5934,7 @@ function buildSpace() {
     [[0, 1], [1, 0]].forEach(([vx, vy]) => { const gr = vx ? q.createLinearGradient(0, 64, 128, 64) : q.createLinearGradient(64, 0, 64, 128); gr.addColorStop(0, 'rgba(220,235,255,0)'); gr.addColorStop(0.5, 'rgba(240,248,255,.95)'); gr.addColorStop(1, 'rgba(220,235,255,0)'); q.fillStyle = gr; if (vx) q.fillRect(0, 62.5, 128, 3); else q.fillRect(62.5, 0, 3, 128); }); }
   const crossTex = new THREE.CanvasTexture(crossCv); crossTex.colorSpace = THREE.SRGBColorSpace;
   const glints = [];
-  for (let i = 0; i < 24; i++) {
+  for (let i = 0; i < 9; i++) {
     const az = R() * Math.PI * 2, el = 0.12 + R() * 1.2;
     const sp = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: crossTex, color: R() < 0.3 ? '#cfe0ff' : '#ffffff', transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })));
     sp.position.set(C.x + Math.cos(az) * Math.cos(el) * 395, C.y + Math.sin(el) * 395, C.z + Math.sin(az) * Math.cos(el) * 395);
@@ -6171,7 +6171,7 @@ function buildSeoulReal(D, DD) {
   const hemiS = new THREE.HemisphereLight('#cfe6ff', '#8a8f78', 1.1); S.add(hemiS);
   const sunS = new THREE.DirectionalLight('#fff4e0', 2.2); S.add(sunS);
   const moonS = new THREE.DirectionalLight('#9fb6ff', 0); S.add(moonS);
-  const stars = (() => { const n = 4000, p = new Float32Array(n * 3); for (let i = 0; i < n; i++) { const u = Math.random(), a = Math.random() * 6.283, r = Math.sqrt(1 - u * u); p.set([Math.cos(a) * r * 30000, u * 30000, Math.sin(a) * r * 30000], i * 3); } const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(p, 3)); const o = new THREE.Points(g, new THREE.PointsMaterial({ size: 2, sizeAttenuation: false, color: '#ffffff', transparent: true, opacity: 0, depthWrite: false, fog: false })); S.add(o); return o; })();
+  const stars = (() => { const n = 1400, p = new Float32Array(n * 3); for (let i = 0; i < n; i++) { const u = Math.random(), a = Math.random() * 6.283, r = Math.sqrt(1 - u * u); p.set([Math.cos(a) * r * 30000, u * 30000, Math.sin(a) * r * 30000], i * 3); } const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(p, 3)); const o = new THREE.Points(g, new THREE.PointsMaterial({ size: 2, sizeAttenuation: false, color: '#ffffff', transparent: true, opacity: 0, depthWrite: false, fog: false })); S.add(o); return o; })();
   const moonM = new THREE.Mesh(new THREE.CircleGeometry(1, 48), new THREE.ShaderMaterial({ transparent: true, depthWrite: false, fog: false, uniforms: { uPhase: { value: 0.5 }, uVis: { value: 1 } },
     vertexShader: 'varying vec2 vU; void main(){ vU = position.xy; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }',
     fragmentShader: `varying vec2 vU; uniform float uPhase; uniform float uVis; void main(){
