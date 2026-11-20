@@ -409,7 +409,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-158';
+const BUILD = '11.19-159';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -5797,50 +5797,103 @@ function buildSpace() {
     g.add(pts); return pts;
   };
   const stars = [starLayer(1800, 1.4, 0.9), starLayer(260, 2.6, 1)];
-  // 지구: 바다, 땅, 구름을 그 자리에서 그림
-  const TW = 384, TH = 192, cv = document.createElement('canvas'); cv.width = TW; cv.height = TH;
-  const x = cv.getContext('2d'), img = x.createImageData(TW, TH);
-  const ccv = document.createElement('canvas'); ccv.width = TW; ccv.height = TH;
-  const cimg = ccv.getContext('2d').createImageData(TW, TH);
-  const vals = new Float32Array(TW * TH), clouds = new Float32Array(TW * TH);
-  for (let j = 0; j < TH; j++) for (let i = 0; i < TW; i++) {
-    const lon = i / TW * Math.PI * 2, lat = (0.5 - j / TH) * Math.PI;
-    const dx = Math.cos(lat) * Math.cos(lon), dy = Math.sin(lat), dz = Math.cos(lat) * Math.sin(lon);
-    vals[j * TW + i] = fbm(dx * 1.7 + 11, dy * 1.7, dz * 1.7);
-    clouds[j * TW + i] = fbm(dx * 3.2 - 7, dy * 4.5, dz * 3.2 + 3);
-  }
-  const sorted = Float32Array.from(vals).sort(), lvl = sorted[Math.floor(sorted.length * 0.68)];
-  const sc = Float32Array.from(clouds).sort(), cl = sc[Math.floor(sc.length * 0.62)], ch = sc[sc.length - 1];
-  for (let j = 0; j < TH; j++) for (let i = 0; i < TW; i++) {
-    const k = j * TW + i, lat = Math.abs(0.5 - j / TH) * 2, v = vals[k];
-    let r, gg, b;
-    if (lat > 0.86) { r = 235; gg = 240; b = 248; }
-    else if (v > lvl) { const h = Math.min(1, (v - lvl) * 6); r = mix(84, 150, h) + lat * 30; gg = mix(128, 128, h); b = mix(70, 86, h); }
-    else { const dpt = Math.min(1, (lvl - v) * 5); r = mix(40, 14, dpt); gg = mix(110, 54, dpt); b = mix(170, 128, dpt); }
-    const cw = clamp01((clouds[k] - cl) / ((ch - cl) * 0.6)) * 0.85;
-    img.data[k * 4] = r; img.data[k * 4 + 1] = gg; img.data[k * 4 + 2] = b; img.data[k * 4 + 3] = 255;
-    cimg.data[k * 4] = 252; cimg.data[k * 4 + 1] = 253; cimg.data[k * 4 + 2] = 255; cimg.data[k * 4 + 3] = cw * 255;
-  }
-  x.putImageData(img, 0, 0);
-  ccv.getContext('2d').putImageData(cimg, 0, 0);
-  const etex = new THREE.CanvasTexture(cv); etex.colorSpace = THREE.SRGBColorSpace;
+  // 지구: 사진처럼 실제 같은 푸른 지구를 그래픽 카드에서 바로 그림 (그림 파일 없이, 가까이 봐도 또렷)
+  //   짙은 남색 바다와 해 반사, 해안의 옅은 바다, 초록·갈색·사막 땅, 극지방 얼음, 소용돌이치는 구름, 낮과 밤의 부드러운 경계, 가는 푸른 대기 띠 (밤 불빛은 없음)
+  const lowQ = coarse;
+  const NOISE = `
+    float h3(vec3 p){ p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+    float vn(vec3 x){ vec3 i = floor(x), f = fract(x); f = f * f * (3.0 - 2.0 * f);
+      return mix(mix(mix(h3(i), h3(i + vec3(1,0,0)), f.x), mix(h3(i + vec3(0,1,0)), h3(i + vec3(1,1,0)), f.x), f.y),
+                 mix(mix(h3(i + vec3(0,0,1)), h3(i + vec3(1,0,1)), f.x), mix(h3(i + vec3(0,1,1)), h3(i + vec3(1,1,1)), f.x), f.y), f.z); }
+    float fbm(vec3 p, int oct){ float a = 0.5, s = 0.0; for (int i = 0; i < 7; i++) { if (i >= oct) break; s += a * vn(p); p = p * 2.03 + vec3(1.7, 9.2, 3.1); a *= 0.5; } return s; }`;
+  const VS = `varying vec3 vObj; varying vec3 vWN; varying vec3 vWP;
+    void main(){ vObj = normalize(position); vWN = normalize(mat3(modelMatrix) * normal); vec4 w = modelMatrix * vec4(position, 1.0); vWP = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`;
+  const sunU = { value: new THREE.Vector3(0.88, 0.3, -0.36).normalize() };
+  const earthMat = new THREE.ShaderMaterial({
+    uniforms: { uSun: sunU }, vertexShader: VS, fog: false,
+    fragmentShader: `uniform vec3 uSun; varying vec3 vObj; varying vec3 vWN; varying vec3 vWP;
+      ${NOISE}
+      void main(){
+        vec3 p = vObj; float lat = abs(p.y);
+        float n = 0.5 + (fbm(p * 1.55 + vec3(3.1, 7.7, 1.3), ${lowQ ? 5 : 7}) - 0.5) * 2.2;   // 대비를 키워 대륙이 또렷하게
+        float coast = 0.65;   // 바다가 7할쯤
+        float land = smoothstep(coast, coast + 0.012, n);
+        // 바다: 깊을수록 짙은 남색, 해안 가까이는 맑은 청록
+        float depth = clamp((coast - n) * 6.0, 0.0, 1.0);
+        vec3 ocean = mix(vec3(0.02, 0.14, 0.3), vec3(0.003, 0.022, 0.085), pow(depth, 0.45));
+        ocean = mix(ocean, ocean * vec3(0.8, 1.0, 1.15), vn(p * 9.0) * 0.4);
+        // 땅: 습한 곳은 초록, 마른 곳은 사막빛, 산은 짙은 갈색
+        float wet = 0.5 + (fbm(p * 3.1 + 5.0, 4) - 0.5) * 2.0 + (0.25 - abs(abs(p.y) - 0.45)) * 0.4;
+        float mtn = smoothstep(0.7, 0.9, n) * fbm(p * 14.0, 3);
+        vec3 green = mix(vec3(0.04, 0.11, 0.03), vec3(0.1, 0.17, 0.06), vn(p * 22.0));
+        vec3 dry = mix(vec3(0.36, 0.29, 0.17), vec3(0.52, 0.42, 0.27), vn(p * 18.0));
+        vec3 ground = mix(dry, green, smoothstep(0.3, 0.46, wet));
+        ground = mix(ground, vec3(0.26, 0.21, 0.16), mtn * 0.8);
+        // 극지방 얼음
+        float ice = smoothstep(0.82, 0.9, lat + (fbm(p * 6.0, 3) - 0.5) * 0.12);
+        vec3 alb = mix(ocean, ground, land);
+        alb = mix(alb, vec3(0.86, 0.9, 0.95), ice);
+        // 빛: 낮과 밤의 경계는 부드럽게, 밤은 거의 까맣게 (불빛 없음)
+        vec3 N = normalize(vWN), V = normalize(cameraPosition - vWP), L = normalize(uSun);
+        float nl = dot(N, L), day = smoothstep(-0.08, 0.25, nl);
+        vec3 col = alb * (0.012 + 1.35 * max(nl, 0.0) * day);
+        // 바다에 비친 해 (반짝임)
+        vec3 H = normalize(L + V); float nh = max(dot(N, H), 0.0), spec = (pow(nh, 320.0) * 0.7 + pow(nh, 24.0) * 0.06) * (1.0 - land) * (1.0 - ice) * day;
+        col += vec3(1.0, 0.95, 0.85) * spec;
+        // 지구 가장자리의 대기 (낮 쪽만 푸르게)
+        float fr = pow(1.0 - max(dot(N, V), 0.0), 3.0);
+        col = mix(col, vec3(0.3, 0.55, 1.0) * (0.2 + 0.8 * day), fr * 0.6 * smoothstep(-0.25, 0.3, nl));
+        gl_FragColor = vec4(col, 1.0);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`,
+  });
+  const cloudMat = new THREE.ShaderMaterial({
+    uniforms: { uSun: sunU }, vertexShader: VS, transparent: true, depthWrite: false, fog: false,
+    fragmentShader: `uniform vec3 uSun; varying vec3 vObj; varying vec3 vWN; varying vec3 vWP;
+      ${NOISE}
+      void main(){
+        vec3 p = vObj * 2.6;
+        // 소용돌이: 좌표를 비틀어 구름이 길게 휘감기게
+        vec3 w = vec3(fbm(p + vec3(0.0, 1.3, 2.1), 3), fbm(p + vec3(4.2, 0.7, 5.1), 3), fbm(p + vec3(2.8, 6.3, 0.4), 3));
+        vec3 q = p + (w - 0.5) * 2.2;
+        q.y *= 2.4;   // 위도 방향으로 납작하게 → 가로로 길게 뻗은 구름띠
+        float c = 0.5 + (fbm(q, ${lowQ ? 5 : 6}) - 0.5) * 2.2;
+        float band = 0.85 + 0.25 * cos(vObj.y * 9.0);   // 적도·중위도에 더 많이
+        float det = fbm(q * 4.0 + 7.0, 3);
+        float a = smoothstep(0.5, 0.64, c * band + (det - 0.5) * 0.18) * 0.95;   // 맑은 하늘이 넓고, 구름은 또렷한 덩어리·띠로
+        a *= 0.6 + 0.4 * smoothstep(0.35, 0.7, det);   // 가장자리가 성글게
+        vec3 N = normalize(vWN), L = normalize(uSun);
+        float nl = dot(N, L), day = smoothstep(-0.1, 0.25, nl);
+        vec3 col = vec3(0.97, 0.98, 1.0) * (0.015 + 1.15 * max(nl, 0.0) * day + 0.06 * day);
+        gl_FragColor = vec4(col, a * (0.25 + 0.75 * day));
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`,
+  });
+  const atmMat = new THREE.ShaderMaterial({
+    uniforms: { uSun: sunU }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.BackSide, fog: false,
+    vertexShader: VS,
+    fragmentShader: `uniform vec3 uSun; varying vec3 vObj; varying vec3 vWN; varying vec3 vWP;
+      void main(){
+        vec3 N = normalize(vWN), V = normalize(cameraPosition - vWP);
+        float f = pow(clamp(1.0 + dot(N, V), 0.0, 1.0), 12.0);   // 지구 둘레에 바짝 붙은 가는 빛띠
+        float lit = smoothstep(-0.35, 0.35, dot(N, normalize(uSun)));
+        float a = f * lit * 0.9;
+        gl_FragColor = vec4(vec3(0.35, 0.62, 1.0) * a, a);
+        #include <colorspace_fragment>
+      }`,
+  });
   // 지구: 기울어진 축으로 돌고 (약 4분에 한 바퀴), 구름은 조금 더 빨리 흐름
   const tilt = new THREE.Group(); tilt.position.set(C.x, C.y - 150, C.z - 260); tilt.rotation.z = 0.41; g.add(tilt);
-  const earth = noRay(new THREE.Mesh(new THREE.SphereGeometry(170, 64, 32), new THREE.MeshStandardMaterial({ map: etex, roughness: 0.85, metalness: 0, emissive: '#0b1a3a', emissiveIntensity: 0.25, fog: false })));
+  const earth = noRay(new THREE.Mesh(new THREE.SphereGeometry(170, 128, 64), earthMat));
   tilt.add(earth);
-  const ctex = new THREE.CanvasTexture(ccv); ctex.colorSpace = THREE.SRGBColorSpace;
-  const cloudsE = noRay(new THREE.Mesh(new THREE.SphereGeometry(171.5, 64, 32), new THREE.MeshStandardMaterial({ map: ctex, transparent: true, depthWrite: false, roughness: 1, fog: false })));
+  const cloudsE = noRay(new THREE.Mesh(new THREE.SphereGeometry(171.2, 128, 64), cloudMat));
   tilt.add(cloudsE);
-  const atm = noRay(new THREE.Mesh(new THREE.SphereGeometry(176, 64, 32), new THREE.ShaderMaterial({
-    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false,
-    vertexShader: `varying vec3 vN; varying vec3 vV; void main(){ vec4 mv = modelViewMatrix * vec4(position,1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`,
-    fragmentShader: `varying vec3 vN; varying vec3 vV; void main(){ float f = 1.0 - max(dot(normalize(vN), normalize(vV)), 0.0); float a = pow(f, 3.5); gl_FragColor = vec4(vec3(0.35, 0.62, 1.0) * a * 1.6, a);
-      #include <colorspace_fragment>
-    }`,
-  })));
+  const atm = noRay(new THREE.Mesh(new THREE.SphereGeometry(173.5, 128, 64), atmMat));
   atm.position.copy(tilt.position); g.add(atm);
   // 해
-  const sunDir = new THREE.Vector3(-0.25, 0.16, -0.955).normalize();   // 지구 지평선 바로 위로 떠오르는 해
+  const sunDir = sunU.value.clone();   // 해는 옆쪽에: 지구의 한쪽은 낮, 한쪽은 밤 (사진처럼)
   const sunG = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: '#fff3d6', transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })));
   sunG.position.copy(C).addScaledVector(sunDir, 380); sunG.scale.setScalar(110); g.add(sunG);
   const sunC = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: '#ffffff', transparent: true, opacity: 1, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })));
@@ -5855,7 +5908,7 @@ function buildSpace() {
   const sunRays = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: rayTexS, color: '#fff2d8', transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })));
   sunRays.position.copy(sunG.position); sunRays.scale.setScalar(260); g.add(sunRays);
   const limbGlow = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: '#ffd8a0', transparent: true, opacity: 0.45, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })));
-  limbGlow.position.copy(C).addScaledVector(new THREE.Vector3(sunDir.x, sunDir.y * 0.45, sunDir.z).normalize(), 375); limbGlow.scale.set(520, 55, 1); g.add(limbGlow);
+  limbGlow.position.copy(C).addScaledVector(new THREE.Vector3(sunDir.x, sunDir.y * 0.45, sunDir.z).normalize(), 375); limbGlow.scale.set(520, 55, 1); limbGlow.visible = false; g.add(limbGlow);   // (해가 옆으로 옮겨져 지평선 노을빛은 쓰지 않음)
   // 십자 빛으로 반짝이는 큰 별
   const crossCv = document.createElement('canvas'); crossCv.width = crossCv.height = 128;
   { const q = crossCv.getContext('2d');
