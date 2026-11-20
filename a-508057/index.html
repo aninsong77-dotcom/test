@@ -409,7 +409,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-159';
+const BUILD = '11.19-160';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -5266,13 +5266,12 @@ arriveGlow.visible = false;
 scene.add(arriveGlow);
 function lightPathRise(e) { return e < 1.4 ? 0 : Math.pow(Math.min(1, (e - 1.4) / 5), 1.7) * 26; }
 function lightPathCam(L, rise) {
-  // 돔 안쪽(등불 쪽)에서 올려다보다가 함께 따라 올라감
+  // 앉았을 때 보는 자리(아바타 뒤, 바깥쪽)에서 처음부터 지켜봄 → 내려앉은 뒤 카메라가 크게 돌지 않음. 유리 안쪽에 머묾
   let ox = L.x - DOME_CENTER.x, oz = L.z - DOME_CENTER.z, ol = Math.hypot(ox, oz);
-  if (ol < 0.3) { ox = 0; oz = -1; ol = 1; }
-  // 카메라는 유리 돔 안에 머물며 올려다봄 (돔 밖으로 나가면 유리 테두리가 지나가 돔이 열렸다 닫히는 것처럼 보임)
-  const goal = new THREE.Vector3(L.x - ox / ol * 3.6, HOUSE_BASE + 1.3 + Math.min(rise * 0.62, 3.2), L.z - oz / ol * 3.6);
-  if (Math.hypot(goal.x - DOME_CENTER.x, goal.z - DOME_CENTER.z) > DOME_R - 0.6) goal.set(L.x + ox / ol * 3.2, goal.y, L.z + oz / ol * 3.2);
-  return goal;
+  if (ol < 0.3) { ox = 0; oz = 1; ol = 1; }
+  const want = Math.min(ol + 3.0, DOME_R - 0.8);
+  const back = Math.max(1.8, want - ol);
+  return new THREE.Vector3(L.x + ox / ol * back, HOUSE_BASE + 1.3 + Math.min(rise * 0.62, 3.2), L.z + oz / ol * back);
 }
 /* 카메라를 아바타 둘레로 돌려서 옮김 (곧장 옮기면 몸을 뚫고 지나가므로) */
 function orbitCam(L, goal, k) {
@@ -5372,7 +5371,7 @@ function updateArrive(dt, t) {
     let ox = A.x - DOME_CENTER.x, oz = A.z - DOME_CENTER.z, ol = Math.hypot(ox, oz) || 1;
     const D = camera.aspect < 1 ? 4.8 : 2.9;
     const behind = new THREE.Vector3(A.x + ox / ol * D * 0.94, HOUSE_BASE + 0.33 + D * 0.35, A.z + oz / ol * D * 0.94);
-    orbitCam(A, behind, 1 - Math.exp(-dt * 3));
+    orbitCam(A, behind, 1 - Math.exp(-dt * 1.4));   // 천천히 자리 잡음
     camera.lookAt(A.x - ox / ol * 2, HOUSE_BASE + 1.2, A.z - oz / ol * 2);
     if (e >= LEAVE_T + 1.3) {
       arriving = null;
@@ -5894,10 +5893,10 @@ function buildSpace() {
   atm.position.copy(tilt.position); g.add(atm);
   // 해
   const sunDir = sunU.value.clone();   // 해는 옆쪽에: 지구의 한쪽은 낮, 한쪽은 밤 (사진처럼)
-  const sunG = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: '#fff3d6', transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })));
-  sunG.position.copy(C).addScaledVector(sunDir, 380); sunG.scale.setScalar(110); g.add(sunG);
+  const sunG = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: '#fff6e8', transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })));
+  sunG.position.copy(C).addScaledVector(sunDir, 380); sunG.scale.setScalar(70); g.add(sunG);
   const sunC = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: '#ffffff', transparent: true, opacity: 1, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })));
-  sunC.position.copy(sunG.position); sunC.scale.setScalar(26); g.add(sunC);
+  sunC.position.copy(sunG.position); sunC.scale.setScalar(13); g.add(sunC);
   // 해의 빛살 (천천히 돎)과 지구 가장자리를 따라 번지는 햇빛
   const rayCv = document.createElement('canvas'); rayCv.width = rayCv.height = 512;
   { const q = rayCv.getContext('2d'), Rr = mulberry32(17); q.translate(256, 256);
@@ -5905,8 +5904,9 @@ function buildSpace() {
       const gr = q.createLinearGradient(0, 0, Math.cos(a) * len, Math.sin(a) * len); gr.addColorStop(0, 'rgba(255,245,220,.9)'); gr.addColorStop(1, 'rgba(255,245,220,0)');
       q.fillStyle = gr; q.beginPath(); q.moveTo(0, 0); q.lineTo(Math.cos(a - w) * len, Math.sin(a - w) * len); q.lineTo(Math.cos(a + w) * len, Math.sin(a + w) * len); q.closePath(); q.fill(); } }
   const rayTexS = new THREE.CanvasTexture(rayCv); rayTexS.colorSpace = THREE.SRGBColorSpace;
-  const sunRays = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: rayTexS, color: '#fff2d8', transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })));
-  sunRays.position.copy(sunG.position); sunRays.scale.setScalar(260); g.add(sunRays);
+  // 빛살 무늬 대신 부드럽게 번지는 빛 (밝은 알맹이 둘레로 빛이 은은하게 퍼짐)
+  const sunRays = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: '#cfe0ff', transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })));
+  sunRays.position.copy(sunG.position); sunRays.scale.setScalar(320); g.add(sunRays);
   const limbGlow = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: '#ffd8a0', transparent: true, opacity: 0.45, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })));
   limbGlow.position.copy(C).addScaledVector(new THREE.Vector3(sunDir.x, sunDir.y * 0.45, sunDir.z).normalize(), 375); limbGlow.scale.set(520, 55, 1); limbGlow.visible = false; g.add(limbGlow);   // (해가 옆으로 옮겨져 지평선 노을빛은 쓰지 않음)
   // 십자 빛으로 반짝이는 큰 별
@@ -6031,8 +6031,7 @@ function buildSpace() {
     const s = Date.now() / 1000;
     updateMeteors(dt);
     updateComet(dt);
-    sunRays.material.rotation = t * 0.02;
-    sunRays.material.opacity = 0.45 + 0.1 * Math.sin(t * 0.7);
+    sunRays.material.opacity = 0.15 + 0.015 * Math.sin(t * 0.4);
     for (const G of glints) { const tw = 0.75 + 0.25 * Math.sin(t * G.v + G.ph); G.sp.scale.setScalar(G.sz * tw); G.sp.material.opacity = 0.6 + 0.4 * tw; }
     earth.rotation.y = (s / 240 * Math.PI * 2) % (Math.PI * 2);          // 지구: 약 4분에 한 바퀴
     cloudsE.rotation.y = (s / 190 * Math.PI * 2) % (Math.PI * 2);        // 구름은 조금 더 빨리
