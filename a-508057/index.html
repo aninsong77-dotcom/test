@@ -409,7 +409,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-151';
+const BUILD = '11.19-153';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -596,7 +596,7 @@ function setLook(camY) {
   underSurface.visible = !above;
   sunSprite.visible = above;
   if (beachMesh) beachMesh.visible = above;
-  rays.forEach(r => { r.s.visible = !above; r.s.material.color.copy(daySea.ray); });
+  rays.forEach(r => { r.s.visible = !above; r.s.material.uniforms.uCol.value.copy(daySea.ray); });
   // 빛과 물빛도 시간에 맞춰
   hemi.color.copy(daySea.hemi); hemi.intensity = daySea.hemiI;
   sunLight.color.copy(daySea.sun); sunLight.intensity = daySea.sunI;
@@ -1320,6 +1320,26 @@ const rayTex = (() => {
   t.colorSpace = THREE.SRGBColorSpace;
   return t;
 })();
+/* 부드러운 빛줄기 (물속 햇살, 들어오고 나갈 때의 빛 기둥): 가운데가 밝고 옆으로 갈수록 스르르 사라짐,
+   위아래 끝도 흐려지고, 빛 속에 가는 결이 천천히 흐름 */
+const shaftT = { value: 0 };
+function makeShaftMat(color, op, flow = 1, sideSoft = 1.6) {
+  return new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false,
+    uniforms: { uT: shaftT, uOp: { value: op }, uCol: { value: new THREE.Color(color) }, uFlow: { value: flow }, uTop: { value: 0.75 }, uBot: { value: 0.3 } },
+    vertexShader: `varying vec3 vN; varying vec3 vV; varying vec2 vUv;
+      void main(){ vUv = uv; vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`,
+    fragmentShader: `uniform float uT, uOp, uFlow, uTop, uBot; uniform vec3 uCol; varying vec3 vN; varying vec3 vV; varying vec2 vUv;
+      void main(){
+        float edge = pow(abs(dot(normalize(vN), normalize(vV))), ${sideSoft.toFixed(2)});
+        float ends = smoothstep(0.0, uBot, vUv.y) * smoothstep(1.0, uTop, vUv.y);
+        float streak = 0.72 + 0.28 * sin(vUv.x * 37.0 + uT * 0.35) * sin(vUv.x * 13.0 - uT * 0.22 + 1.3);
+        float run = 0.82 + 0.18 * sin(vUv.y * 9.0 - uT * 1.4 * uFlow + vUv.x * 6.0);
+        float a = edge * ends * streak * run * uOp;
+        gl_FragColor = vec4(uCol, a);   // 더하기 섞기는 알파만큼 밝힘
+      }`,
+  });
+}
 const rays = [];
 // 밤에 수면 너머로 보이는 둥근 달빛
 moonGlow = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: '#eef3ff', transparent: true, opacity: 0, depthWrite: false, fog: false })));
@@ -1328,13 +1348,15 @@ moonGlow.scale.setScalar(36);
 moonGlow.visible = false;
 scene.add(moonGlow);
 for (let i = 0; i < 26; i++) {
-  const s = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: rayTex, color: '#f2fdff', transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false })));
-  const a = rand() * Math.PI * 2, r = 4 + rand() * 40;
-  s.position.set(Math.cos(a) * r, SURF - 13, Math.sin(a) * r - 6);
-  s.scale.set(2 + rand() * 4, 28, 1);
-  s.material.rotation = 0.12 + (rand() - 0.5) * 0.1;
+  // 물속 햇살: 수면에서 비스듬히 내려와 바닥에 닿기 전에 흐려지는 부드러운 빛 기둥
+  const a = rand() * Math.PI * 2, r = 4 + rand() * 40, w = 2 + rand() * 4;
+  const s = noRay(new THREE.Mesh(new THREE.CylinderGeometry(w * 0.32, w * 0.55, 30, 14, 1, true), makeShaftMat('#f2fdff', 0.12, 0.6, 1.3)));
+  s.material.uniforms.uTop.value = 0.86; s.material.uniforms.uBot.value = 0.55;
+  s.position.set(Math.cos(a) * r, SURF - 14, Math.sin(a) * r - 6);
+  const tilt = 0.12 + (rand() - 0.5) * 0.1;
+  s.rotation.z = tilt;
   scene.add(s);
-  rays.push({ s, ph: rand() * 6 });
+  rays.push({ s, ph: rand() * 6, tilt });
 }
 // 물속에서 올려다보면 수면 너머로 번지는 햇빛
 const seaDome = (() => {
@@ -1389,8 +1411,8 @@ function updateWater(t) {
   waterTopTex.offset.set(t * 0.004, t * 0.002);
   for (const r of rays) {
     // 햇살 기둥: 수면 물결에 따라 밝아졌다 흐려지고 천천히 흔들림
-    r.s.material.opacity = 0.17 + Math.sin(t * 0.5 + r.ph) * 0.07 + Math.sin(t * 1.7 + r.ph * 2) * 0.03;
-    r.s.material.rotation = 0.12 + Math.sin(t * 0.15 + r.ph) * 0.09;
+    r.s.material.uniforms.uOp.value = 0.2 + Math.sin(t * 0.5 + r.ph) * 0.08 + Math.sin(t * 1.7 + r.ph * 2) * 0.03;
+    r.s.rotation.z = r.tilt + Math.sin(t * 0.15 + r.ph) * 0.06; r.s.rotation.x = Math.sin(t * 0.11 + r.ph * 1.7) * 0.04;
   }
   updatePretty(t);
   updateReefFish(t);
@@ -5163,12 +5185,13 @@ $('hint').textContent = coarse ? '바닥을 누르거나 왼쪽 아래 원으로
 $('skip').addEventListener('click', () => { if (travel) finishTravel(); });
 /* ---------- 들어오기: 빛 속에서 바로 유리 돔 안으로 / 나가기: 빛 기둥을 타고 올라가며 끝 ---------- */
 let leaving = null, iAmOut = false, arriving = null, peersReady = false;
-const beam = noRay(new THREE.Mesh(new THREE.CylinderGeometry(0.75, 1.0, 40, 32, 1, true),
-  new THREE.MeshBasicMaterial({ color: '#fff4cf', transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false })));
+// 빛 기둥: 위에서 내려오며 아래로 갈수록 살짝 넓어지고, 테두리 없이 부드럽게 퍼짐. 빛 속 결은 위로 흐름
+const beam = noRay(new THREE.Mesh(new THREE.CylinderGeometry(0.7, 1.25, 40, 40, 1, true), makeShaftMat('#fff4cf', 0, -1, 1.2)));
+beam.material.uniforms.uTop.value = 0.55; beam.material.uniforms.uBot.value = 0.04;
 beam.visible = false;
 scene.add(beam);
-const beamCore = noRay(new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.38, 40, 20, 1, true),
-  new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })));
+const beamCore = noRay(new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.45, 40, 24, 1, true), makeShaftMat('#ffffff', 0, -1.6, 2.2)));
+beamCore.material.uniforms.uTop.value = 0.5; beamCore.material.uniforms.uBot.value = 0.03;
 beam.add(beamCore);
 const motes = [];
 for (let i = 0; i < 40; i++) {
@@ -5244,8 +5267,8 @@ function orbitCam(L, goal, k) {
 function drawLightPath(L, e, dt, t, dir) {
   const on = Math.min(1, Math.max(0, e) / 1.2);
   beam.scale.set(1, 1, 1);
-  beam.material.opacity = on * 0.1 * (0.85 + Math.sin(t * 5) * 0.15);
-  beamCore.material.opacity = on * 0.16;
+  beam.material.uniforms.uOp.value = on * 0.42 * (0.9 + Math.sin(t * 1.3) * 0.07 + Math.sin(t * 3.1) * 0.03);
+  beamCore.material.uniforms.uOp.value = on * 0.38;
   const rise = lightPathRise(e);
   orb.position.set(L.x, L.y + rise + (e > 1.0 ? Math.min(1, (e - 1.0) / 0.4) * 0.15 : 0), L.z);
   orb.rotation.y += dt * 0.5 * dir;
@@ -6702,63 +6725,21 @@ function applyDim(k) {
   if (peersReady) renderPeers(lastPeers);
 }
 
-/* 둥근 차원의 문: 빛나는 고리가 소용돌이치고, 안쪽은 물결처럼 울렁이며 갈 차원의 하늘빛이 어른거림 */
-const PORTAL_FS = `uniform float uT, uOpen, uStars; uniform vec3 uA, uB; varying vec2 vUv;
-  float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-  void main(){
-    vec2 p = (vUv - 0.5) * 2.0;
-    float r = length(p), a = atan(p.y, p.x);
-    float R = 0.74 * uOpen;
-    if (r > 1.0 || uOpen < 0.002) discard;
-    float band = 0.5 + 0.5 * sin(a * 3.0 + r * 10.0 - uT * 2.6);
-    float band2 = 0.5 + 0.5 * sin(a * 7.0 - r * 16.0 + uT * 3.9);
-    float ring = exp(-pow((r - R) / (0.05 + 0.05 * band), 2.0));
-    float halo = exp(-pow((r - R) / 0.2, 2.0)) * 0.45;
-    float inside = 1.0 - smoothstep(R - 0.07, R, r);
-    vec2 q = p + 0.05 * vec2(sin(p.y * 9.0 + uT * 2.2), cos(p.x * 8.0 - uT * 1.8));
-    float rip = 0.5 + 0.5 * sin(length(q) * 24.0 - uT * 3.2);
-    float sw = 0.5 + 0.5 * sin(atan(q.y, q.x) * 2.0 + length(q) * 6.0 - uT * 1.3);
-    vec3 sky = mix(uB, uA, clamp(0.45 + q.y * 0.55 + 0.15 * sw, 0.0, 1.0));
-    sky *= 0.85 + 0.25 * rip;
-    float st = step(0.975, hash(floor((q + vec2(uT * 0.01, 0.0)) * 34.0))) * uStars;
-    sky += vec3(st);
-    vec3 ringCol = mix(vec3(0.5, 0.88, 1.0), vec3(1.0, 0.85, 0.55), band);
-    vec3 col = sky * inside * 0.8 + ringCol * ring * (0.55 + 0.45 * band2) + ringCol * halo * 0.5;
-    float alpha = clamp(inside * 0.85 + ring * 0.9 + halo * 0.6, 0.0, 1.0);
-    gl_FragColor = vec4(col, alpha);
-    #include <colorspace_fragment>
-  }`;
-const PORTAL_VS = `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
-const PORTAL_Y = 1.12;   // 문 가운데 높이 (돔 바닥에서)
+/* 차원이동의 빛: 아바타(또는 다른 사람)를 부드러운 빛 기둥이 감싸고, 빛 알갱이가 천천히 피어오름 */
 const portals = [];
-function setPortalDim(P, k) {
-  const D = DIMS[k] || DIMS.sea;
-  P.mat.uniforms.uA.value.set(D.a); P.mat.uniforms.uB.value.set(D.b); P.mat.uniforms.uStars.value = D.stars;
-  P.pool.material.color.set(D.a);
-}
+function setPortalDim(P, k) { const D = DIMS[k] || DIMS.sea; P.mat.uniforms.uCol.value.set('#ffffff').lerp(new THREE.Color(D.a), 0.25); }
 function spawnPortal(x, z, yaw, k, auto) {
   const g = new THREE.Group();
-  g.position.set(x, HOUSE_BASE + 0.17 + PORTAL_Y, z);
-  g.rotation.y = yaw;
-  const mat = new THREE.ShaderMaterial({
-    uniforms: { uT: { value: 0 }, uOpen: { value: 0 }, uA: { value: new THREE.Color() }, uB: { value: new THREE.Color() }, uStars: { value: 0 } },
-    vertexShader: PORTAL_VS, fragmentShader: PORTAL_FS, transparent: true, depthWrite: false, side: THREE.DoubleSide, fog: false,
-  });
-  const disc = noRay(new THREE.Mesh(new THREE.PlaneGeometry(2.8, 2.8), mat));
-  disc.renderOrder = 3;
-  g.add(disc);
-  const halo = noRay(new THREE.Sprite(glowMat('#bfefff', 0)));
-  halo.scale.setScalar(4.4); g.add(halo);
-  const pool = noRay(new THREE.Mesh(new THREE.PlaneGeometry(3.2, 2.2), new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, fog: false })));
-  pool.rotation.x = -Math.PI / 2; pool.position.y = -PORTAL_Y + 0.02; g.add(pool);
+  g.position.set(x, HOUSE_BASE + 0.17, z);
+  const mat = makeShaftMat('#fff6dc', 0, -1.2, 1.4);
+  mat.uniforms.uTop.value = 0.35; mat.uniforms.uBot.value = 0.04;
+  const col = noRay(new THREE.Mesh(new THREE.CylinderGeometry(0.75, 1.0, 7, 32, 1, true), mat));
+  col.position.y = 3.5; g.add(col);
+  const glow = noRay(new THREE.Sprite(glowMat('#fff3d0', 0))); glow.position.y = 0.9; glow.scale.setScalar(3.2); g.add(glow);
   const dots = [];
-  for (let i = 0; i < 26; i++) {
-    const sp = noRay(new THREE.Sprite(glowMat(i % 3 ? '#e8fbff' : '#ffe9b0', 0)));
-    g.add(sp);
-    dots.push({ sp, a: Math.random() * 6.28, r: 0.5 + Math.random() * 1.3, z: (Math.random() - 0.5) * 0.7, v: 0.12 + Math.random() * 0.22, s: 0.04 + Math.random() * 0.06, ph: Math.random() * 6.28 });
-  }
+  for (let i = 0; i < 24; i++) { const sp = noRay(new THREE.Sprite(glowMat(i % 3 ? '#ffffff' : '#fff1c4', 0))); g.add(sp); dots.push({ sp, a: Math.random() * 6.28, r: 0.2 + Math.random() * 0.75, y: Math.random() * 4.5, v: 0.4 + Math.random() * 0.7, s: 0.05 + Math.random() * 0.07 }); }
   scene.add(g);
-  const P = { g, mat, halo, pool, dots, k: 0, want: 1, auto: !!auto, born: performance.now() };
+  const P = { g, mat, glow, dots, k: 0, want: 1, auto: !!auto, born: performance.now() };
   setPortalDim(P, k);
   portals.push(P);
   return P;
@@ -6766,25 +6747,21 @@ function spawnPortal(x, z, yaw, k, auto) {
 function updatePortals(dt, t) {
   for (let i = portals.length - 1; i >= 0; i--) {
     const P = portals[i];
-    if (P.auto && performance.now() - P.born > 1600) P.want = 0;   // 다른 사람이 지나간 문은 잠깐 열렸다 닫힘
-    P.k += Math.sign(P.want - P.k) * Math.min(Math.abs(P.want - P.k), dt / (P.want > P.k ? (P.auto ? 0.5 : 1.0) : 0.9));
+    if (P.auto && performance.now() - P.born > 1600) P.want = 0;   // 다른 사람이 오가면 그 자리에 빛이 잠깐 일었다 사라짐
+    P.k += Math.sign(P.want - P.k) * Math.min(Math.abs(P.want - P.k), dt / (P.want > P.k ? 1.0 : 1.3));
     const o = smooth(clamp01(P.k));
-    P.mat.uniforms.uT.value = t;
-    P.mat.uniforms.uOpen.value = o;
-    P.halo.material.opacity = 0.08 * o;
-    P.pool.material.opacity = 0.22 * o;
+    P.mat.uniforms.uOp.value = 0.6 * o * (0.92 + 0.08 * Math.sin(t * 2.3));
+    P.glow.material.opacity = 0.45 * o;
     for (const d of P.dots) {
-      // 빛 알갱이: 고리 둘레를 천천히 돌며 안쪽으로 빨려 듦
-      d.a += dt * d.v * (2.2 - d.r);
-      d.r -= dt * 0.1;
-      if (d.r < 0.25) { d.r = 1.6 + Math.random() * 0.3; d.a = Math.random() * 6.28; }
-      d.sp.position.set(Math.cos(d.a) * d.r * o, Math.sin(d.a) * d.r * o, d.z * (d.r - 0.2));
-      d.sp.material.opacity = o * 0.55 * clamp01((1.85 - d.r) * 2) * clamp01((d.r - 0.25) * 3) * (0.7 + 0.3 * Math.sin(t * 2 + d.ph));
-      d.sp.scale.setScalar(d.s * (1 + o));
+      d.y += d.v * dt; if (d.y > 4.5) d.y -= 4.5; d.a += dt * 0.6;
+      d.sp.position.set(Math.cos(d.a) * d.r, d.y, Math.sin(d.a) * d.r);
+      d.sp.scale.setScalar(d.s);
+      d.sp.material.opacity = o * Math.sin(d.y / 4.5 * Math.PI) * 0.9;
     }
     if (P.want === 0 && P.k <= 0) {
       scene.remove(P.g);
-      P.g.traverse(o2 => { if (o2.geometry) o2.geometry.dispose(); if (o2.material) o2.material.dispose(); });
+      P.g.traverse(o2 => { if (o2.geometry) o2.geometry.dispose(); if (o2.material && o2.material !== P.mat) o2.material.dispose(); });
+      P.mat.dispose();
       portals.splice(i, 1);
     }
   }
@@ -6839,7 +6816,7 @@ function portalChime() {
     o.connect(gn); gn.connect(sfxBus(c)); o.start(t0); o.stop(t0 + 2.7);
   });
 }
-/* 차원이동 진행 */
+/* 차원이동 진행: 그 자리에서 빛이 아바타를 감싸고 → 화면 전체가 환해졌다가 → 새 차원으로 스르르 밝아짐 */
 let portalRun = null;
 function startDimMove(target) {
   if (!DIMS[target]) return;
@@ -6850,61 +6827,28 @@ function startDimMove(target) {
   for (const r of [...teaRituals]) if (r.fig === myFig) endTeaRitual(r);
   if (mySeat !== null) { mySeat = null; $('seatBtn').textContent = '방석에 앉기'; }
   teaSitting = null; teaPending = null; edgeSit = null; onMat = null; moveTarget = null;
-  // 아바타 바로 앞에 문 (유리에 닿지 않게 안쪽으로)
-  const fx = -Math.sin(heading), fz = -Math.cos(heading);
-  let px = pos2.x + fx * 1.9, pz = pos2.y + fz * 1.9;
-  const lim = DOME_R - 1.8;
-  { const dx = px - DOME_CENTER.x, dz = pz - DOME_CENTER.z, d = Math.hypot(dx, dz); if (d > lim) { px = DOME_CENTER.x + dx / d * lim; pz = DOME_CENTER.z + dz / d * lim; } }
-  let ax = px - pos2.x, az = pz - pos2.y, al = Math.hypot(ax, az);
-  if (al < 1.2) {   // 유리 가까이서 바깥을 보고 있었으면 돔 가운데 쪽에 문을 엶
-    const cx = DOME_CENTER.x - pos2.x, cz = DOME_CENTER.z - pos2.y, cd = Math.hypot(cx, cz) || 1;
-    px = pos2.x + cx / cd * 1.9; pz = pos2.y + cz / cd * 1.9; ax = px - pos2.x; az = pz - pos2.y; al = Math.hypot(ax, az);
-  }
-  const dx = ax / al, dz = az / al, yaw = Math.atan2(-dx, -dz);
-  let ex = px + dx * 1.5, ez = pz + dz * 1.5;
-  { const ox = ex - DOME_CENTER.x, oz = ez - DOME_CENTER.z, d = Math.hypot(ox, oz), m = DOME_R - 0.9; if (d > m) { ex = DOME_CENTER.x + ox / d * m; ez = DOME_CENTER.z + oz / d * m; } }
-  heading = yaw;
-  // 언제 어디서 떠나든 바다에서 처음 떠날 때와 똑같이: 아바타 뒤에서 문과 아바타를 함께 봄
-  // (방석에 앉았다 일어나면 저절로 '내 눈으로 보기'로 돌아가는 기능이 끼어들지 않게 끔)
-  const wasFP = firstPerson || autoTP;
-  setView(false); keepTP = false;
-  camYaw = yaw; camZoom = 1; camPitchOff = 0; lastLookAt = performance.now();
-  portalRun = { target, from: myDim, P: spawnPortal(px, pz, yaw, target, false), px, pz, ex, ez, yaw, wasFP, phase: 'open', t0: performance.now() };
-  dimFx.tint.set(DIMS[target].a);
+  portalRun = { target, from: myDim, P: spawnPortal(orb.position.x, orb.position.z, 0, target, false), phase: 'gather', t0: performance.now() };
   portalChime();
-  toast(`🌀 ${DIMS[target].name}(으)로 가는 문이 열렸어요`);
+  toast(`✨ ${DIMS[target].name}(으)로 가요`);
   sendPresence(true);
 }
 function updatePortalRun() {
   const R = portalRun, now = performance.now(), e = (now - R.t0) / 1000;
-  const h = HOUSE_BASE + 0.17;
-  if (R.phase === 'open') {
-    if (e > 1.1) { R.phase = 'in'; moveTarget = { x: R.px, y: R.pz, h, sp: 1.35 }; }
-  } else if (R.phase === 'in') {
-    if (Math.hypot(pos2.x - R.px, pos2.y - R.pz) < 0.75 || e > 9) { R.phase = 'cross'; R.tc = now; }
-  } else if (R.phase === 'cross') {
-    const k = (now - R.tc) / 1000;
-    dimFx.amt = smooth(clamp01(k / 0.9));
-    if (k >= 0.9) {
-      // 새 돔으로: 같은 자리의 문에서 걸어 나옴 (문 안에는 떠나온 차원이 비침)
+  R.P.g.position.set(orb.position.x, HOUSE_BASE + 0.17, orb.position.z);   // 빛이 아바타를 감쌈
+  if (R.phase === 'gather') {
+    if (e > 0.8 && !R.white) { R.white = true; whiteFlash(0, 1, 1300); }   // 화면 전체가 환해짐
+    if (e > 2.25) {
       if (bellSession) { bellSession = null; tick(); }   // 종치기 명상은 같은 차원끼리 (9시 명상은 어디서나 그대로)
       applyDim(R.target);
-      setPortalDim(R.P, R.from);
-      pos2.set(R.px, R.pz); heading = R.yaw;
-      camYaw = R.yaw + Math.PI; snapCam = true;   // 나오는 쪽에서 문을 바라봄
-      moveTarget = { x: R.ex, y: R.ez, h, sp: 1.1 };
-      R.phase = 'out'; R.to = now;
       sendPresence(true);
+      R.phase = 'reveal'; R.tr = now;
+      setTimeout(() => whiteFlash(1, 0, 1600), 200);    // 새 차원으로 스르르
     }
-  } else if (R.phase === 'out') {
-    const k = (now - R.to) / 1000;
-    dimFx.amt = 1 - smooth(clamp01(k / 1.4));
-    if ((!moveTarget && k > 1.2) || k > 5) { R.P.want = 0; R.phase = 'close'; R.tcl = now; }
-  } else if (R.phase === 'close') {
-    dimFx.amt = 0;
-    if ((now - R.tcl) / 1000 > 1.0) {
+  } else if (R.phase === 'reveal') {
+    const k = (now - R.tr) / 1000;
+    if (k > 0.9) R.P.want = 0;   // 감싼 빛도 천천히 사라짐
+    if (k > 2.3) {
       portalRun = null;
-      if (R.wasFP) { camYaw = heading; setView(true); }
       toast(`${DIMS[R.target].icon} ${DIMS[R.target].name} 돔이에요` + (R.target === 'sea' ? '' : ' · 9시 명상은 모든 차원이 함께해요'));
     }
   }
@@ -7006,6 +6950,7 @@ function frame() {
     updateCreatures(t);
     updateLights(dt, t);
     updatePeers(dt, t);
+    shaftT.value = t;
     updateSeaRealism(dt, t);
     if (myDim === 'sea') updateSeaModels(dt, t);
     updateDims(dt, t);
