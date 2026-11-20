@@ -409,7 +409,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-162';
+const BUILD = '11.19-163';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -5941,11 +5941,30 @@ function buildSpace() {
     const sz = 5 + R() * 7; sp.scale.setScalar(sz); g.add(sp); glints.push({ sp, sz, ph: R() * 6.28, v: 1 + R() * 2 });
   }
   // 혜성: 가끔 (40~100초마다) 긴 꼬리를 끌며 하늘을 천천히 가로지름
+  // 이어진 빛줄기 꼬리: 머리에서 꼬리로 갈수록 가늘고 흐려짐 (점이 아니라 한 줄)
+  const streakGeo = (() => { const gg = new THREE.PlaneGeometry(1, 1, 1, 24); gg.translate(0, 0.5, 0); return gg; })();
+  const makeStreak = (col, w) => {
+    const m = noRay(new THREE.Mesh(streakGeo, new THREE.ShaderMaterial({
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false,
+      uniforms: { uHead: { value: new THREE.Vector3() }, uDir: { value: new THREE.Vector3(0, -1, 0) }, uLen: { value: 30 }, uW: { value: w }, uOp: { value: 0 }, uCol: { value: new THREE.Color(col) } },
+      vertexShader: `uniform vec3 uHead, uDir; uniform float uLen, uW; varying vec2 vUv;
+        void main(){ vUv = uv; float y = position.y; vec3 p = uHead - uDir * uLen * y;
+          vec3 right = normalize(cross(uDir, cameraPosition - p));
+          vec3 wp = p + right * position.x * uW * (1.0 - 0.8 * y);
+          gl_Position = projectionMatrix * viewMatrix * vec4(wp, 1.0); }`,
+      fragmentShader: `uniform float uOp; uniform vec3 uCol; varying vec2 vUv;
+        void main(){ float x = (vUv.x - 0.5) * 2.0, y = vUv.y;
+          float a = uOp * pow(1.0 - y, 1.8) * exp(-x * x * 4.0);
+          gl_FragColor = vec4(uCol * a, a); }`,
+    })));
+    m.frustumCulled = false; m.visible = false; g.add(m); return m;
+  };
   const comet = { trail: [], on: false, t: 0, life: 10, p0: new THREE.Vector3(), dir: new THREE.Vector3(), next: 15 + R() * 15 };
   for (let i = 0; i < 46; i++) {
     const sp = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: i < 2 ? '#ffffff' : i < 12 ? '#dff3ff' : '#9fd4ff', transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })));
     sp.visible = false; g.add(sp); comet.trail.push(sp);
   }
+  comet.streak = makeStreak('#bfe6ff', 3.2);
   const _cv = new THREE.Vector3();
   const updateComet = dt => {
     if (!comet.on) {
@@ -5957,16 +5976,14 @@ function buildSpace() {
       const side = Math.random() < 0.5 ? 1 : -1;
       comet.dir.set(-Math.sin(az) * side, -0.12, Math.cos(az) * side).normalize();
       comet.t = 0; comet.life = 9 + Math.random() * 4; comet.on = true; comet.next = 40 + Math.random() * 60;
-      comet.trail.forEach(sp => { sp.visible = true; });
+      comet.trail[0].visible = true; comet.streak.visible = true;
     }
     comet.t += dt;
     const k = comet.t / comet.life, fade = Math.min(1, Math.sin(Math.PI * Math.min(1, k)) * 1.6);
-    comet.trail.forEach((sp, i) => {
-      sp.position.copy(comet.p0).addScaledVector(comet.dir, 16 * comet.t - i * 2.6);
-      sp.scale.setScalar((i === 0 ? 9 : 7) * (1 - i / 52));
-      sp.material.opacity = fade * (1 - i / 46) * (i === 0 ? 1 : 0.6);
-    });
-    if (k >= 1) { comet.on = false; comet.trail.forEach(sp => { sp.visible = false; }); }
+    const hd = comet.trail[0];
+    hd.position.copy(comet.p0).addScaledVector(comet.dir, 16 * comet.t); hd.scale.setScalar(8); hd.material.opacity = fade;
+    const cu = comet.streak.material.uniforms; cu.uHead.value.copy(hd.position); cu.uDir.value.copy(comet.dir); cu.uLen.value = 110; cu.uOp.value = fade * 0.55;
+    if (k >= 1) { comet.on = false; hd.visible = false; comet.streak.visible = false; }
   };
   const W = { g, bg: new THREE.Color('#020309'), fog: 0.0006, hemi: new THREE.Color('#a9b8ff'), hemiG: new THREE.Color('#1c2236'), hemiI: 0.8, sun: new THREE.Color('#ffffff'), sunI: 2.5, sunDir };
   W.look = () => {};
@@ -6011,7 +6028,7 @@ function buildSpace() {
       const sp = noRay(new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: i < 2 ? '#ffffff' : '#cfe4ff', transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })));
       sp.visible = false; g.add(sp); trail.push(sp);
     }
-    meteors.push({ trail, on: false, t: 0, life: 1, p0: new THREE.Vector3(), dir: new THREE.Vector3(), speed: 0 });
+    meteors.push({ streak: makeStreak('#eef6ff', 2.6), trail, on: false, t: 0, life: 1, p0: new THREE.Vector3(), dir: new THREE.Vector3(), speed: 0 });
   }
   let nextMeteor = 3 + Math.random() * 5;
   const _mp = new THREE.Vector3();
@@ -6029,20 +6046,18 @@ function buildSpace() {
         const side = Math.random() < 0.5 ? 1 : -1;
         M.dir.set(-Math.sin(az) * side, -0.55 - Math.random() * 0.4, Math.cos(az) * side).normalize();
         M.speed = 110 + Math.random() * 70; M.life = 0.9 + Math.random() * 0.7; M.t = 0; M.on = true;
-        M.trail.forEach(sp => { sp.visible = true; });
+        M.trail[0].visible = true; M.streak.visible = true;
       }
     }
     for (const M of meteors) {
       if (!M.on) continue;
       M.t += dt;
       const k = M.t / M.life, fade = Math.sin(Math.PI * Math.min(1, k));
-      M.trail.forEach((sp, i) => {
-        _mp.copy(M.p0).addScaledVector(M.dir, Math.max(0, M.speed * M.t - i * 3.2));
-        sp.position.copy(_mp);
-        sp.scale.setScalar((i === 0 ? 11 : 6.5) * (1 - i / 30));
-        sp.material.opacity = Math.min(1, fade * 1.3) * (1 - i / 26) * (i === 0 ? 1 : 0.85);
-      });
-      if (k >= 1) { M.on = false; M.trail.forEach(sp => { sp.visible = false; }); }
+      const hd = M.trail[0];
+      hd.position.copy(M.p0).addScaledVector(M.dir, M.speed * M.t); hd.scale.setScalar(10); hd.material.opacity = Math.min(1, fade * 1.3);
+      const mu = M.streak.material.uniforms; mu.uHead.value.copy(hd.position); mu.uDir.value.copy(M.dir);
+      mu.uLen.value = Math.min(70, M.speed * M.t); mu.uOp.value = Math.min(1, fade * 1.3);
+      if (k >= 1) { M.on = false; hd.visible = false; M.streak.visible = false; }
     }
   };
   W.tick = (dt, t) => {
@@ -6167,8 +6182,9 @@ function buildSeoulReal(D, DD) {
   moonM.scale.setScalar(380); S.add(moonM);
   const canvasTex = (w, h, draw) => { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; };
   const litCells = [];
-  const winTex = canvasTex(64, 128, (g, w, h) => { g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h); for (let y = 6; y < h; y += 11) for (let x = 6; x < w; x += 11) { g.fillStyle = rnd() < 0.2 ? '#a8c6e0' : '#c9dceb'; g.fillRect(x, y, 6, 7); if (rnd() < 0.55) litCells.push([x, y]); } });
-  const litTex = canvasTex(64, 128, (g, w, h) => { g.fillStyle = '#000'; g.fillRect(0, 0, w, h); litCells.forEach(([x, y]) => { g.fillStyle = rnd() < 0.8 ? '#ffd28a' : '#cfe3ff'; g.fillRect(x, y, 6, 7); }); });
+  // 벽: 층마다 은은한 가로 창 띠 (벽 빛깔과 가깝게, 촘촘한 바둑판 무늬 없이). 밤에는 창마다 불이 켜짐
+  const winTex = canvasTex(64, 128, (g, w, h) => { g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h); for (let y = 6; y < h; y += 11) { g.fillStyle = 'rgba(150,170,190,.22)'; g.fillRect(3, y, w - 6, 5); g.fillStyle = 'rgba(255,255,255,.5)'; for (let x = 3; x < w; x += 15) g.fillRect(x, y, 1, 5); for (let x = 6; x < w; x += 11) if (rnd() < 0.55) litCells.push([x, y]); } });
+  const litTex = canvasTex(64, 128, (g, w, h) => { g.fillStyle = '#000'; g.fillRect(0, 0, w, h); litCells.forEach(([x, y]) => { g.fillStyle = rnd() < 0.8 ? '#ffd28a' : '#cfe3ff'; g.fillRect(x, y, 8, 5); }); });
   winTex.wrapS = winTex.wrapT = litTex.wrapS = litTex.wrapT = THREE.RepeatWrapping;   // 실제 모양 건물 벽에 창을 이어 붙임
   const glassTex = canvasTex(64, 128, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#d3e5f3'); gr.addColorStop(1, '#9fbbd4'); g.fillStyle = gr; g.fillRect(0, 0, w, h); g.strokeStyle = 'rgba(255,255,255,.35)'; for (let x = 0; x < w; x += 6) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); } });
   const shape = (pts, holes = []) => { const sh = new THREE.Shape(pts.map(p => new THREE.Vector2(p[0], -p[1]))); holes.forEach(hh => sh.holes.push(new THREE.Path(hh.map(p => new THREE.Vector2(p[0], -p[1]))))); return sh; };
