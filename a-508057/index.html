@@ -408,7 +408,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-143';
+const BUILD = '11.19-144';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -6175,11 +6175,14 @@ function dimLook() {
 }
 /* 서울·우주 돔은 바닥이 투명한 유리 (방석·매트·찻상·등불 같은 앉는 자리와 물건은 그대로) */
 const glassFloorMat = new THREE.MeshStandardMaterial({ color: '#e4f4ff', roughness: 0.08, metalness: 0, transparent: true, opacity: 0.13, depthWrite: false });
+// 서울 하늘은 살짝 뿌연 젖빛 유리 (바닥이라는 느낌이 들고 방석이 또렷하게, 아래 도시는 은은히 비침)
+const frostFloorMat = new THREE.MeshStandardMaterial({ color: '#f3f6f8', roughness: 0.6, metalness: 0, transparent: true, opacity: 0.55, depthWrite: false });
 const glassFloorRim = noRay(new THREE.Mesh(new THREE.TorusGeometry(DOME_R + 0.32, 0.035, 6, 120), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.45 })));
 glassFloorRim.rotation.x = Math.PI / 2; glassFloorRim.position.y = 0.15; glassFloorRim.visible = false; dome.add(glassFloorRim);
 domeFloors.forEach(m => { m.userData.solidMat = m.material; });
 function setGlassFloor(on) {
-  domeFloors.forEach(m => { m.material = on ? glassFloorMat : m.userData.solidMat; });
+  const gm = myDim === 'seoul' ? frostFloorMat : glassFloorMat;
+  domeFloors.forEach(m => { m.material = on ? gm : m.userData.solidMat; });
   glassFloorRim.visible = on;
 }
 function applyDim(k) {
