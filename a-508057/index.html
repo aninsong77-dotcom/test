@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>뿅</title>
+<title>짜잔</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="theme-color" content="#1f86b6">
 <meta name="description" content="누구나 자유롭게 들어와 명상할 수 있는 바닷속 명상 공간입니다.">
 <meta property="og:type" content="website">
-<meta property="og:title" content="뿅">
+<meta property="og:title" content="짜잔">
 <meta property="og:description" content="누구나 자유롭게 들어와 명상할 수 있는 바닷속 명상 공간입니다.">
 <meta property="og:url" content="https://aninsong77-dotcom.github.io/a-508057/">
 <meta property="og:locale" content="ko_KR">
@@ -151,6 +151,13 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
   background:radial-gradient(120% 90% at 50% 30%,#1a6f99 0%,#0b3a58 45%,#04182a 100%);transition:opacity .7s ease}
 .start.is-off{opacity:0;pointer-events:none}
 .start[hidden]{display:none}
+/* 짜잔: 글자가 바닥에 누워 있다가 하나씩 벌떡 일어남 */
+.start .s-name{perspective:520px}
+.start .s-name span{display:inline-block;transform-origin:50% 92%;transform:rotateX(84deg);opacity:.55}
+.start .s-name.up span{animation:standUp 1s cubic-bezier(.25,1.5,.45,1) forwards}
+.start .s-name.up span:nth-child(2){animation-delay:.22s}
+@keyframes standUp{0%{transform:rotateX(84deg);opacity:.55}45%{opacity:1}70%{transform:rotateX(-10deg)}86%{transform:rotateX(4deg)}100%{transform:rotateX(0);opacity:1}}
+@media (prefers-reduced-motion:reduce){.start .s-name span{transform:none;opacity:1}.start .s-name.up span{animation:none}}
 .start .s-name{font:700 clamp(54px,16vw,104px)/1 var(--f-display);color:var(--ink);letter-spacing:.06em;text-shadow:0 0 28px rgba(143,227,255,.35)}
 .start .s-sub{margin:0;font:400 15px/1.6 var(--f-display);color:var(--muted);letter-spacing:.08em}
 .start .s-pick{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:6px}
@@ -233,7 +240,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 
 <header class="hud fade is-hidden" id="hud">
   <div class="plate">
-    <div class="id">뿅</div>
+    <div class="id">짜잔</div>
     <div class="sub"><span hidden><span id="found"></span><span id="lightCount"></span></span><span id="dimName"></span>유리 돔 · <span id="together">혼자 있어요</span> <span id="buildTag" style="opacity:.55;font-size:10px"></span> <span id="osmTag" hidden style="opacity:.6;font-size:10px">지도 © OpenStreetMap</span> <span id="wxTag" hidden style="font-size:11px"></span></div>
     <div class="hint" id="hint"></div>
   </div>
@@ -395,11 +402,11 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 
 <div class="title-card fade is-hidden" id="titleCard">
   <div class="t-label" id="tcLabel">바닷속</div>
-  <div class="t-id">뿅</div>
+  <div class="t-id">짜잔</div>
 </div>
 
 <div class="start" id="startScreen" role="dialog" aria-labelledby="startName">
-  <div class="s-name" id="startName">뿅</div>
+  <div class="s-name" id="startName" aria-label="짜잔"><span>짜</span><span>잔</span></div>
   <p class="s-sub">어디에서 명상할까요?</p>
   <div class="s-pick" id="startPick">
     <button type="button" data-dim="sea">🌊 바다 명상<small>바닷속 유리 돔</small></button>
@@ -423,7 +430,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-173';
+const BUILD = '11.19-174';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -7187,11 +7194,12 @@ function frame() {
   requestAnimationFrame(frame);
 }
 setLook(HOUSE_BASE + 2);
-/* 시작 화면: 공간 이름 '뿅'과 명상할 곳 고르기 → 고른 곳의 돔으로 빛을 타고 내려옴 */
+/* 시작 화면: 공간 이름 "짜잔"과 명상할 곳 고르기 → 고른 곳의 돔으로 빛을 타고 내려옴 */
 function showStart() {
   closeSheets(); $('endSheet').hidden = true;
   $('startScreen').hidden = false;
-  requestAnimationFrame(() => $('startScreen').classList.remove('is-off'));
+  const nm = $('startName'); nm.classList.remove('up');
+  requestAnimationFrame(() => { $('startScreen').classList.remove('is-off'); setTimeout(() => nm.classList.add('up'), 650); });
 }
 $('startPick').addEventListener('click', e => {
   const b = e.target.closest('button[data-dim]');
