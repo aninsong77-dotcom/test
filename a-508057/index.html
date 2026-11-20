@@ -410,7 +410,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-168';
+const BUILD = '11.19-169';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -5778,6 +5778,28 @@ function buildSeoul() {
   return W;
 }
 /* 지구 우주 (임시 배경: 3단계에서 earth-orbit 예시로 바꿀 예정) */
+// 해·달·행성의 실제 방향 (지구에서 본 적경·적위, 간단한 궤도 요소 계산, 정확도 약 1~2°)
+function skyRaDec(ms) {
+  const d = ms / 86400000 + 2440587.5 - 2451543.5, rad = Math.PI / 180;
+  const kep = (N, i, w, a, e, M) => {
+    M = ((M % 360) + 360) % 360 * rad; let E = M + e * Math.sin(M) * (1 + e * Math.cos(M));
+    for (let k = 0; k < 5; k++) E = E - (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
+    const xv = a * (Math.cos(E) - e), yv = a * Math.sqrt(1 - e * e) * Math.sin(E), v = Math.atan2(yv, xv), r = Math.hypot(xv, yv);
+    N *= rad; i *= rad; w *= rad;
+    return [r * (Math.cos(N) * Math.cos(v + w) - Math.sin(N) * Math.sin(v + w) * Math.cos(i)), r * (Math.sin(N) * Math.cos(v + w) + Math.cos(N) * Math.sin(v + w) * Math.cos(i)), r * Math.sin(v + w) * Math.sin(i)];
+  };
+  const ecl = (23.4393 - 3.563e-7 * d) * rad;
+  const toEq = ([x, y, z]) => { const ye = y * Math.cos(ecl) - z * Math.sin(ecl), ze = y * Math.sin(ecl) + z * Math.cos(ecl); return { ra: Math.atan2(ye, x), dec: Math.atan2(ze, Math.hypot(x, ye)) }; };
+  const sun = kep(0, 0, 282.9404 + 4.70935e-5 * d, 1, 0.016709 - 1.151e-9 * d, 356.0470 + 0.9856002585 * d);
+  const planet = el => { const h = kep(...el); return toEq([h[0] + sun[0], h[1] + sun[1], h[2] + sun[2]]); };
+  return {
+    sun: toEq(sun),
+    moon: toEq(kep(125.1228 - 0.0529538083 * d, 5.1454, 318.0634 + 0.1643573223 * d, 60.2666, 0.0549, 115.3654 + 13.0649929509 * d)),
+    mars: planet([49.5574 + 2.11081e-5 * d, 1.8497 - 1.78e-8 * d, 286.5016 + 2.92961e-5 * d, 1.523688, 0.093405 + 2.516e-9 * d, 18.6021 + 0.5240207766 * d]),
+    jupiter: planet([100.4542 + 2.76854e-5 * d, 1.3030 - 1.557e-7 * d, 273.8777 + 1.64505e-5 * d, 5.20256, 0.048498 + 4.469e-9 * d, 19.8950 + 0.0830853001 * d]),
+    saturn: planet([113.6634 + 2.3898e-5 * d, 2.4886 - 1.081e-7 * d, 339.3939 + 2.97661e-5 * d, 9.55475, 0.055546 - 9.499e-9 * d, 316.9670 + 0.0334442282 * d]),
+  };
+}
 function buildSpace() {
   const g = new THREE.Group(), R = mulberry32(42);
   const C = DOME_CENTER;
@@ -6003,6 +6025,9 @@ function buildSpace() {
     const cu = comet.streak.material.uniforms; cu.uHead.value.copy(hd.position); cu.uDir.value.copy(comet.dir); cu.uLen.value = 110; cu.uOp.value = fade * 0.55;
     if (k >= 1) { comet.on = false; hd.visible = false; comet.streak.visible = false; }
   };
+  // 하늘 좌표(적경·적위) → 방향 (별 자리와 같은 규칙)
+  const raDecDir = (ra, dec, out) => out.set(Math.cos(dec) * Math.cos(ra), Math.sin(dec), -Math.cos(dec) * Math.sin(ra));
+  const _sd = new THREE.Vector3(); let skyAt = -1e9;
   const W = { g, bg: new THREE.Color('#020309'), fog: 0.0006, hemi: new THREE.Color('#a9b8ff'), hemiG: new THREE.Color('#1c2236'), hemiI: 0.8, sun: new THREE.Color('#ffffff'), sunI: 2.5, sunDir };
   W.look = () => {};
   // 행성들: 저마다 제자리에서 돌고, 돔 둘레를 천천히 돎 (실제 시각 기준이라 모두에게 같은 자리)
@@ -6034,10 +6059,10 @@ function buildSpace() {
     }
     planets.push({ pg, body, ...o });
   };
-  addPlanet({ name: '달', r: 14, tex: spotTex('#b9b7b2', ['#8d8b86', '#d6d4cf', '#77746f'], 3), orbit: 235, h: 30, per: 150, ph: 1.2, spin: 150, tilt: 0.1 });
-  addPlanet({ name: '화성', r: 10, tex: spotTex('#c8673d', ['#9c4527', '#e08a5a', '#7d3a22'], 5), orbit: 300, h: 95, per: 260, ph: 3.4, spin: 40, tilt: 0.44 });
-  addPlanet({ name: '목성', r: 30, tex: bandTex(['#d8b98f', '#c49a6c', '#efe1c6', '#b07f56', '#e6cfa6'], 9), orbit: 360, h: 150, per: 420, ph: 5.1, spin: 25, tilt: 0.05 });
-  addPlanet({ name: '토성', r: 22, tex: bandTex(['#e8d6a8', '#d9c18c', '#f2e6c4', '#c9ad78'], 11), orbit: 330, h: 60, per: 560, ph: 0.3, spin: 30, tilt: 0.47, ring: true });
+  addPlanet({ key: 'moon', name: '달', r: 14, tex: spotTex('#b9b7b2', ['#8d8b86', '#d6d4cf', '#77746f'], 3), orbit: 235, h: 30, per: 150, ph: 1.2, spin: 150, tilt: 0.1 });
+  addPlanet({ key: 'mars', name: '화성', r: 10, tex: spotTex('#c8673d', ['#9c4527', '#e08a5a', '#7d3a22'], 5), orbit: 300, h: 95, per: 260, ph: 3.4, spin: 40, tilt: 0.44 });
+  addPlanet({ key: 'jupiter', name: '목성', r: 30, tex: bandTex(['#d8b98f', '#c49a6c', '#efe1c6', '#b07f56', '#e6cfa6'], 9), orbit: 360, h: 150, per: 420, ph: 5.1, spin: 25, tilt: 0.05 });
+  addPlanet({ key: 'saturn', name: '토성', r: 22, tex: bandTex(['#e8d6a8', '#d9c18c', '#f2e6c4', '#c9ad78'], 11), orbit: 330, h: 60, per: 560, ph: 0.3, spin: 30, tilt: 0.47, ring: true });
   // 유성: 가끔 (5~14초마다) 하늘을 가로질러 떨어짐. 빛 알갱이 줄이 꼬리처럼 남음
   const meteors = [];
   for (let m = 0; m < 3; m++) {
@@ -6086,11 +6111,16 @@ function buildSpace() {
     for (const G of glints) { const tw = 0.75 + 0.25 * Math.sin(t * G.v + G.ph); G.sp.scale.setScalar(G.sz * tw); G.sp.material.opacity = 0.6 + 0.4 * tw; }
     earth.rotation.y = (s / 240 * Math.PI * 2) % (Math.PI * 2);          // 지구: 약 4분에 한 바퀴
     cloudsE.rotation.y = (s / 190 * Math.PI * 2) % (Math.PI * 2);        // 구름은 조금 더 빨리
-    for (const P of planets) {
-      const a = P.ph + s / P.per * Math.PI * 2;
-      P.pg.position.set(C.x + Math.cos(a) * P.orbit, C.y + P.h + Math.sin(a * 0.5) * 20, C.z + Math.sin(a) * P.orbit);
-      P.body.rotation.y = (s / P.spin * Math.PI * 2) % (Math.PI * 2);
+    // 해·달·행성은 지금 실제로 있는 방향에 (별자리와 같은 하늘 좌표). 몇 초마다 다시 계산 (아주 천천히 움직임)
+    if (s - skyAt > 5) {
+      skyAt = s; const sk = skyRaDec(Date.now());
+      for (const P of planets) { const q = sk[P.key]; P.pg.position.copy(C).addScaledVector(raDecDir(q.ra, q.dec, _sd), P.orbit); }
+      raDecDir(sk.sun.ra, sk.sun.dec, _sd);
+      sunU.value.copy(_sd); W.sunDir.copy(_sd);
+      sunG.position.copy(C).addScaledVector(_sd, 380); sunC.position.copy(sunG.position); sunRays.position.copy(sunG.position);
+      if (myDim === 'space') dimLook();
     }
+    for (const P of planets) P.body.rotation.y = (s / P.spin * Math.PI * 2) % (Math.PI * 2);
     if (stars[1]) stars[1].material.uniforms.uOp.value = 0.92 + 0.08 * Math.sin(t * 1.7);
   };
   return W;
