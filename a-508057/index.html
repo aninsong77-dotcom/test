@@ -409,7 +409,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-150';
+const BUILD = '11.19-151';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -721,8 +721,12 @@ function reefMaterial(amp) {
     sh.uniforms.uRT = reefU.uRT;
     sh.vertexShader = 'attribute vec2 aSway; uniform float uRT;\n' + sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>
       { float h = aSway.x, ph = aSway.y, k = pow(h, 1.6) * ${amp.toFixed(3)};
-        transformed.x += (sin(uRT * 0.75 + ph + h * 2.2) + 0.4 * sin(uRT * 1.9 + ph * 1.7 + h * 4.0)) * k;
-        transformed.z += cos(uRT * 0.6 + ph * 1.3 + h * 1.8) * k * 0.8; }`);
+        // 대체로 잔잔하다가, 가끔 물살이 바닥을 쓸고 지나가며 한쪽으로 세게 기울었다 천천히 돌아옴 (가까운 수초끼리 차례로)
+        float wave = uRT * 0.09 - transformed.x * 0.035 - transformed.z * 0.02;
+        float gust = pow(max(0.0, sin(wave)), 10.0) * 1.6 + pow(max(0.0, sin(uRT * 0.23 + ph * 0.4)), 14.0) * 0.5;
+        float calm = 0.45 + 0.55 * gust;
+        transformed.x += (sin(uRT * 0.75 + ph + h * 2.2) + 0.4 * sin(uRT * 1.9 + ph * 1.7 + h * 4.0)) * k * calm + gust * k * 1.3;
+        transformed.z += cos(uRT * 0.6 + ph * 1.3 + h * 1.8) * k * 0.8 * calm + gust * k * 0.5; }`);
   };
   m.customProgramCacheKey = () => 'reef' + amp;
   return m;
