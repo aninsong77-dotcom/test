@@ -421,16 +421,16 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
       <label>몸의 느낌<textarea id="jBody" rows="2" maxlength="600" placeholder="예: 어깨가 풀리고 숨이 깊어졌어요"></textarea></label>
       <label>떠오른 생각·마음<textarea id="jMind" rows="3" maxlength="1200" placeholder="자유롭게 적어요"></textarea></label>
       <label>나에게 한 줄<input id="jLine" type="text" maxlength="80" placeholder="예: 오늘도 애썼어"></label>
-      <p class="j-note">기록은 이 기기의 이 브라우저에만 저장돼요. 브라우저 기록을 지우거나 기기를 바꾸면 사라지니, 가끔 내려받아 두세요.</p>
+      <p class="j-note">기록은 이 기기의 이 브라우저에만 저장돼요. 브라우저 기록을 지우거나 기기를 바꾸면 사라지니, '지난 기록'에서 일기장을 내려받아 원하는 곳에 보관하세요.</p>
       <div class="actions"><button type="button" id="jClose">닫기</button><button type="button" class="primary" id="jSave">저장</button></div>
     </div>
     <div id="jList" hidden>
       <div class="j-items" id="jItems"></div>
-      <div class="actions"><button type="button" id="jAll">모두 내려받기 (글 파일)</button><button type="button" id="jClose2">닫기</button></div>
+      <div class="actions"><button type="button" id="jAll">일기장 내려받기</button><button type="button" id="jClose2">닫기</button></div>
     </div>
     <div id="jView" hidden>
       <div class="j-paper" id="jPaper"></div>
-      <div class="actions"><button type="button" id="jDel">지우기</button><button type="button" id="jBack">목록</button><button type="button" class="primary" id="jPng">그림으로 받기</button></div>
+      <div class="actions"><button type="button" id="jDel">지우기</button><button type="button" class="primary" id="jBack">목록</button></div>
     </div>
   </div>
 </div>
@@ -507,7 +507,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-196';
+const BUILD = '11.19-197';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -7365,12 +7365,12 @@ function frame() {
 setLook(HOUSE_BASE + 2);
 /* ---------- 명상 기록지: 각자 이 브라우저에만 저장, 필요할 때 보고 내려받기 ---------- */
 const J_KEY = 'jjan.journal.v1', MOODS = ['편안함', '가벼움', '따뜻함', '맑음', '고요함', '졸림', '복잡함', '무거움', '아쉬움'];
-const jLoad = () => { try { const a = JSON.parse(localStorage.getItem(J_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } };
+const jLoad = () => { let a = []; try { a = JSON.parse(localStorage.getItem(J_KEY) || '[]'); if (!Array.isArray(a)) a = []; } catch (e) { a = []; } return typeof jUnsaved !== 'undefined' ? a.concat(jUnsaved.filter(u => !a.some(x => x.at === u.at))) : a; };
 const jStore = a => { try { localStorage.setItem(J_KEY, JSON.stringify(a)); return true; } catch (e) { return false; } };
 const jDate = ms => { const d = new Date(ms); return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
 const jDay = ms => { const d = new Date(ms); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };   // 내 기기 날짜
 const jPlace = k => ({ sea: '바다 명상', seoul: '서울 하늘 명상', space: '우주 명상' })[k] || '바다 명상';
-let jPicked = new Set(), jOpen = null;
+let jPicked = new Set(), jOpen = null; const jUnsaved = [];   // 저장이 막힌 브라우저에서 쓴 기록 (창을 닫기 전까지)
 $('jMoods').append(...MOODS.map(m => { const b = document.createElement('button'); b.type = 'button'; b.textContent = m; b.setAttribute('aria-pressed', 'false');
   b.addEventListener('click', () => { if (jPicked.has(m)) jPicked.delete(m); else jPicked.add(m); b.setAttribute('aria-pressed', jPicked.has(m) ? 'true' : 'false'); }); return b; }));
 function jShow(which) {
@@ -7405,35 +7405,38 @@ $('jSave').addEventListener('click', () => {
   const e = { at: Date.now(), place: jPlace(myDim), kind: $('jKind').value, moods: [...jPicked], body: $('jBody').value.trim(), mind: $('jMind').value.trim(), line: $('jLine').value.trim() };
   if (!e.moods.length && !e.body && !e.mind && !e.line) { toast('마음을 고르거나 한 줄이라도 적어 주세요'); return; }
   const all = jLoad(); all.push(e);
-  if (!jStore(all)) { toast('이 브라우저에는 저장할 수 없어요 · 그림으로 받아 두세요'); jOpen = e; $('jPaper').textContent = jText(e); jShow('view'); return; }
+  if (!jStore(all)) { jUnsaved.push(e); toast('이 브라우저에는 저장할 수 없어요 · 지난 기록에서 일기장으로 내려받아 두세요'); jOpen = e; $('jPaper').textContent = jText(e); jShow('view'); return; }
   jPicked.clear(); $('jMoods').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', 'false')); $('jBody').value = $('jMind').value = $('jLine').value = '';
   toast('기록을 저장했어요'); jOpen = e; $('jPaper').textContent = jText(e); jShow('view');
 });
 $('jDel').addEventListener('click', () => { if (!jOpen || !confirm('이 기록을 지울까요?')) return; jStore(jLoad().filter(x => x.at !== jOpen.at)); jOpen = null; jShow('list'); });
+// 일기장 파일: 기록 전체를 웹페이지 파일 하나로 (한지 바탕·명조체, 날짜순). 아무 브라우저로나 열리고 용량이 아주 작음
+const jEsc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+function jDiaryHtml(all) {
+  const paper = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='3' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 .55 0 0 0 0 .52 0 0 0 0 .45 0 0 0 .3 -.11'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E";
+  const sec = (h, t) => t ? `<h3>${h}</h3><p>${jEsc(t).replace(/\n/g, '<br>')}</p>` : '';
+  const items = all.map(e => `<article><time>${jEsc(jDate(e.at))}</time><div class="where">${jEsc(e.place)} · ${jEsc(e.kind)}</div>${e.moods.length ? `<div class="moods">${e.moods.map(m => `<span>${jEsc(m)}</span>`).join('')}</div>` : ''}${sec('몸의 느낌', e.body)}${sec('떠오른 생각·마음', e.mind)}${e.line ? `<p class="line">${jEsc(e.line)}</p>` : ''}</article>`).join('\n');
+  return `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>나의 명상 일기장 · 쨘</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&display=swap">
+<style>body{margin:0;background:#faf8f2 url("${paper}");color:#1d1a16;font-family:"Nanum Myeongjo","AppleMyungjo","Batang",serif;line-height:1.85}
+main{max-width:640px;margin:0 auto;padding:48px 20px 80px}header{text-align:center;margin-bottom:40px}header b{display:block;font-size:56px;line-height:1.1}header small{letter-spacing:.3em;color:#4a4237}header p{color:#6a6155;font-size:13px}
+article{padding:28px 0;border-top:1px solid rgba(29,26,22,.18)}time{font-weight:700;font-size:18px}.where{color:#5b5246;font-size:14px}
+.moods{margin:10px 0}.moods span{display:inline-block;margin:0 6px 6px 0;padding:2px 10px;border:1px solid rgba(29,26,22,.3);border-radius:999px;font-size:13px}
+h3{margin:14px 0 2px;font-size:14px;color:#4a4237}p{margin:0;font-size:15.5px}.line{margin-top:14px;font-weight:700;font-size:16.5px}</style></head>
+<body><main><header><b>쨘</b><small>명상 메타버스</small><h1 style="font-size:20px;margin:18px 0 4px">나의 명상 일기장</h1><p>${all.length}개의 기록 · ${jEsc(jDate(Date.now()))}에 내려받음</p></header>
+${items}
+</main></body></html>`;
+}
 $('jAll').addEventListener('click', async () => {
-  const all = jLoad(); if (!all.length) { toast('아직 쓴 기록이 없어요'); return; }
-  try { await saveFile(new Blob(['\ufeff' + all.map(jText).join('\n\n────────────\n\n')], { type: 'text/plain;charset=utf-8' }), `jjan-meditation-records-${jDay(Date.now())}.txt`); toast('모든 기록을 내려받았어요'); } catch (e) { toast('내려받지 못했어요'); }
-});
-$('jPng').addEventListener('click', async () => {
-  if (!jOpen) return;
-  try { await document.fonts.load('400 28px "Nanum Myeongjo"', '명상'); await document.fonts.load('700 28px "Nanum Myeongjo"', '명상'); } catch (e) {}
-  const W = 1080, c = document.createElement('canvas'), g = c.getContext('2d'), F = '"Nanum Myeongjo","AppleMyungjo","Batang",serif';
-  const lines = [];   // [글, 크기, 굵게, 색, 위 여백]
-  const wrap = (txt, size, bold, col, gap) => { g.font = `${bold ? 700 : 400} ${size}px ${F}`; String(txt).split('\n').forEach((para, k) => { let cur = ''; for (const ch of para) { if (g.measureText(cur + ch).width > W - 200) { lines.push([cur, size, bold, col, k || lines.length === 0 ? 0 : 0]); cur = ch; } else cur += ch; } lines.push([cur, size, bold, col, 0]); }); if (gap) lines[lines.length - 1][4] = gap; };
-  const e = jOpen;
-  wrap('쨘', 84, true, '#1d1a16', 6); wrap('명상 메타버스 · 명상 기록', 26, false, '#4a4237', 40);
-  wrap(`${jDate(e.at)}`, 30, false, '#3b352d', 4); wrap(`${e.place} · ${e.kind}`, 30, false, '#3b352d', 44);
-  wrap('지금 마음', 28, true, '#1d1a16', 6); wrap(e.moods.join(' · ') || '-', 32, false, '#1d1a16', 36);
-  wrap('몸의 느낌', 28, true, '#1d1a16', 6); wrap(e.body || '-', 32, false, '#1d1a16', 36);
-  wrap('떠오른 생각·마음', 28, true, '#1d1a16', 6); wrap(e.mind || '-', 32, false, '#1d1a16', 36);
-  wrap('나에게 한 줄', 28, true, '#1d1a16', 6); wrap(e.line || '-', 34, false, '#1d1a16', 0);
-  let H = 140; lines.forEach(([t, sz, b, col, gap]) => { H += sz * 1.6 + gap; }); H = Math.max(1350, H + 120);
-  c.width = W; c.height = H;
-  g.fillStyle = '#faf8f2'; g.fillRect(0, 0, W, H);
-  for (let i = 0; i < 9000; i++) { g.fillStyle = `rgba(120,108,88,${Math.random() * 0.05})`; const x = Math.random() * W, y = Math.random() * H, l = 2 + Math.random() * 14; g.save(); g.translate(x, y); g.rotate(Math.random() * 6.28); g.fillRect(0, 0, l, 0.8); g.restore(); }   // 한지 섬유 결
-  let y = 140; g.textBaseline = 'alphabetic';
-  lines.forEach(([t, sz, b, col, gap]) => { g.font = `${b ? 700 : 400} ${sz}px ${F}`; g.fillStyle = col; y += sz * 1.6; g.fillText(t, 100, y); y += gap; });
-  c.toBlob(async blob => { try { await saveFile(blob, `jjan-meditation-${jDay(e.at)}.png`); toast('기록지를 그림으로 받았어요'); } catch (er) { toast('내려받지 못했어요'); } }, 'image/png');
+  const all = jLoad().sort((a, b) => a.at - b.at); if (!all.length) { toast('아직 쓴 기록이 없어요'); return; }
+  const blob = new Blob([jDiaryHtml(all)], { type: 'text/html;charset=utf-8' }), name = `jjan-meditation-diary-${jDay(Date.now())}.html`;
+  try {
+    if (window.showSaveFilePicker && window.top === window) {   // PC 크롬·엣지: 저장할 폴더와 이름을 고름
+      const h = await window.showSaveFilePicker({ suggestedName: name, types: [{ description: '명상 일기장', accept: { 'text/html': ['.html'] } }] });
+      const w = await h.createWritable(); await w.write(blob); await w.close();
+    } else await saveFile(blob, name);   // 그 밖의 브라우저: 다운로드 폴더로
+    toast('일기장을 내려받았어요');
+  } catch (e) { if (!(e && e.name === 'AbortError')) toast('내려받지 못했어요'); }
 });
 /* 처음 열 때: 이름 '쨘'과 출처가 있는 화면을 잠시 보여 주고 → 바다 돔으로 빛을 타고 내려옴 (누르면 바로) */
 function standName() {   // 명조체가 다 불러와진 뒤에 번득임 (글씨체가 바뀌는 도중에 지나가지 않게)
