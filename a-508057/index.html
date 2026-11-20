@@ -410,7 +410,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-170';
+const BUILD = '11.19-171';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -6028,8 +6028,28 @@ function buildSpace() {
     const body = noRay(new THREE.Mesh(new THREE.SphereGeometry(o.r, 40, 20), new THREE.MeshStandardMaterial({ map: o.tex, roughness: 0.9, metalness: 0, emissive: '#10162a', emissiveIntensity: 0.3, fog: false })));
     tiltP.add(body);
     if (o.ring) {
-      const rg = new THREE.RingGeometry(o.r * 1.35, o.r * 2.3, 64);
-      const ring = noRay(new THREE.Mesh(rg, new THREE.MeshStandardMaterial({ color: '#e9dcb8', transparent: true, opacity: 0.6, side: THREE.DoubleSide, depthWrite: false, roughness: 1, fog: false })));
+      // 고리: 안쪽에서 바깥쪽으로 가는 여러 겹의 띠 (짙은 띠, 가는 틈, 바깥으로 갈수록 옅어짐)
+      const rIn = o.r * 1.24, rOut = o.r * 2.3;
+      const rg = new THREE.RingGeometry(rIn, rOut, 128, 1);
+      const pos = rg.attributes.position, uv = rg.attributes.uv;
+      for (let i = 0; i < pos.count; i++) uv.setXY(i, (Math.hypot(pos.getX(i), pos.getY(i)) - rIn) / (rOut - rIn), 0.5);
+      const rc = document.createElement('canvas'); rc.width = 512; rc.height = 4;
+      const rq = rc.getContext('2d'), Rr = mulberry32(17);
+      for (let x = 0; x < 512; x++) {
+        const f = x / 511;
+        let a = f < 0.12 ? 0.12 + f * 1.5            // 안쪽의 흐린 고리
+          : f < 0.33 ? 0.45 + (f - 0.12) * 1.2       // 가운데 고리
+          : f < 0.6 ? 0.85                            // 가장 밝은 고리
+          : f < 0.65 ? 0.05                           // 큰 틈
+          : f < 0.93 ? 0.6 - (f - 0.65) * 0.6         // 바깥 고리
+          : 0.18 * (1 - (f - 0.93) / 0.07);           // 끝으로 갈수록 사라짐
+        a *= 0.8 + Rr() * 0.35; if (f > 0.84 && f < 0.85) a *= 0.3;
+        const w = 0.82 + f * 0.25 + (Rr() - 0.5) * 0.08;
+        rq.fillStyle = `rgba(${Math.min(255, 228 * w) | 0},${Math.min(255, 208 * w) | 0},${Math.min(255, 170 * w) | 0},${Math.max(0, Math.min(1, a)) * 0.9})`;
+        rq.fillRect(x, 0, 1, 4);
+      }
+      const rt = new THREE.CanvasTexture(rc); rt.colorSpace = THREE.SRGBColorSpace;
+      const ring = noRay(new THREE.Mesh(rg, new THREE.MeshStandardMaterial({ map: rt, transparent: true, side: THREE.DoubleSide, depthWrite: false, roughness: 1, emissive: '#3a3226', emissiveIntensity: 0.5, fog: false })));
       ring.rotation.x = -Math.PI / 2; tiltP.add(ring);
     }
     planets.push({ pg, body, ...o });
