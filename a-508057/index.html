@@ -409,7 +409,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-149';
+const BUILD = '11.19-150';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -1456,7 +1456,7 @@ let beachMesh = null;
   });
 }
 
-const anemones = [];
+const anemones = [], anemoneSpots = [];
 /* ---------- 더 예쁜 바다: 반짝이는 물빛, 거북이, 공기 방울 기둥, 돔 둘레 산호 정원 ---------- */
 // 반짝이는 작은 물빛 (카메라 둘레를 떠다니며 반짝임)
 const glints = [];
@@ -1540,23 +1540,8 @@ const bubbleCols = [];
         g.add(br);
       }
     } else {
-      // 말미잘 (촉수가 살랑임)
-      const base = noRay(new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.26, 0.18, 14), mat));
-      base.position.y = 0.09;
-      g.add(base);
-      const tents = [];
-      for (let k = 0; k < 12; k++) {
-        const ta = k / 12 * Math.PI * 2;
-        const pv = new THREE.Group();
-        pv.position.set(Math.cos(ta) * 0.14, 0.18, Math.sin(ta) * 0.14);
-        pv.rotation.set(Math.sin(ta) * 0.5, 0, -Math.cos(ta) * 0.5);
-        const tn = noRay(new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.03, 0.32, 5), mat));
-        tn.position.y = 0.16;
-        pv.add(tn);
-        g.add(pv);
-        tents.push(pv);
-      }
-      anemones.push({ tents, ph: rand() * 6 });
+      // 말미잘: 실제 모양은 아래 '진짜 같은 말미잘'에서 만듦 (자리만 기억)
+      anemoneSpots.push({ x: g.position.x, y: g.position.y, z: g.position.z, r: 0.26, color });
     }
     scene.add(g);
   }
@@ -1722,25 +1707,7 @@ function makeLionfish() {
     const base = new THREE.Group();
     base.position.set(x, y, z);
     scene.add(base);
-    const disc = noRay(new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.62, 0.22, 20), mat));
-    disc.position.y = 0.11;
-    base.add(disc);
-    const tents = [];
-    for (let k = 0; k < 46; k++) {
-      const ta = k * 2.4, tr = 0.12 + (k % 5) * 0.09;
-      const pv = new THREE.Group();
-      pv.position.set(Math.cos(ta) * tr, 0.2, Math.sin(ta) * tr);
-      pv.rotation.set(Math.sin(ta) * tr * 0.9, 0, -Math.cos(ta) * tr * 0.9);
-      const tn = noRay(new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.03, 0.42, 5), mat));
-      tn.position.y = 0.2;
-      const tip = noRay(new THREE.Mesh(new THREE.SphereGeometry(0.03, 6, 5), new THREE.MeshStandardMaterial({ color: '#fff3f7', emissive: '#fff3f7', emissiveIntensity: 0.2 })));
-      tip.position.y = 0.21;
-      tn.add(tip);
-      pv.add(tn);
-      base.add(pv);
-      tents.push(pv);
-    }
-    anemones.push({ tents, ph: hi * 2 });
+    anemoneSpots.push({ x, y, z, r: 0.62, color, home: hi });   // 흰동가리 집: 진짜 같은 말미잘로 (아래)
     for (let f = 0; f < 2; f++) reefFish.push({ kind: 'clown', ...makeClownfish(), home: new THREE.Vector3(x, y + 0.55, z), r: 0.55 + f * 0.25, w: (f ? -1 : 1) * (0.7 + Math.random() * 0.3), ph: Math.random() * 6 });
   });
   // 돔 둘레를 크게 돌며 헤엄치는 흰동가리 넷 (유리 너머로 지나감)
@@ -1753,6 +1720,44 @@ function makeLionfish() {
     const x = HOUSE_POS.x + Math.cos(a) * r, z = HOUSE_POS.z + Math.sin(a) * r;
     reefFish.push({ kind: 'lion', ...makeLionfish(), home: new THREE.Vector3(x, groundH(x, z) + h, z), r: 1.2 + i * 0.5, w: (i ? -1 : 1) * (0.12 + i * 0.05), ph: i * 3 });
   });
+}
+/* 진짜 같은 말미잘: 부드러운 몸통 위 원반에서 가늘고 끝이 밝은 촉수 수십~백여 개가 바깥으로 휘어 나와 물살에 살랑임 */
+{
+  const AB = reefBuilder(), AR = mulberry32(5150);
+  const ar = (a, b) => a + AR() * (b - a);
+  const HOME_COL = [['#7a2f6e', '#d977c8', '#fff0fb'], ['#a8455a', '#ff9eb5', '#fff3e6'], ['#3d6f63', '#8fe0c8', '#f3e1ff']];
+  for (const sp of anemoneSpots) {
+    const big = sp.home !== undefined, R0 = sp.r * (big ? 1 : 1.25);
+    const [cCol, cTen, cTip] = big ? HOME_COL[sp.home] : [new THREE.Color(sp.color).multiplyScalar(0.55).getStyle(), sp.color, '#fff6fb'];
+    const colC = new THREE.Color(cCol), tenC = new THREE.Color(cTen), tipC = new THREE.Color(cTip), discC = new THREE.Color(cCol).lerp(new THREE.Color('#2a1a22'), 0.35);
+    const ph0 = ar(0, 6.28);
+    // 몸: 모래에 반쯤 묻힌 울퉁불퉁하고 말랑한 둔덕 (화분처럼 곧은 옆면 없이)
+    const MH = R0 * 0.42, sink = R0 * 0.12;
+    const mound = new THREE.SphereGeometry(R0 * 1.05, 28, 12, 0, Math.PI * 2, 0, Math.PI / 2);
+    { const P = mound.attributes.position; for (let i = 0; i < P.count; i++) { const x = P.getX(i), y = P.getY(i), z = P.getZ(i), a2 = Math.atan2(z, x);
+        const lump = 1 + 0.08 * Math.sin(a2 * 5 + ph0) + 0.05 * Math.sin(a2 * 11 + ph0 * 2);
+        P.setXYZ(i, x * lump, y / (R0 * 1.05) * MH * lump, z * lump); } mound.computeVertexNormals(); }
+    const sandC = new THREE.Color('#c9b48c');
+    AB.add(mound, M(sp.x, sp.y - sink, sp.z), (ly, v, c) => c.copy(sandC).lerp(colC, Math.min(1, ly * 1.6)).lerp(discC, Math.max(0, ly - 0.75) * 2.5), null);
+    const colH = MH - sink;
+    // 촉수: 원반 위에 해바라기 씨처럼 촘촘히, 바깥 것일수록 길고 많이 휨
+    const N = big ? 90 : 36;
+    for (let k = 0; k < N; k++) {
+      const f = Math.sqrt((k + 0.5) / N), ang = k * 2.39996, rr0 = f * R0 * 0.95;
+      const len = R0 * (big ? 0.9 : 1.1) * (0.6 + 0.55 * f) * ar(0.85, 1.15), thick = R0 * (big ? 0.075 : 0.11);
+      const g = new THREE.CylinderGeometry(thick * 0.55, thick, len, 6, 5); g.translate(0, len / 2, 0);
+      const P = g.attributes.position, out = 0.25 + 0.9 * f;
+      for (let i = 0; i < P.count; i++) { const y = P.getY(i), q = y / len; P.setX(i, P.getX(i) + out * q * q * len * 0.6); P.setY(i, y * (1 - 0.25 * out * q)); }
+      g.computeVertexNormals();
+      const top = sp.y - sink + MH * Math.sqrt(Math.max(0, 1 - Math.pow(rr0 / (R0 * 1.05), 2))) - R0 * 0.02;   // 둔덕 표면에서 자람
+      const m = new THREE.Matrix4().compose(new THREE.Vector3(sp.x + Math.cos(ang) * rr0, top, sp.z + Math.sin(ang) * rr0), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -ang, 0)), new THREE.Vector3(1, 1, 1));
+      AB.add(g, m, (ly, v, c) => ly > 0.82 ? c.copy(tipC) : c.copy(tenC).lerp(tipC, ly * 0.35), ly => [ly * (0.4 + 0.6 * f), ph0 + k * 0.13]);
+    }
+  }
+  const anMat = reefMaterial(0.07);
+  addCaustics(anMat, 0.25, 0.13);
+  anMat.emissive.set('#3a1f3a'); anMat.emissiveIntensity = 0.3;
+  scene.add(noRay(new THREE.Mesh(AB.build(), anMat)));
 }
 const rfA = new THREE.Vector3(), rfB = new THREE.Vector3();
 function reefPos(f, t, out) { return keepOutOfDome(reefPosRaw(f, t, out)); }
