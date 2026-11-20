@@ -410,7 +410,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-167';
+const BUILD = '11.19-168';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -6180,7 +6180,7 @@ function buildSeoulReal(D, DD) {
       c += uDusk * vec3(0.55, 0.35, 0.6) * exp(-h * 3.0) * 0.25;
       float sn = max(0., dot(d, uSun)); c += vec3(1., 0.95, 0.85) * (pow(sn, 600.) * 3. + pow(sn, 12.) * 0.18) * clamp(uDay + uDusk, 0., 1.);
       float m = max(0., dot(d, uMoon)); c += vec3(0.6, 0.7, 0.9) * pow(m, 40.) * 0.15 * uNight;
-      c += uNight * vec3(0.5, 0.35, 0.25) * exp(-h * 14.0) * 0.25;
+      c += uNight * vec3(0.55, 0.32, 0.16) * exp(-h * 9.0) * 0.45;   // 지평선의 따뜻한 도시 불빛
       if (d.y < 0.) c = hor;
       float lum = dot(c, vec3(0.3, 0.59, 0.11)); c = mix(c, vec3(lum) * vec3(0.93, 0.96, 1.0) * 0.92, uGray);   // 흐린 날은 잿빛 하늘
       c += uFlash * vec3(0.7, 0.75, 0.9);   // 번개
@@ -6227,7 +6227,7 @@ function buildSeoulReal(D, DD) {
   const litCells = [];
   // 벽: 층마다 은은한 가로 창 띠 (벽 빛깔과 가깝게, 촘촘한 바둑판 무늬 없이). 밤에는 창마다 불이 켜짐
   const winTex = canvasTex(64, 128, (g, w, h) => { g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h); for (let y = 6; y < h; y += 11) { g.fillStyle = 'rgba(150,170,190,.22)'; g.fillRect(3, y, w - 6, 5); g.fillStyle = 'rgba(255,255,255,.5)'; for (let x = 3; x < w; x += 15) g.fillRect(x, y, 1, 5); for (let x = 6; x < w; x += 11) if (rnd() < 0.3) litCells.push([x, y]); } });
-  const litTex = canvasTex(64, 128, (g, w, h) => { g.fillStyle = '#000'; g.fillRect(0, 0, w, h); const LITC = [['#ffd28a', 38], ['#fff1d6', 22], ['#e6f0ff', 18], ['#d8ffe0', 9], ['#ff4a5a', 4], ['#5dff8a', 3], ['#5fd8ff', 3], ['#ff6ad5', 3]], litPick = () => { let r2 = rnd() * 100; for (const [c, w2] of LITC) { if ((r2 -= w2) < 0) return c; } return LITC[0][0]; }; litCells.forEach(([x, y]) => { g.fillStyle = litPick();   /* 따뜻한 불빛, 흰 LED, 푸르스름한 형광등, 군데군데 네온 */ g.fillRect(x, y, 8, 5); }); });
+  const litTex = canvasTex(64, 128, (g, w, h) => { g.fillStyle = '#000'; g.fillRect(0, 0, w, h); const LITC = [['#ffc66e', 44], ['#ffdc9a', 22], ['#fff0d2', 16], ['#e2ecff', 9], ['#d8ffe0', 4], ['#ff5a6a', 2], ['#5fd8ff', 2], ['#ff6ad5', 1]], litPick = () => { let r2 = rnd() * 100; for (const [c, w2] of LITC) { if ((r2 -= w2) < 0) return c; } return LITC[0][0]; }; litCells.forEach(([x, y]) => { g.fillStyle = litPick();   /* 따뜻한 불빛, 흰 LED, 푸르스름한 형광등, 군데군데 네온 */ g.fillRect(x, y, 8, 5); }); });
   winTex.wrapS = winTex.wrapT = litTex.wrapS = litTex.wrapT = THREE.RepeatWrapping;   // 실제 모양 건물 벽에 창을 이어 붙임
   const glassTex = canvasTex(64, 128, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#d3e5f3'); gr.addColorStop(1, '#9fbbd4'); g.fillStyle = gr; g.fillRect(0, 0, w, h); g.strokeStyle = 'rgba(255,255,255,.35)'; for (let x = 0; x < w; x += 6) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); } });
   const shape = (pts, holes = []) => { const sh = new THREE.Shape(pts.map(p => new THREE.Vector2(p[0], -p[1]))); holes.forEach(hh => sh.holes.push(new THREE.Path(hh.map(p => new THREE.Vector2(p[0], -p[1]))))); return sh; };
@@ -6241,7 +6241,7 @@ function buildSeoulReal(D, DD) {
   const waterMat = std({ color: '#86bde0', roughness: 0.35, metalness: 0 });
   S.add(new THREE.Mesh(mergeGeos(D.water.map(w => flat(new THREE.ShapeGeometry(shape(w[0], w.slice(1))), 2.4))), waterMat));
   const roadPts = [];
-  const roadMat = std({ color: '#8a8f98', roughness: 0.9, emissive: '#9a7a48', emissiveIntensity: 0 });
+  const roadMat = std({ color: '#8a8f98', roughness: 0.9, emissive: '#c8742a', emissiveIntensity: 0 });
   const sideMat = std({ color: '#e6e1d6', roughness: 1, emissive: '#6a5a40', emissiveIntensity: 0 });
   // 길 칸 나누기 (건물이 길 위에 서지 않게 가까운 길만 빨리 찾음)
   const RG = 100, roadGrid = new Map();
@@ -6256,7 +6256,7 @@ function buildSeoulReal(D, DD) {
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); S.add(new THREE.Mesh(g, roadMat));
     const g2 = new THREE.BufferGeometry(); g2.setAttribute('position', new THREE.Float32BufferAttribute(sw, 3)); g2.setIndex(swi); g2.computeVertexNormals(); S.add(new THREE.Mesh(g2, sideMat)); }
   const streetLights = (() => { const pts = []; D.roads.forEach(r => { const p = r.p; for (let i = 0; i < p.length - 1; i++) { const [x1, z1] = p[i], [x2, z2] = p[i + 1]; const L = Math.hypot(x2 - x1, z2 - z1); for (let t = 0; t < L; t += 45) { const f = t / L; pts.push(x1 + (x2 - x1) * f, 6, z1 + (z2 - z1) * f); } } }); const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3)); const sc = new Float32Array(pts.length), c2 = new THREE.Color(); for (let i = 0; i < pts.length / 3; i++) { c2.set(rnd() < 0.6 ? '#ffc070' : '#eef4ff'); sc.set([c2.r, c2.g, c2.b], i * 3); } g.setAttribute('color', new THREE.BufferAttribute(sc, 3)); const o = new THREE.Points(g, new THREE.PointsMaterial({ vertexColors: true, size: 3, sizeAttenuation: false, transparent: true, opacity: 0, depthWrite: false })); S.add(o); return o; })();   // 주황 나트륨등과 흰 LED 가로등이 섞임
-  const bridgeMat = std({ color: '#f0ede6', roughness: 0.7, emissive: '#7fb8ff', emissiveIntensity: 0 });
+  const bridgeMat = std({ color: '#f0ede6', roughness: 0.7, emissive: '#ffb468', emissiveIntensity: 0 });
   S.add(new THREE.Mesh(mergeGeos(D.bridges.map(b => { const g = new THREE.ExtrudeGeometry(shape(b), { depth: 2.5, bevelEnabled: false }); g.rotateX(-Math.PI / 2); g.translate(0, 12, 0); return g; })), bridgeMat));
   // 돔이 다니는 길: 한강(여의도→한남대교) → 남산 → 도심 한 바퀴 → 남산 → 한남대교 → 한강(→잠실)
   const RV = D.path, LP = D.path2; const hn = RV.findIndex(p => p[0] > 200);
@@ -6265,7 +6265,7 @@ function buildSeoulReal(D, DD) {
   const atDist = d => { for (let i = 0; i < segL.length; i++) { if (d <= segL[i]) { const t = d / segL[i]; return [P[i][0] + (P[i + 1][0] - P[i][0]) * t, P[i][1] + (P[i + 1][1] - P[i][1]) * t]; } d -= segL[i]; } return P[P.length - 1]; };
   const nearRoute = (x, z, r) => { for (let i = 0; i < P.length - 1; i++) { const [ax, az] = P[i], [bx, bz] = P[i + 1]; const dx = bx - ax, dz = bz - az, L2 = dx * dx + dz * dz || 1; const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / L2)); if (Math.hypot(x - ax - dx * t, z - az - dz * t) < r) return true; } return false; };
   // 건물 (파스텔, 지붕 색). 돔이 지나가는 길 가까이는 높이를 낮춰 부딪히지 않게
-  const bldNightMats = [], roofs = [];
+  const bldNightMats = [], roofs = [], landmarkGlows = [], landmarkLit = [];
   // 멀리 있는 건물의 창 불빛은 서서히 옅게 (멀리서 창이 뭉쳐 벽 전체가 빛나 보이지 않게)
   const farDim = m => { m.onBeforeCompile = sh => { sh.fragmentShader = sh.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  totalEmissiveRadiance *= mix(1.0, 0.18, smoothstep(500.0, 2600.0, length(vViewPosition)));'); }; m.customProgramCacheKey = () => 'farDim'; };
   const bldMat = std({ map: winTex, roughness: 0.8, emissive: '#ffffff', emissiveMap: litTex, emissiveIntensity: 0 });
@@ -6475,7 +6475,12 @@ function buildSeoulReal(D, DD) {
     const hill = new THREE.Mesh(new THREE.SphereGeometry(900, 40, 20, 0, Math.PI * 2, 0, Math.PI / 2), std({ color: '#7fb36a', roughness: 1 })); hill.scale.y = 0.26; hill.position.set(L.namsan[0], 0, L.namsan[1]); S.add(hill);
     const tw = new THREE.Group(); const tm = std({ color: '#f6f4ef' }); const sh = new THREE.Mesh(new THREE.CylinderGeometry(6, 9, 180, 16), tm); sh.position.y = 90; tw.add(sh); const pod = new THREE.Mesh(new THREE.CylinderGeometry(20, 16, 24, 24), tm); pod.position.y = 160; tw.add(pod); const sp = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 3, 80, 8), tm); sp.position.y = 212; tw.add(sp); tw.position.set(L.namsan[0], 230, L.namsan[1]); S.add(tw);
     [[0, 0, 40], [70, -30, 30], [-60, 40, 26]].forEach(([dx, dz, r], i) => { const b = new THREE.Mesh(new THREE.SphereGeometry(r, 24, 16), std({ color: ['#ffd57a', '#9fd3f0', '#f4a9c0'][i], metalness: 0.3, roughness: 0.3 })); b.scale.y = 0.55; b.position.set(L.sebit[0] + dx, 8, L.sebit[1] + dz); S.add(b); });
-    const lt = new THREE.Mesh(new THREE.CylinderGeometry(5, 36, 555, 4, 1), std({ map: glassTex, roughness: 0.2, metalness: 0.5, color: '#eef6ff' })); lt.rotation.y = Math.PI / 4; lt.position.set(L.lotte[0], 277, L.lotte[1]); S.add(lt); }
+    const lt = new THREE.Mesh(new THREE.CylinderGeometry(5, 36, 555, 4, 1), std({ map: glassTex, roughness: 0.2, metalness: 0.5, color: '#eef6ff' })); lt.rotation.y = Math.PI / 4; lt.position.set(L.lotte[0], 277, L.lotte[1]); S.add(lt);
+    // 밤의 랜드마크 불빛: 롯데월드타워 꼭대기는 자홍빛, 몸통엔 세로 빛줄, 남산서울타워는 분홍빛
+    const glowSp = (col, x, y, z, sc) => { const sp2 = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: col, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); sp2.position.set(x, y, z); sp2.scale.setScalar(sc); S.add(sp2); landmarkGlows.push(sp2); return sp2; };
+    glowSp('#ff3fd0', L.lotte[0], 520, L.lotte[1], 140); glowSp('#ff7ae0', L.lotte[0], 470, L.lotte[1], 70); glowSp('#ffd9a0', L.lotte[0], 60, L.lotte[1], 160);
+    glowSp('#ff8ad8', L.namsan[0], 230 + 160, L.namsan[1], 70); glowSp('#ffffff', L.namsan[0], 230 + 250, L.namsan[1], 18);
+    landmarkLit.push(lt.material); lt.material.emissive = new THREE.Color('#b080ff'); lt.material.emissiveIntensity = 0; }
   // 궁궐 마당과 한양도성 성곽
   { S.add(new THREE.Mesh(mergeGeos(D.palaces.map(pl => flat(new THREE.ShapeGeometry(shape(pl.p)), 1.5))), std({ color: '#eadfc6', roughness: 1 })));
     const walls = D.walls.filter(w => w.length >= 2).map(w => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(w.map(a => new THREE.Vector3(a[0], 3, a[1]))), Math.max(8, w.length * 4), 3, 4, false));
@@ -6547,18 +6552,19 @@ function buildSeoulReal(D, DD) {
     const day = sm(-4, 8, altDeg), night = 1 - sm(-12, -2, altDeg), dusk = Math.max(0, 1 - Math.abs(altDeg - 1) / 9);
     skyU.uSun.value.copy(sd); skyU.uMoon.value.copy(md); skyU.uDay.value = day; skyU.uNight.value = night; skyU.uDusk.value = dusk;
     sunS.position.copy(sd).multiplyScalar(5000); sunS.intensity = 2.4 * day + 0.6 * dusk; sunS.color.set(dusk > 0.3 ? '#ffb27a' : '#fff4e0');
-    hemiS.intensity = 0.25 + 0.9 * day + 0.2 * dusk; hemiS.color.set(night > 0.5 ? '#6a7fb8' : '#cfe6ff'); hemiS.groundColor.set(night > 0.5 ? '#3a3328' : '#8a8f78');
+    hemiS.intensity = 0.25 + 0.9 * day + 0.2 * dusk - 0.15 * night; hemiS.color.set(night > 0.5 ? '#3e4a6e' : '#cfe6ff'); hemiS.groundColor.set(night > 0.5 ? '#2a2018' : '#8a8f78');   // 밤에는 건물 몸체가 거의 까맣게
     if (dusk > 0.2) hemiS.color.lerp(new THREE.Color('#ffb08a'), dusk * 0.6);
     moonS.position.copy(md).multiplyScalar(5000); moonS.intensity = night * Math.max(0, md.y) * 0.5;
-    const haze = new THREE.Color('#c4e2fa').lerp(new THREE.Color('#f0b48e'), dusk * 0.75).lerp(new THREE.Color('#0e1428'), night);
+    const haze = new THREE.Color('#c4e2fa').lerp(new THREE.Color('#f0b48e'), dusk * 0.75).lerp(new THREE.Color('#090c16'), night);
     const cc = new THREE.Color('#ffffff').lerp(new THREE.Color('#ffb48f'), dusk * 0.9).lerp(new THREE.Color('#36405e'), night); clouds.forEach(c => c.material.color.copy(cc));
     baseHaze.copy(haze); baseCloud.copy(cc); baseSun = sunS.intensity; baseHemi = hemiS.intensity;
     S.fog.color.copy(haze); S.background.copy(haze);
     starMat.uniforms.uOp.value = night * 0.95; placeStars(date); moonM.position.copy(md).multiplyScalar(20000); moonM.lookAt(0, 0, 0); moonM.material.uniforms.uPhase.value = mA.phase; moonM.material.uniforms.uVis.value = md.y > -0.05 ? 1 : 0;
     bldMat.emissiveIntensity = night * 1.1 + dusk * 0.2; bldNightMats.forEach(m => { m.emissiveIntensity = bldMat.emissiveIntensity; }); streetLights.material.opacity = night; nightLights.forEach(o => { o.material.uniforms.uOp.value = night; }); bridgeMat.emissiveIntensity = night * 0.6;
-    carMat.emissiveIntensity = night * 1.2 + 0.18;
-    sideMat.emissiveIntensity = night * 0.7;
-    groundMat.emissiveIntensity = night * 0.9; parkMat.emissiveIntensity = night * 0.8; roadMat.emissiveIntensity = night * 0.9; boatWin.emissiveIntensity = night * 1.2 + dusk * 0.3;
+    carMat.emissiveIntensity = night * 1.6 + 0.18;
+    landmarkGlows.forEach(g2 => { g2.material.opacity = night * 0.9; }); landmarkLit.forEach(m => { m.emissiveIntensity = night * 0.35; });
+    sideMat.emissiveIntensity = night * 0.35;
+    groundMat.emissiveIntensity = night * 0.12; parkMat.emissiveIntensity = 0; roadMat.emissiveIntensity = night * 1.25;   // 땅·숲은 어둡게, 길은 주황 불빛 띠로 boatWin.emissiveIntensity = night * 1.2 + dusk * 0.3;
     waterMat.color.set('#86bde0').lerp(new THREE.Color('#0d1a33'), night).lerp(new THREE.Color('#e7a27f'), dusk * 0.35 * (1 - night));
     Object.assign(lightOut, { day, night, dusk }); lightOut.sunDir.copy(sd); applyWx(); };
   let lastTime = 0;
@@ -6844,6 +6850,8 @@ function buildSeoulReal(D, DD) {
 /* 실제 서울일 때 돔 안의 빛도 서울의 해·달에 맞춤 */
 function seoulRealLook() {
   const Lt = seoulReal.light;
+  // 밤에는 젖빛 바닥을 어둡고 투명하게 (아래 도시 야경이 비쳐 보이게)
+  frostFloorMat.opacity = mix(0.55, 0.2, Lt.night); frostFloorMat.color.set('#f3f6f8').lerp(new THREE.Color('#4a5266'), Lt.night);
   scene.background.set('#c4e2fa'); scene.fog.color.copy(scene.background); scene.fog.density = 0.0001;
   hemi.color.set('#eaf6ff').lerp(new THREE.Color('#8ea3d6'), Lt.night); hemi.groundColor.set('#b9b39e').lerp(new THREE.Color('#2a3048'), Lt.night);
   hemi.intensity = mix(1.6, 1.1, Lt.night);
