@@ -508,7 +508,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-202';
+const BUILD = '11.19-203';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -6953,7 +6953,7 @@ function buildSeoulReal(D, DD) {
     flight = { curve, len, u: 0, birds, sp, near };
     tickBirds(0);   // 처음부터 제자리에 (돔 가운데에 잠깐 보이지 않게)
   }
-  // ---- 아주 가끔 먼 하늘을 지나는 비행기 (2.5~4.5km 밖, 하얀 비행운, 밤에는 깜박이는 불빛) ----
+  // ---- 아주 가끔 먼 하늘을 지나는 비행기 (2.5~4.5km 밖, 밤에는 깜박이는 불빛) ----
   const plane = new THREE.Group(); plane.visible = false; S.add(plane);
   { const wm = std({ color: '#f4f6f8', roughness: 0.5, metalness: 0.2 }), bm2 = std({ color: '#2f6fd0', roughness: 0.5 }), gm = std({ color: '#c9ced4', roughness: 0.5, metalness: 0.3 });
     const add = (geo, m, x, y, z) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); plane.add(o); return o; };
@@ -6997,7 +6997,7 @@ function buildSeoulReal(D, DD) {
       navs.forEach(n => n.scale.setScalar(8 + 45 * nt));
       // 비행운: 지나간 자리에 하얀 줄이 남았다가 천천히 흩어짐
       trailAt -= dt;
-      if (trailAt <= 0) { trailAt = 0.6; const T2 = trail[trailIdx++ % trailN]; T2.born = tnow; T2.sp.position.copy(plane.position).addScaledVector(flyP.dir, -180); T2.sp.visible = true; }
+      if (false && trailAt <= 0) { trailAt = 0.6; const T2 = trail[trailIdx++ % trailN];   // 비행운은 뺌 (부자연스러워서) T2.born = tnow; T2.sp.position.copy(plane.position).addScaledVector(flyP.dir, -180); T2.sp.visible = true; }
       if (k >= 1) { flyP = null; plane.visible = false; }
     }
     for (const T2 of trail) {
