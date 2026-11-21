@@ -508,7 +508,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-204';
+const BUILD = '11.19-205';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -6698,9 +6698,13 @@ function buildSeoulReal(D, DD) {
     const lt = new THREE.Mesh(new THREE.CylinderGeometry(5, 36, 555, 4, 1), std({ map: glassTex, roughness: 0.2, metalness: 0.5, color: '#eef6ff' })); lt.rotation.y = Math.PI / 4; lt.position.set(L.lotte[0], 277, L.lotte[1]); S.add(lt);
     // 밤의 랜드마크 불빛: 롯데월드타워 꼭대기는 자홍빛, 몸통엔 세로 빛줄, 남산서울타워는 분홍빛
     const glowSp = (col, x, y, z, sc) => { const sp2 = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: col, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); sp2.position.set(x, y, z); sp2.scale.setScalar(sc); S.add(sp2); landmarkGlows.push(sp2); return sp2; };
-    glowSp('#ff3fd0', L.lotte[0], 520, L.lotte[1], 140); glowSp('#ff7ae0', L.lotte[0], 470, L.lotte[1], 70); glowSp('#ffd9a0', L.lotte[0], 60, L.lotte[1], 160);
+    glowSp('#f3eeff', L.lotte[0], 540, L.lotte[1], 46); glowSp('#ffd9a0', L.lotte[0], 60, L.lotte[1], 160);
     glowSp('#ff8ad8', L.namsan[0], nsY + 160, L.namsan[1], 70); glowSp('#ffffff', L.namsan[0], nsY + 250, L.namsan[1], 18);
-    landmarkLit.push(lt.material); lt.material.emissive = new THREE.Color('#b080ff'); lt.material.emissiveIntensity = 0; }
+    // 롯데월드타워 밤: 몸통은 어두운 유리에 창 불빛이 점점이 (빛기둥처럼 보이지 않게), 꼭대기 왕관만 은은하게 환함
+    const ltWin = canvasTex(64, 512, (g) => { g.fillStyle = '#000'; g.fillRect(0, 0, 64, 512); for (let y = 3; y < 512; y += 5) for (let x = 2; x < 64; x += 6) if (rnd() < 0.22) { g.globalAlpha = 0.35 + rnd() * 0.65; g.fillStyle = rnd() < 0.8 ? '#ffe2b8' : '#e8eeff'; g.fillRect(x, y, 3, 2); } g.globalAlpha = 1; });
+    ltWin.wrapS = THREE.RepeatWrapping; ltWin.repeat.set(4, 1);
+    lt.material.emissive = new THREE.Color('#ffffff'); lt.material.emissiveMap = ltWin; lt.material.emissiveIntensity = 0; lt.material.color.set('#c9d4e2'); bldNightMats.push(lt.material);
+    const crown = new THREE.Mesh(new THREE.CylinderGeometry(4.6, 10, 70, 4, 1, true), std({ color: '#dfe6f0', emissive: '#f1ecff', emissiveIntensity: 0, transparent: true, opacity: 0.9 })); crown.rotation.y = Math.PI / 4; crown.position.set(L.lotte[0], 515, L.lotte[1]); S.add(crown); landmarkLit.push(crown.material); }
   // 궁궐 마당과 한양도성 성곽
   { S.add(new THREE.Mesh(mergeGeos(D.palaces.map(pl => flat(new THREE.ShapeGeometry(shape(pl.p)), 1.5))), std({ color: '#eadfc6', roughness: 1 })));
     const walls = D.walls.filter(w => w.length >= 2).map(w => new THREE.TubeGeometry(new THREE.CatmullRomCurve3(w.map(a => new THREE.Vector3(a[0], 3, a[1]))), Math.max(8, w.length * 4), 3, 4, false));
