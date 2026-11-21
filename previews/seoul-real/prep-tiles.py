@@ -53,7 +53,7 @@ for src in SRCS:
                 if h is None and lv: h = lv * 3.4 + 1
                 if h is None:
                     s = (int(abs(r[0][0]) * 7 + abs(r[0][1]) * 13) % 100) / 100
-                    h = 7 + s * 6 if a < 120 else 10 + s * 12 if a < 400 else 16 + s * 30 if a < 1500 else 25 + s * 45
+                    h = 10 + s * 6 if a < 120 else 12 + s * 12 if a < 400 else 18 + s * 30 if a < 1500 else 25 + s * 45   # 서울 빌라·상가는 보통 4~6층
                 h = max(4, min(320, h))
                 flat = [round(h)]
                 for x, z in r: flat += [round(x, 1), round(z, 1)]
