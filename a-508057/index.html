@@ -508,7 +508,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-219';
+const BUILD = '11.19-220';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -6306,7 +6306,7 @@ function fetchSeoulWeather() {
     .catch(() => { seoulWxAt = Date.now() - 10 * 60e3; });   // 못 받으면 5분 뒤 다시
 }
 // 바다에 들어오고 40초 뒤, 서울 지도 파일을 미리 조용히 받아 둠 (브라우저에 담아 두기만, 만들지는 않음)
-setTimeout(() => { if (!seoulReal && !seoulLoading) ['seoul-data.json?v=1', 'seoul-detail.json?v=1', 'seoul-stars.json?v=1', 'seoul-terrain.png?v=1', 'seoul-tiles/index.json?v=6'].forEach(u => fetch(u, { priority: 'low' }).catch(() => {})); }, 40000);
+setTimeout(() => { if (!seoulReal && !seoulLoading) ['seoul-data.json?v=1', 'seoul-detail.json?v=1', 'seoul-stars.json?v=1', 'seoul-terrain.png?v=1', 'seoul-tiles/index.json?v=7'].forEach(u => fetch(u, { priority: 'low' }).catch(() => {})); }, 40000);
 function loadSeoulReal() {
   if (seoulReal || seoulLoading) return;
   seoulLoading = true;
@@ -6320,7 +6320,7 @@ function loadSeoulReal() {
       if (!bm) return null; const c = document.createElement('canvas'); c.width = bm.width; c.height = bm.height; const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(bm, 0, 0);
       const px = g.getImageData(0, 0, bm.width, bm.height).data, h = new Float32Array(bm.width * bm.height); for (let i = 0; i < h.length; i++) h[i] = (px[i * 4] * 256 + px[i * 4 + 1]) / 50;
       return { N: bm.width, h }; }).catch(() => null),
-    fetch('seoul-tiles/index.json?v=6').then(r => r.ok ? r.json() : null).catch(() => null),   // 조각 지도 목록 (돔 둘레만 그때그때 불러옴)
+    fetch('seoul-tiles/index.json?v=7').then(r => r.ok ? r.json() : null).catch(() => null),   // 조각 지도 목록 (돔 둘레만 그때그때 불러옴)
   ]).then(([D, DD, ST, TR, TI]) => {
     D.stars = ST; D.terrain = TR; D.tiles = TI;
     // 한 번에 다 만들면 화면이 잠깐 멈추므로, 다음 틈에 만듦
@@ -6436,6 +6436,29 @@ function buildSeoulReal(D, DD) {
   const groundMat = std({ color: '#d8d3c4', roughness: 1, emissive: '#6a5236', emissiveIntensity: 0 }), parkMat = std({ color: '#9fd08a', roughness: 1, emissive: '#1f3320', emissiveIntensity: 0 });
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(80000, 80000), groundMat); ground.rotation.x = -Math.PI / 2; S.add(ground);
   // 산: 실제 땅 높이로 만든 지형. 완만한 곳은 숲 초록, 가파른 곳은 바위 회색, 산자락은 땅 빛깔로 스며듦
+  // 건물 1층 띠: 땅 높이 그림을 셰이더에 넘겨, 벽의 땅에서 4m까지는 창 무늬 대신 1층(가게·입구) 띠로. 밤에는 가게 불빛이 은은히
+  // (창 무늬가 땅에서 잘린 채 시작해 건물이 땅에 묻혀 보이던 것을 막음)
+  const gtU = { value: new THREE.DataTexture(new Float32Array([0, 0, 0, 0]), 2, 2, THREE.RedFormat, THREE.FloatType) }, gbU = { value: new THREE.Vector4(0, 0, 1, 0) }, bandU = { value: 0 };
+  gtU.value.needsUpdate = true;
+  const baseBand = m => { const prev = m.onBeforeCompile; m.onBeforeCompile = (sh, r) => { if (prev) prev(sh, r);
+    sh.uniforms.uGT = gtU; sh.uniforms.uGB = gbU; sh.uniforms.uBand = bandU;
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWPb;').replace('#include <project_vertex>', `#include <project_vertex>
+      vec4 wqB = vec4(transformed, 1.0);
+      #ifdef USE_INSTANCING
+        wqB = instanceMatrix * wqB;
+      #endif
+      vWPb = (modelMatrix * wqB).xyz;`);
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+      varying vec3 vWPb; uniform sampler2D uGT; uniform vec4 uGB; uniform float uBand;
+      float gAtB(vec2 p){ if (uGB.w < 0.5) return 0.0; vec2 u = (p - uGB.xy) / uGB.z; if (u.x < 0.0 || u.y < 0.0 || u.x >= uGB.w || u.y >= uGB.w) return 0.0;
+        vec2 i = floor(u), f = u - i; float N = uGB.w + 1.0;
+        float a = texture2D(uGT, (i + vec2(0.5, 0.5)) / N).r, b = texture2D(uGT, (i + vec2(1.5, 0.5)) / N).r, c = texture2D(uGT, (i + vec2(0.5, 1.5)) / N).r, d = texture2D(uGT, (i + vec2(1.5, 1.5)) / N).r;
+        return max(0.0, mix(mix(a, b, f.x), mix(c, d, f.x), f.y)); }`)
+      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+      { float ha = vWPb.y - gAtB(vWPb.xz), band = (1.0 - smoothstep(3.8, 4.3, ha)) * step(0.2, 1.0 - abs(normal.y));
+        float shop = fract(sin(dot(floor(vWPb.xz / 7.0), vec2(12.99, 78.23))) * 43758.55);
+        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 0.62 + vec3(0.04, 0.035, 0.03), band);
+        totalEmissiveRadiance = mix(totalEmissiveRadiance, vec3(1.0, 0.8, 0.55) * uBand * (0.25 + 0.75 * step(0.35, shop)) * (0.6 + 0.4 * smoothstep(0.5, 3.0, ha)), band); }`); }; };
   // 지형 그물의 높이 (건물을 지형 표면에 딱 맞춰 앉히려고: 그려진 땅과 같은 값)
   let TG = null, TSEG = 0, TCELL = 1;
   const meshH = (x, z) => { if (!TG) return 0; const u = (x - TX0) / TCELL, v = (z - TZ0) / TCELL; if (u < 0 || v < 0 || u >= TSEG || v >= TSEG) return 0;
@@ -6463,6 +6486,7 @@ function buildSeoulReal(D, DD) {
       cc.lerp(gc, urban);
       tcol.set([cc.r, cc.g, cc.b], i * 3);
     }
+    gtU.value = new THREE.DataTexture(TG, SEG + 1, SEG + 1, THREE.RedFormat, THREE.FloatType); gtU.value.needsUpdate = true; gbU.value.set(TX0, TZ0, cell, SEG);
     tg.setAttribute('color', new THREE.BufferAttribute(tcol, 3)); tg.computeVertexNormals();
     const terr = new THREE.Mesh(tg, std({ vertexColors: true, roughness: 1, metalness: 0 })); S.add(terr);
   }
@@ -6525,6 +6549,7 @@ function buildSeoulReal(D, DD) {
           vEmissiveMapUv = (emissiveMapTransform * vec3(buv, 1.0)).xy;
         #endif
       #endif`); }; }
+  baseBand(bldMat);
   { const geo = new THREE.BoxGeometry(1, 1, 1); geo.translate(0, 0.5, 0);
     const PC = ['#f7c9c4', '#cfe9d9', '#fbe6b8', '#cfe1f5', '#e3d7f3', '#fff4e3', '#f6d6b8', '#d5ecec'], RC = ['#7fb76a', '#e98b78', '#8fb3d9', '#f0c46c', '#b7a3d8', '#9fcf8b'];
     // 강·공원·궁궐 자리 그림 (20m 칸): 빈 땅에 건물을 채울 때 피함
@@ -6592,7 +6617,7 @@ function buildSeoulReal(D, DD) {
   // ---- 자세한 지도: 실제 건물 모양 그대로 세움 (벽에는 층마다 창, 지붕은 색) ----
   const walkLines = [], minorPts = [];
   const detailMat = std({ map: winTex, vertexColors: true, roughness: 0.8, emissive: '#ffffff', emissiveMap: litTex, emissiveIntensity: 0 });
-  farDim(detailMat); bldNightMats.push(detailMat);
+  farDim(detailMat); baseBand(detailMat); bldNightMats.push(detailMat);
   // 실제 건물 모양 + 골목·보행로를 만들어 parent에 붙임 (도심은 처음에, 조각 지도는 돔이 가까이 갈 때)
   const buildDetail = (DD, parent, extras) => {
     const PCd = ['#f7c9c4', '#cfe9d9', '#fbe6b8', '#cfe1f5', '#e3d7f3', '#fff4e3', '#f6d6b8', '#d5ecec', '#ece7df', '#dfe3e8'], RCd = ['#7fb76a', '#e98b78', '#8fb3d9', '#f0c46c', '#b7a3d8', '#9fcf8b', '#c9c3b8'];
@@ -6651,7 +6676,7 @@ function buildSeoulReal(D, DD) {
       if (!n) continue; const k = i + '_' + j, d = Math.hypot((i + 0.5) * TSZ - px, (j + 0.5) * TSZ - pz) - TSZ * 0.7, t = TL.get(k);
       if (d < LOADR && !t && tileBusy < 2) {
         tileBusy++; TL.set(k, { state: 'loading' });
-        fetch(`seoul-tiles/${k}.json?v=6`).then(r => r.ok ? r.json() : null).then(dd => {
+        fetch(`seoul-tiles/${k}.json?v=7`).then(r => r.ok ? r.json() : null).then(dd => {
           tileBusy--; const e = TL.get(k); if (!dd || !e) { TL.delete(k); return; }
           const g = new THREE.Group(); buildDetail(dd, g, false); S.add(g); e.state = 'ready'; e.grp = g; boxSwap(k, dd, true);
         }).catch(() => { tileBusy--; TL.delete(k); });
@@ -6926,7 +6951,7 @@ function buildSeoulReal(D, DD) {
     baseHaze.copy(haze); baseCloud.copy(cc); baseSun = sunS.intensity; baseHemi = hemiS.intensity;
     S.fog.color.copy(haze); S.background.copy(haze);
     starMat.uniforms.uOp.value = night * 0.95; placeStars(date); moonM.position.copy(md).multiplyScalar(20000); moonM.lookAt(0, 0, 0); moonM.material.uniforms.uPhase.value = mA.phase; moonM.material.uniforms.uVis.value = md.y > -0.05 ? 1 : 0; moonM.material.uniforms.uDay.value = day;
-    bldMat.emissiveIntensity = Math.min(0.95, night * 0.95 + dusk * 0.15 + blue * 0.6); bldNightMats.forEach(m => { m.emissiveIntensity = bldMat.emissiveIntensity; }); streetLights.material.opacity = Math.min(1, night + blue * 0.8); nightLights.forEach(o => { o.material.uniforms.uOp.value = night; }); bridgeMat.emissiveIntensity = night * 0.6;
+    bldMat.emissiveIntensity = Math.min(0.95, night * 0.95 + dusk * 0.15 + blue * 0.6); bandU.value = Math.min(1, night + blue * 0.6) * 0.55; bldNightMats.forEach(m => { m.emissiveIntensity = bldMat.emissiveIntensity; }); streetLights.material.opacity = Math.min(1, night + blue * 0.8); nightLights.forEach(o => { o.material.uniforms.uOp.value = night; }); bridgeMat.emissiveIntensity = night * 0.6;
     carMat.emissiveIntensity = night * 1.6 + 0.18;
     landmarkGlows.forEach(g2 => { g2.material.opacity = night * 0.9; }); landmarkLit.forEach(m => { m.emissiveIntensity = night * 0.35; });
     sideMat.emissiveIntensity = night * 0.35;
