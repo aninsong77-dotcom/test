@@ -508,7 +508,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-212';
+const BUILD = '11.19-213';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -6304,6 +6304,8 @@ function fetchSeoulWeather() {
     })
     .catch(() => { seoulWxAt = Date.now() - 10 * 60e3; });   // 못 받으면 5분 뒤 다시
 }
+// 바다에 들어오고 40초 뒤, 서울 지도 파일을 미리 조용히 받아 둠 (브라우저에 담아 두기만, 만들지는 않음)
+setTimeout(() => { if (!seoulReal && !seoulLoading) ['seoul-data.json?v=1', 'seoul-detail.json?v=1', 'seoul-stars.json?v=1', 'seoul-terrain.png?v=1', 'seoul-tiles/index.json?v=2'].forEach(u => fetch(u, { priority: 'low' }).catch(() => {})); }, 40000);
 function loadSeoulReal() {
   if (seoulReal || seoulLoading) return;
   seoulLoading = true;
@@ -7406,6 +7408,7 @@ function updateDims(dt, t) {
 function closeDimMenu() { $('dimMenu').classList.add('is-hidden'); }
 $('dimBtn').addEventListener('click', e => {
   e.stopPropagation();
+  if (!seoulReal) dimWorld('seoul');   // 갈 곳을 고르는 동안 서울 지도를 미리 받아 만들어 둠 (서울을 누르면 바로 넘어가게)
   const m = $('dimMenu');
   if (!m.classList.contains('is-hidden')) { closeDimMenu(); return; }
   closeExMenu();
