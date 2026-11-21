@@ -508,7 +508,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-216';
+const BUILD = '11.19-217';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -6306,7 +6306,7 @@ function fetchSeoulWeather() {
     .catch(() => { seoulWxAt = Date.now() - 10 * 60e3; });   // 못 받으면 5분 뒤 다시
 }
 // 바다에 들어오고 40초 뒤, 서울 지도 파일을 미리 조용히 받아 둠 (브라우저에 담아 두기만, 만들지는 않음)
-setTimeout(() => { if (!seoulReal && !seoulLoading) ['seoul-data.json?v=1', 'seoul-detail.json?v=1', 'seoul-stars.json?v=1', 'seoul-terrain.png?v=1', 'seoul-tiles/index.json?v=3'].forEach(u => fetch(u, { priority: 'low' }).catch(() => {})); }, 40000);
+setTimeout(() => { if (!seoulReal && !seoulLoading) ['seoul-data.json?v=1', 'seoul-detail.json?v=1', 'seoul-stars.json?v=1', 'seoul-terrain.png?v=1', 'seoul-tiles/index.json?v=4'].forEach(u => fetch(u, { priority: 'low' }).catch(() => {})); }, 40000);
 function loadSeoulReal() {
   if (seoulReal || seoulLoading) return;
   seoulLoading = true;
@@ -6320,7 +6320,7 @@ function loadSeoulReal() {
       if (!bm) return null; const c = document.createElement('canvas'); c.width = bm.width; c.height = bm.height; const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(bm, 0, 0);
       const px = g.getImageData(0, 0, bm.width, bm.height).data, h = new Float32Array(bm.width * bm.height); for (let i = 0; i < h.length; i++) h[i] = (px[i * 4] * 256 + px[i * 4 + 1]) / 50;
       return { N: bm.width, h }; }).catch(() => null),
-    fetch('seoul-tiles/index.json?v=3').then(r => r.ok ? r.json() : null).catch(() => null),   // 조각 지도 목록 (돔 둘레만 그때그때 불러옴)
+    fetch('seoul-tiles/index.json?v=4').then(r => r.ok ? r.json() : null).catch(() => null),   // 조각 지도 목록 (돔 둘레만 그때그때 불러옴)
   ]).then(([D, DD, ST, TR, TI]) => {
     D.stars = ST; D.terrain = TR; D.tiles = TI;
     // 한 번에 다 만들면 화면이 잠깐 멈추므로, 다음 틈에 만듦
@@ -6561,6 +6561,7 @@ function buildSeoulReal(D, DD) {
       items.forEach((o, i) => { const hw = o.w / 2, hd = o.d / 2, [lo, hi] = footH([[o.x, o.z], [o.x - hw, o.z - hd], [o.x + hw, o.z - hd], [o.x - hw, o.z + hd], [o.x + hw, o.z + hd]]), b = hi, bot = lo - 3; q.setFromAxisAngle(up, o.rot);
         m.compose(new THREE.Vector3(o.x, bot, o.z), q, new THREE.Vector3(o.w, o.h + b - bot, o.d)); A.setMatrixAt(i, m); A.setColorAt(i, c.set(o.c));
         if (RM) { m.compose(new THREE.Vector3(o.x, b + o.h, o.z), q, new THREE.Vector3(o.w * 0.82, 1.6, o.d * 0.82)); RM.setMatrixAt(i, m); RM.setColorAt(i, c.set(o.rc)); } });
+      A.userData.items = items; if (RM) RM.userData.items = items;
       A.frustumCulled = false; S.add(A); out.push(A); if (RM) { RM.frustumCulled = false; S.add(RM); out.push(RM); } return out; };
     const splitBoxes = (items, withRoof) => { const rest = [], grp = {};
       items.forEach(o => { const k = covKey(o); if (k) (grp[k] = grp[k] || []).push(o); else rest.push(o); });
@@ -6648,13 +6649,30 @@ function buildSeoulReal(D, DD) {
       if (!n) continue; const k = i + '_' + j, d = Math.hypot((i + 0.5) * TSZ - px, (j + 0.5) * TSZ - pz) - TSZ * 0.7, t = TL.get(k);
       if (d < LOADR && !t && tileBusy < 2) {
         tileBusy++; TL.set(k, { state: 'loading' });
-        fetch(`seoul-tiles/${k}.json?v=3`).then(r => r.ok ? r.json() : null).then(dd => {
+        fetch(`seoul-tiles/${k}.json?v=4`).then(r => r.ok ? r.json() : null).then(dd => {
           tileBusy--; const e = TL.get(k); if (!dd || !e) { TL.delete(k); return; }
-          const g = new THREE.Group(); buildDetail(dd, g, false); S.add(g); e.state = 'ready'; e.grp = g; (tileBox[k] || []).forEach(o => { o.visible = false; });
+          const g = new THREE.Group(); buildDetail(dd, g, false); S.add(g); e.state = 'ready'; e.grp = g; boxSwap(k, dd, true);
         }).catch(() => { tileBusy--; TL.delete(k); });
       } else if (d > DROPR && t && t.state === 'ready') {
-        S.remove(t.grp); t.grp.traverse(o => { if (o.geometry) o.geometry.dispose(); }); (tileBox[k] || []).forEach(o => { o.visible = true; }); TL.delete(k);
+        S.remove(t.grp); t.grp.traverse(o => { if (o.geometry) o.geometry.dispose(); }); boxSwap(k, null, false); TL.delete(k);
       }
+    }
+  };
+  // 실제 건물이 선 자리의 상자 건물만 숨김 (지도에 건물이 빠진 빈 땅은 상자 건물을 그대로 둬서 동네가 텅 비어 보이지 않게)
+  const zeroM = new THREE.Matrix4().makeScale(0, 0, 0), tmpM = new THREE.Matrix4();
+  const boxSwap = (k, dd, on) => {
+    const meshes = tileBox[k] || []; if (!meshes.length) return;
+    let grid = null;
+    if (on) { grid = new Map(); for (const b of dd.b) { let sx = 0, sz = 0, n = 0, r = 0; for (let i = 1; i < b.length; i += 2) { sx += b[i]; sz += b[i + 1]; n++; } sx /= n; sz /= n; for (let i = 1; i < b.length; i += 2) r = Math.max(r, Math.hypot(b[i] - sx, b[i + 1] - sz));
+      const key = Math.floor(sx / 40) + ',' + Math.floor(sz / 40); if (!grid.has(key)) grid.set(key, []); grid.get(key).push([sx, sz, r]); } }
+    for (const M of meshes) {
+      const items = M.userData.items; if (!items) { M.visible = !on; continue; }
+      if (on) { M.userData.saved = M.userData.saved || new Map();
+        items.forEach((o, i) => { const gx = Math.floor(o.x / 40), gz = Math.floor(o.z / 40), half = Math.hypot(o.w, o.d) / 2; let hit = false;
+          for (let a = -1; a <= 1 && !hit; a++) for (let c = -1; c <= 1 && !hit; c++) { const l = grid.get((gx + a) + ',' + (gz + c)); if (l) for (const [x, z, r] of l) if (Math.hypot(x - o.x, z - o.z) < r + half * 0.8) { hit = true; break; } }
+          if (hit) { M.getMatrixAt(i, tmpM); M.userData.saved.set(i, tmpM.clone()); M.setMatrixAt(i, zeroM); } });
+      } else if (M.userData.saved) { M.userData.saved.forEach((m, i) => M.setMatrixAt(i, m)); M.userData.saved.clear(); }
+      M.instanceMatrix.needsUpdate = true;
     }
   };
   const tileNear = (px, pz) => !TIDX || TIDX.tiles.every(([i, j, n]) => !n || Math.hypot((i + 0.5) * TSZ - px, (j + 0.5) * TSZ - pz) - TSZ * 0.7 >= LOADR || (TL.get(i + '_' + j) || {}).state === 'ready');
