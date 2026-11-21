@@ -458,6 +458,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
       <ul>
         <li>배경 피아노: Serge Quadrado, “Piano for Meditation” (Pixabay)</li>
         <li>서울 하늘 지도: © OpenStreetMap contributors (ODbL)</li>
+        <li>서울 산 지형: AWS Terrain Tiles (Mapzen, SRTM·NASA 등)</li>
         <li>지구 지도: Natural Earth (world-atlas, Mike Bostock, ISC)</li>
         <li>지구 밤 불빛 마을 자료: GeoNames (CC BY 4.0), all-the-cities (MIT)</li>
         <li>서울 밤하늘·우주의 별 자료: Hipparcos 목록, d3-celestial (Olaf Frohn, BSD-3-Clause)</li>
@@ -507,7 +508,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-200';
+const BUILD = '11.19-201';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -6301,8 +6302,13 @@ function loadSeoulReal() {
     fetch('seoul-data.json?v=1').then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))),
     fetch('seoul-detail.json?v=1').then(r => r.ok ? r.json() : null).catch(() => null),
     fetch('seoul-stars.json?v=1').then(r => r.ok ? r.json() : null).catch(() => null),
-  ]).then(([D, DD, ST]) => {
-    D.stars = ST;
+    // 실제 땅 높이 (AWS 지형 자료로 만든 그림: R·G = 높이×50, 시내 바닥 35m를 0으로)
+    fetch('seoul-terrain.png?v=1').then(r => r.ok ? r.blob() : null).then(b => b ? createImageBitmap(b, { colorSpaceConversion: 'none', premultiplyAlpha: 'none' }) : null).then(bm => {
+      if (!bm) return null; const c = document.createElement('canvas'); c.width = bm.width; c.height = bm.height; const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(bm, 0, 0);
+      const px = g.getImageData(0, 0, bm.width, bm.height).data, h = new Float32Array(bm.width * bm.height); for (let i = 0; i < h.length; i++) h[i] = (px[i * 4] * 256 + px[i * 4 + 1]) / 50;
+      return { N: bm.width, h }; }).catch(() => null),
+  ]).then(([D, DD, ST, TR]) => {
+    D.stars = ST; D.terrain = TR;
     // 한 번에 다 만들면 화면이 잠깐 멈추므로, 다음 틈에 만듦
     setTimeout(() => {
       try { seoulReal = buildSeoulReal(D, DD); }
@@ -6380,6 +6386,10 @@ function buildSeoulReal(D, DD) {
       #include <colorspace_fragment>
     }` }));
   moonM.scale.setScalar(380); S.add(moonM);
+  // 땅 높이 (산): 지형 자료 범위 x -26~26km, z -30~22km
+  const TR = D.terrain, TX0 = -26000, TX1 = 26000, TZ0 = -30000, TZ1 = 22000;
+  const terrH = (x, z) => { if (!TR) return 0; const N = TR.N, u = (x - TX0) / (TX1 - TX0) * N - 0.5, v = (z - TZ0) / (TZ1 - TZ0) * N - 0.5; if (u < 0 || v < 0 || u >= N - 1 || v >= N - 1) return 0;
+    const i = Math.floor(u), j = Math.floor(v), fu = u - i, fv = v - j, h = TR.h; return (h[j * N + i] * (1 - fu) + h[j * N + i + 1] * fu) * (1 - fv) + (h[(j + 1) * N + i] * (1 - fu) + h[(j + 1) * N + i + 1] * fu) * fv; };
   const canvasTex = (w, h, draw) => { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; };
   const litCells = [];
   // 벽: 층마다 은은한 가로 창 띠 (벽 빛깔과 가깝게, 촘촘한 바둑판 무늬 없이). 밤에는 창마다 불이 켜짐
@@ -6404,6 +6414,24 @@ function buildSeoulReal(D, DD) {
   // 밤에는 땅이 따뜻한 도시 불빛을 머금어 (강물의 짙은 파랑과 또렷이 구분되게)
   const groundMat = std({ color: '#d8d3c4', roughness: 1, emissive: '#4a3b28', emissiveIntensity: 0 }), parkMat = std({ color: '#9fd08a', roughness: 1, emissive: '#1f3320', emissiveIntensity: 0 });
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(80000, 80000), groundMat); ground.rotation.x = -Math.PI / 2; S.add(ground);
+  // 산: 실제 땅 높이로 만든 지형. 완만한 곳은 숲 초록, 가파른 곳은 바위 회색, 산자락은 땅 빛깔로 스며듦
+  if (TR) {
+    const SEG = light ? 220 : 360, tg = new THREE.PlaneGeometry(TX1 - TX0, TZ1 - TZ0, SEG, SEG); tg.rotateX(-Math.PI / 2); tg.translate((TX0 + TX1) / 2, 0, (TZ0 + TZ1) / 2);
+    const tp = tg.attributes.position, tcol = new Float32Array(tp.count * 3), cc = new THREE.Color(), gc = new THREE.Color('#d8d3c4'), forest = new THREE.Color(), rock = new THREE.Color('#8d8a80');
+    const cell = (TX1 - TX0) / SEG;
+    for (let i = 0; i < tp.count; i++) {
+      const x = tp.getX(i), z = tp.getZ(i), h = terrH(x, z);
+      const sl = Math.hypot(terrH(x + cell, z) - terrH(x - cell, z), terrH(x, z + cell) - terrH(x, z - cell)) / (2 * cell);
+      tp.setY(i, h > 0.5 ? h : -4);   // 평지는 바닥 아래로 (도시 바닥과 겹치지 않게)
+      const nz = Math.sin(x * 0.004 + z * 0.003) * 0.5 + Math.sin(x * 0.013 - z * 0.011) * 0.3;
+      forest.setHSL(0.27 + nz * 0.02, 0.32, 0.27 + nz * 0.04 + Math.min(h, 600) / 600 * 0.05);
+      cc.copy(forest).lerp(rock, Math.min(1, Math.max(0, (sl - 0.45) / 0.35)) * 0.85);
+      cc.lerp(gc, Math.min(1, Math.max(0, 1 - h / 25)));   // 산자락: 도시 바닥 빛깔로
+      tcol.set([cc.r, cc.g, cc.b], i * 3);
+    }
+    tg.setAttribute('color', new THREE.BufferAttribute(tcol, 3)); tg.computeVertexNormals();
+    const terr = new THREE.Mesh(tg, std({ vertexColors: true, roughness: 1, metalness: 0 })); S.add(terr);
+  }
   S.add(new THREE.Mesh(mergeGeos(D.parks.map(p => flat(new THREE.ShapeGeometry(shape(p)), 1.2))), parkMat));
   const waterMat = std({ color: '#86bde0', roughness: 0.35, metalness: 0 });
   S.add(new THREE.Mesh(mergeGeos(D.water.map(w => flat(new THREE.ShapeGeometry(shape(w[0], w.slice(1))), 2.4))), waterMat));
@@ -6470,17 +6498,17 @@ function buildSeoulReal(D, DD) {
     const N = list.length;
     const A = new THREE.InstancedMesh(geo, bldMat, N), RM = new THREE.InstancedMesh(geo, std({ roughness: 0.9 }), N);
     const m = new THREE.Matrix4(), c = new THREE.Color(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0);
-    list.forEach(o => roofs.push({ x: o.x, z: o.z, h: o.h }));
+    list.forEach(o => { o.b = terrH(o.x, o.z); roofs.push({ x: o.x, z: o.z, h: o.h + o.b }); });
     list.forEach((o, i) => { q.setFromAxisAngle(up, o.rot);
-      m.compose(new THREE.Vector3(o.x, 0, o.z), q, new THREE.Vector3(o.w, o.h, o.d)); A.setMatrixAt(i, m); A.setColorAt(i, c.set(o.c));
-      m.compose(new THREE.Vector3(o.x, o.h, o.z), q, new THREE.Vector3(o.w * 0.82, 1.6, o.d * 0.82)); RM.setMatrixAt(i, m); RM.setColorAt(i, c.set(o.rc)); });
+      m.compose(new THREE.Vector3(o.x, o.b, o.z), q, new THREE.Vector3(o.w, o.h, o.d)); A.setMatrixAt(i, m); A.setColorAt(i, c.set(o.c));
+      m.compose(new THREE.Vector3(o.x, o.b + o.h, o.z), q, new THREE.Vector3(o.w * 0.82, 1.6, o.d * 0.82)); RM.setMatrixAt(i, m); RM.setColorAt(i, c.set(o.rc)); });
     A.frustumCulled = RM.frustumCulled = false; S.add(A, RM);
     // 지도 자료 밖(그리고 안의 빈 땅): 도시처럼 보이는 낮은 건물로 채움. 지도 구역에서 멀어질수록 듬성듬성·낮게 (실제 지도는 아님)
     const F = [], fit2 = (x, z, r) => fits(x, z, r);
     const stepIn = light ? 80 : 60;
     for (let x = X0 + stepIn / 2; x < X1; x += stepIn) for (let z = Z0 + stepIn / 2; z < Z1; z += stepIn) {
       const px = x + (rnd() - 0.5) * stepIn * 0.6, pz = z + (rnd() - 0.5) * stepIn * 0.6;
-      if (rnd() < 0.35 || inDetail(px, pz) || blocked(px, pz) || hills.some(([p0, r]) => Math.hypot(px - p0[0], pz - p0[1]) < r) || roadClear(px, pz) < 8) continue;
+      if (rnd() < 0.35 || terrH(px, pz) > 25 || inDetail(px, pz) || blocked(px, pz) || hills.some(([p0, r]) => Math.hypot(px - p0[0], pz - p0[1]) < r) || roadClear(px, pz) < 8) continue;
       const w = 14 + rnd() * 18, d = 14 + rnd() * 18, half = Math.hypot(w, d) / 2;
       if (!fit2(px, pz, half + 6)) continue;
       const o = { x: px, z: pz, w, d, h: 8 + Math.pow(rnd(), 2.2) * 40, r: half, rot: rnd() * 0.3, c: PC[Math.floor(rnd() * PC.length)] }; put(o); F.push(o);
@@ -6491,10 +6519,11 @@ function buildSeoulReal(D, DD) {
       const dd = Math.max(X0 - x, x - X1, Z0 - z, z - Z1, 0), keep = 0.85 * Math.exp(-dd / 4500);
       if (rnd() > keep) continue;
       const px = x + (rnd() - 0.5) * stepOut * 0.7, pz = z + (rnd() - 0.5) * stepOut * 0.7, tall = rnd() < 0.04;
+      if (terrH(px, pz) > 25) continue;   // 산에는 짓지 않음
       F.push({ x: px, z: pz, w: 16 + rnd() * 26, d: 16 + rnd() * 26, h: tall ? 50 + rnd() * 60 : 8 + Math.pow(rnd(), 2) * 34 * Math.exp(-dd / 6000), rot: rnd() * 0.4, c: PC[Math.floor(rnd() * PC.length)] });
     }
     const FA = new THREE.InstancedMesh(geo, bldMat, F.length);
-    F.forEach((o, i) => { q.setFromAxisAngle(up, o.rot); m.compose(new THREE.Vector3(o.x, 0, o.z), q, new THREE.Vector3(o.w, o.h, o.d)); FA.setMatrixAt(i, m); FA.setColorAt(i, c.set(o.c)); });
+    F.forEach((o, i) => { q.setFromAxisAngle(up, o.rot); m.compose(new THREE.Vector3(o.x, terrH(o.x, o.z), o.z), q, new THREE.Vector3(o.w, o.h, o.d)); FA.setMatrixAt(i, m); FA.setColorAt(i, c.set(o.c)); });
     FA.frustumCulled = false; S.add(FA); }
   // ---- 자세한 지도: 실제 건물 모양 그대로 세움 (벽에는 층마다 창, 지붕은 색) ----
   const walkLines = [], minorPts = [];
@@ -6510,7 +6539,7 @@ function buildSeoulReal(D, DD) {
       let h = o.h; const r = o.r, n = r.length;
       const cx = r.reduce((a, p) => a + p[0], 0) / n, cz = r.reduce((a, p) => a + p[1], 0) / n;
       if (h > 90 && nearRoute(cx, cz, 90)) h = 90;   // 돔이 지나가는 길 가까이는 부딪히지 않게
-      roofs.push({ x: cx, z: cz, h });
+      const hb = terrH(cx, cz); roofs.push({ x: cx, z: cz, h: h + hb });   // 산비탈 건물은 땅 높이만큼 올림
       cW.set(PCd[Math.floor(rnd() * PCd.length)]); cR.set(RCd[Math.floor(rnd() * RCd.length)]);
       let per = Math.floor(rnd() * 4) * 17.5; const vOff = Math.floor(rnd() * 4);   // 건물마다 밤 창 무늬의 다른 자리를 씀
       for (let i = 0; i < n; i++) {
@@ -6518,11 +6547,11 @@ function buildSeoulReal(D, DD) {
         const u0 = per / 17.5, u1 = (per + L) / 17.5; per += L;
         const base = v;
         [[x1, 0, z1, u0, vOff], [x2, 0, z2, u1, vOff], [x2, h, z2, u1, vOff + h / 39.4], [x1, h, z1, u0, vOff + h / 39.4]].forEach(([x, y, z, uu, vv]) => {
-          pos.set([x, y, z], v * 3); nor.set([nx, 0, nz], v * 3); uv.set([uu, vv], v * 2); col.set([cW.r, cW.g, cW.b], v * 3); v++; });
+          pos.set([x, y + hb, z], v * 3); nor.set([nx, 0, nz], v * 3); uv.set([uu, vv], v * 2); col.set([cW.r, cW.g, cW.b], v * 3); v++; });
         idx.set([base, base + 1, base + 2, base, base + 2, base + 3], q); q += 6;
       }
       const rb = v;
-      for (let i = 0; i < n; i++) { pos.set([r[i][0], h, r[i][1]], v * 3); nor.set([0, 1, 0], v * 3); uv.set([0.01, 0.99], v * 2); col.set([cR.r, cR.g, cR.b], v * 3); v++; }
+      for (let i = 0; i < n; i++) { pos.set([r[i][0], h + hb, r[i][1]], v * 3); nor.set([0, 1, 0], v * 3); uv.set([0.01, 0.99], v * 2); col.set([cR.r, cR.g, cR.b], v * 3); v++; }
       for (const [a, b, c] of tris[k]) {
         const [ax, az] = r[a], [bx, bz] = r[b], [qx, qz] = r[c];
         const up = (bz - az) * (qx - ax) - (bx - ax) * (qz - az);   // 위를 보게
@@ -6576,7 +6605,7 @@ function buildSeoulReal(D, DD) {
     const per = light ? 100 : 300;
     for (const p of D.parks) { const xs = p.map(a => a[0]), zs = p.map(a => a[1]); const minx = Math.min(...xs), maxx = Math.max(...xs), minz = Math.min(...zs), maxz = Math.max(...zs); const n = Math.min(per, Math.floor((maxx - minx) * (maxz - minz) / (light ? 18000 : 6000)));
       for (let i = 0; i < n && k < N; i++) { const x = minx + rnd() * (maxx - minx), z = minz + rnd() * (maxz - minz); let inside = false; for (let a = 0, b = p.length - 1; a < p.length; b = a++) { const [xa, za] = p[a], [xb, zb] = p[b]; if (((za > z) !== (zb > z)) && (x < (xb - xa) * (z - za) / (zb - za) + xa)) inside = !inside; } if (!inside) continue;
-        const r = 4 + rnd() * 3; m.makeScale(r, r * 1.15, r); m.setPosition(x, r, z); tm.setMatrixAt(k, m); tm.setColorAt(k, c.setHSL(0.27 + rnd() * 0.06, 0.5, 0.42 + rnd() * 0.14)); k++; } }
+        const r = 4 + rnd() * 3; m.makeScale(r, r * 1.15, r); m.setPosition(x, r + terrH(x, z), z); tm.setMatrixAt(k, m); tm.setColorAt(k, c.setHSL(0.27 + rnd() * 0.06, 0.5, 0.42 + rnd() * 0.14)); k++; } }
     tm.count = k; tm.frustumCulled = false; S.add(tm); }
   // 차: 큰길을 따라 달림 (움직임은 그래픽 카드에서 계산해 가벼움). 길 끝에서는 작아지며 사라졌다 다시 나타남
   const carMat = std({ roughness: 0.4, emissive: '#fff1c8', emissiveIntensity: 0 });
@@ -6660,14 +6689,15 @@ function buildSeoulReal(D, DD) {
   const L = D.landmarks;
   { const g = new THREE.Mesh(new THREE.BoxGeometry(46, 250, 26), std({ color: '#f2cf74', metalness: 0.6, roughness: 0.25, map: glassTex })); g.position.set(L['63'][0], 125, L['63'][1]); g.rotation.y = 0.6; S.add(g);
     const gk = new THREE.Group(); const gb = new THREE.Mesh(new THREE.BoxGeometry(150, 30, 100), std({ color: '#f1ece2' })); gb.position.y = 15; gk.add(gb); const dm = new THREE.Mesh(new THREE.SphereGeometry(36, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), std({ color: '#8fbfa3', roughness: 0.6 })); dm.position.y = 30; gk.add(dm); gk.position.set(L.gukhoe[0], 0, L.gukhoe[1]); S.add(gk);
-    const hill = new THREE.Mesh(new THREE.SphereGeometry(900, 40, 20, 0, Math.PI * 2, 0, Math.PI / 2), std({ color: '#7fb36a', roughness: 1 })); hill.scale.y = 0.26; hill.position.set(L.namsan[0], 0, L.namsan[1]); S.add(hill);
-    const tw = new THREE.Group(); const tm = std({ color: '#f6f4ef' }); const sh = new THREE.Mesh(new THREE.CylinderGeometry(6, 9, 180, 16), tm); sh.position.y = 90; tw.add(sh); const pod = new THREE.Mesh(new THREE.CylinderGeometry(20, 16, 24, 24), tm); pod.position.y = 160; tw.add(pod); const sp = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 3, 80, 8), tm); sp.position.y = 212; tw.add(sp); tw.position.set(L.namsan[0], 230, L.namsan[1]); S.add(tw);
+    const nsY = TR ? terrH(L.namsan[0], L.namsan[1]) - 3 : 230;   // 남산 꼭대기 (실제 땅 높이)
+    if (!TR) { const hill = new THREE.Mesh(new THREE.SphereGeometry(900, 40, 20, 0, Math.PI * 2, 0, Math.PI / 2), std({ color: '#7fb36a', roughness: 1 })); hill.scale.y = 0.26; hill.position.set(L.namsan[0], 0, L.namsan[1]); S.add(hill); }
+    const tw = new THREE.Group(); const tm = std({ color: '#f6f4ef' }); const sh = new THREE.Mesh(new THREE.CylinderGeometry(6, 9, 180, 16), tm); sh.position.y = 90; tw.add(sh); const pod = new THREE.Mesh(new THREE.CylinderGeometry(20, 16, 24, 24), tm); pod.position.y = 160; tw.add(pod); const sp = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 3, 80, 8), tm); sp.position.y = 212; tw.add(sp); tw.position.set(L.namsan[0], nsY, L.namsan[1]); S.add(tw);
     [[0, 0, 40], [70, -30, 30], [-60, 40, 26]].forEach(([dx, dz, r], i) => { const b = new THREE.Mesh(new THREE.SphereGeometry(r, 24, 16), std({ color: ['#ffd57a', '#9fd3f0', '#f4a9c0'][i], metalness: 0.3, roughness: 0.3 })); b.scale.y = 0.55; b.position.set(L.sebit[0] + dx, 8, L.sebit[1] + dz); S.add(b); });
     const lt = new THREE.Mesh(new THREE.CylinderGeometry(5, 36, 555, 4, 1), std({ map: glassTex, roughness: 0.2, metalness: 0.5, color: '#eef6ff' })); lt.rotation.y = Math.PI / 4; lt.position.set(L.lotte[0], 277, L.lotte[1]); S.add(lt);
     // 밤의 랜드마크 불빛: 롯데월드타워 꼭대기는 자홍빛, 몸통엔 세로 빛줄, 남산서울타워는 분홍빛
     const glowSp = (col, x, y, z, sc) => { const sp2 = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex, color: col, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); sp2.position.set(x, y, z); sp2.scale.setScalar(sc); S.add(sp2); landmarkGlows.push(sp2); return sp2; };
     glowSp('#ff3fd0', L.lotte[0], 520, L.lotte[1], 140); glowSp('#ff7ae0', L.lotte[0], 470, L.lotte[1], 70); glowSp('#ffd9a0', L.lotte[0], 60, L.lotte[1], 160);
-    glowSp('#ff8ad8', L.namsan[0], 230 + 160, L.namsan[1], 70); glowSp('#ffffff', L.namsan[0], 230 + 250, L.namsan[1], 18);
+    glowSp('#ff8ad8', L.namsan[0], nsY + 160, L.namsan[1], 70); glowSp('#ffffff', L.namsan[0], nsY + 250, L.namsan[1], 18);
     landmarkLit.push(lt.material); lt.material.emissive = new THREE.Color('#b080ff'); lt.material.emissiveIntensity = 0; }
   // 궁궐 마당과 한양도성 성곽
   { S.add(new THREE.Mesh(mergeGeos(D.palaces.map(pl => flat(new THREE.ShapeGeometry(shape(pl.p)), 1.5))), std({ color: '#eadfc6', roughness: 1 })));
@@ -6700,7 +6730,7 @@ function buildSeoulReal(D, DD) {
     const md = new THREE.Group(); const mb = new THREE.Mesh(new THREE.BoxGeometry(24, 22, 60), std({ color: '#b36a52' })); mb.position.y = 11; md.add(mb); const msp = new THREE.Mesh(new THREE.ConeGeometry(6, 30, 4), std({ color: '#7d5a4a' })); msp.position.set(0, 52, -28); md.add(msp); const mtw = new THREE.Mesh(new THREE.BoxGeometry(10, 38, 10), std({ color: '#b36a52' })); mtw.position.set(0, 19, -28); md.add(mtw); md.position.set(L.myeongdong[0], 0, L.myeongdong[1]); S.add(md);
     const ch = new THREE.Mesh(new THREE.CylinderGeometry(55, 60, 60, 24, 1, false, 0, Math.PI), std({ map: glassTex, metalness: 0.4, roughness: 0.2 })); ch.position.set(L.cityhall[0], 30, L.cityhall[1]); ch.rotation.y = Math.PI * 0.9; S.add(ch);
     const sg = new THREE.Group(); const sb = new THREE.Mesh(new THREE.BoxGeometry(80, 18, 30), std({ color: '#c8805c' })); sb.position.y = 9; sg.add(sb); const sd = new THREE.Mesh(new THREE.SphereGeometry(10, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2), std({ color: '#5f8f86' })); sd.position.y = 18; sg.add(sd); sg.position.set(L.seoulst[0], 0, L.seoulst[1]); S.add(sg);
-    [[L.bugak, 750, 342, 1], [L.inwang, 680, 338, 2]].forEach(([p, r, h, sdd]) => { const g = new THREE.SphereGeometry(r, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2); const pa = g.attributes.position, col = new Float32Array(pa.count * 3), c = new THREE.Color();
+    if (!TR) [[L.bugak, 750, 342, 1], [L.inwang, 680, 338, 2]].forEach(([p, r, h, sdd]) => { const g = new THREE.SphereGeometry(r, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2); const pa = g.attributes.position, col = new Float32Array(pa.count * 3), c = new THREE.Color();
       for (let i = 0; i < pa.count; i++) { const x = pa.getX(i), y = pa.getY(i), z = pa.getZ(i); const nrm = Math.sin(x * 0.011 + sdd) * Math.cos(z * 0.013 + sdd * 2) * 0.12 + Math.sin(x * 0.031 + z * 0.027) * 0.05; const k = 1 + nrm * (y / r); pa.setXYZ(i, x * k, y * k * (h / r) * (0.85 + 0.3 * Math.sin(Math.atan2(z, x) * 3 + sdd)), z * k);
         const t = y / r; c.setHSL(0.27 - t * 0.03, 0.35, 0.36 + t * 0.12 + (Math.sin(x * 0.05) * Math.cos(z * 0.05)) * 0.03); if (t > 0.8) c.lerp(new THREE.Color('#b8b0a0'), (t - 0.8) * 2.5); col.set([c.r, c.g, c.b], i * 3); }
       g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.computeVertexNormals(); const hl = new THREE.Mesh(g, std({ vertexColors: true, roughness: 1 })); hl.position.set(p[0], 0, p[1]); S.add(hl); }); }
