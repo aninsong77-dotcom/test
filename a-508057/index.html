@@ -508,7 +508,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-222';
+const BUILD = '11.19-223';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -1010,34 +1010,29 @@ function updateKelp(t) { reefU.uRT.value = t; }
 const creatures = [];
 {
   const colors = ['#8fe3ff', '#b9a3ff', '#7fe7dc', '#ffb3e6', '#8fe3ff', '#9dffb0', '#b9a3ff', '#7fe7dc', '#ffb3e6'];
-  const stalkMat = new THREE.MeshStandardMaterial({ color: '#6a5a4f', roughness: 0.8 });
   let tries = 0;
   while (creatures.length < 9 && tries++ < 800) {
     const a = rand() * Math.PI * 2, r = 9 + rand() * 52;
     const x = Math.cos(a) * r, z = Math.sin(a) * r;
     if (keepClear(x, z, 1) || creatures.some(c => Math.hypot(c.x - x, c.z - z) < 9)) continue;
     const color = colors[creatures.length];
-    const mat = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.6, roughness: 0.4 });
+    // 바닥 가까이 둥실 떠 있는 작은 빛 해파리: 반투명한 갓이 숨 쉬듯 오므렸다 펴지고, 가는 촉수가 아래로 늘어져 살랑임
+    const mat = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.6, roughness: 0.3, transparent: true, opacity: 0.55, depthWrite: false, side: THREE.DoubleSide });
     const g = new THREE.Group();
     const y = groundH(x, z);
     g.position.set(x, y, z);
-    const st = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.09, 1.1, 8), stalkMat);
-    st.position.y = 0.55;
-    g.add(st);
-    for (let i = 0; i < 8; i++) {
-      const aa = i / 8 * Math.PI * 2;
-      const b = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), mat);
-      b.position.set(Math.cos(aa) * 0.28, 1.08 + (i % 3) * 0.1, Math.sin(aa) * 0.28);
-      g.add(b);
-    }
-    const top = new THREE.Mesh(new THREE.SphereGeometry(0.17, 12, 10), mat);
-    top.position.y = 1.28;
-    g.add(top);
+    const jf = new THREE.Group(); jf.position.y = 1.6 + rand() * 0.9; g.add(jf);
+    const bell = noRay(new THREE.Mesh(new THREE.SphereGeometry(0.3, 22, 10, 0, Math.PI * 2, 0, Math.PI * 0.5), mat)); bell.scale.y = 0.75; jf.add(bell);
+    const core = noRay(new THREE.Mesh(new THREE.SphereGeometry(0.11, 12, 8), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.7, depthWrite: false }))); core.position.y = 0.06; jf.add(core);
+    const tmat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.35, depthWrite: false }), tents = [];
+    for (let i = 0; i < 8; i++) { const aa = i / 8 * Math.PI * 2, L = 0.55 + rand() * 0.5;
+      const pv = new THREE.Group(); pv.position.set(Math.cos(aa) * 0.22, 0, Math.sin(aa) * 0.22); jf.add(pv);
+      const tg = new THREE.CylinderGeometry(0.006, 0.012, L, 4); tg.translate(0, -L / 2, 0); pv.add(noRay(new THREE.Mesh(tg, tmat))); tents.push(pv); }
     const glow = noRay(new THREE.Sprite(glowMat(color, 0.25)));
-    glow.position.y = 1.15; glow.scale.setScalar(3);
-    g.add(glow);
+    glow.scale.setScalar(2.4);
+    jf.add(glow);
     scene.add(g);
-    creatures.push({ g, mat, glow, x, z, pos: new THREE.Vector3(x, y + 1.1, z), found: false, lit: 0, ph: rand() * 6 });
+    creatures.push({ g, jf, bell, tents, baseY: jf.position.y, mat, glow, x, z, pos: new THREE.Vector3(x, y + jf.position.y, z), found: false, lit: 0, ph: rand() * 6 });
   }
 }
 
@@ -3903,9 +3898,12 @@ function updateWalk(dt, t) {
 }
 function updateCreatures(t) {
   for (const c of creatures) {
-    c.mat.emissiveIntensity = 0.6 + c.lit * 2.2 + (c.found ? 0.4 : 0) + Math.sin(t * 1.3 + c.ph) * 0.15;
-    c.glow.material.opacity = 0.22 + c.lit * 0.5 + (c.found ? 0.1 : 0);
-    c.g.rotation.z = Math.sin(t * 0.8 + c.ph) * 0.07;
+    c.mat.emissiveIntensity = 0.6 + c.lit * 1.6 + Math.sin(t * 1.3 + c.ph) * 0.15;
+    c.glow.material.opacity = 0.16 + c.lit * 0.35;
+    const pulse = Math.sin(t * 1.6 + c.ph);
+    c.jf.position.y = c.baseY + Math.sin(t * 0.5 + c.ph) * 0.3 + Math.max(0, pulse) * 0.05;
+    c.bell.scale.set(1 - pulse * 0.08, 0.75 + pulse * 0.08, 1 - pulse * 0.08);
+    c.tents.forEach((pv, k) => { pv.rotation.x = Math.sin(t * 1.1 + c.ph + k * 0.7) * 0.18; pv.rotation.z = Math.cos(t * 0.9 + c.ph + k) * 0.12; });
   }
 }
 
@@ -6511,18 +6509,82 @@ function buildSeoulReal(D, DD) {
   const RG = 100, roadGrid = new Map();
   const gridAdd = (sg) => { const [x1, z1, x2, z2, hw] = sg, pad = hw + 30; for (let gx = Math.floor((Math.min(x1, x2) - pad) / RG); gx <= Math.floor((Math.max(x1, x2) + pad) / RG); gx++) for (let gz = Math.floor((Math.min(z1, z2) - pad) / RG); gz <= Math.floor((Math.max(z1, z2) + pad) / RG); gz++) { const k = gx + ',' + gz; if (!roadGrid.has(k)) roadGrid.set(k, []); roadGrid.get(k).push(sg); } };
   const roadClear = (x, z) => { const l = roadGrid.get(Math.floor(x / RG) + ',' + Math.floor(z / RG)); if (!l) return 999; let best = 999; for (const [x1, z1, x2, z2, hw] of l) { const dx = x2 - x1, dz = z2 - z1, L2 = dx * dx + dz * dz || 1; const t = Math.max(0, Math.min(1, ((x - x1) * dx + (z - z1) * dz) / L2)); const d = Math.hypot(x - x1 - dx * t, z - z1 - dz * t) - hw - 5; if (d < best) best = d; } return best; };
+  // ---- 한강 다리: 다리 모양(지도)에서 긴 방향·길이·폭을 구함. 다리 위 길과 차는 상판 높이로 올림 ----
+  const BR = D.bridges.map((pts, bi) => {
+    const name = (D.bridgeNames || [])[bi] || '', n0 = pts.length; let cx = 0, cz = 0; pts.forEach(([x, z]) => { cx += x; cz += z; }); cx /= n0; cz /= n0;
+    let sxx = 0, szz = 0, sxz = 0; pts.forEach(([x, z]) => { sxx += (x - cx) ** 2; szz += (z - cz) ** 2; sxz += (x - cx) * (z - cz); });
+    const ang = 0.5 * Math.atan2(2 * sxz, sxx - szz), ux = Math.cos(ang), uz = Math.sin(ang);
+    let a0 = 1e9, a1 = -1e9, w0 = 1e9, w1 = -1e9; pts.forEach(([x, z]) => { const a = (x - cx) * ux + (z - cz) * uz, w = -(x - cx) * uz + (z - cz) * ux; a0 = Math.min(a0, a); a1 = Math.max(a1, a); w0 = Math.min(w0, w); w1 = Math.max(w1, w); });
+    const xs = pts.map(q => q[0]), zs = pts.map(q => q[1]);
+    const low = name === '잠수교', deck = low ? 4 : 12;
+    return { pts, name, cx, cz, ux, uz, a0, a1, w0, w1, len: a1 - a0, wid: w1 - w0, deck, top: deck + 1.8, bx0: Math.min(...xs), bx1: Math.max(...xs), bz0: Math.min(...zs), bz1: Math.max(...zs) };
+  });
+  const bridgeTop = (x, z) => { for (const b of BR) { if (x < b.bx0 - 2 || x > b.bx1 + 2 || z < b.bz0 - 2 || z > b.bz1 + 2) continue;
+      let inside = false; const p = b.pts; for (let a = 0, c = p.length - 1; a < p.length; c = a++) { const [xa, za] = p[a], [xc, zc] = p[c]; if (((za > z) !== (zc > z)) && (x < (xc - xa) * (z - za) / (zc - za) + xa)) inside = !inside; }
+      if (inside) return b.top; } return null; };
+  const ryB = (x, z, y) => { const t = bridgeTop(x, z); return t === null ? y : t + (y - 1.5) * 0.3 + 0.1; };
   { const pos = [], idx = [], sw = [], swi = []; let n = 0, m2 = 0;
     D.roads.forEach(r => { const p = r.p, hw = r.w / 2; for (let i = 0; i < p.length - 1; i++) { const [x1, z1] = p[i], [x2, z2] = p[i + 1]; const dx = x2 - x1, dz = z2 - z1, L = Math.hypot(dx, dz) || 1, nx = -dz / L * hw, nz = dx / L * hw, ex = -dz / L * (hw + 4.5), ez = dx / L * (hw + 4.5);
-      pos.push(x1 + nx, 1.8, z1 + nz, x1 - nx, 1.8, z1 - nz, x2 + nx, 1.8, z2 + nz, x2 - nx, 1.8, z2 - nz); idx.push(n, n + 2, n + 1, n + 1, n + 2, n + 3); n += 4;
-      sw.push(x1 + ex, 1.5, z1 + ez, x1 - ex, 1.5, z1 - ez, x2 + ex, 1.5, z2 + ez, x2 - ex, 1.5, z2 - ez); swi.push(m2, m2 + 2, m2 + 1, m2 + 1, m2 + 2, m2 + 3); m2 += 4;   // 인도
+      const y1 = ryB(x1, z1, 1.8), y2 = ryB(x2, z2, 1.8), s1 = ryB(x1, z1, 1.5), s2 = ryB(x2, z2, 1.5);
+      pos.push(x1 + nx, y1, z1 + nz, x1 - nx, y1, z1 - nz, x2 + nx, y2, z2 + nz, x2 - nx, y2, z2 - nz); idx.push(n, n + 2, n + 1, n + 1, n + 2, n + 3); n += 4;
+      sw.push(x1 + ex, s1, z1 + ez, x1 - ex, s1, z1 - ez, x2 + ex, s2, z2 + ez, x2 - ex, s2, z2 - ez); swi.push(m2, m2 + 2, m2 + 1, m2 + 1, m2 + 2, m2 + 3); m2 += 4;   // 인도
       gridAdd([x1, z1, x2, z2, hw]);
       if (L > 40) roadPts.push([x1, z1, x2, z2, r.w]); } });
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); S.add(new THREE.Mesh(g, roadMat));
     const g2 = new THREE.BufferGeometry(); g2.setAttribute('position', new THREE.Float32BufferAttribute(sw, 3)); g2.setIndex(swi); g2.computeVertexNormals(); S.add(new THREE.Mesh(g2, sideMat)); }
-  const streetLights = (() => { const pts = []; D.roads.forEach(r => { const p = r.p; for (let i = 0; i < p.length - 1; i++) { const [x1, z1] = p[i], [x2, z2] = p[i + 1]; const L = Math.hypot(x2 - x1, z2 - z1); for (let t = 0; t < L; t += 45) { const f = t / L; pts.push(x1 + (x2 - x1) * f, 6, z1 + (z2 - z1) * f); } } }); const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3)); const sc = new Float32Array(pts.length), c2 = new THREE.Color(); for (let i = 0; i < pts.length / 3; i++) { c2.set(rnd() < 0.6 ? '#ffc070' : '#eef4ff'); sc.set([c2.r, c2.g, c2.b], i * 3); } g.setAttribute('color', new THREE.BufferAttribute(sc, 3)); const o = new THREE.Points(g, new THREE.PointsMaterial({ vertexColors: true, size: 3, sizeAttenuation: false, transparent: true, opacity: 0, depthWrite: false })); S.add(o); return o; })();   // 주황 나트륨등과 흰 LED 가로등이 섞임
-  const bridgeMat = std({ color: '#c9c5bd', roughness: 0.8, emissive: '#ffb468', emissiveIntensity: 0 });
-  lampGlow(bridgeMat, 6, '0.62', '0.8');   // 다리: 밤에 판 전체가 빛나지 않고 가로등 불빛만 점점이
-  S.add(new THREE.Mesh(mergeGeos(D.bridges.map(b => { const g = new THREE.ExtrudeGeometry(shape(b), { depth: 2.5, bevelEnabled: false }); g.rotateX(-Math.PI / 2); g.translate(0, 12, 0); return g; })), bridgeMat));
+  const streetLights = (() => { const pts = []; D.roads.forEach(r => { const p = r.p; for (let i = 0; i < p.length - 1; i++) { const [x1, z1] = p[i], [x2, z2] = p[i + 1]; const L = Math.hypot(x2 - x1, z2 - z1); for (let t = 0; t < L; t += 45) { const f = t / L, px = x1 + (x2 - x1) * f, pz = z1 + (z2 - z1) * f, bt = bridgeTop(px, pz); if (bt === null) pts.push(px, 6, pz); } } }); const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3)); const sc = new Float32Array(pts.length), c2 = new THREE.Color(); for (let i = 0; i < pts.length / 3; i++) { c2.set(rnd() < 0.6 ? '#ffc070' : '#eef4ff'); sc.set([c2.r, c2.g, c2.b], i * 3); } g.setAttribute('color', new THREE.BufferAttribute(sc, 3)); const o = new THREE.Points(g, new THREE.PointsMaterial({ vertexColors: true, size: 3, sizeAttenuation: false, transparent: true, opacity: 0, depthWrite: false })); S.add(o); return o; })();   // 주황 나트륨등과 흰 LED 가로등이 섞임
+  // 다리: 콘크리트 상판 + 양쪽 난간 + 강물에 박힌 기둥 + 가장자리 가로등 줄 (밤에는 불빛이 강물에 길게 비침). 유명한 다리는 생김새를 더함
+  const bridgeMat = std({ color: '#c9c5bd', roughness: 0.85, emissive: '#000000', emissiveIntensity: 0 });
+  const pierMat = std({ color: '#a9a59c', roughness: 0.9 }), railMat = std({ color: '#d9d6cf', roughness: 0.7 });
+  const bridgeLamps = [], bridgeLampCols = [], reflPts = [], reflCols = []; let bridgeArchMat = null;
+  { const decks = [], piers = [], rails = [], extras = [];
+    const box = (cx, cy, cz, sx, sy, sz, ang, mat) => { const g = new THREE.BoxGeometry(sx, sy, sz); g.rotateY(-ang); g.translate(cx, cy, cz); (mat === 'x' ? extras : mat === 'p' ? piers : rails).push(g); };
+    const lampC = new THREE.Color();
+    for (const b of BR) {
+      const dg = new THREE.ExtrudeGeometry(shape(b.pts), { depth: 1.8, bevelEnabled: false }); dg.rotateX(-Math.PI / 2); dg.translate(0, b.deck, 0); decks.push(dg);
+      if (b.len < 150) continue;   // 작은 개울 다리는 상판만
+      const ang = Math.atan2(b.uz, b.ux), at = (a, w) => [b.cx + b.ux * a - b.uz * w, b.cz + b.uz * a + b.ux * w];
+      const wc = (b.w0 + b.w1) / 2, hw = b.wid / 2;
+      // 난간 두 줄
+      for (const sd of [-1, 1]) { const [rx, rz] = at((b.a0 + b.a1) / 2, wc + sd * (hw - 0.6)); box(rx, b.top + 0.6, rz, b.len, 1.2, 0.5, ang, 'r'); }
+      // 기둥: 강물 속에서 상판 밑까지
+      const step = b.len > 800 ? 90 : 60;
+      for (let a = b.a0 + step * 0.6; a < b.a1 - step * 0.4; a += step) { const [px, pz] = at(a, wc); box(px, b.deck / 2 - 1, pz, 5, b.deck + 2, Math.max(6, b.wid * 0.7), ang, 'p'); }
+      // 가로등: 양쪽 가장자리를 따라 (따뜻한 빛과 흰 LED가 다리마다 다름)
+      const warm = (b.cx * 7 + b.cz * 3) % 2 > 1;
+      for (const sd of [-1, 1]) for (let a = b.a0 + 12; a < b.a1 - 6; a += 28) {
+        const [lx, lz] = at(a, wc + sd * (hw - 1)); lampC.set(warm ? '#ffcf86' : '#f2f5ff');
+        bridgeLamps.push(lx, b.top + 7, lz); bridgeLampCols.push(lampC.r, lampC.g, lampC.b);
+        if (sd > 0 || b.deck > 5) { reflPts.push(lx, 0.6, lz); reflCols.push(lampC.r, lampC.g, lampC.b); } }
+      // ---- 유명한 다리의 생김새 ----
+      const N = b.name;
+      if (N === '성수대교' || N.startsWith('한강철교') || N === '당산철교' || N === '잠실철교') {   // 철골 트러스 (성수대교는 붉은빛)
+        const tm = N === '성수대교' ? 'sx' : 'tx'; const H = N === '성수대교' ? 12 : 9;
+        for (const sd of [-1, 1]) { const [tx, tz] = at((b.a0 + b.a1) / 2, wc + sd * (hw - 0.4)); const g = new THREE.BoxGeometry(b.len * 0.94, 0.8, 0.8); g.rotateY(-ang); g.translate(tx, b.top + H, tz); extras.push(Object.assign(g, { userData: { m: tm } }));
+          for (let a = b.a0 + 15, k = 0; a < b.a1 - 15; a += 15, k++) { const [qx, qz] = at(a, wc + sd * (hw - 0.4)); const d = new THREE.BoxGeometry(0.6, Math.hypot(H, 15), 0.6); d.translate(0, Math.hypot(H, 15) / 2, 0); d.rotateZ((k % 2 ? 1 : -1) * Math.atan2(15, H)); d.rotateY(-ang); d.translate(qx, b.top, qz); extras.push(Object.assign(d, { userData: { m: tm } })); } }
+      }
+      if (N === '동호대교') {   // 가운데 주황빛 아치 두 개
+        for (const sd of [-1, 1]) { const pts2 = []; for (let i = 0; i <= 24; i++) { const f = i / 24, a = -110 + 220 * f, [x, z] = at(a, wc + sd * (hw - 0.5)); pts2.push(new THREE.Vector3(x, b.top + Math.sin(f * Math.PI) * 32, z)); }
+          const g = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts2), 40, 1.1, 6); extras.push(Object.assign(g, { userData: { m: 'ox' } })); }
+      }
+      if (N === '올림픽대교') {   // 가운데 높이 솟은 네 기둥 주탑과 부채꼴 케이블
+        const [mx, mz] = at((b.a0 + b.a1) / 2, wc), topY = b.top + 88;
+        for (const [da, dw] of [[-6, -6], [-6, 6], [6, -6], [6, 6]]) { const [px, pz] = at((b.a0 + b.a1) / 2 + da, wc + dw); const g = new THREE.CylinderGeometry(0.9, 2.2, 88, 8); g.translate(px, b.top + 44, pz); extras.push(Object.assign(g, { userData: { m: 'wx' } })); }
+        for (const sd of [-1, 1]) for (let k = 1; k <= 8; k++) { const [ex, ez] = at((b.a0 + b.a1) / 2 + sd * k * 22, wc); const g = new THREE.CylinderGeometry(0.15, 0.15, 1, 4); const L = Math.hypot(ex - mx, ez - mz, topY - k * 8 - b.top); g.translate(0, 0.5, 0); g.scale(1, L, 1);
+          const dir = new THREE.Vector3(mx - ex, topY - k * 8 - b.top, mz - ez).normalize(); g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir)); g.translate(ex, b.top, ez); extras.push(Object.assign(g, { userData: { m: 'wx' } })); }
+      }
+      if (N === '반포대교') {   // 밤에는 양쪽 가장자리에서 무지개 분수 불빛 (아래는 잠수교)
+        const RB = ['#ff5a6e', '#ffb347', '#fff36b', '#7dff8a', '#5ad1ff', '#8a7dff'];
+        for (const sd of [-1, 1]) for (let a = b.a0 + 30, k = 0; a < b.a1 - 30; a += 9, k++) { const [fx, fz] = at(a, wc + sd * (hw + 6)); lampC.set(RB[Math.floor(k / 4) % RB.length]); reflPts.push(fx, 0.6, fz); reflCols.push(lampC.r, lampC.g, lampC.b); }
+      }
+    }
+    S.add(new THREE.Mesh(mergeGeos(decks), bridgeMat));
+    if (piers.length) S.add(new THREE.Mesh(mergeGeos(piers), pierMat));
+    if (rails.length) S.add(new THREE.Mesh(mergeGeos(rails), railMat));
+    const EXM = { sx: std({ color: '#b5524a', roughness: 0.6, metalness: 0.3 }), tx: std({ color: '#7d828b', roughness: 0.6, metalness: 0.4 }), ox: std({ color: '#e8873a', roughness: 0.5, emissive: '#e8873a', emissiveIntensity: 0 }), wx: std({ color: '#eceae4', roughness: 0.6 }) };
+    bridgeArchMat = EXM.ox;
+    for (const k in EXM) { const gs = extras.filter(g => g.userData.m === k); if (gs.length) S.add(new THREE.Mesh(mergeGeos(gs.map(g => g.index ? g.toNonIndexed() : g)), EXM[k])); }
+  }
   // 돔이 다니는 길: 한강(여의도→한남대교) → 남산 → 도심 한 바퀴 → 남산 → 한남대교 → 한강(→잠실)
   const RV = D.path, LP = D.path2; const hn = RV.findIndex(p => p[0] > 200);
   const P = [...RV.slice(0, hn + 1), [RV[hn][0] - 200, RV[hn][1] - 900], [-1500, -2500], ...LP, [-1500, -2500], [RV[hn][0] - 200, RV[hn][1] - 900], ...RV.slice(hn)];
@@ -6721,6 +6783,15 @@ function buildSeoulReal(D, DD) {
     D.roads.forEach(r => { [r.p[0], r.p[r.p.length - 1]].forEach(([x, z]) => { if (rnd() < 0.78) return; const q = rnd(); c.set(q < 0.3 ? '#ff4a3b' : q < 0.88 ? '#39ff7a' : '#ffc23b'); pts.push(x + (rnd() - 0.5) * 8, 7, z + (rnd() - 0.5) * 8); cols.push(c.r, c.g, c.b); }); });
     lightLayer(pts, cols, 4.5, false);
   }
+  // 다리 가로등과 강물에 길게 비친 불빛
+  if (bridgeLamps.length) lightLayer(bridgeLamps, bridgeLampCols, 5.5, false);
+  if (reflPts.length) {
+    const g2 = new THREE.BufferGeometry(); g2.setAttribute('position', new THREE.Float32BufferAttribute(reflPts, 3)); g2.setAttribute('aCol', new THREE.Float32BufferAttribute(reflCols, 3));
+    const m = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, uniforms: { uOp: { value: 0 }, uT: { value: 0 }, uS: { value: Math.min(window.devicePixelRatio || 1, 2) } },
+      vertexShader: `attribute vec3 aCol; uniform float uS; varying vec3 vC; void main(){ vC = aCol; vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_PointSize = clamp(26000.0 / -mv.z, 3.0, 90.0) * uS; gl_Position = projectionMatrix * mv; }`,
+      fragmentShader: `uniform float uOp, uT; varying vec3 vC; void main(){ vec2 q = gl_PointCoord - 0.5; float a = exp(-q.x * q.x * 180.0) * smoothstep(0.5, 0.0, abs(q.y)) * (0.75 + 0.25 * sin(q.y * 40.0 + uT * 2.0)); a *= uOp * 0.85; gl_FragColor = vec4(vC * a, a); }` });
+    const o = new THREE.Points(g2, m); o.frustumCulled = false; S.add(o); nightLights.push(o);
+  }
   { // 항공 경고등: 높은 건물 꼭대기
     const pts = [], cols = []; roofs.forEach(o => { if (o.h > 90 || (o.h > 60 && rnd() < 0.25)) { pts.push(o.x, o.h + 2, o.z); cols.push(0.85, 0.14, 0.1); } });   // 아주 높은 건물만
     lightLayer(pts, cols, 3.6, true);
@@ -6742,7 +6813,7 @@ function buildSeoulReal(D, DD) {
   const carT = { value: 0 };
   carMat.onBeforeCompile = sh => {
     sh.uniforms.uTime = carT;
-    sh.vertexShader = 'attribute vec4 aSeg; attribute vec4 aCar; uniform float uTime;\n' + sh.vertexShader
+    sh.vertexShader = 'attribute vec4 aSeg; attribute vec4 aCar; attribute float aY; uniform float uTime;\n' + sh.vertexShader
       .replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>
         vec2 cA = aSeg.xy, cB = aSeg.zw; vec2 cD = cB - cA; float cL = max(length(cD), 1.0); vec2 cU = cD / cL;
         float cT = fract(aCar.x + uTime * aCar.y / cL);
@@ -6753,7 +6824,7 @@ function buildSeoulReal(D, DD) {
         objectNormal = vec3(objectNormal.x * cU.x - objectNormal.z * cU.y, objectNormal.y, objectNormal.x * cU.y + objectNormal.z * cU.x);`)
       .replace('#include <begin_vertex>', `#include <begin_vertex>
         transformed *= cS;
-        transformed = vec3(cP.x + transformed.x * cU.x - transformed.z * cU.y, transformed.y + 3.4, cP.y + transformed.x * cU.y + transformed.z * cU.x);`);
+        transformed = vec3(cP.x + transformed.x * cU.x - transformed.z * cU.y, transformed.y + 3.4 + aY, cP.y + transformed.x * cU.y + transformed.z * cU.x);`);
   };
   // 돔이 다니는 길 둘레(1.5km 안)의 길에 차를 모아 둠: 어디를 날든 아래로 차가 많이 보이게
   const nearPts = roadPts.filter(r => nearRoute((r[0] + r[2]) / 2, (r[1] + r[3]) / 2, 1500));
@@ -6761,11 +6832,11 @@ function buildSeoulReal(D, DD) {
   { const N = light ? 4000 : 9000;
     const geo = new THREE.BoxGeometry(9, 3, 4);   // 높이 떠서도 보이게 실제보다 조금 크게
     const cm = new THREE.InstancedMesh(geo, carMat, N);
-    const seg = new Float32Array(N * 4), car = new Float32Array(N * 4), c = new THREE.Color(), cols = ['#ff6b6b', '#ffd166', '#4dabf7', '#69db7c', '#ffffff', '#f783ac', '#ffa94d'];
+    const segY = new Float32Array(N), seg = new Float32Array(N * 4), car = new Float32Array(N * 4), c = new THREE.Color(), cols = ['#ff6b6b', '#ffd166', '#4dabf7', '#69db7c', '#ffffff', '#f783ac', '#ffa94d'];
     const pick = () => { const a = carPts[Math.floor(rnd() * carPts.length)], b = carPts[Math.floor(rnd() * carPts.length)]; return a[4] >= b[4] ? a : b; };   // 넓은 길에 차가 더 많게
     for (let i = 0; i < N; i++) { const [x1, z1, x2, z2, w] = pick(); const dir = rnd() < 0.5 ? 1 : -1;
-      seg.set([x1, z1, x2, z2], i * 4); car.set([rnd(), 8 + rnd() * 9, dir * (0.12 + rnd() * 0.25) * w, dir], i * 4); cm.setColorAt(i, c.set(cols[i % cols.length])); }
-    geo.setAttribute('aSeg', new THREE.InstancedBufferAttribute(seg, 4)); geo.setAttribute('aCar', new THREE.InstancedBufferAttribute(car, 4));
+      seg.set([x1, z1, x2, z2], i * 4); { const bt = bridgeTop((x1 + x2) / 2, (z1 + z2) / 2); segY[i] = bt === null ? 0 : bt - 1.6; } car.set([rnd(), 8 + rnd() * 9, dir * (0.12 + rnd() * 0.25) * w, dir], i * 4); cm.setColorAt(i, c.set(cols[i % cols.length])); }
+    geo.setAttribute('aSeg', new THREE.InstancedBufferAttribute(seg, 4)); geo.setAttribute('aCar', new THREE.InstancedBufferAttribute(car, 4)); geo.setAttribute('aY', new THREE.InstancedBufferAttribute(segY, 1));
     cm.frustumCulled = false; S.add(cm); }
   // 걸어 다니는 사람: 인도와 한강 공원 길을 따라 천천히 (높이 떠서도 보이게 실제보다 크게)
   const walkT = { value: 0 };
@@ -6953,7 +7024,7 @@ function buildSeoulReal(D, DD) {
     baseHaze.copy(haze); baseCloud.copy(cc); baseSun = sunS.intensity; baseHemi = hemiS.intensity;
     S.fog.color.copy(haze); S.background.copy(haze);
     starMat.uniforms.uOp.value = night * 0.95; placeStars(date); moonM.position.copy(md).multiplyScalar(20000); moonM.lookAt(0, 0, 0); moonM.material.uniforms.uPhase.value = mA.phase; moonM.material.uniforms.uVis.value = md.y > -0.05 ? 1 : 0; moonM.material.uniforms.uDay.value = day;
-    bldMat.emissiveIntensity = Math.min(0.95, night * 0.95 + dusk * 0.15 + blue * 0.6); bandU.value = Math.min(1, night + blue * 0.6) * 0.55; bldNightMats.forEach(m => { m.emissiveIntensity = bldMat.emissiveIntensity; }); streetLights.material.opacity = Math.min(1, night + blue * 0.8); nightLights.forEach(o => { o.material.uniforms.uOp.value = night; }); bridgeMat.emissiveIntensity = night * 0.3; bridgeMat.color.set('#c9c5bd').lerp(new THREE.Color('#3b3e47'), night);   // 밤 다리: 어두운 판에 가로등 불빛만
+    bldMat.emissiveIntensity = Math.min(0.95, night * 0.95 + dusk * 0.15 + blue * 0.6); bandU.value = Math.min(1, night + blue * 0.6) * 0.55; bldNightMats.forEach(m => { m.emissiveIntensity = bldMat.emissiveIntensity; }); streetLights.material.opacity = Math.min(1, night + blue * 0.8); nightLights.forEach(o => { o.material.uniforms.uOp.value = night; }); bridgeMat.emissiveIntensity = 0; if (bridgeArchMat) bridgeArchMat.emissiveIntensity = night * 0.45; bridgeMat.color.set('#c9c5bd').lerp(new THREE.Color('#3b3e47'), night);   // 밤 다리: 어두운 판에 가로등 불빛만
     carMat.emissiveIntensity = night * 1.6 + 0.18;
     landmarkGlows.forEach(g2 => { g2.material.opacity = night * 0.9; }); landmarkLit.forEach(m => { m.emissiveIntensity = night * 0.35; });
     sideMat.emissiveIntensity = night * 0.35;
