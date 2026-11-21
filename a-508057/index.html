@@ -508,7 +508,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-214';
+const BUILD = '11.19-215';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -6468,7 +6468,18 @@ function buildSeoulReal(D, DD) {
   const waterMat = std({ color: '#86bde0', roughness: 0.35, metalness: 0 });
   S.add(new THREE.Mesh(mergeGeos(D.water.map(w => flat(new THREE.ShapeGeometry(shape(w[0], w.slice(1))), 2.4))), waterMat));
   const roadPts = [];
-  const roadMat = std({ color: '#8a8f98', roughness: 0.9, emissive: '#c8742a', emissiveIntensity: 0 });
+  // 밤길: 큰길은 금빛 가로등이 늘어선 빛 띠(밝고 어두운 곳이 이어짐), 골목은 흰 LED 빛이 드문드문
+  const roadMat = std({ color: '#8a8f98', roughness: 0.9, emissive: '#f0a548', emissiveIntensity: 0 });
+  const minorRoadMat = std({ color: '#8a8f98', roughness: 0.9, emissive: '#e6edf7', emissiveIntensity: 0 });
+  const lampGlow = (m, sc, lo, hi) => { m.onBeforeCompile = sh => {
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWPr;').replace('#include <project_vertex>', '#include <project_vertex>\nvWPr = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+      varying vec3 vWPr; float hR(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      float nR(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f); return mix(mix(hR(i), hR(i + vec2(1, 0)), f.x), mix(hR(i + vec2(0, 1)), hR(i + vec2(1, 1)), f.x), f.y); }`)
+      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+      float lampK = smoothstep(${lo}, ${hi}, nR(vWPr.xz / ${sc}.0) * 0.7 + nR(vWPr.xz / ${sc * 4}.0) * 0.3);
+      totalEmissiveRadiance *= 0.25 + 0.95 * lampK;`); }; };
+  lampGlow(roadMat, 14, '0.25', '0.75'); lampGlow(minorRoadMat, 9, '0.6', '0.85');
   const sideMat = std({ color: '#e6e1d6', roughness: 1, emissive: '#6a5a40', emissiveIntensity: 0 });
   // 길 칸 나누기 (건물이 길 위에 서지 않게 가까운 길만 빨리 찾음)
   const RG = 100, roadGrid = new Map();
@@ -6622,7 +6633,7 @@ function buildSeoulReal(D, DD) {
       lines.forEach(l => { const off = wOf(l), st = off.start; for (let i = st; i < l.length - 2; i += 2) { const x1 = l[i], z1 = l[i + 1], x2 = l[i + 2], z2 = l[i + 3], L = Math.hypot(x2 - x1, z2 - z1) || 1, hw = off.w / 2, nx = -(z2 - z1) / L * hw, nz = (x2 - x1) / L * hw;
         ps.push(x1 + nx, y, z1 + nz, x1 - nx, y, z1 - nz, x2 + nx, y, z2 + nz, x2 - nx, y, z2 - nz); ix.push(m, m + 2, m + 1, m + 1, m + 2, m + 3); m += 4; } });
       const g2 = new THREE.BufferGeometry(); g2.setAttribute('position', new THREE.Float32BufferAttribute(ps, 3)); g2.setIndex(ix); g2.computeVertexNormals(); parent.add(new THREE.Mesh(g2, mat)); };
-    ribbon(DD.s, l => ({ w: l[0], start: 1 }), 1.7, roadMat);
+    ribbon(DD.s, l => ({ w: l[0], start: 1 }), 1.7, minorRoadMat);
     ribbon(DD.w, () => ({ w: 3, start: 0 }), 1.65, sideMat);
     if (extras) DD.w.forEach(l => { for (let i = 0; i < l.length - 2; i += 2) { const x1 = l[i], z1 = l[i + 1], x2 = l[i + 2], z2 = l[i + 3]; if (Math.hypot(x2 - x1, z2 - z1) > 12) walkLines.push({ a: [x1, z1], b: [x2, z2], foot: true }); } });
     if (extras) DD.s.forEach(l => { if (l[0] < 6) return; for (let i = 1; i < l.length - 2; i += 2) { const x1 = l[i], z1 = l[i + 1], x2 = l[i + 2], z2 = l[i + 3]; if (Math.hypot(x2 - x1, z2 - z1) > 30) minorPts.push([x1, z1, x2, z2, l[0]]); } });
@@ -6883,23 +6894,25 @@ function buildSeoulReal(D, DD) {
   const lightOut = { day: 1, night: 0, dusk: 0, sunDir: new THREE.Vector3(0, 1, 0) };
   const setTime = date => { const sA = sunAltAz(date), mA = moonAltAz(date); const sd = dirOf(sA), md = dirOf(mA); const altDeg = sA.alt * 180 / Math.PI;
     const day = sm(-4, 8, altDeg), night = 1 - sm(-12, -2, altDeg), dusk = Math.max(0, 1 - Math.abs(altDeg - 1) / 9);
+    const blue = Math.max(0, 1 - Math.abs(altDeg + 4.5) / 4.5);   // 해가 막 넘어간 푸른 저녁 (불이 하나둘 켜지고 건물이 푸르스름)
     skyU.uSun.value.copy(sd); skyU.uMoon.value.copy(md); skyU.uDay.value = day; skyU.uNight.value = night; skyU.uDusk.value = dusk;
     sunS.position.copy(sd).multiplyScalar(5000); sunS.intensity = 2.4 * day + 0.6 * dusk; sunS.color.set(dusk > 0.3 ? '#ffb27a' : '#fff4e0');
     hemiS.intensity = 0.25 + 0.9 * day + 0.2 * dusk - 0.15 * night; hemiS.color.set(night > 0.5 ? '#3e4a6e' : '#cfe6ff'); hemiS.groundColor.set(night > 0.5 ? '#2a2018' : '#8a8f78');   // 밤에는 건물 몸체가 거의 까맣게
     if (dusk > 0.2) hemiS.color.lerp(new THREE.Color('#ffb08a'), dusk * 0.6);
+    if (blue > 0) { hemiS.color.lerp(new THREE.Color('#6f8cc8'), blue * 0.8); hemiS.groundColor.lerp(new THREE.Color('#3a4868'), blue * 0.7); hemiS.intensity += blue * 0.25; }
     moonS.position.copy(md).multiplyScalar(5000); moonS.intensity = night * Math.max(0, md.y) * 0.5;
     const haze = new THREE.Color('#c4e2fa').lerp(new THREE.Color('#f0b48e'), dusk * 0.75).lerp(new THREE.Color('#090c16'), night).lerp(new THREE.Color('#2b2230'), night * 0.55);   // 밤 안개: 도시 불빛이 은은히 배어 따뜻한 잿빛
     const cc = new THREE.Color('#ffffff').lerp(new THREE.Color('#ffb48f'), dusk * 0.9).lerp(new THREE.Color('#8a8088'), night); clouds.forEach(c => { c.material.color.copy(cc); c.material.opacity = 1 - 0.5 * night; });   // 밤 구름: 도시 불빛을 받은 옅은 잿빛, 반쯤 비쳐 보이게 (검은 덩어리처럼 보이지 않게)   // 밤 구름: 도시 불빛을 받아 옅은 잿빛 (너무 까맣지 않게)
     baseHaze.copy(haze); baseCloud.copy(cc); baseSun = sunS.intensity; baseHemi = hemiS.intensity;
     S.fog.color.copy(haze); S.background.copy(haze);
     starMat.uniforms.uOp.value = night * 0.95; placeStars(date); moonM.position.copy(md).multiplyScalar(20000); moonM.lookAt(0, 0, 0); moonM.material.uniforms.uPhase.value = mA.phase; moonM.material.uniforms.uVis.value = md.y > -0.05 ? 1 : 0; moonM.material.uniforms.uDay.value = day;
-    bldMat.emissiveIntensity = night * 0.95 + dusk * 0.15; bldNightMats.forEach(m => { m.emissiveIntensity = bldMat.emissiveIntensity; }); streetLights.material.opacity = night; nightLights.forEach(o => { o.material.uniforms.uOp.value = night; }); bridgeMat.emissiveIntensity = night * 0.6;
+    bldMat.emissiveIntensity = Math.min(0.95, night * 0.95 + dusk * 0.15 + blue * 0.6); bldNightMats.forEach(m => { m.emissiveIntensity = bldMat.emissiveIntensity; }); streetLights.material.opacity = Math.min(1, night + blue * 0.8); nightLights.forEach(o => { o.material.uniforms.uOp.value = night; }); bridgeMat.emissiveIntensity = night * 0.6;
     carMat.emissiveIntensity = night * 1.6 + 0.18;
     landmarkGlows.forEach(g2 => { g2.material.opacity = night * 0.9; }); landmarkLit.forEach(m => { m.emissiveIntensity = night * 0.35; });
     sideMat.emissiveIntensity = night * 0.35;
-    groundMat.emissiveIntensity = night * 0.12; parkMat.emissiveIntensity = 0; roadMat.emissiveIntensity = night * 1.25;   // 땅·숲은 어둡게, 길은 주황 불빛 띠로 boatWin.emissiveIntensity = night * 1.2 + dusk * 0.3;
+    groundMat.emissiveIntensity = night * 0.12; parkMat.emissiveIntensity = 0; roadMat.emissiveIntensity = Math.min(1, night + blue * 0.8) * 0.9; minorRoadMat.emissiveIntensity = Math.min(1, night + blue * 0.6) * 0.45;   // 땅·숲은 어둡게, 길은 주황 불빛 띠로 boatWin.emissiveIntensity = night * 1.2 + dusk * 0.3;
     waterMat.color.set('#86bde0').lerp(new THREE.Color('#0d1a33'), night).lerp(new THREE.Color('#e7a27f'), dusk * 0.35 * (1 - night));
-    Object.assign(lightOut, { day, night, dusk }); lightOut.sunDir.copy(sd); applyWx(); };
+    Object.assign(lightOut, { day, night, dusk, blue }); lightOut.sunDir.copy(sd); applyWx(); };
   let lastTime = 0;
   // ---- 서울 날씨 (실제 날씨를 받아 천천히 바뀜): 구름 양, 잿빛 하늘, 비, 눈, 안개, 번개 ----
   const baseHaze = new THREE.Color('#c4e2fa'), baseCloud = new THREE.Color('#ffffff'); let baseSun = 2.4, baseHemi = 1.15;
@@ -7188,7 +7201,7 @@ function buildSeoulReal(D, DD) {
 }
 /* 실제 서울일 때 돔 안의 빛도 서울의 해·달에 맞춤 */
 function seoulRealLook() {
-  const Lt = seoulReal.light;
+  const L0 = seoulReal.light, Lt = Object.assign({}, L0, { night: Math.min(1, L0.night + (L0.blue || 0) * 0.65) });   // 해가 막 진 푸른 저녁도 돔 안은 밤처럼 어둑하게
   // 밤에는 젖빛 바닥을 어둡게, 낮보다 더 비치게 (아래 도시 야경이 은은히 비쳐 보이게)
   frostFloorMat.opacity = mix(0.55, 0.32, Lt.night); frostFloorMat.color.set('#f3f6f8').lerp(new THREE.Color('#566079'), Lt.night);   // 밤에도 아주 약간 젖빛 (발밑이 어수선하지 않게)
   scene.background.set('#c4e2fa'); scene.fog.color.copy(scene.background); scene.fog.density = 0.0001;
