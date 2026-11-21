@@ -508,7 +508,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-208';
+const BUILD = '11.19-209';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -6409,7 +6409,7 @@ function buildSeoulReal(D, DD) {
   const litTex = canvasTex(256, 512, (g, w, h) => { g.fillStyle = '#000'; g.fillRect(0, 0, w, h);
     const LITC = [['#ffcf8a', 40], ['#ffe0ab', 30], ['#fff0d8', 18], ['#e6eeff', 12]], litPick = () => { let r2 = rnd() * 100; for (const [c, w2] of LITC) { if ((r2 -= w2) < 0) return c; } return LITC[0][0]; };
     for (let ty = 0; ty < 4; ty++) for (let tx = 0; tx < 4; tx++) for (let y = 6; y < 128; y += 11) {
-      const m = rnd(), p = m < 0.1 ? 0.65 : m < 0.45 ? 0.02 : 0.1 + rnd() * 0.12;   // 환한 층 / 꺼진 층 / 드문드문
+      const m = rnd(), p = m < 0.12 ? 0.6 : m < 0.36 ? 0.04 : 0.15 + rnd() * 0.15;   // 환한 층 / 꺼진 층 / 드문드문 (밤 동네가 너무 어둡지 않게 조금 더)
       let run = 0;
       for (let x = 6; x < 64; x += 11) { if (run > 0 || rnd() < p) { run = run > 0 ? run - 1 : (rnd() < 0.3 ? 1 + Math.floor(rnd() * 2) : 0);
         g.globalAlpha = 0.35 + rnd() * 0.65; g.fillStyle = litPick(); g.fillRect(tx * 64 + x, ty * 128 + y, 8, 5); } }
@@ -6481,7 +6481,7 @@ function buildSeoulReal(D, DD) {
   // 건물 (파스텔, 지붕 색). 돔이 지나가는 길 가까이는 높이를 낮춰 부딪히지 않게
   const bldNightMats = [], roofs = [], landmarkGlows = [], landmarkLit = [];
   // 멀리 있는 건물의 창 불빛은 서서히 옅게 (멀리서 창이 뭉쳐 벽 전체가 빛나 보이지 않게)
-  const farDim = m => { m.onBeforeCompile = sh => { sh.fragmentShader = sh.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  totalEmissiveRadiance *= mix(1.0, 0.18, smoothstep(500.0, 2600.0, length(vViewPosition)));'); }; m.customProgramCacheKey = () => 'farDim'; };
+  const farDim = m => { m.onBeforeCompile = sh => { sh.fragmentShader = sh.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  totalEmissiveRadiance *= mix(1.0, 0.33, smoothstep(500.0, 2600.0, length(vViewPosition)));'); }; m.customProgramCacheKey = () => 'farDim'; };
   const bldMat = std({ map: winTex, roughness: 0.8, emissive: '#ffffff', emissiveMap: litTex, emissiveIntensity: 0 });
   farDim(bldMat);
   // 상자 건물: 건물마다 창 무늬의 다른 자리를 쓰고, 건물 크기에 맞춰 창 크기를 같게 (모든 상자에 똑같은 무늬가 붙지 않게)
@@ -6880,7 +6880,7 @@ function buildSeoulReal(D, DD) {
     baseHaze.copy(haze); baseCloud.copy(cc); baseSun = sunS.intensity; baseHemi = hemiS.intensity;
     S.fog.color.copy(haze); S.background.copy(haze);
     starMat.uniforms.uOp.value = night * 0.95; placeStars(date); moonM.position.copy(md).multiplyScalar(20000); moonM.lookAt(0, 0, 0); moonM.material.uniforms.uPhase.value = mA.phase; moonM.material.uniforms.uVis.value = md.y > -0.05 ? 1 : 0; moonM.material.uniforms.uDay.value = day;
-    bldMat.emissiveIntensity = night * 0.9 + dusk * 0.15; bldNightMats.forEach(m => { m.emissiveIntensity = bldMat.emissiveIntensity; }); streetLights.material.opacity = night; nightLights.forEach(o => { o.material.uniforms.uOp.value = night; }); bridgeMat.emissiveIntensity = night * 0.6;
+    bldMat.emissiveIntensity = night * 0.95 + dusk * 0.15; bldNightMats.forEach(m => { m.emissiveIntensity = bldMat.emissiveIntensity; }); streetLights.material.opacity = night; nightLights.forEach(o => { o.material.uniforms.uOp.value = night; }); bridgeMat.emissiveIntensity = night * 0.6;
     carMat.emissiveIntensity = night * 1.6 + 0.18;
     landmarkGlows.forEach(g2 => { g2.material.opacity = night * 0.9; }); landmarkLit.forEach(m => { m.emissiveIntensity = night * 0.35; });
     sideMat.emissiveIntensity = night * 0.35;
