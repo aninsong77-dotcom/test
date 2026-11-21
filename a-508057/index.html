@@ -508,7 +508,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-215';
+const BUILD = '11.19-216';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -6306,7 +6306,7 @@ function fetchSeoulWeather() {
     .catch(() => { seoulWxAt = Date.now() - 10 * 60e3; });   // 못 받으면 5분 뒤 다시
 }
 // 바다에 들어오고 40초 뒤, 서울 지도 파일을 미리 조용히 받아 둠 (브라우저에 담아 두기만, 만들지는 않음)
-setTimeout(() => { if (!seoulReal && !seoulLoading) ['seoul-data.json?v=1', 'seoul-detail.json?v=1', 'seoul-stars.json?v=1', 'seoul-terrain.png?v=1', 'seoul-tiles/index.json?v=2'].forEach(u => fetch(u, { priority: 'low' }).catch(() => {})); }, 40000);
+setTimeout(() => { if (!seoulReal && !seoulLoading) ['seoul-data.json?v=1', 'seoul-detail.json?v=1', 'seoul-stars.json?v=1', 'seoul-terrain.png?v=1', 'seoul-tiles/index.json?v=3'].forEach(u => fetch(u, { priority: 'low' }).catch(() => {})); }, 40000);
 function loadSeoulReal() {
   if (seoulReal || seoulLoading) return;
   seoulLoading = true;
@@ -6320,7 +6320,7 @@ function loadSeoulReal() {
       if (!bm) return null; const c = document.createElement('canvas'); c.width = bm.width; c.height = bm.height; const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(bm, 0, 0);
       const px = g.getImageData(0, 0, bm.width, bm.height).data, h = new Float32Array(bm.width * bm.height); for (let i = 0; i < h.length; i++) h[i] = (px[i * 4] * 256 + px[i * 4 + 1]) / 50;
       return { N: bm.width, h }; }).catch(() => null),
-    fetch('seoul-tiles/index.json?v=2').then(r => r.ok ? r.json() : null).catch(() => null),   // 조각 지도 목록 (돔 둘레만 그때그때 불러옴)
+    fetch('seoul-tiles/index.json?v=3').then(r => r.ok ? r.json() : null).catch(() => null),   // 조각 지도 목록 (돔 둘레만 그때그때 불러옴)
   ]).then(([D, DD, ST, TR, TI]) => {
     D.stars = ST; D.terrain = TR; D.tiles = TI;
     // 한 번에 다 만들면 화면이 잠깐 멈추므로, 다음 틈에 만듦
@@ -6648,7 +6648,7 @@ function buildSeoulReal(D, DD) {
       if (!n) continue; const k = i + '_' + j, d = Math.hypot((i + 0.5) * TSZ - px, (j + 0.5) * TSZ - pz) - TSZ * 0.7, t = TL.get(k);
       if (d < LOADR && !t && tileBusy < 2) {
         tileBusy++; TL.set(k, { state: 'loading' });
-        fetch(`seoul-tiles/${k}.json?v=2`).then(r => r.ok ? r.json() : null).then(dd => {
+        fetch(`seoul-tiles/${k}.json?v=3`).then(r => r.ok ? r.json() : null).then(dd => {
           tileBusy--; const e = TL.get(k); if (!dd || !e) { TL.delete(k); return; }
           const g = new THREE.Group(); buildDetail(dd, g, false); S.add(g); e.state = 'ready'; e.grp = g; (tileBox[k] || []).forEach(o => { o.visible = false; });
         }).catch(() => { tileBusy--; TL.delete(k); });
