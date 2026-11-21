@@ -508,7 +508,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-209';
+const BUILD = '11.19-210';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -6429,7 +6429,9 @@ function buildSeoulReal(D, DD) {
   let TG = null, TSEG = 0, TCELL = 1;
   const meshH = (x, z) => { if (!TG) return 0; const u = (x - TX0) / TCELL, v = (z - TZ0) / TCELL; if (u < 0 || v < 0 || u >= TSEG || v >= TSEG) return 0;
     const i = Math.floor(u), j = Math.floor(v), fu = u - i, fv = v - j, W = TSEG + 1;
-    return Math.max(0, (TG[j * W + i] * (1 - fu) + TG[j * W + i + 1] * fu) * (1 - fv) + (TG[(j + 1) * W + i] * (1 - fu) + TG[(j + 1) * W + i + 1] * fu) * fv); };
+    // 그려진 땅과 똑같이: 칸마다 대각선으로 나뉜 두 삼각형 안에서 높이를 구함
+    const A0 = TG[j * W + i], B0 = TG[(j + 1) * W + i], C0 = TG[(j + 1) * W + i + 1], D0 = TG[j * W + i + 1];
+    return Math.max(0, fu + fv <= 1 ? A0 + (D0 - A0) * fu + (B0 - A0) * fv : C0 + (B0 - C0) * (1 - fu) + (D0 - C0) * (1 - fv)); };
   // 바닥 높이 범위: 건물 자리(가운데·네 귀퉁이)의 가장 낮은 곳~가장 높은 곳 → 지붕은 높은 쪽에 맞추고 벽은 낮은 쪽 땅속까지 내림 (묻히거나 뜨지 않게)
   const footH = (pts) => { let lo = 1e9, hi = -1e9; for (const [x, z] of pts) { const h = meshH(x, z); if (h < lo) lo = h; if (h > hi) hi = h; } return [lo, hi]; };
   if (TR) {
