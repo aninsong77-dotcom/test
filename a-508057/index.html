@@ -508,7 +508,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-221';
+const BUILD = '11.19-222';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -6505,7 +6505,7 @@ function buildSeoulReal(D, DD) {
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
       float lampK = smoothstep(${lo}, ${hi}, nR(vWPr.xz / ${sc}.0) * 0.7 + nR(vWPr.xz / ${sc * 4}.0) * 0.3);
       totalEmissiveRadiance *= 0.25 + 0.95 * lampK;`); }; };
-  lampGlow(roadMat, 14, '0.25', '0.75'); lampGlow(minorRoadMat, 9, '0.6', '0.85');
+  lampGlow(roadMat, 8, '0.6', '0.85');   // 큰길: 어스름한 금빛 바탕에 가로등 불빛 웅덩이가 띄엄띄엄 (얼룩무늬처럼 보이지 않게) lampGlow(minorRoadMat, 9, '0.6', '0.85');
   const sideMat = std({ color: '#e6e1d6', roughness: 1, emissive: '#6a5a40', emissiveIntensity: 0 });
   // 길 칸 나누기 (건물이 길 위에 서지 않게 가까운 길만 빨리 찾음)
   const RG = 100, roadGrid = new Map();
@@ -6520,7 +6520,8 @@ function buildSeoulReal(D, DD) {
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); S.add(new THREE.Mesh(g, roadMat));
     const g2 = new THREE.BufferGeometry(); g2.setAttribute('position', new THREE.Float32BufferAttribute(sw, 3)); g2.setIndex(swi); g2.computeVertexNormals(); S.add(new THREE.Mesh(g2, sideMat)); }
   const streetLights = (() => { const pts = []; D.roads.forEach(r => { const p = r.p; for (let i = 0; i < p.length - 1; i++) { const [x1, z1] = p[i], [x2, z2] = p[i + 1]; const L = Math.hypot(x2 - x1, z2 - z1); for (let t = 0; t < L; t += 45) { const f = t / L; pts.push(x1 + (x2 - x1) * f, 6, z1 + (z2 - z1) * f); } } }); const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3)); const sc = new Float32Array(pts.length), c2 = new THREE.Color(); for (let i = 0; i < pts.length / 3; i++) { c2.set(rnd() < 0.6 ? '#ffc070' : '#eef4ff'); sc.set([c2.r, c2.g, c2.b], i * 3); } g.setAttribute('color', new THREE.BufferAttribute(sc, 3)); const o = new THREE.Points(g, new THREE.PointsMaterial({ vertexColors: true, size: 3, sizeAttenuation: false, transparent: true, opacity: 0, depthWrite: false })); S.add(o); return o; })();   // 주황 나트륨등과 흰 LED 가로등이 섞임
-  const bridgeMat = std({ color: '#f0ede6', roughness: 0.7, emissive: '#ffb468', emissiveIntensity: 0 });
+  const bridgeMat = std({ color: '#c9c5bd', roughness: 0.8, emissive: '#ffb468', emissiveIntensity: 0 });
+  lampGlow(bridgeMat, 6, '0.62', '0.8');   // 다리: 밤에 판 전체가 빛나지 않고 가로등 불빛만 점점이
   S.add(new THREE.Mesh(mergeGeos(D.bridges.map(b => { const g = new THREE.ExtrudeGeometry(shape(b), { depth: 2.5, bevelEnabled: false }); g.rotateX(-Math.PI / 2); g.translate(0, 12, 0); return g; })), bridgeMat));
   // 돔이 다니는 길: 한강(여의도→한남대교) → 남산 → 도심 한 바퀴 → 남산 → 한남대교 → 한강(→잠실)
   const RV = D.path, LP = D.path2; const hn = RV.findIndex(p => p[0] > 200);
@@ -6952,11 +6953,11 @@ function buildSeoulReal(D, DD) {
     baseHaze.copy(haze); baseCloud.copy(cc); baseSun = sunS.intensity; baseHemi = hemiS.intensity;
     S.fog.color.copy(haze); S.background.copy(haze);
     starMat.uniforms.uOp.value = night * 0.95; placeStars(date); moonM.position.copy(md).multiplyScalar(20000); moonM.lookAt(0, 0, 0); moonM.material.uniforms.uPhase.value = mA.phase; moonM.material.uniforms.uVis.value = md.y > -0.05 ? 1 : 0; moonM.material.uniforms.uDay.value = day;
-    bldMat.emissiveIntensity = Math.min(0.95, night * 0.95 + dusk * 0.15 + blue * 0.6); bandU.value = Math.min(1, night + blue * 0.6) * 0.55; bldNightMats.forEach(m => { m.emissiveIntensity = bldMat.emissiveIntensity; }); streetLights.material.opacity = Math.min(1, night + blue * 0.8); nightLights.forEach(o => { o.material.uniforms.uOp.value = night; }); bridgeMat.emissiveIntensity = night * 0.6;
+    bldMat.emissiveIntensity = Math.min(0.95, night * 0.95 + dusk * 0.15 + blue * 0.6); bandU.value = Math.min(1, night + blue * 0.6) * 0.55; bldNightMats.forEach(m => { m.emissiveIntensity = bldMat.emissiveIntensity; }); streetLights.material.opacity = Math.min(1, night + blue * 0.8); nightLights.forEach(o => { o.material.uniforms.uOp.value = night; }); bridgeMat.emissiveIntensity = night * 0.3; bridgeMat.color.set('#c9c5bd').lerp(new THREE.Color('#3b3e47'), night);   // 밤 다리: 어두운 판에 가로등 불빛만
     carMat.emissiveIntensity = night * 1.6 + 0.18;
     landmarkGlows.forEach(g2 => { g2.material.opacity = night * 0.9; }); landmarkLit.forEach(m => { m.emissiveIntensity = night * 0.35; });
     sideMat.emissiveIntensity = night * 0.35;
-    groundMat.emissiveIntensity = night * 0.3;   // 밤 길바닥: 가게·가로등 불빛이 은은히 깔려 건물 밑동이 보이게 parkMat.emissiveIntensity = 0; roadMat.emissiveIntensity = Math.min(1, night + blue * 0.8) * 0.9; minorRoadMat.emissiveIntensity = Math.min(1, night + blue * 0.6) * 0.45;   // 땅·숲은 어둡게, 길은 주황 불빛 띠로 boatWin.emissiveIntensity = night * 1.2 + dusk * 0.3;
+    groundMat.emissiveIntensity = night * 0.3;   // 밤 길바닥: 가게·가로등 불빛이 은은히 깔려 건물 밑동이 보이게 parkMat.emissiveIntensity = 0; roadMat.emissiveIntensity = Math.min(1, night + blue * 0.8) * 1.1; minorRoadMat.emissiveIntensity = Math.min(1, night + blue * 0.6) * 0.45;   // 땅·숲은 어둡게, 길은 주황 불빛 띠로 boatWin.emissiveIntensity = night * 1.2 + dusk * 0.3;
     waterMat.color.set('#86bde0').lerp(new THREE.Color('#0d1a33'), night).lerp(new THREE.Color('#e7a27f'), dusk * 0.35 * (1 - night));
     Object.assign(lightOut, { day, night, dusk, blue }); lightOut.sunDir.copy(sd); applyWx(); };
   let lastTime = 0;
