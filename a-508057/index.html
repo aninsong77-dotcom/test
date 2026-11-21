@@ -507,7 +507,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-198';
+const BUILD = '11.19-199';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -6473,7 +6473,28 @@ function buildSeoulReal(D, DD) {
     list.forEach((o, i) => { q.setFromAxisAngle(up, o.rot);
       m.compose(new THREE.Vector3(o.x, 0, o.z), q, new THREE.Vector3(o.w, o.h, o.d)); A.setMatrixAt(i, m); A.setColorAt(i, c.set(o.c));
       m.compose(new THREE.Vector3(o.x, o.h, o.z), q, new THREE.Vector3(o.w * 0.82, 1.6, o.d * 0.82)); RM.setMatrixAt(i, m); RM.setColorAt(i, c.set(o.rc)); });
-    A.frustumCulled = RM.frustumCulled = false; S.add(A, RM); }
+    A.frustumCulled = RM.frustumCulled = false; S.add(A, RM);
+    // 지도 자료 밖(그리고 안의 빈 땅): 도시처럼 보이는 낮은 건물로 채움. 지도 구역에서 멀어질수록 듬성듬성·낮게 (실제 지도는 아님)
+    const F = [], fit2 = (x, z, r) => fits(x, z, r);
+    const stepIn = light ? 80 : 60;
+    for (let x = X0 + stepIn / 2; x < X1; x += stepIn) for (let z = Z0 + stepIn / 2; z < Z1; z += stepIn) {
+      const px = x + (rnd() - 0.5) * stepIn * 0.6, pz = z + (rnd() - 0.5) * stepIn * 0.6;
+      if (rnd() < 0.35 || inDetail(px, pz) || blocked(px, pz) || hills.some(([p0, r]) => Math.hypot(px - p0[0], pz - p0[1]) < r) || roadClear(px, pz) < 8) continue;
+      const w = 14 + rnd() * 18, d = 14 + rnd() * 18, half = Math.hypot(w, d) / 2;
+      if (!fit2(px, pz, half + 6)) continue;
+      const o = { x: px, z: pz, w, d, h: 8 + Math.pow(rnd(), 2.2) * 40, r: half, rot: rnd() * 0.3, c: PC[Math.floor(rnd() * PC.length)] }; put(o); F.push(o);
+    }
+    const MG = 7000, stepOut = light ? 150 : 100;
+    for (let x = X0 - MG; x < X1 + MG; x += stepOut) for (let z = Z0 - MG; z < Z1 + MG; z += stepOut) {
+      if (x >= X0 && x <= X1 && z >= Z0 && z <= Z1) continue;
+      const dd = Math.max(X0 - x, x - X1, Z0 - z, z - Z1, 0), keep = 0.85 * Math.exp(-dd / 4500);
+      if (rnd() > keep) continue;
+      const px = x + (rnd() - 0.5) * stepOut * 0.7, pz = z + (rnd() - 0.5) * stepOut * 0.7, tall = rnd() < 0.04;
+      F.push({ x: px, z: pz, w: 16 + rnd() * 26, d: 16 + rnd() * 26, h: tall ? 50 + rnd() * 60 : 8 + Math.pow(rnd(), 2) * 34 * Math.exp(-dd / 6000), rot: rnd() * 0.4, c: PC[Math.floor(rnd() * PC.length)] });
+    }
+    const FA = new THREE.InstancedMesh(geo, bldMat, F.length);
+    F.forEach((o, i) => { q.setFromAxisAngle(up, o.rot); m.compose(new THREE.Vector3(o.x, 0, o.z), q, new THREE.Vector3(o.w, o.h, o.d)); FA.setMatrixAt(i, m); FA.setColorAt(i, c.set(o.c)); });
+    FA.frustumCulled = false; S.add(FA); }
   // ---- 자세한 지도: 실제 건물 모양 그대로 세움 (벽에는 층마다 창, 지붕은 색) ----
   const walkLines = [], minorPts = [];
   if (DD) {
@@ -6785,7 +6806,7 @@ function buildSeoulReal(D, DD) {
     const lum = baseHaze.r * 0.3 + baseHaze.g * 0.59 + baseHaze.b * 0.11;
     const hz = baseHaze.clone().lerp(new THREE.Color(lum * 0.95, lum * 0.98, lum * 1.03), g * 0.8);
     S.fog.color.copy(hz); S.background.copy(hz);
-    S.fog.near = mix(2500, 150, wx.fog); S.fog.far = mix(mix(16000, 9000, g), 1600, wx.fog);
+    S.fog.near = mix(3500, 150, wx.fog); S.fog.far = mix(mix(12500, 8000, g), 1600, wx.fog);   // 아주 먼 곳은 옅은 안개 속으로
     const cl = baseCloud.clone().lerp(new THREE.Color(0.55, 0.58, 0.62).multiplyScalar(0.4 + 0.6 * lightOut.day), g * 0.85);
     const show = Math.round(clouds.length * wx.cloud);   // 실제 서울 하늘의 구름 양만큼 (맑으면 없음)
     cloudShuffle.forEach((ci, k) => { clouds[ci].visible = k < show; clouds[ci].material.color.copy(cl); });
