@@ -508,7 +508,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-213';
+const BUILD = '11.19-214';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -2067,7 +2067,7 @@ let centerGlow = null, centerCore = null;
     dome.add(g);
     [base, top].forEach(m => { m.userData.tap = { kind: 'seat', i }; domeTap.push(m); });
     const wp = new THREE.Vector3(x, 0, z).add(dome.position);
-    SEATS.push({ x: wp.x, z: wp.z, heading: Math.atan2(x, z), ring, edge, mats: i >= 3 ? [base.material, top.material] : null });
+    SEATS.push({ x: wp.x, z: wp.z, heading: Math.atan2(x, z), ring, edge, top: i >= 3 ? top : null, mats: i >= 3 ? [base.material, top.material] : null });
   });
   // 낮은 찻상과 주전자, 잔 세 벌 (앉아서 차를 따라 마심) × 찻상 셋
   const wood = std('#a8774f');
@@ -2216,6 +2216,7 @@ function updateHouseBits(dt, t) {
     if (s.mats) {
       const glass = (myDim === 'seoul' || myDim === 'space') && !taken, k = Math.min(1, dt * 3);
       s.mats.forEach(m => { m.opacity += ((glass ? 0.28 : 1) - m.opacity) * k; m.depthWrite = m.opacity > 0.9; });
+      s.top.visible = s.mats[1].opacity > 0.32;   // 빈 자리는 바닥의 둥근 자리만 (솟은 방석은 누가 앉을 때만 나타남)
       s.edge.material.opacity += ((glass ? 0.4 : 0) - s.edge.material.opacity) * k;
     }
   });
