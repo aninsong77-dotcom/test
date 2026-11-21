@@ -508,7 +508,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-206';
+const BUILD = '11.19-208';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -6309,8 +6309,9 @@ function loadSeoulReal() {
       if (!bm) return null; const c = document.createElement('canvas'); c.width = bm.width; c.height = bm.height; const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(bm, 0, 0);
       const px = g.getImageData(0, 0, bm.width, bm.height).data, h = new Float32Array(bm.width * bm.height); for (let i = 0; i < h.length; i++) h[i] = (px[i * 4] * 256 + px[i * 4 + 1]) / 50;
       return { N: bm.width, h }; }).catch(() => null),
-  ]).then(([D, DD, ST, TR]) => {
-    D.stars = ST; D.terrain = TR;
+    fetch('seoul-tiles/index.json?v=1').then(r => r.ok ? r.json() : null).catch(() => null),   // 조각 지도 목록 (돔 둘레만 그때그때 불러옴)
+  ]).then(([D, DD, ST, TR, TI]) => {
+    D.stars = ST; D.terrain = TR; D.tiles = TI;
     // 한 번에 다 만들면 화면이 잠깐 멈추므로, 다음 틈에 만듦
     setTimeout(() => {
       try { seoulReal = buildSeoulReal(D, DD); }
@@ -6392,6 +6393,13 @@ function buildSeoulReal(D, DD) {
   const TR = D.terrain, TX0 = -26000, TX1 = 26000, TZ0 = -30000, TZ1 = 22000;
   const terrH = (x, z) => { if (!TR) return 0; const N = TR.N, u = (x - TX0) / (TX1 - TX0) * N - 0.5, v = (z - TZ0) / (TZ1 - TZ0) * N - 0.5; if (u < 0 || v < 0 || u >= N - 1 || v >= N - 1) return 0;
     const i = Math.floor(u), j = Math.floor(v), fu = u - i, fv = v - j, h = TR.h; return (h[j * N + i] * (1 - fu) + h[j * N + i + 1] * fu) * (1 - fv) + (h[(j + 1) * N + i] * (1 - fu) + h[(j + 1) * N + i + 1] * fu) * fv; };
+  // 조각 지도: 받은 구역 안의 상자 건물은 조각별로 따로 묶어 두었다가, 그 조각의 실제 건물을 불러오면 숨김
+  const TIDX = D.tiles && D.tiles.tiles && D.tiles.tiles.length ? D.tiles : null, TSZ = TIDX ? TIDX.size : 1500;
+  const tileSet = new Set(TIDX ? TIDX.tiles.filter(t => t[2] > 0).map(t => t[0] + '_' + t[1]) : []);
+  const tkey = (x, z) => Math.floor(x / TSZ) + '_' + Math.floor(z / TSZ);
+  const inCov = (x, z) => !!TIDX && (TIDX.areas || []).some(([a0, a1, b0, b1]) => x >= a0 && x <= a1 && z >= b0 && z <= b1);
+  const covKey = o => (inCov(o.x, o.z) && tileSet.has(tkey(o.x, o.z))) ? tkey(o.x, o.z) : null;
+  const tileBox = {};   // 조각 → 그 자리의 상자 건물 묶음
   const canvasTex = (w, h, draw) => { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; };
   const litCells = [];
   // 벽: 층마다 은은한 가로 창 띠 (벽 빛깔과 가깝게, 촘촘한 바둑판 무늬 없이). 밤에는 창마다 불이 켜짐
@@ -6417,12 +6425,21 @@ function buildSeoulReal(D, DD) {
   const groundMat = std({ color: '#d8d3c4', roughness: 1, emissive: '#4a3b28', emissiveIntensity: 0 }), parkMat = std({ color: '#9fd08a', roughness: 1, emissive: '#1f3320', emissiveIntensity: 0 });
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(80000, 80000), groundMat); ground.rotation.x = -Math.PI / 2; S.add(ground);
   // 산: 실제 땅 높이로 만든 지형. 완만한 곳은 숲 초록, 가파른 곳은 바위 회색, 산자락은 땅 빛깔로 스며듦
+  // 지형 그물의 높이 (건물을 지형 표면에 딱 맞춰 앉히려고: 그려진 땅과 같은 값)
+  let TG = null, TSEG = 0, TCELL = 1;
+  const meshH = (x, z) => { if (!TG) return 0; const u = (x - TX0) / TCELL, v = (z - TZ0) / TCELL; if (u < 0 || v < 0 || u >= TSEG || v >= TSEG) return 0;
+    const i = Math.floor(u), j = Math.floor(v), fu = u - i, fv = v - j, W = TSEG + 1;
+    return Math.max(0, (TG[j * W + i] * (1 - fu) + TG[j * W + i + 1] * fu) * (1 - fv) + (TG[(j + 1) * W + i] * (1 - fu) + TG[(j + 1) * W + i + 1] * fu) * fv); };
+  // 바닥 높이 범위: 건물 자리(가운데·네 귀퉁이)의 가장 낮은 곳~가장 높은 곳 → 지붕은 높은 쪽에 맞추고 벽은 낮은 쪽 땅속까지 내림 (묻히거나 뜨지 않게)
+  const footH = (pts) => { let lo = 1e9, hi = -1e9; for (const [x, z] of pts) { const h = meshH(x, z); if (h < lo) lo = h; if (h > hi) hi = h; } return [lo, hi]; };
   if (TR) {
     const SEG = light ? 220 : 360, tg = new THREE.PlaneGeometry(TX1 - TX0, TZ1 - TZ0, SEG, SEG); tg.rotateX(-Math.PI / 2); tg.translate((TX0 + TX1) / 2, 0, (TZ0 + TZ1) / 2);
     const tp = tg.attributes.position, tcol = new Float32Array(tp.count * 3), cc = new THREE.Color(), gc = new THREE.Color('#d8d3c4'), forest = new THREE.Color(), rock = new THREE.Color('#8d8a80');
     const cell = (TX1 - TX0) / SEG;
+    TSEG = SEG; TCELL = cell; TG = new Float32Array((SEG + 1) * (SEG + 1));
     for (let i = 0; i < tp.count; i++) {
       const x = tp.getX(i), z = tp.getZ(i), h = terrH(x, z);
+      TG[Math.round((z - TZ0) / cell) * (SEG + 1) + Math.round((x - TX0) / cell)] = h > 0.5 ? h : -4;
       const sl = Math.hypot(terrH(x + cell, z) - terrH(x - cell, z), terrH(x, z + cell) - terrH(x, z - cell)) / (2 * cell);
       tp.setY(i, h > 0.5 ? h : -4);   // 평지는 바닥 아래로 (도시 바닥과 겹치지 않게)
       const nz = Math.sin(x * 0.004 + z * 0.003) * 0.5 + Math.sin(x * 0.013 - z * 0.011) * 0.3;
@@ -6467,6 +6484,21 @@ function buildSeoulReal(D, DD) {
   const farDim = m => { m.onBeforeCompile = sh => { sh.fragmentShader = sh.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n  totalEmissiveRadiance *= mix(1.0, 0.18, smoothstep(500.0, 2600.0, length(vViewPosition)));'); }; m.customProgramCacheKey = () => 'farDim'; };
   const bldMat = std({ map: winTex, roughness: 0.8, emissive: '#ffffff', emissiveMap: litTex, emissiveIntensity: 0 });
   farDim(bldMat);
+  // 상자 건물: 건물마다 창 무늬의 다른 자리를 쓰고, 건물 크기에 맞춰 창 크기를 같게 (모든 상자에 똑같은 무늬가 붙지 않게)
+  { const prev = bldMat.onBeforeCompile; bldMat.onBeforeCompile = (sh, r) => { if (prev) prev(sh, r);
+      sh.vertexShader = sh.vertexShader.replace('#include <uv_vertex>', `#include <uv_vertex>
+      #ifdef USE_INSTANCING
+        vec3 bsc = vec3(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz), length(instanceMatrix[2].xyz));
+        float bw = abs(normal.x) > 0.5 ? bsc.z : bsc.x;
+        vec2 bh = vec2(fract(sin(dot(instanceMatrix[3].xz, vec2(12.9898, 78.233))) * 43758.5453), fract(sin(dot(instanceMatrix[3].xz, vec2(39.3468, 11.135))) * 24634.6345));
+        vec2 buv = uv * vec2(max(1.0, floor(bw / 17.5 + 0.5)), bsc.y / 39.4) + floor(bh * 4.0) + (abs(normal.x) > 0.5 ? vec2(2.0, 1.0) : vec2(0.0));
+        #ifdef USE_MAP
+          vMapUv = (mapTransform * vec3(buv, 1.0)).xy;
+        #endif
+        #ifdef USE_EMISSIVEMAP
+          vEmissiveMapUv = (emissiveMapTransform * vec3(buv, 1.0)).xy;
+        #endif
+      #endif`); }; }
   { const geo = new THREE.BoxGeometry(1, 1, 1); geo.translate(0, 0.5, 0);
     const PC = ['#f7c9c4', '#cfe9d9', '#fbe6b8', '#cfe1f5', '#e3d7f3', '#fff4e3', '#f6d6b8', '#d5ecec'], RC = ['#7fb76a', '#e98b78', '#8fb3d9', '#f0c46c', '#b7a3d8', '#9fcf8b'];
     // 강·공원·궁궐 자리 그림 (20m 칸): 빈 땅에 건물을 채울 때 피함
@@ -6497,14 +6529,19 @@ function buildSeoulReal(D, DD) {
     const inDetail = (x, z) => !!(DD && DD.boxes.some(([a0, a1, b0, b1]) => x >= a0 && x <= a1 && z >= b0 && z <= b1));
     D.buildings.forEach(([x, z]) => inDetail(x, z) || place(x, z, 18 + rnd() * 26, 18 + rnd() * 26, 12 + Math.pow(rnd(), 2) * 70 + (rnd() < 0.03 ? 90 : 0), false));
     // 빈 땅 채우기: 지도에 있는 건물 둘레에 낮은 건물들을 더해 실제 도시처럼 빽빽하게 (휴대폰은 조금만)
-    const N = list.length;
-    const A = new THREE.InstancedMesh(geo, bldMat, N), RM = new THREE.InstancedMesh(geo, std({ roughness: 0.9 }), N);
     const m = new THREE.Matrix4(), c = new THREE.Color(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0);
+    const roofMat = std({ roughness: 0.9 });
     list.forEach(o => { o.b = terrH(o.x, o.z); roofs.push({ x: o.x, z: o.z, h: o.h + o.b }); });
-    list.forEach((o, i) => { q.setFromAxisAngle(up, o.rot);
-      m.compose(new THREE.Vector3(o.x, o.b, o.z), q, new THREE.Vector3(o.w, o.h, o.d)); A.setMatrixAt(i, m); A.setColorAt(i, c.set(o.c));
-      m.compose(new THREE.Vector3(o.x, o.b + o.h, o.z), q, new THREE.Vector3(o.w * 0.82, 1.6, o.d * 0.82)); RM.setMatrixAt(i, m); RM.setColorAt(i, c.set(o.rc)); });
-    A.frustumCulled = RM.frustumCulled = false; S.add(A, RM);
+    const mkBoxes = (items, withRoof) => { const out = []; if (!items.length) return out;
+      const A = new THREE.InstancedMesh(geo, bldMat, items.length), RM = withRoof ? new THREE.InstancedMesh(geo, roofMat, items.length) : null;
+      items.forEach((o, i) => { const hw = o.w / 2, hd = o.d / 2, [lo, hi] = footH([[o.x, o.z], [o.x - hw, o.z - hd], [o.x + hw, o.z - hd], [o.x - hw, o.z + hd], [o.x + hw, o.z + hd]]), b = hi, bot = lo - 3; q.setFromAxisAngle(up, o.rot);
+        m.compose(new THREE.Vector3(o.x, bot, o.z), q, new THREE.Vector3(o.w, o.h + b - bot, o.d)); A.setMatrixAt(i, m); A.setColorAt(i, c.set(o.c));
+        if (RM) { m.compose(new THREE.Vector3(o.x, b + o.h, o.z), q, new THREE.Vector3(o.w * 0.82, 1.6, o.d * 0.82)); RM.setMatrixAt(i, m); RM.setColorAt(i, c.set(o.rc)); } });
+      A.frustumCulled = false; S.add(A); out.push(A); if (RM) { RM.frustumCulled = false; S.add(RM); out.push(RM); } return out; };
+    const splitBoxes = (items, withRoof) => { const rest = [], grp = {};
+      items.forEach(o => { const k = covKey(o); if (k) (grp[k] = grp[k] || []).push(o); else rest.push(o); });
+      mkBoxes(rest, withRoof); for (const k in grp) (tileBox[k] = tileBox[k] || []).push(...mkBoxes(grp[k], withRoof)); };
+    splitBoxes(list.slice(), true);
     // 지도 자료 밖(그리고 안의 빈 땅): 도시처럼 보이는 낮은 건물로 채움. 지도 구역에서 멀어질수록 듬성듬성·낮게 (실제 지도는 아님)
     const F = [], fit2 = (x, z, r) => fits(x, z, r);
     const stepIn = light ? 80 : 60;
@@ -6524,12 +6561,13 @@ function buildSeoulReal(D, DD) {
       if (terrH(px, pz) > 25) continue;   // 산에는 짓지 않음
       F.push({ x: px, z: pz, w: 16 + rnd() * 26, d: 16 + rnd() * 26, h: tall ? 50 + rnd() * 60 : 8 + Math.pow(rnd(), 2) * 34 * Math.exp(-dd / 6000), rot: rnd() * 0.4, c: PC[Math.floor(rnd() * PC.length)] });
     }
-    const FA = new THREE.InstancedMesh(geo, bldMat, F.length);
-    F.forEach((o, i) => { q.setFromAxisAngle(up, o.rot); m.compose(new THREE.Vector3(o.x, terrH(o.x, o.z), o.z), q, new THREE.Vector3(o.w, o.h, o.d)); FA.setMatrixAt(i, m); FA.setColorAt(i, c.set(o.c)); });
-    FA.frustumCulled = false; S.add(FA); }
+    splitBoxes(F, false); }
   // ---- 자세한 지도: 실제 건물 모양 그대로 세움 (벽에는 층마다 창, 지붕은 색) ----
   const walkLines = [], minorPts = [];
-  if (DD) {
+  const detailMat = std({ map: winTex, vertexColors: true, roughness: 0.8, emissive: '#ffffff', emissiveMap: litTex, emissiveIntensity: 0 });
+  farDim(detailMat); bldNightMats.push(detailMat);
+  // 실제 건물 모양 + 골목·보행로를 만들어 parent에 붙임 (도심은 처음에, 조각 지도는 돔이 가까이 갈 때)
+  const buildDetail = (DD, parent, extras) => {
     const PCd = ['#f7c9c4', '#cfe9d9', '#fbe6b8', '#cfe1f5', '#e3d7f3', '#fff4e3', '#f6d6b8', '#d5ecec', '#ece7df', '#dfe3e8'], RCd = ['#7fb76a', '#e98b78', '#8fb3d9', '#f0c46c', '#b7a3d8', '#9fcf8b', '#c9c3b8'];
     let nv = 0, ni = 0;
     const polys = DD.b.map(b => { const h = b[0], r = []; for (let i = 1; i < b.length; i += 2) r.push([b[i], b[i + 1]]); let sA = 0; for (let i = 0; i < r.length; i++) { const [x1, z1] = r[i], [x2, z2] = r[(i + 1) % r.length]; sA += x1 * z2 - x2 * z1; } if (sA > 0) r.reverse(); return { h, r }; });
@@ -6541,7 +6579,7 @@ function buildSeoulReal(D, DD) {
       let h = o.h; const r = o.r, n = r.length;
       const cx = r.reduce((a, p) => a + p[0], 0) / n, cz = r.reduce((a, p) => a + p[1], 0) / n;
       if (h > 90 && nearRoute(cx, cz, 90)) h = 90;   // 돔이 지나가는 길 가까이는 부딪히지 않게
-      const hb = terrH(cx, cz); roofs.push({ x: cx, z: cz, h: h + hb });   // 산비탈 건물은 땅 높이만큼 올림
+      const [hbLo, hb] = footH(r.concat([[cx, cz]])); if (extras) roofs.push({ x: cx, z: cz, h: h + hb });   // 산비탈 건물: 지붕은 높은 쪽 땅에 맞추고, 벽은 낮은 쪽 땅속까지
       cW.set(PCd[Math.floor(rnd() * PCd.length)]); cR.set(RCd[Math.floor(rnd() * RCd.length)]);
       let per = Math.floor(rnd() * 4) * 17.5; const vOff = Math.floor(rnd() * 4);   // 건물마다 밤 창 무늬의 다른 자리를 씀
       for (let i = 0; i < n; i++) {
@@ -6549,7 +6587,7 @@ function buildSeoulReal(D, DD) {
         const u0 = per / 17.5, u1 = (per + L) / 17.5; per += L;
         const base = v;
         [[x1, 0, z1, u0, vOff], [x2, 0, z2, u1, vOff], [x2, h, z2, u1, vOff + h / 39.4], [x1, h, z1, u0, vOff + h / 39.4]].forEach(([x, y, z, uu, vv]) => {
-          pos.set([x, y + hb, z], v * 3); nor.set([nx, 0, nz], v * 3); uv.set([uu, vv], v * 2); col.set([cW.r, cW.g, cW.b], v * 3); v++; });
+          pos.set([x, y === 0 ? hbLo - 3 : y + hb, z], v * 3); nor.set([nx, 0, nz], v * 3); uv.set([uu, vv], v * 2); col.set([cW.r, cW.g, cW.b], v * 3); v++; });
         idx.set([base, base + 1, base + 2, base, base + 2, base + 3], q); q += 6;
       }
       const rb = v;
@@ -6564,19 +6602,38 @@ function buildSeoulReal(D, DD) {
     bg.setAttribute('position', new THREE.BufferAttribute(pos, 3)); bg.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
     bg.setAttribute('uv', new THREE.BufferAttribute(uv, 2)); bg.setAttribute('color', new THREE.BufferAttribute(col, 3));
     bg.setIndex(new THREE.BufferAttribute(idx, 1)); bg.setDrawRange(0, q);
-    const realBld = new THREE.Mesh(bg, std({ map: winTex, vertexColors: true, roughness: 0.8, emissive: '#ffffff', emissiveMap: litTex, emissiveIntensity: 0 }));
-    farDim(realBld.material);
-    realBld.userData.night = true; S.add(realBld); bldNightMats.push(realBld.material);
+    const realBld = new THREE.Mesh(bg, detailMat);
+    realBld.userData.night = true; parent.add(realBld);
     // 골목 (작은 길)과 보행로
     const ribbon = (lines, wOf, y, mat) => { const ps = [], ix = []; let m = 0;
       lines.forEach(l => { const off = wOf(l), st = off.start; for (let i = st; i < l.length - 2; i += 2) { const x1 = l[i], z1 = l[i + 1], x2 = l[i + 2], z2 = l[i + 3], L = Math.hypot(x2 - x1, z2 - z1) || 1, hw = off.w / 2, nx = -(z2 - z1) / L * hw, nz = (x2 - x1) / L * hw;
         ps.push(x1 + nx, y, z1 + nz, x1 - nx, y, z1 - nz, x2 + nx, y, z2 + nz, x2 - nx, y, z2 - nz); ix.push(m, m + 2, m + 1, m + 1, m + 2, m + 3); m += 4; } });
-      const g2 = new THREE.BufferGeometry(); g2.setAttribute('position', new THREE.Float32BufferAttribute(ps, 3)); g2.setIndex(ix); g2.computeVertexNormals(); S.add(new THREE.Mesh(g2, mat)); };
+      const g2 = new THREE.BufferGeometry(); g2.setAttribute('position', new THREE.Float32BufferAttribute(ps, 3)); g2.setIndex(ix); g2.computeVertexNormals(); parent.add(new THREE.Mesh(g2, mat)); };
     ribbon(DD.s, l => ({ w: l[0], start: 1 }), 1.7, roadMat);
     ribbon(DD.w, () => ({ w: 3, start: 0 }), 1.65, sideMat);
-    DD.w.forEach(l => { for (let i = 0; i < l.length - 2; i += 2) { const x1 = l[i], z1 = l[i + 1], x2 = l[i + 2], z2 = l[i + 3]; if (Math.hypot(x2 - x1, z2 - z1) > 12) walkLines.push({ a: [x1, z1], b: [x2, z2], foot: true }); } });
-    DD.s.forEach(l => { if (l[0] < 6) return; for (let i = 1; i < l.length - 2; i += 2) { const x1 = l[i], z1 = l[i + 1], x2 = l[i + 2], z2 = l[i + 3]; if (Math.hypot(x2 - x1, z2 - z1) > 30) minorPts.push([x1, z1, x2, z2, l[0]]); } });
-  }
+    if (extras) DD.w.forEach(l => { for (let i = 0; i < l.length - 2; i += 2) { const x1 = l[i], z1 = l[i + 1], x2 = l[i + 2], z2 = l[i + 3]; if (Math.hypot(x2 - x1, z2 - z1) > 12) walkLines.push({ a: [x1, z1], b: [x2, z2], foot: true }); } });
+    if (extras) DD.s.forEach(l => { if (l[0] < 6) return; for (let i = 1; i < l.length - 2; i += 2) { const x1 = l[i], z1 = l[i + 1], x2 = l[i + 2], z2 = l[i + 3]; if (Math.hypot(x2 - x1, z2 - z1) > 30) minorPts.push([x1, z1, x2, z2, l[0]]); } });
+  };
+  if (DD) buildDetail(DD, S, true);
+  // 조각 지도 불러오기: 돔 둘레(PC 3.6km, 휴대폰 2.3km) 조각만 받아서 세우고, 멀어지면 치움
+  const TL = new Map(); let tileBusy = 0, tileAt = 0;
+  const LOADR = light ? 2300 : 3600, DROPR = LOADR + 1500;
+  const tileTick = (px, pz, force) => {
+    if (!TIDX) return; const now = performance.now(); if (!force && now - tileAt < 700) return; tileAt = now;
+    for (const [i, j, n] of TIDX.tiles) {
+      if (!n) continue; const k = i + '_' + j, d = Math.hypot((i + 0.5) * TSZ - px, (j + 0.5) * TSZ - pz) - TSZ * 0.7, t = TL.get(k);
+      if (d < LOADR && !t && tileBusy < 2) {
+        tileBusy++; TL.set(k, { state: 'loading' });
+        fetch(`seoul-tiles/${k}.json?v=1`).then(r => r.ok ? r.json() : null).then(dd => {
+          tileBusy--; const e = TL.get(k); if (!dd || !e) { TL.delete(k); return; }
+          const g = new THREE.Group(); buildDetail(dd, g, false); S.add(g); e.state = 'ready'; e.grp = g; (tileBox[k] || []).forEach(o => { o.visible = false; });
+        }).catch(() => { tileBusy--; TL.delete(k); });
+      } else if (d > DROPR && t && t.state === 'ready') {
+        S.remove(t.grp); t.grp.traverse(o => { if (o.geometry) o.geometry.dispose(); }); (tileBox[k] || []).forEach(o => { o.visible = true; }); TL.delete(k);
+      }
+    }
+  };
+  const tileNear = (px, pz) => !TIDX || TIDX.tiles.every(([i, j, n]) => !n || Math.hypot((i + 0.5) * TSZ - px, (j + 0.5) * TSZ - pz) - TSZ * 0.7 >= LOADR || (TL.get(i + '_' + j) || {}).state === 'ready');
   // ---- 밤 도시의 여러 빛: 신호등(빨강·초록), 높은 건물 꼭대기의 빨간 항공 경고등(천천히 깜박), 옥상 네온 간판 ----
   const nightLights = [];
   const lightLayer = (pts, cols, size, blink) => {
@@ -7077,6 +7134,10 @@ function buildSeoulReal(D, DD) {
   const R = {
     scene: S, cam, light: lightOut, fx,
     setWeather(w, now) { Object.assign(wxWant, w); if (now) Object.assign(wx, w); },   // now: 들어올 때는 바로 그 날씨로
+    // 들어가기 전에 돔 둘레 조각을 미리 받기 / 다 받았는지
+    domeNow() { let d = (Date.now() / 1000 * SEOUL_SPEED) % (tot * 2); if (d > tot) d = tot * 2 - d; return atDist(d); },
+    prefetch() { const [x, z] = this.domeNow(); tileTick(x, z); },
+    nearReady() { const [x, z] = this.domeNow(); return tileNear(x, z); },
     tick(dt) {
       const now = Date.now();
       if (now - lastTime > 5000) { lastTime = now; setTime(new Date(now)); }
@@ -7086,6 +7147,7 @@ function buildSeoulReal(D, DD) {
       const lift = Math.max(0, 1 - Math.hypot(x - NS[0], z - NS[1]) / 1600) * 380;
       seoulAlt.now += (seoulAlt.want - seoulAlt.now) * Math.min(1, dt * 0.8);
       dome.set(x, seoulAlt.now + lift, z);
+      tileTick(x, z);
       carT.value = (now / 1000) % 100000;
       nightLights.forEach(o => { o.material.uniforms.uT.value = carT.value; });
       walkT.value = carT.value;
@@ -7304,7 +7366,8 @@ function updatePortalRun() {
   if (R.phase === 'gather') {
     if (e > 0.8 && !R.white) { R.white = true; whiteFlash(0, 1, 1300); }   // 화면 전체가 환해짐
     // 서울 지도가 아직 오는 중이면 하얀 빛 속에서 조금 더 기다림 (임시 배경의 구름이 잠깐 보이지 않게, 최대 10초)
-    if (e > 2.25 && (R.target !== 'seoul' || seoulReal || !seoulLoading || e > 10)) {
+    if (R.target === 'seoul' && seoulReal) seoulReal.prefetch();
+    if (e > 2.25 && (R.target !== 'seoul' || (seoulReal && seoulReal.nearReady()) || (!seoulReal && !seoulLoading) || e > 10)) {
       if (bellSession) { bellSession = null; tick(); }   // 종치기 명상은 같은 차원끼리 (9시 명상은 어디서나 그대로)
       applyDim(R.target);
       sendPresence(true);
