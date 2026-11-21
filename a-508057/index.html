@@ -507,7 +507,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-197';
+const BUILD = '11.19-198';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -6367,11 +6367,15 @@ function buildSeoulReal(D, DD) {
     }
     starGeo.attributes.position.needsUpdate = true;
   };
-  const moonM = new THREE.Mesh(new THREE.CircleGeometry(1, 48), new THREE.ShaderMaterial({ transparent: true, depthWrite: false, fog: false, uniforms: { uPhase: { value: 0.5 }, uVis: { value: 1 } },
+  const moonM = new THREE.Mesh(new THREE.CircleGeometry(1, 48), new THREE.ShaderMaterial({ transparent: true, depthWrite: false, fog: false, uniforms: { uPhase: { value: 0.5 }, uVis: { value: 1 }, uDay: { value: 0 } },
     vertexShader: 'varying vec2 vU; void main(){ vU = position.xy; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }',
-    fragmentShader: `varying vec2 vU; uniform float uPhase; uniform float uVis; void main(){
+    fragmentShader: `varying vec2 vU; uniform float uPhase; uniform float uVis; uniform float uDay; void main(){
       float r = length(vU); if (r > 1.) discard; float z = sqrt(max(0., 1. - r * r)); float ang = uPhase * 6.2832; vec3 L = vec3(sin(ang), 0., -cos(ang)); float lit = dot(vec3(vU, z), L); float b = smoothstep(-0.05, 0.08, lit);
-      vec3 c = mix(vec3(0.12, 0.14, 0.2), vec3(0.98, 0.97, 0.9), b); gl_FragColor = vec4(c, uVis * (0.25 + 0.75 * b) * smoothstep(1., 0.96, r));
+      float mare = smoothstep(0.55, 0.2, length(vU - vec2(-0.25, 0.3))) * 0.5 + smoothstep(0.35, 0.1, length(vU - vec2(0.2, 0.05))) * 0.4 + smoothstep(0.3, 0.05, length(vU - vec2(-0.05, -0.4))) * 0.3;   // 달의 바다 (어두운 무늬)
+      vec3 c = mix(vec3(0.12, 0.14, 0.2), vec3(0.98, 0.97, 0.9) * (1. - mare * 0.22), b);
+      // 낮달: 어두운 쪽은 하늘에 묻혀 안 보이고, 밝은 쪽도 하늘색이 비치게 옅게
+      float aN = 0.25 + 0.75 * b, aD = b * 0.42;
+      gl_FragColor = vec4(c, uVis * mix(aN, aD, uDay) * smoothstep(1., 0.96, r));
       #include <colorspace_fragment>
     }` }));
   moonM.scale.setScalar(380); S.add(moonM);
@@ -6760,7 +6764,7 @@ function buildSeoulReal(D, DD) {
     const cc = new THREE.Color('#ffffff').lerp(new THREE.Color('#ffb48f'), dusk * 0.9).lerp(new THREE.Color('#8a8088'), night); clouds.forEach(c => { c.material.color.copy(cc); c.material.opacity = 1 - 0.5 * night; });   // 밤 구름: 도시 불빛을 받은 옅은 잿빛, 반쯤 비쳐 보이게 (검은 덩어리처럼 보이지 않게)   // 밤 구름: 도시 불빛을 받아 옅은 잿빛 (너무 까맣지 않게)
     baseHaze.copy(haze); baseCloud.copy(cc); baseSun = sunS.intensity; baseHemi = hemiS.intensity;
     S.fog.color.copy(haze); S.background.copy(haze);
-    starMat.uniforms.uOp.value = night * 0.95; placeStars(date); moonM.position.copy(md).multiplyScalar(20000); moonM.lookAt(0, 0, 0); moonM.material.uniforms.uPhase.value = mA.phase; moonM.material.uniforms.uVis.value = md.y > -0.05 ? 1 : 0;
+    starMat.uniforms.uOp.value = night * 0.95; placeStars(date); moonM.position.copy(md).multiplyScalar(20000); moonM.lookAt(0, 0, 0); moonM.material.uniforms.uPhase.value = mA.phase; moonM.material.uniforms.uVis.value = md.y > -0.05 ? 1 : 0; moonM.material.uniforms.uDay.value = day;
     bldMat.emissiveIntensity = night * 0.9 + dusk * 0.15; bldNightMats.forEach(m => { m.emissiveIntensity = bldMat.emissiveIntensity; }); streetLights.material.opacity = night; nightLights.forEach(o => { o.material.uniforms.uOp.value = night; }); bridgeMat.emissiveIntensity = night * 0.6;
     carMat.emissiveIntensity = night * 1.6 + 0.18;
     landmarkGlows.forEach(g2 => { g2.material.opacity = night * 0.9; }); landmarkLit.forEach(m => { m.emissiveIntensity = night * 0.35; });
