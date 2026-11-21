@@ -508,7 +508,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-211';
+const BUILD = '11.19-212';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -2054,9 +2054,12 @@ let centerGlow = null, centerCore = null;
     } else {
       // 둘레 방석: 바닥 빛깔에 가까운 낮고 둥근 방석 하나 (비어 있으면 거의 눈에 띄지 않음)
       g.scale.set(1, 1, 1);
-      base = add(new THREE.CylinderGeometry(0.4, 0.44, 0.03, 28), std('#e6ddcc'), 0, 0.015, 0, g);
-      top = add(new THREE.CylinderGeometry(0.34, 0.38, 0.13, 28), std(col), 0, 0.095, 0, g);
+      base = add(new THREE.CylinderGeometry(0.4, 0.44, 0.03, 28), std('#e6ddcc', { transparent: true }), 0, 0.015, 0, g);
+      top = add(new THREE.CylinderGeometry(0.34, 0.38, 0.13, 28), std(col, { transparent: true }), 0, 0.095, 0, g);
     }
+    // 서울 하늘·우주: 빈 둘레 방석은 옅은 유리처럼 비치고 테두리에 가는 빛 선 (누가 앉으면 다시 또렷하게)
+    let edge = null;
+    if (i >= 3) { edge = noRay(new THREE.Mesh(new THREE.RingGeometry(0.43, 0.46, 40), new THREE.MeshBasicMaterial({ color: '#f4fbff', transparent: true, opacity: 0, depthWrite: false }))); edge.rotation.x = -Math.PI / 2; edge.position.y = 0.035; g.add(edge); }
     const ring = noRay(new THREE.Mesh(new THREE.RingGeometry(i < 3 ? 0.7 : 0.48, i < 3 ? 0.78 : 0.54, 40), new THREE.MeshBasicMaterial({ color: '#ffe9a8', transparent: true, opacity: 0, depthWrite: false })));
     ring.rotation.x = -Math.PI / 2;
     ring.position.y = 0.02;
@@ -2064,7 +2067,7 @@ let centerGlow = null, centerCore = null;
     dome.add(g);
     [base, top].forEach(m => { m.userData.tap = { kind: 'seat', i }; domeTap.push(m); });
     const wp = new THREE.Vector3(x, 0, z).add(dome.position);
-    SEATS.push({ x: wp.x, z: wp.z, heading: Math.atan2(x, z), ring });
+    SEATS.push({ x: wp.x, z: wp.z, heading: Math.atan2(x, z), ring, edge, mats: i >= 3 ? [base.material, top.material] : null });
   });
   // 낮은 찻상과 주전자, 잔 세 벌 (앉아서 차를 따라 마심) × 찻상 셋
   const wood = std('#a8774f');
@@ -2210,6 +2213,11 @@ function updateHouseBits(dt, t) {
   SEATS.forEach((s, i) => {
     const taken = mySeat === i || takenSeats.has(i);
     s.ring.material.opacity += ((taken ? 0.7 : 0) - s.ring.material.opacity) * Math.min(1, dt * 4);
+    if (s.mats) {
+      const glass = (myDim === 'seoul' || myDim === 'space') && !taken, k = Math.min(1, dt * 3);
+      s.mats.forEach(m => { m.opacity += ((glass ? 0.28 : 1) - m.opacity) * k; m.depthWrite = m.opacity > 0.9; });
+      s.edge.material.opacity += ((glass ? 0.4 : 0) - s.edge.material.opacity) * k;
+    }
   });
 }
 
