@@ -508,7 +508,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-201';
+const BUILD = '11.19-202';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -3613,6 +3613,8 @@ let firstPerson = true, fpBlend = 1, fpPitch = -0.12;
 const myGaze = { on: false, y: 0, p: 0 }, tmp2Gaze = new THREE.Vector3();
 const tpCam = new THREE.Vector3();
 let autoTP = false;
+// 버튼·키로 눈으로 보기를 켤 때: 화면을 보던 쪽이 아니라 아바타가 바라보던 쪽으로
+function toggleView() { const fp = !firstPerson; if (fp) { camYaw = heading; fpPitch = -0.12; } setView(fp); }
 function setView(fp) {
   autoTP = false;
   firstPerson = fp;
@@ -3650,7 +3652,7 @@ window.addEventListener('keydown', e => {
     else if (k === '4') teaFrom();
     else if (k === 'f') $('seatBtn').click();
     else if (k === 'p') $('snapBtn').click();
-    else if (k === 'v') setView(!firstPerson);
+    else if (k === 'v') toggleView();
   }
 });
 window.addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
@@ -4423,7 +4425,7 @@ $('helloBtn').addEventListener('click', () => greet('hello'));
 $('bowBtn').addEventListener('click', () => greet('bow'));
 $('teaBtn').addEventListener('click', () => teaFrom());
 $('backSeatBtn').addEventListener('click', backToSeat);
-$('viewBtn').addEventListener('click', () => setView(!firstPerson));
+$('viewBtn').addEventListener('click', toggleView);
 $('toDome').addEventListener('click', () => {
   if (atBeach) { $('toDome').textContent = '돔으로 가기'; startDive(false); return; }
   if (inIntro) return;
