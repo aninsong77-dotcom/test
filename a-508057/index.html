@@ -508,7 +508,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-203';
+const BUILD = '11.19-204';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -6997,7 +6997,8 @@ function buildSeoulReal(D, DD) {
       navs.forEach(n => n.scale.setScalar(8 + 45 * nt));
       // 비행운: 지나간 자리에 하얀 줄이 남았다가 천천히 흩어짐
       trailAt -= dt;
-      if (false && trailAt <= 0) { trailAt = 0.6; const T2 = trail[trailIdx++ % trailN];   // 비행운은 뺌 (부자연스러워서) T2.born = tnow; T2.sp.position.copy(plane.position).addScaledVector(flyP.dir, -180); T2.sp.visible = true; }
+      // 비행운은 뺌 (부자연스러워서)
+      if (false && trailAt <= 0) { trailAt = 0.6; const T2 = trail[trailIdx++ % trailN]; T2.born = tnow; T2.sp.position.copy(plane.position).addScaledVector(flyP.dir, -180); T2.sp.visible = true; }
       if (k >= 1) { flyP = null; plane.visible = false; }
     }
     for (const T2 of trail) {
