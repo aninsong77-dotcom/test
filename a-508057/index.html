@@ -507,7 +507,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-199';
+const BUILD = '11.19-200';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -6320,10 +6320,10 @@ function buildSeoulReal(D, DD) {
   const light = coarse;   // 휴대폰은 가벼운 모드 (나무·차를 줄임)
   const HAZE = new THREE.Color('#c4e2fa');
   S.fog = new THREE.Fog(HAZE.clone(), 2500, 16000); S.background = HAZE.clone();
-  const skyU = { uSun: { value: new THREE.Vector3(0, 1, 0) }, uMoon: { value: new THREE.Vector3(0, 1, 0) }, uDay: { value: 1 }, uDusk: { value: 0 }, uNight: { value: 0 }, uGray: { value: 0 }, uFlash: { value: 0 } };
+  const skyU = { uSun: { value: new THREE.Vector3(0, 1, 0) }, uMoon: { value: new THREE.Vector3(0, 1, 0) }, uDay: { value: 1 }, uDusk: { value: 0 }, uNight: { value: 0 }, uGray: { value: 0 }, uFlash: { value: 0 }, uFog: { value: new THREE.Color('#c4e2fa') } };
   const sky = new THREE.Mesh(new THREE.SphereGeometry(40000, 48, 32), new THREE.ShaderMaterial({ side: THREE.BackSide, depthWrite: false, fog: false, uniforms: skyU,
     vertexShader: 'varying vec3 vD; void main(){ vD = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-    fragmentShader: `varying vec3 vD; uniform vec3 uSun; uniform vec3 uMoon; uniform float uDay; uniform float uDusk; uniform float uNight; uniform float uGray; uniform float uFlash; void main(){
+    fragmentShader: `varying vec3 vD; uniform vec3 uSun; uniform vec3 uMoon; uniform float uDay; uniform float uDusk; uniform float uNight; uniform float uGray; uniform float uFlash; uniform vec3 uFog; void main(){
       vec3 d = normalize(vD); float h = clamp(d.y, 0., 1.);
       vec3 zen = mix(vec3(0.01, 0.025, 0.08), vec3(0.04, 0.33, 0.86), uDay), hor = mix(vec3(0.05, 0.08, 0.18), vec3(0.66, 0.85, 0.99), uDay);
       vec3 c = mix(hor, zen, pow(h, 0.45));
@@ -6332,9 +6332,10 @@ function buildSeoulReal(D, DD) {
       c += uDusk * vec3(0.55, 0.35, 0.6) * exp(-h * 3.0) * 0.25;
       float sn = max(0., dot(d, uSun)); c += vec3(1., 0.95, 0.85) * (pow(sn, 600.) * 3. + pow(sn, 12.) * 0.18) * clamp(uDay + uDusk, 0., 1.);
       float m = max(0., dot(d, uMoon)); c += vec3(0.6, 0.7, 0.9) * pow(m, 40.) * 0.15 * uNight;
-      c += uNight * vec3(0.55, 0.32, 0.16) * exp(-h * 9.0) * 0.45;   // 지평선의 따뜻한 도시 불빛
-      if (d.y < 0.) c = hor;
       float lum = dot(c, vec3(0.3, 0.59, 0.11)); c = mix(c, vec3(lum) * vec3(0.93, 0.96, 1.0) * 0.92, uGray);   // 흐린 날은 잿빛 하늘
+      // 지평선 가까이는 먼 땅을 덮은 안개와 같은 빛깔로 → 먼 땅이 하늘로 녹아들어 띠·경계선이 안 생김 (밤엔 안개에 도시 불빛이 배어 있음)
+      c = mix(c, uFog, exp(-h * 16.0));
+      if (d.y < 0.) c = uFog;
       c += uFlash * vec3(0.7, 0.75, 0.9);   // 번개
       gl_FragColor = vec4(c, 1.);
       #include <colorspace_fragment>
@@ -6781,7 +6782,7 @@ function buildSeoulReal(D, DD) {
     hemiS.intensity = 0.25 + 0.9 * day + 0.2 * dusk - 0.15 * night; hemiS.color.set(night > 0.5 ? '#3e4a6e' : '#cfe6ff'); hemiS.groundColor.set(night > 0.5 ? '#2a2018' : '#8a8f78');   // 밤에는 건물 몸체가 거의 까맣게
     if (dusk > 0.2) hemiS.color.lerp(new THREE.Color('#ffb08a'), dusk * 0.6);
     moonS.position.copy(md).multiplyScalar(5000); moonS.intensity = night * Math.max(0, md.y) * 0.5;
-    const haze = new THREE.Color('#c4e2fa').lerp(new THREE.Color('#f0b48e'), dusk * 0.75).lerp(new THREE.Color('#090c16'), night);
+    const haze = new THREE.Color('#c4e2fa').lerp(new THREE.Color('#f0b48e'), dusk * 0.75).lerp(new THREE.Color('#090c16'), night).lerp(new THREE.Color('#2b2230'), night * 0.55);   // 밤 안개: 도시 불빛이 은은히 배어 따뜻한 잿빛
     const cc = new THREE.Color('#ffffff').lerp(new THREE.Color('#ffb48f'), dusk * 0.9).lerp(new THREE.Color('#8a8088'), night); clouds.forEach(c => { c.material.color.copy(cc); c.material.opacity = 1 - 0.5 * night; });   // 밤 구름: 도시 불빛을 받은 옅은 잿빛, 반쯤 비쳐 보이게 (검은 덩어리처럼 보이지 않게)   // 밤 구름: 도시 불빛을 받아 옅은 잿빛 (너무 까맣지 않게)
     baseHaze.copy(haze); baseCloud.copy(cc); baseSun = sunS.intensity; baseHemi = hemiS.intensity;
     S.fog.color.copy(haze); S.background.copy(haze);
@@ -6805,7 +6806,7 @@ function buildSeoulReal(D, DD) {
     hemiS.intensity = baseHemi * (1 - 0.25 * g) + flash * 1.6;
     const lum = baseHaze.r * 0.3 + baseHaze.g * 0.59 + baseHaze.b * 0.11;
     const hz = baseHaze.clone().lerp(new THREE.Color(lum * 0.95, lum * 0.98, lum * 1.03), g * 0.8);
-    S.fog.color.copy(hz); S.background.copy(hz);
+    S.fog.color.copy(hz); S.background.copy(hz); skyU.uFog.value.copy(hz);
     S.fog.near = mix(3500, 150, wx.fog); S.fog.far = mix(mix(12500, 8000, g), 1600, wx.fog);   // 아주 먼 곳은 옅은 안개 속으로
     const cl = baseCloud.clone().lerp(new THREE.Color(0.55, 0.58, 0.62).multiplyScalar(0.4 + 0.6 * lightOut.day), g * 0.85);
     const show = Math.round(clouds.length * wx.cloud);   // 실제 서울 하늘의 구름 양만큼 (맑으면 없음)
