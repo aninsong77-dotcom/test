@@ -157,7 +157,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 #endSheet .card,#endSheet .card p,#endSheet .card li,#endSheet .card button{font-family:var(--f-display)!important;color:#1d1a16!important}
 #endSheet .credits{background:none!important;border:none!important;padding:0!important;gap:0;display:block}
 #endSheet .credits-h{font:700 13px/1.75 var(--f-display)!important;color:#1d1a16!important}
-#endSheet .credits ul{color:#3b352d!important;font-size:11.5px;line-height:1.75;list-style:none;padding:0!important;margin:0;display:block}
+#endSheet .credits ul{color:#3b352d!important;font-size:11.5px;font-weight:700;line-height:1.75;list-style:none;padding:0!important;margin:0;display:block}
 #endSheet .actions button{background:none!important;border:none!important;border-bottom:1px solid #1d1a16!important;border-radius:0!important;padding:4px 2px!important;font-size:15px!important}
 #endSheet.opening .end-only{display:none}
 /* 명상 기록지: 한지 바탕, 먹 글씨 */
@@ -539,7 +539,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-250';
+const BUILD = '11.19-251';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
