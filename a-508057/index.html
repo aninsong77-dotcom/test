@@ -508,7 +508,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-236';
+const BUILD = '11.19-237';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -2213,7 +2213,7 @@ function updateHouseBits(dt, t) {
       const glass = (myDim === 'seoul' || myDim === 'space') && !taken, k = Math.min(1, dt * 3);
       s.mats.forEach(m => { m.opacity += ((glass ? 0.55 : 1) - m.opacity) * k; m.depthWrite = m.opacity > 0.9; });
       s.mats[0].color.set(glass ? '#8f98a6' : '#e6ddcc');   // 빈 자리는 바닥보다 살짝 진한 회색 원으로 (잘 보이게)
-      s.top.visible = s.mats[1].opacity > 0.32;   // 빈 자리는 바닥의 둥근 자리만 (솟은 방석은 누가 앉을 때만 나타남)
+      s.top.visible = !glass || s.mats[1].opacity > 0.9;   // 빈 자리는 납작한 원만 (솟은 방석은 누가 앉을 때만)   // 빈 자리는 바닥의 둥근 자리만 (솟은 방석은 누가 앉을 때만 나타남)
       s.edge.material.opacity += ((glass ? 0.75 : 0) - s.edge.material.opacity) * k;
     }
   });
@@ -6605,7 +6605,7 @@ function buildSeoulReal(D, DD) {
     const lampC = new THREE.Color();
     for (const b of BR) {
       const dg = new THREE.ExtrudeGeometry(shape(b.pts), { depth: 1.8, bevelEnabled: false }); dg.rotateX(-Math.PI / 2); dg.translate(0, b.deck, 0); decks.push(dg);
-      if (b.len < 150) continue;   // 작은 개울 다리는 상판만
+      if (b.len < 150 || b.wid > 45 || b.len / b.wid < 6) continue;   // 작은 개울 다리, 강변을 따라 길게 놓인 고가도로(폭이 넓게 잡힌 모양)는 상판만
       const ang = Math.atan2(b.uz, b.ux), at = (a, w) => [b.cx + b.ux * a - b.uz * w, b.cz + b.uz * a + b.ux * w];
       const wc = (b.w0 + b.w1) / 2, hw = b.wid / 2;
       // 난간 두 줄
