@@ -15,7 +15,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231f86b6'/%3E%3Cpath d='M0 48c8-5 14-5 22-1s14 4 22-1 14-4 20 0v18H0z' fill='%23243440'/%3E%3Cpath d='M27 46v-9h10v9z' fill='%23e9dcc6'/%3E%3Cpath d='M25 37l7-6 7 6z' fill='%23a9564b'/%3E%3Ccircle cx='46' cy='20' r='5' fill='%238fe3ff' opacity='.9'/%3E%3Ccircle cx='17' cy='14' r='2' fill='%23cfe3ea' opacity='.7'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&family=IBM+Plex+Sans+KR:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=IBM+Plex+Sans+KR:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 /* 화면 전체가 햇빛 드는 바닷속. 글자와 버튼은 잠수 계기판처럼 가장자리에 떠 있음 */
 :root{
@@ -168,8 +168,8 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 #endSheet .card{background:none!important;border:none!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;color:#1d1a16;max-width:520px}
 #endSheet .card,#endSheet .card p,#endSheet .card li,#endSheet .card button{font-family:var(--f-display)!important;color:#1d1a16!important}
 #endSheet .credits{background:none!important;border:none!important;padding:0!important;gap:0;display:block}
-#endSheet .credits-h{font:700 13px/1.75 var(--f-display)!important;color:#1d1a16!important}
-#endSheet .credits ul{color:#3b352d!important;font-size:11.5px;font-weight:700;line-height:1.75;list-style:none;padding:0!important;margin:0;display:block}
+#endSheet .credits-h{font:800 12px/1.75 var(--f-display)!important;color:#1d1a16!important}   /* 두 출처: 제목·내용 같은 크기, 조금 더 굵게 */
+#endSheet .credits ul{color:#3b352d!important;font-size:12px;font-weight:800;line-height:1.75;list-style:none;padding:0!important;margin:0;display:block}
 #endSheet .actions button{background:none!important;border:none!important;border-bottom:1px solid #1d1a16!important;border-radius:0!important;padding:4px 2px!important;font-size:15px!important}
 #endSheet.opening .end-only{display:none}
 /* 사용법: 기록지와 같은 한지 창 */
@@ -254,8 +254,8 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 @media (max-width:640px){   /* 스마트폰: 줄 간격을 줄여 한 화면에 */
   #endSheet .card{gap:6px}
   #endSheet .welcome{line-height:1.45!important;font-size:13px!important}
-  #endSheet .credits-h{line-height:1.45!important;font-size:12.5px!important}
-  #endSheet .credits ul{line-height:1.45;font-size:11px}
+  #endSheet .credits-h{line-height:1.45!important;font-size:11.5px!important}
+  #endSheet .credits ul{line-height:1.45;font-size:11.5px}
 }
 #endSheet .actions{margin:0!important;margin-block-start:6px!important;justify-content:flex-start}   /* 출처 맨 끝(왼쪽)에 세로로 */
 #endSheet .actions button{font-size:15px!important;padding:8px 4px!important;letter-spacing:.12em;border-bottom:none!important;border-left:1px solid #1d1a16!important}
@@ -584,7 +584,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-267';
+const BUILD = '11.19-268';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
