@@ -168,8 +168,8 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 #endSheet .card{background:none!important;border:none!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;color:#1d1a16;max-width:520px}
 #endSheet .card,#endSheet .card p,#endSheet .card li,#endSheet .card button{font-family:var(--f-display)!important;color:#1d1a16!important}
 #endSheet .credits{background:none!important;border:none!important;padding:0!important;gap:0;display:block}
-#endSheet .credits-h{font:800 12px/1.75 var(--f-display)!important;color:#1d1a16!important}   /* 두 출처: 제목·내용 같은 크기, 조금 더 굵게 */
-#endSheet .credits ul{color:#3b352d!important;font-size:12px;font-weight:800;line-height:1.75;list-style:none;padding:0!important;margin:0;display:block}
+#endSheet .credits-h{font:800 14px/1.75 var(--f-display)!important;color:#1d1a16!important;letter-spacing:.02em}   /* 두 출처 제목: 같은 크기, 내용보다 눈에 띄게 굵고 크게 */
+#endSheet .credits ul{color:#3b352d!important;font-size:11.5px;font-weight:700;line-height:1.75;list-style:none;padding:0!important;margin:0;display:block}
 #endSheet .actions button{background:none!important;border:none!important;border-bottom:1px solid #1d1a16!important;border-radius:0!important;padding:4px 2px!important;font-size:15px!important}
 #endSheet.opening .end-only{display:none}
 /* 사용법: 기록지와 같은 한지 창 */
@@ -254,8 +254,8 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 @media (max-width:640px){   /* 스마트폰: 줄 간격을 줄여 한 화면에 */
   #endSheet .card{gap:6px}
   #endSheet .welcome{line-height:1.45!important;font-size:13px!important}
-  #endSheet .credits-h{line-height:1.45!important;font-size:11.5px!important}
-  #endSheet .credits ul{line-height:1.45;font-size:11.5px}
+  #endSheet .credits-h{line-height:1.45!important;font-size:13px!important}
+  #endSheet .credits ul{line-height:1.45;font-size:11px}
 }
 #endSheet .actions{margin:0!important;margin-block-start:6px!important;justify-content:flex-start}   /* 출처 맨 끝(왼쪽)에 세로로 */
 #endSheet .actions button{font-size:15px!important;padding:8px 4px!important;letter-spacing:.12em;border-bottom:none!important;border-left:1px solid #1d1a16!important}
@@ -584,7 +584,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-268';
+const BUILD = '11.19-269';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -4640,7 +4640,7 @@ const MED_TRACKS = [
   { id: 'main', main: true, type: '자비 명상 10분', voice: '여성', note: '9시 함께 명상 음성' },
   { id: 'breath3', file: 'med_breath3.mp3?v=2', type: '호흡 명상 3분', voice: '여성', dur: 178.9 },
 ];
-let mainSrc = 'meditation.mp3?v=8', audioTrack = 'main', mainDur = 0;
+let mainSrc = 'meditation.mp3?v=7', audioTrack = 'main', mainDur = 0;
 let medHeard = null;   // 방금 들은 명상 종류 (기록지에 미리 골라 둠)
 audio.src = mainSrc;
 let audioOk = null, audioUnlocked = false;
@@ -4992,7 +4992,7 @@ function syncAudio() {
 /* 음성 파일을 처음에 통째로 받아 두기: 듣는 도중 인터넷이 느려져도 끊기지 않게 */
 (async () => {
   try {
-    const r = await fetch('meditation.mp3?v=8');
+    const r = await fetch('meditation.mp3?v=7');
     if (!r.ok) return;
     const blob = await r.blob();
     mainSrc = URL.createObjectURL(blob);
