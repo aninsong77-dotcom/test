@@ -439,7 +439,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
     <div class="j-tabs"><button type="button" id="jTabNew" aria-pressed="true">새로 쓰기</button><button type="button" id="jTabList" aria-pressed="false">지난 기록</button><button type="button" id="jTabStat" aria-pressed="false">돌아보기</button></div>
     <div id="jNew">
       <p class="j-meta" id="jMeta"></p>
-      <label>명상 종류<select id="jKind"><option>호흡 알아차리기</option><option>자비 명상</option><option>혼자 명상</option><option>9시 함께 명상</option><option>종 명상</option><option>그 밖에</option></select></label>
+      <label>명상 종류<select id="jKind"></select></label>
       <div class="j-label">지금 마음 <small>(여러 개 골라도 돼요)</small></div>
       <div class="j-moods" id="jMoods"></div>
       <label>몸의 느낌<textarea id="jBody" rows="2" maxlength="600" placeholder="예: 어깨가 풀리고 숨이 깊어졌어요"></textarea></label>
@@ -539,7 +539,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-249';
+const BUILD = '11.19-250';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -4594,6 +4594,7 @@ const MED_TRACKS = [
   { id: 'breath_m', file: 'med_breath_m.mp3?v=1', type: '호흡 알아차리기', voice: '남성', dur: 327.8 },
 ];
 let mainSrc = 'meditation.mp3?v=6', audioTrack = 'main', mainDur = 0;
+let medHeard = null;   // 방금 들은 명상 종류 (기록지에 미리 골라 둠)
 audio.src = mainSrc;
 let audioOk = null, audioUnlocked = false;
 audio.addEventListener('loadedmetadata', () => {
@@ -4834,7 +4835,7 @@ function startSolo(track) {
   if (track.main && !audioOk) { toast('명상 음성을 아직 넣지 않았어요'); return; }
   ensureCtx();
   setAudioTrack(track);
-  solo = { startAt: Date.now(), track };
+  solo = { startAt: Date.now(), track }; medHeard = track.type;
   try { localStorage.setItem('a508057:med', track.id); } catch (e) {}
   // 누른 그 순간에 바로 재생 (폰 브라우저는 '누른 순간'의 재생만 허락하는 경우가 있음)
   try { audio.muted = false; audio.currentTime = 0; } catch (e) {}
@@ -4918,6 +4919,7 @@ function syncAudio() {
   else { startAt = session.startAt; setAudioTrack(trackById(session.track)); }
   const el = (Date.now() - startAt) / 1000;
   if (el < 0 || el >= (solo ? soloDur() : sessionDur())) { if (!audio.paused) audio.pause(); return; }
+  medHeard = (solo ? solo.track : trackById(session.track)).type;
   if (!audioUnlocked) {
     // 허락 표시가 없어도 한 번은 틀어 봄 (이미 이 사이트에서 소리를 허락한 브라우저면 그대로 나옴)
     if (autoTriedFor !== startAt) {
@@ -7922,7 +7924,14 @@ function jShow(which) {
 function jText(e) {
   return [`명상 기록 · 쨘 (명상 메타버스)`, `${jDate(e.at)}`, `${e.place} · ${e.kind}`, '', `지금 마음: ${e.moods.join(', ') || '-'}`, '', `몸의 느낌`, e.body || '-', '', `떠오른 생각·마음`, e.mind || '-', '', `나에게 한 줄`, e.line || '-'].join('\n');
 }
-function jOpenSheet(which) { closeSheets(); $('journalSheet').hidden = false; jShow(which || 'new'); }
+// 명상 종류 칸: 명상 목록(MED_TRACKS)에서 종류를 읽어 와 만듦 → 명상을 넣거나 빼면 저절로 따라감
+function jKinds() {
+  const sel = $('jKind'), cur = sel.value, kinds = [...new Set(MED_TRACKS.map(t => t.type))].concat('그 밖에');
+  sel.replaceChildren(...kinds.map(k => { const o = document.createElement('option'); o.textContent = k; return o; }));
+  const want = medHeard && kinds.includes(medHeard) ? medHeard : cur;   // 방금 들은 명상이 있으면 그걸 미리 골라 둠
+  if (kinds.includes(want)) sel.value = want;
+}
+function jOpenSheet(which) { closeSheets(); $('journalSheet').hidden = false; jKinds(); jShow(which || 'new'); }
 function saveFile(blob, name) {
   if (downloads) return downloads.save({ filename: name, data: blob });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
