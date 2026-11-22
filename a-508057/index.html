@@ -265,6 +265,11 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
   background-size:400% 100%;background-position:100% 0}
 #spName.up{animation:glint .8s cubic-bezier(.55,0,.35,1) forwards}
 @keyframes glint{from{background-position:100% 0}to{background-position:0 0}}
+/* 붓글씨 로고(쨘 + 명상메타버스): 로고 모양으로 먹색을 채우고, 그 위로 번득임이 지나감. '쨘'은 예전 글씨 크기와 같게 */
+#spName.logo{display:block;font-size:0;-webkit-background-clip:border-box;background-clip:border-box;
+  -webkit-mask:url(logo.webp) no-repeat center/contain;mask:url(logo.webp) no-repeat center/contain;
+  --fs:clamp(40px,10vw,62px);width:calc(var(--fs) * 1.23);height:calc(var(--fs) * 2.48)}
+#endSheet .brand .sp-copy{padding-top:0}
 @media (prefers-reduced-motion:reduce){#spName.up{animation:none}}
 .flash{position:fixed;inset:0;z-index:7;background:#ffffff;opacity:0;pointer-events:none}
 .notice{position:fixed;inset:0;z-index:7;display:grid;place-items:center;text-align:center;padding:0 24px;color:var(--muted);line-height:1.7}
@@ -508,8 +513,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
   <div class="enter-load" aria-live="polite"><div class="bar"><i></i></div><p>잠시 후 명상 돔으로 들어가요 · 누르면 바로 들어가요</p></div>
   <div class="card" role="dialog" aria-labelledby="endTitle">
     <div class="brand">
-      <h2 id="endTitle" class="sp-name" aria-label="쨘, 명상 메타버스"><span id="spName">쨘</span></h2>
-      <p class="sp-sub">명상 메타버스</p>
+      <h2 id="endTitle" class="sp-name" aria-label="쨘, 명상 메타버스"><span id="spName" class="logo">쨘</span></h2>
       <p class="sp-copy">© 2026 An In-song (안인성). All rights reserved.</p>
     </div>
     <p class="welcome">누구나 자유롭게 명상할 수 있는 공간입니다.<br>언제든 다시 오세요.</p>
@@ -576,7 +580,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-256';
+const BUILD = '11.19-257';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
