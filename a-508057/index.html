@@ -508,7 +508,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-223';
+const BUILD = '11.19-226';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -6331,6 +6331,8 @@ function loadSeoulReal() {
   }).catch(e => { console.warn('서울 지도 불러오기 실패', e); seoulLoading = false; });
 }
 function buildSeoulReal(D, DD) {
+  // 용산공원 (옛 미군 기지): 지도에는 군사 지역이라 빈 땅으로 남아 있어서, 공원(잔디·숲)으로 그림
+  if (!D.__ysp) { D.__ysp = 1; D.parks.push([[-3443,-1326],[-2913,-774],[-2737,0],[-2207,387],[-1236,166],[-1104,-553],[-1589,-1105],[-1457,-1603],[-1854,-2100],[-2649,-2233],[-3311,-2045]]); }
   const S = new THREE.Scene();
   const cam = new THREE.PerspectiveCamera(60, 1, 20, 50000);
   const L0 = D.landmarks;
@@ -6471,6 +6473,12 @@ function buildSeoulReal(D, DD) {
     const tp = tg.attributes.position, tcol = new Float32Array(tp.count * 3), cc = new THREE.Color(), gc = new THREE.Color('#d8d3c4'), forest = new THREE.Color(), rock = new THREE.Color('#8d8a80');
     const cell = (TX1 - TX0) / SEG;
     TSEG = SEG; TCELL = cell; TG = new Float32Array((SEG + 1) * (SEG + 1));
+    // 공원 자리 그림: 산자락 낮은 땅(지형)도 공원이면 잔디빛으로 (용산공원처럼 지형이 공원을 덮는 곳)
+    const PM = 60, PW = Math.ceil((TX1 - TX0) / PM), pc = document.createElement('canvas'); pc.width = PW; pc.height = PW;
+    const pq = pc.getContext('2d'); pq.fillStyle = '#fff';
+    D.parks.forEach(pk => { pq.beginPath(); pk.forEach(([x, z], k) => { const u = (x - TX0) / PM, v = (z - TZ0) / PM; k ? pq.lineTo(u, v) : pq.moveTo(u, v); }); pq.closePath(); pq.fill(); });
+    const pdat = pq.getImageData(0, 0, PW, PW).data, inPark = (x, z) => { const u = Math.floor((x - TX0) / PM), v = Math.floor((z - TZ0) / PM); return u >= 0 && v >= 0 && u < PW && v < PW && pdat[(v * PW + u) * 4] > 100; };
+    const parkC = new THREE.Color('#9fd08a');
     for (let i = 0; i < tp.count; i++) {
       const x = tp.getX(i), z = tp.getZ(i), h = terrH(x, z);
       TG[Math.round((z - TZ0) / cell) * (SEG + 1) + Math.round((x - TX0) / cell)] = h > 0.5 ? h : -4;
@@ -6481,7 +6489,7 @@ function buildSeoulReal(D, DD) {
       cc.copy(forest).lerp(rock, Math.min(1, Math.max(0, (sl - 0.45) / 0.35)) * 0.85);
       // 산자락의 동네(낮고 완만한 곳)는 도시 바닥 빛깔, 높거나 가파른 곳만 숲 (비탈 동네 건물이 풀밭에 묻혀 보이지 않게)
       const urban = (1 - Math.min(1, Math.max(0, (h + nz * 25 - 70) / 60))) * (1 - Math.min(1, Math.max(0, (sl - 0.28) / 0.2)));
-      cc.lerp(gc, urban);
+      cc.lerp(inPark(x, z) ? parkC : gc, urban);
       tcol.set([cc.r, cc.g, cc.b], i * 3);
     }
     gtU.value = new THREE.DataTexture(TG, SEG + 1, SEG + 1, THREE.RedFormat, THREE.FloatType); gtU.value.needsUpdate = true; gbU.value.set(TX0, TZ0, cell, SEG);
@@ -6662,7 +6670,7 @@ function buildSeoulReal(D, DD) {
     const stepIn = light ? 80 : 60;
     for (let x = X0 + stepIn / 2; x < X1; x += stepIn) for (let z = Z0 + stepIn / 2; z < Z1; z += stepIn) {
       const px = x + (rnd() - 0.5) * stepIn * 0.6, pz = z + (rnd() - 0.5) * stepIn * 0.6;
-      if (rnd() < 0.35 || terrH(px, pz) > 25 || inDetail(px, pz) || blocked(px, pz) || hills.some(([p0, r]) => Math.hypot(px - p0[0], pz - p0[1]) < r) || roadClear(px, pz) < 8) continue;
+      if (rnd() < 0.35 || terrH(px, pz) > 85 || inDetail(px, pz) || blocked(px, pz) || hills.some(([p0, r]) => Math.hypot(px - p0[0], pz - p0[1]) < r) || roadClear(px, pz) < 8) continue;
       const w = 14 + rnd() * 18, d = 14 + rnd() * 18, half = Math.hypot(w, d) / 2;
       if (!fit2(px, pz, half + 6)) continue;
       const o = { x: px, z: pz, w, d, h: 8 + Math.pow(rnd(), 2.2) * 40, r: half, rot: rnd() * 0.3, c: PC[Math.floor(rnd() * PC.length)] }; put(o); F.push(o);
@@ -6673,7 +6681,7 @@ function buildSeoulReal(D, DD) {
       const dd = Math.max(X0 - x, x - X1, Z0 - z, z - Z1, 0), keep = 0.85 * Math.exp(-dd / 4500);
       if (rnd() > keep) continue;
       const px = x + (rnd() - 0.5) * stepOut * 0.7, pz = z + (rnd() - 0.5) * stepOut * 0.7, tall = rnd() < 0.04;
-      if (terrH(px, pz) > 25) continue;   // 산에는 짓지 않음
+      if (terrH(px, pz) > 85) continue;   // 산에는 짓지 않음
       F.push({ x: px, z: pz, w: 16 + rnd() * 26, d: 16 + rnd() * 26, h: tall ? 50 + rnd() * 60 : 8 + Math.pow(rnd(), 2) * 34 * Math.exp(-dd / 6000), rot: rnd() * 0.4, c: PC[Math.floor(rnd() * PC.length)] });
     }
     splitBoxes(F, false); }
@@ -6792,6 +6800,16 @@ function buildSeoulReal(D, DD) {
       fragmentShader: `uniform float uOp, uT; varying vec3 vC; void main(){ vec2 q = gl_PointCoord - 0.5; float a = exp(-q.x * q.x * 180.0) * smoothstep(0.5, 0.0, abs(q.y)) * (0.75 + 0.25 * sin(q.y * 40.0 + uT * 2.0)); a *= uOp * 0.85; gl_FragColor = vec4(vC * a, a); }` });
     const o = new THREE.Points(g2, m); o.frustumCulled = false; S.add(o); nightLights.push(o);
   }
+  { // 큰 공원 밤 산책로 가로등: 공원 안에 따뜻한 불빛이 띄엄띄엄 (용산공원·서울숲 등이 캄캄한 빈 땅처럼 보이지 않게)
+    const pts = [], cols = [], c = new THREE.Color(); let cnt = 0;
+    const bigParks = D.parks.map(p => { const xs = p.map(a => a[0]), zs = p.map(a => a[1]); return { p, minx: Math.min(...xs), maxx: Math.max(...xs), minz: Math.min(...zs), maxz: Math.max(...zs) }; }).map(o => Object.assign(o, { A: (o.maxx - o.minx) * (o.maxz - o.minz) })).filter(o => o.A >= 150000).sort((a, b) => b.A - a.A);
+    for (const { p, minx, maxx, minz, maxz, A } of bigParks) {
+      const n = Math.min(500, Math.floor(A / 10000));
+      for (let i = 0; i < n && cnt < 6000; i++) { const x = minx + rnd() * (maxx - minx), z = minz + rnd() * (maxz - minz); let inside = false;
+        for (let a = 0, b = p.length - 1; a < p.length; b = a++) { const [xa, za] = p[a], [xb, zb] = p[b]; if (((za > z) !== (zb > z)) && (x < (xb - xa) * (z - za) / (zb - za) + xa)) inside = !inside; }
+        if (!inside) continue; c.set(rnd() < 0.7 ? '#ffd9a0' : '#eef3ff'); pts.push(x, terrH(x, z) + 5, z); cols.push(c.r, c.g, c.b); cnt++; } }
+    if (pts.length) lightLayer(pts, cols, 3.2, false);
+  }
   { // 항공 경고등: 높은 건물 꼭대기
     const pts = [], cols = []; roofs.forEach(o => { if (o.h > 90 || (o.h > 60 && rnd() < 0.25)) { pts.push(o.x, o.h + 2, o.z); cols.push(0.85, 0.14, 0.1); } });   // 아주 높은 건물만
     lightLayer(pts, cols, 3.6, true);
@@ -6802,9 +6820,9 @@ function buildSeoulReal(D, DD) {
     lightLayer(pts, cols, 4, false);
   }
   // 공원 나무
-  { const N = light ? 3000 : 9000, tm = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 8, 6), std({ color: '#6fb35a', roughness: 1 }), N), m = new THREE.Matrix4(), c = new THREE.Color(); let k = 0;
-    const per = light ? 100 : 300;
-    for (const p of D.parks) { const xs = p.map(a => a[0]), zs = p.map(a => a[1]); const minx = Math.min(...xs), maxx = Math.max(...xs), minz = Math.min(...zs), maxz = Math.max(...zs); const n = Math.min(per, Math.floor((maxx - minx) * (maxz - minz) / (light ? 18000 : 6000)));
+  { const N = light ? 6000 : 20000, tm = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 8, 6), std({ color: '#6fb35a', roughness: 1 }), N), m = new THREE.Matrix4(), c = new THREE.Color(); let k = 0;
+    const per = light ? 400 : 1400;   // 큰 공원은 숲처럼 빽빽하게
+    for (const p of D.parks) { const xs = p.map(a => a[0]), zs = p.map(a => a[1]); const minx = Math.min(...xs), maxx = Math.max(...xs), minz = Math.min(...zs), maxz = Math.max(...zs); const n = Math.min(per, Math.floor((maxx - minx) * (maxz - minz) / (light ? 9000 : 2600)));
       for (let i = 0; i < n && k < N; i++) { const x = minx + rnd() * (maxx - minx), z = minz + rnd() * (maxz - minz); let inside = false; for (let a = 0, b = p.length - 1; a < p.length; b = a++) { const [xa, za] = p[a], [xb, zb] = p[b]; if (((za > z) !== (zb > z)) && (x < (xb - xa) * (z - za) / (zb - za) + xa)) inside = !inside; } if (!inside) continue;
         const r = 4 + rnd() * 3; m.makeScale(r, r * 1.15, r); m.setPosition(x, r + terrH(x, z), z); tm.setMatrixAt(k, m); tm.setColorAt(k, c.setHSL(0.27 + rnd() * 0.06, 0.5, 0.42 + rnd() * 0.14)); k++; } }
     tm.count = k; tm.frustumCulled = false; S.add(tm); }
@@ -7322,7 +7340,7 @@ function seoulRealLook() {
   const L0 = seoulReal.light, Lt = Object.assign({}, L0, { night: Math.min(1, L0.night + (L0.blue || 0) * 0.65) });   // 해가 막 진 푸른 저녁도 돔 안은 밤처럼 어둑하게
   // 밤에는 젖빛 바닥을 어둡게, 낮보다 더 비치게 (아래 도시 야경이 은은히 비쳐 보이게)
   glassFloorRim.material.opacity = mix(0.45, 0.12, Lt.night);
-  frostFloorMat.opacity = mix(0.55, 0.32, Lt.night); frostFloorMat.color.set('#f3f6f8').lerp(new THREE.Color('#566079'), Lt.night);   // 밤에도 아주 약간 젖빛 (발밑이 어수선하지 않게)
+  frostFloorMat.opacity = mix(0.72, 0.52, Lt.night);   // 바닥이라는 느낌이 나게 조금 더 불투명 frostFloorMat.color.set('#f3f6f8').lerp(new THREE.Color('#566079'), Lt.night);   // 밤에도 아주 약간 젖빛 (발밑이 어수선하지 않게)
   scene.background.set('#c4e2fa'); scene.fog.color.copy(scene.background); scene.fog.density = 0.0001;
   hemi.color.set('#eaf6ff').lerp(new THREE.Color('#8ea3d6'), Lt.night); hemi.groundColor.set('#b9b39e').lerp(new THREE.Color('#2a3048'), Lt.night);
   hemi.intensity = mix(1.6, 1.1, Lt.night);
