@@ -508,7 +508,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-241';
+const BUILD = '11.19-242';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -875,6 +875,16 @@ function brainCoral(R, base, r, col, groove) {
   const ng = g.toNonIndexed(); const map = g.index.array;
   R.add(ng, base, (ly, v, c) => { const k = ridge[map[idx++]]; return c.copy(G).lerp(A, Math.min(1, k * 1.6)); }, null);
 }
+// 바닷속 바위: 울퉁불퉁 둥근 바위 (회갈색, 군데군데 이끼빛·흰 얼룩). 위에 작은 산호·해면이 붙어 자람 (뇌산호 대신)
+function seaRock(R, base, r, seed) {
+  const g = new THREE.IcosahedronGeometry(r, 2), P = g.attributes.position, d = new THREE.Vector3();
+  for (let i = 0; i < P.count; i++) { d.fromBufferAttribute(P, i); const u = d.clone().normalize();
+    const k = 1 + 0.22 * (vnoise(u.x * 2.1 + seed, u.y * 2.1, u.z * 2.1) - 0.5) + 0.08 * (vnoise(u.x * 6 + seed, u.y * 6, u.z * 6) - 0.5);
+    d.multiplyScalar(k); d.y = d.y * 0.62 + r * 0.12; d.x *= 1.15; P.setXYZ(i, d.x, d.y, d.z); }
+  g.computeVertexNormals();
+  const A = new THREE.Color('#8d8778'), B = new THREE.Color('#5f5a4f'), Mo = new THREE.Color('#6f8a5c'), W = new THREE.Color('#c9c3b2');
+  R.add(g, base, (ly, v, c) => { const n = vnoise(v.x * 1.7 + seed, v.y * 1.7, v.z * 1.7); c.copy(B).lerp(A, 0.35 + ly * 0.5 + (n - 0.5) * 0.4); if (ly > 0.55 && n > 0.62) c.lerp(Mo, 0.45); if (n < 0.22) c.lerp(W, 0.3); }, null);
+}
 // 탁자 산호: 줄기 위에 넓고 납작한 판 (가장자리가 물결)
 function tableCoral(R, base, r, col, edge) {
   const st = new THREE.CylinderGeometry(r * 0.12, r * 0.18, r * 0.5, 8); st.translate(0, r * 0.25, 0);
@@ -985,7 +995,14 @@ function grassTuft(R, x, y, z, n, ph) {
   const placeCoral = (x, z, s) => {
     const y = groundH(x, z) - 0.04, ry = rr(0, 6.28), base = M(x, y, z, ry, 1), t = RR();
     if (t < 0.28) { const [a, b] = pick(CORAL.stag); staghorn(RB, base, a, b, s * rr(0.8, 1.3)); }
-    else if (t < 0.46) { const [a, b] = pick(CORAL.brain); brainCoral(RB, base, s * rr(0.35, 0.65), a, b); }
+    else if (t < 0.46) {   // 바위 + 위에 붙은 작은 산호·해면
+      const rr0 = s * rr(0.4, 0.75); seaRock(RB, base, rr0, rr(0, 50));
+      const top = y + rr0 * 0.62 * 0.9;
+      for (let k = 0, n = 1 + Math.floor(RR() * 3); k < n; k++) { const a2 = rr(0, 6.28), d2 = rr0 * rr(0, 0.55), bx = x + Math.cos(a2) * d2, bz = z + Math.sin(a2) * d2, b2 = M(bx, top - d2 * 0.25, bz, rr(0, 6.28), 1), q = RR();
+        if (q < 0.45) { const [ca, cb] = pick(CORAL.stag); staghorn(RB, b2, ca, cb, s * rr(0.35, 0.55)); }
+        else if (q < 0.75) seaFan(RB, b2, s * rr(0.4, 0.7), pick(CORAL.fan), rr(0, 6.28));
+        else tubeSponge(RB, b2, s * rr(0.35, 0.55), pick(CORAL.sponge)); }
+    }
     else if (t < 0.6) { const [a, b] = pick(CORAL.table); tableCoral(RB, base, s * rr(0.45, 0.8), a, b); }
     else if (t < 0.8) seaFan(RB, base, s * rr(0.8, 1.5), pick(CORAL.fan), rr(0, 6.28));
     else tubeSponge(RB, base, s * rr(0.8, 1.2), pick(CORAL.sponge));
