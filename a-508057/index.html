@@ -508,7 +508,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-229';
+const BUILD = '11.19-230';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -6441,6 +6441,45 @@ function buildSeoulReal(D, DD) {
   // 밤에는 땅이 따뜻한 도시 불빛을 머금어 (강물의 짙은 파랑과 또렷이 구분되게)
   const groundMat = std({ color: '#d8d3c4', roughness: 1, emissive: '#6a5236', emissiveIntensity: 0 }), parkMat = std({ color: '#9fd08a', roughness: 1, emissive: '#1f3320', emissiveIntensity: 0 });
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(80000, 80000), groundMat); ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; S.add(ground);
+  // 먼 도시 무늬: 멀리(약 2km~) 보이는 바닥에 동네 블록·골목·지붕 빛깔을 그려 넣음 (높이 올라가도 먼 곳이 빈 땅처럼 보이지 않게).
+  // 가까운 곳은 그대로(실제 길과 건물), 멀수록 서서히 나타나고, 아주 가늘어지는 무늬는 평균 빛깔로 흐려서 반짝이지 않게. 밤에는 창 불빛이 점점이
+  const cityU = { uNightC: { value: 0 } };
+  const cityPattern = (mat, urbanMask) => { mat.onBeforeCompile = sh => {
+    sh.uniforms.uNightC = cityU.uNightC;
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vWPc;').replace('#include <project_vertex>', '#include <project_vertex>\nvWPc = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', `#include <common>
+      varying vec3 vWPc; uniform float uNightC;
+      float hC(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      vec3 cityAt(vec2 w, out float lit, out vec3 blk, out float blkLit){
+        vec2 dc = floor(w / 1300.0); float a = (hC(dc) - 0.5) * 0.9, c = cos(a), s = sin(a);
+        vec2 q = vec2(w.x * c + w.y * s, -w.x * s + w.y * c) + hC(dc + 7.0) * 90.0;
+        vec2 bi = floor(q / 90.0), f = q - bi * 90.0;
+        float road = max(1.0 - smoothstep(3.0, 4.5, min(f.x, 90.0 - f.x)), 1.0 - smoothstep(3.0, 4.5, min(f.y, 90.0 - f.y)));
+        float apt = step(0.72, hC(bi + 3.1));   // 아파트 단지 블록: 큰 동 몇 개
+        vec2 sc = apt > 0.5 ? vec2(30.0, 18.0) : vec2(14.0);
+        vec2 li = floor((f - 6.0) / sc), lf = (f - 6.0) - li * sc;
+        float lot = step(1.6, min(lf.x, sc.x - lf.x)) * step(1.6, min(lf.y, sc.y - lf.y)) * step(0.0, f.x - 6.0) * step(0.0, 84.0 - f.x) * step(0.0, f.y - 6.0) * step(0.0, 84.0 - f.y) * step(apt > 0.5 ? 0.25 : 0.12, hC(bi * 13.0 + li));
+        float r = hC(bi * 7.0 + li * 3.0);
+        vec3 roof = r < 0.2 ? vec3(0.62, 0.74, 0.6) : r < 0.35 ? vec3(0.83, 0.55, 0.5) : r < 0.5 ? vec3(0.6, 0.7, 0.82) : r < 0.62 ? vec3(0.85, 0.77, 0.55) : vec3(0.86, 0.85, 0.82);
+        vec3 base = vec3(0.8, 0.78, 0.72);
+        lit = lot * step(0.45, hC(bi * 5.0 + li * 9.0 + 1.0)) * (1.0 - road);
+        // 블록 평균 빛깔: 멀리서는 골목·지붕이 한데 섞여 블록마다 조금씩 다른 조각보처럼 보임
+        float rb = hC(bi * 7.0 + 0.5), dens = (apt > 0.5 ? 0.6 : 0.8) + hC(bi + 9.0) * 0.2;
+        vec3 roofB = rb < 0.2 ? vec3(0.56, 0.68, 0.52) : rb < 0.35 ? vec3(0.78, 0.52, 0.47) : rb < 0.5 ? vec3(0.52, 0.62, 0.78) : rb < 0.62 ? vec3(0.82, 0.72, 0.5) : vec3(0.74, 0.72, 0.7);
+        blk = mix(mix(vec3(0.8, 0.78, 0.72), roofB, dens), vec3(0.5, 0.52, 0.56), 0.28);
+        blkLit = dens * 0.5 * (0.6 + 0.8 * hC(bi + 4.0));
+        return mix(mix(base, roof * 0.92, lot), vec3(0.5, 0.52, 0.56), road);
+      }`)
+      .replace('#include <map_fragment>', `#include <map_fragment>
+      float cK = smoothstep(1800.0, 3600.0, length(vWPc.xz - cameraPosition.xz));
+      float cLit = 0.0; vec3 cAvg = vec3(0.74, 0.73, 0.7);
+      ${urbanMask ? 'cK *= 1.0 - smoothstep(0.08, 0.22, distance(vColor.rgb, vec3(0.687, 0.651, 0.552)));   // 지형: 동네(바닥 빛깔)만, 숲·바위는 그대로' : ''}
+      if (cK > 0.0) { float fw = length(fwidth(vWPc.xz)); vec3 blk; float bLit; vec3 cc = cityAt(vWPc.xz, cLit, blk, bLit);
+        float sharp = 1.0 - smoothstep(4.0, 14.0, fw), bSharp = 1.0 - smoothstep(35.0, 110.0, fw);
+        cc = mix(vec3(0.66, 0.65, 0.63), mix(blk, cc, sharp), bSharp); cLit = mix(0.25, mix(bLit, cLit, sharp), bSharp); diffuseColor.rgb = mix(diffuseColor.rgb, cc * diffuseColor.rgb / vec3(0.85, 0.83, 0.77), cK * 0.85); }`)
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n      totalEmissiveRadiance += vec3(1.0, 0.78, 0.5) * cLit * cK * uNightC * 0.55;');
+  }; };
+  cityPattern(groundMat, false);
   // 산: 실제 땅 높이로 만든 지형. 완만한 곳은 숲 초록, 가파른 곳은 바위 회색, 산자락은 땅 빛깔로 스며듦
   // 건물 1층 띠: 땅 높이 그림을 셰이더에 넘겨, 벽의 땅에서 4m까지는 창 무늬 대신 1층(가게·입구) 띠로. 밤에는 가게 불빛이 은은히
   // (창 무늬가 땅에서 잘린 채 시작해 건물이 땅에 묻혀 보이던 것을 막음)
@@ -6500,7 +6539,8 @@ function buildSeoulReal(D, DD) {
     }
     gtU.value = new THREE.DataTexture(TG, SEG + 1, SEG + 1, THREE.RedFormat, THREE.FloatType); gtU.value.needsUpdate = true; gbU.value.set(TX0, TZ0, cell, SEG);
     tg.setAttribute('color', new THREE.BufferAttribute(tcol, 3)); tg.computeVertexNormals();
-    const terr = new THREE.Mesh(tg, std({ vertexColors: true, roughness: 1, metalness: 0 })); terr.receiveShadow = terr.castShadow = true; S.add(terr);
+    const terrMat = std({ vertexColors: true, roughness: 1, metalness: 0 }); cityPattern(terrMat, true);
+    const terr = new THREE.Mesh(tg, terrMat); terr.receiveShadow = terr.castShadow = true; S.add(terr);
   }
   { const pm = new THREE.Mesh(mergeGeos(D.parks.map(p => flat(new THREE.ShapeGeometry(shape(p)), 1.2))), parkMat); pm.receiveShadow = true; S.add(pm); }
   const waterMat = std({ color: '#86bde0', roughness: 0.35, metalness: 0 });
@@ -7110,7 +7150,7 @@ function buildSeoulReal(D, DD) {
     carMat.emissiveIntensity = night * 1.6 + 0.18;
     landmarkGlows.forEach(g2 => { g2.material.opacity = night * 0.9; }); landmarkLit.forEach(m => { m.emissiveIntensity = night * 0.35; });
     sideMat.emissiveIntensity = night * 0.35;
-    groundMat.emissiveIntensity = night * 0.3;   // 밤 길바닥: 가게·가로등 불빛이 은은히 깔려 건물 밑동이 보이게 parkMat.emissiveIntensity = 0; roadMat.emissiveIntensity = Math.min(1, night + blue * 0.8) * 1.1; minorRoadMat.emissiveIntensity = Math.min(1, night + blue * 0.6) * 0.45;   // 땅·숲은 어둡게, 길은 주황 불빛 띠로 boatWin.emissiveIntensity = night * 1.2 + dusk * 0.3;
+    groundMat.emissiveIntensity = night * 0.3; cityU.uNightC.value = Math.min(1, night + blue * 0.6);   // 밤 길바닥: 가게·가로등 불빛이 은은히 깔려 건물 밑동이 보이게 parkMat.emissiveIntensity = 0; roadMat.emissiveIntensity = Math.min(1, night + blue * 0.8) * 1.1; minorRoadMat.emissiveIntensity = Math.min(1, night + blue * 0.6) * 0.45;   // 땅·숲은 어둡게, 길은 주황 불빛 띠로 boatWin.emissiveIntensity = night * 1.2 + dusk * 0.3;
     waterMat.color.set('#86bde0').lerp(new THREE.Color('#0d1a33'), night).lerp(new THREE.Color('#e7a27f'), dusk * 0.35 * (1 - night));
     Object.assign(lightOut, { day, night, dusk, blue }); lightOut.sunDir.copy(sd); applyWx(); };
   let lastTime = 0;
