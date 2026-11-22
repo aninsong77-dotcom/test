@@ -376,7 +376,8 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 <div class="peer-menu is-hidden" id="dimMenu" role="menu" aria-label="차원이동: 갈 곳 고르기">
   <span>어디로 갈까요?</span>
   <button type="button" data-dim="sea" role="menuitem">🌊 바다</button>
-  <button type="button" data-dim="seoul" role="menuitem">🏙️ 서울 하늘</button>
+  <button type="button" data-dim="seoul" data-course="river" role="menuitem">🏙️ 서울 · 한강</button>
+  <button type="button" data-dim="seoul" data-course="namsan" role="menuitem">🗼 서울 · 남산</button>
   <button type="button" data-dim="space" role="menuitem">🌍 지구 우주</button>
 </div>
 <div class="peer-menu is-hidden" id="altMenu" role="group" aria-label="서울 하늘 돔 고도">
@@ -580,7 +581,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-257';
+const BUILD = '11.19-258';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -6381,7 +6382,11 @@ function buildSpace() {
    도시는 따로 된 장면으로 먼저 그리고, 그 위에 돔 안을 겹쳐 그림 (아주 먼 곳까지 깨끗하게 보이게)
    돔은 정해진 길(여의도 → 한남대교 → 남산 → 도심 한 바퀴 → 남산 → 한강 → 잠실)을 따라 날고, 끝에서 되돌아옴
    모두에게 같은 자리 (실제 시각 기준). 차는 큰길을 달리고, 한강에는 가끔 유람선이 지나감 */
-const SEOUL_SPEED = 12;   // 돔이 나는 빠르기 (초속 m, 한쪽 끝까지 약 50분)
+const SEOUL_SPEED = 12;
+// 서울 하늘 돔의 코스 (내 화면에서만, 기억해 둠): 'river' 한강 / 'namsan' 남산
+const SEOUL_COURSES = { river: '한강', namsan: '남산' };
+let seoulCourse = 'river'; try { const c = localStorage.getItem('a508057:seoulCourse'); if (SEOUL_COURSES[c]) seoulCourse = c; } catch (e) {}
+function setSeoulCourse(c) { seoulCourse = c; try { localStorage.setItem('a508057:seoulCourse', c); } catch (e) {} }   // 돔이 나는 빠르기 (초속 m, 한쪽 끝까지 약 50분)
 let seoulReal = null, seoulLoading = false;
 function mergeGeos(geos) {
   // 여러 모양을 한 덩어리로 (그리는 횟수를 줄여 가볍게)
@@ -6794,6 +6799,18 @@ function buildSeoulReal(D, DD) {
   { const raw = []; for (let d = 0; d <= tot; d += altStep) { const [x, z] = atDist(d); raw.push(inWater(x, z) ? 1 : 0); }
     for (let i = 0; i < raw.length; i++) { let sum = 0, n = 0; for (let k = -6; k <= 6; k++) { const v = raw[Math.max(0, Math.min(raw.length - 1, i + k))]; sum += v; n++; } const f = sum / n; altArr.push(ALT_LO + (ALT_HI - ALT_LO) * f * f * (3 - 2 * f)); } }
   const autoAlt = d => { const u = d / altStep, i = Math.floor(u), f = u - i; return altArr[Math.min(altArr.length - 1, i)] * (1 - f) + altArr[Math.min(altArr.length - 1, i + 1)] * f; };
+  // 고를 수 있는 코스: 한강(여의도 ↔ 잠실, 끝에서 되돌아옴) / 남산(남산서울타워 둘레를 천천히 한 바퀴씩)
+  const mkCourse = (Q, loop) => { const sl = []; let T = 0; for (let i = 0; i < Q.length - 1; i++) { const l = Math.hypot(Q[i + 1][0] - Q[i][0], Q[i + 1][1] - Q[i][1]); sl.push(l); T += l; }
+    const at = d => { for (let i = 0; i < sl.length; i++) { if (d <= sl[i]) { const t = d / sl[i]; return [Q[i][0] + (Q[i + 1][0] - Q[i][0]) * t, Q[i][1] + (Q[i + 1][1] - Q[i][1]) * t]; } d -= sl[i]; } return Q[Q.length - 1]; };
+    const al = []; { const raw = []; for (let d = 0; d <= T; d += altStep) { const [x, z] = at(d); raw.push(inWater(x, z) ? 1 : 0); }
+      for (let i = 0; i < raw.length; i++) { let sum = 0, n = 0; for (let k = -6; k <= 6; k++) { const j = loop ? (i + k + raw.length) % raw.length : Math.max(0, Math.min(raw.length - 1, i + k)); sum += raw[j]; n++; } const f = sum / n; al.push(ALT_LO + (ALT_HI - ALT_LO) * f * f * (3 - 2 * f)); } }
+    const alt = d => { const u = d / altStep, i = Math.floor(u), f = u - i; return al[Math.min(al.length - 1, i)] * (1 - f) + al[Math.min(al.length - 1, i + 1)] * f; };
+    const dist = ms => { let d = (ms / 1000 * SEOUL_SPEED) % (loop ? T : T * 2); if (!loop && d > T) d = T * 2 - d; return d; };   // 모두에게 같은 자리 (실제 시각 기준)
+    return { at, alt, dist }; };
+  const NSC = D.landmarks.namsan, ringR = 1400, ringQ = [];
+  for (let i = 0; i <= 48; i++) { const a = i / 48 * Math.PI * 2; ringQ.push([NSC[0] + Math.cos(a) * ringR, NSC[1] + Math.sin(a) * ringR]); }
+  const COURSES = { river: mkCourse(RV, false), namsan: mkCourse(ringQ, true) };
+  const course = c => COURSES[c] || COURSES.river;
   const nearRoute = (x, z, r) => { for (let i = 0; i < P.length - 1; i++) { const [ax, az] = P[i], [bx, bz] = P[i + 1]; const dx = bx - ax, dz = bz - az, L2 = dx * dx + dz * dz || 1; const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / L2)); if (Math.hypot(x - ax - dx * t, z - az - dz * t) < r) return true; } return false; };
   // 건물 (파스텔, 지붕 색). 돔이 지나가는 길 가까이는 높이를 낮춰 부딪히지 않게
   const bldNightMats = [], roofs = [], landmarkGlows = [], landmarkLit = []; let fakeStreet = null, fillLots = null, mkTileBoxes = null;
@@ -7579,17 +7596,17 @@ function buildSeoulReal(D, DD) {
     scene: S, cam, light: lightOut, fx,
     setWeather(w, now) { Object.assign(wxWant, w); if (now) Object.assign(wx, w); },   // now: 들어올 때는 바로 그 날씨로
     // 들어가기 전에 돔 둘레 조각을 미리 받기 / 다 받았는지
-    domeNow() { let d = (Date.now() / 1000 * SEOUL_SPEED) % (tot * 2); if (d > tot) d = tot * 2 - d; return atDist(d); },
-    prefetch() { const [x, z] = this.domeNow(); tileTick(x, z, true); },
-    nearReady() { const [x, z] = this.domeNow(); return tileNear(x, z); },
+    domeNow(c) { const C = course(c || seoulCourse); return C.at(C.dist(Date.now())); },
+    prefetch(c) { const [x, z] = this.domeNow(c); tileTick(x, z, true); },
+    nearReady(c) { const [x, z] = this.domeNow(c); return tileNear(x, z); },
     tick(dt) {
       const now = Date.now();
       if (now - lastTime > 5000) { lastTime = now; setTime(new Date(now)); }
       // 돔 자리: 길을 따라 가다 끝에서 되돌아옴 (모두에게 같은 자리)
-      let d = (now / 1000 * SEOUL_SPEED) % (tot * 2); if (d > tot) d = tot * 2 - d;
-      const [x, z] = atDist(d);
+      const C = course(seoulCourse), d = C.dist(now);
+      const [x, z] = C.at(d);
       const lift = Math.max(0, 1 - Math.hypot(x - NS[0], z - NS[1]) / 1600) * 300;   // 남산서울타워 비켜 가기
-      seoulAlt.want = autoAlt(d); if (!dt || myDim !== 'seoul') seoulAlt.now = seoulAlt.want; else seoulAlt.now += (seoulAlt.want - seoulAlt.now) * Math.min(1, dt * 0.5);   // 높이는 길이 정함 (사용자가 바꾸지 않음)
+      seoulAlt.want = C.alt(d); if (!dt || myDim !== 'seoul') seoulAlt.now = seoulAlt.want; else seoulAlt.now += (seoulAlt.want - seoulAlt.now) * Math.min(1, dt * 0.5);   // 높이는 길이 정함 (사용자가 바꾸지 않음)
       dome.set(x, seoulAlt.now + lift, z);
       tileTick(x, z);
       if (shadowOn) {   // 그림자 지도를 그림자 칸(약 1.6m) 단위로 딱딱 맞춰 옮김: 돔이 움직여도 그림자 가장자리가 떨리지 않게
@@ -7793,9 +7810,10 @@ function portalChime() {
 }
 /* 차원이동 진행: 그 자리에서 빛이 아바타를 감싸고 → 화면 전체가 환해졌다가 → 새 차원으로 스르르 밝아짐 */
 let portalRun = null;
-function startDimMove(target) {
+function startDimMove(target, co) {
   if (!DIMS[target]) return;
-  if (target === myDim) { toast(`지금 ${DIMS[target].name} 돔에 있어요`); return; }
+  const same = target === myDim;   // 서울 안에서 코스만 바꿈 (한강 ↔ 남산)
+  if (same && !(target === 'seoul' && co && co !== seoulCourse)) { toast(`지금 ${DIMS[target].name} 돔에 있어요`); return; }
   if (portalRun || leaving || arriving || travel || atBeach || iAmOut || !inDome()) return;
   closeSheets(); closeDimMenu(); closeExMenu();
   unlockAudio();
@@ -7803,9 +7821,9 @@ function startDimMove(target) {
   if (mySeat !== null) { mySeat = null; $('seatBtn').textContent = '방석에 앉기'; }
   teaSitting = null; teaPending = null; edgeSit = null; onMat = null; moveTarget = null;
   if (target === 'seoul') dimWorld('seoul');   // 서울 지도는 빛에 감싸여 있는 동안 미리 불러옴
-  portalRun = { target, from: myDim, P: spawnPortal(orb.position.x, orb.position.z, 0, target, false), phase: 'gather', t0: performance.now() };
+  portalRun = { target, co: target === 'seoul' ? (co || seoulCourse) : null, same, from: myDim, P: spawnPortal(orb.position.x, orb.position.z, 0, target, false), phase: 'gather', t0: performance.now() };
   portalChime();
-  toast(`✨ ${withRo(DIMS[target].name)} 가요`);
+  toast(`✨ ${withRo(target === 'seoul' ? '서울 · ' + SEOUL_COURSES[portalRun.co] : DIMS[target].name)} 가요`);
   sendPresence(true);
 }
 function updatePortalRun() {
@@ -7815,10 +7833,14 @@ function updatePortalRun() {
   if (R.phase === 'gather') {
     if (e > 0.8 && !R.white) { R.white = true; whiteFlash(0, 1, 1300); }   // 화면 전체가 환해짐
     // 서울 지도가 아직 오는 중이면 하얀 빛 속에서 조금 더 기다림 (임시 배경의 구름이 잠깐 보이지 않게, 최대 10초)
-    if (R.target === 'seoul' && seoulReal) seoulReal.prefetch();
-    if (e > 2.25 && (R.target !== 'seoul' || (seoulReal && seoulReal.nearReady()) || (!seoulReal && !seoulLoading) || e > 6)) {
+    if (R.target === 'seoul' && seoulReal) seoulReal.prefetch(R.co);
+    if (e > 2.25 && (R.target !== 'seoul' || (seoulReal && seoulReal.nearReady(R.co)) || (!seoulReal && !seoulLoading) || e > 6)) {
+      if (R.co) setSeoulCourse(R.co);   // 하얀 빛 속에서 코스를 바꿈 (돔이 휙 옮겨 가는 게 안 보이게)
+      if (R.same) { if (seoulReal) seoulReal.tick(0); }
+      else {
       if (bellSession) { bellSession = null; tick(); }   // 종치기 명상은 같은 차원끼리 (9시 명상은 어디서나 그대로)
       applyDim(R.target);
+      }
       sendPresence(true);
       R.phase = 'reveal'; R.tr = now;
       setTimeout(() => whiteFlash(1, 0, 1600), 200);    // 새 차원으로 스르르
@@ -7828,7 +7850,7 @@ function updatePortalRun() {
     if (k > 0.9) R.P.want = 0;   // 감싼 빛도 천천히 사라짐
     if (k > 2.3) {
       portalRun = null;
-      toast(`${DIMS[R.target].icon} ${DIMS[R.target].name} 돔이에요` + (R.target === 'sea' ? '' : ' · 9시 명상은 모든 차원이 함께해요'));
+      toast(R.co ? `${R.co === 'namsan' ? '🗼' : '🏙️'} 서울 · ${SEOUL_COURSES[R.co]} 돔이에요` + (R.same ? '' : ' · 9시 명상은 모든 차원이 함께해요') : `${DIMS[R.target].icon} ${DIMS[R.target].name} 돔이에요` + (R.target === 'sea' ? '' : ' · 9시 명상은 모든 차원이 함께해요'));
     }
   }
 }
@@ -7850,8 +7872,8 @@ $('dimBtn').addEventListener('click', e => {
   if (!m.classList.contains('is-hidden')) { closeDimMenu(); return; }
   closeExMenu();
   m.querySelectorAll('button[data-dim]').forEach(b => {
-    const k = b.dataset.dim, D = DIMS[k], here = k === myDim, n = dimPeerCount[k] || 0;
-    b.textContent = `${D.icon} ${D.name}`;
+    const k = b.dataset.dim, D = DIMS[k], co = b.dataset.course, here = k === myDim && (!co || co === seoulCourse), n = dimPeerCount[k] || 0;
+    b.textContent = co ? `${co === 'namsan' ? '🗼' : D.icon} 서울 · ${SEOUL_COURSES[co]}` : `${D.icon} ${D.name}`;
     const note = here ? '지금 여기' : n ? `${n}명` : '';
     if (note) { const sm = document.createElement('small'); sm.textContent = note; b.appendChild(sm); }
     b.setAttribute('aria-disabled', here ? 'true' : 'false');
@@ -7864,9 +7886,10 @@ $('dimBtn').addEventListener('click', e => {
 $('dimMenu').addEventListener('click', e => {
   const b = e.target.closest('button[data-dim]');
   if (!b) return;
-  if (b.dataset.dim === myDim) { closeDimMenu(); toast(`지금 ${DIMS[myDim].name} 돔에 있어요`); return; }
+  const co = b.dataset.course;
+  if (b.dataset.dim === myDim && (!co || co === seoulCourse)) { closeDimMenu(); toast(`지금 ${co ? '서울 · ' + SEOUL_COURSES[co] : DIMS[myDim].name} 돔에 있어요`); return; }
   closeDimMenu();
-  startDimMove(b.dataset.dim);
+  startDimMove(b.dataset.dim, co);
 });
 $('exBtn').addEventListener('click', closeDimMenu);
 canvas.addEventListener('pointerdown', closeDimMenu);
