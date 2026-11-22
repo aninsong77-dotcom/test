@@ -508,7 +508,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-231';
+const BUILD = '11.19-232';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -6743,6 +6743,19 @@ function buildSeoulReal(D, DD) {
       const w = 16 + rnd() * 26, d = 16 + rnd() * 26; if (onFakeRoad(px, pz, Math.max(w, d) / 2)) continue;
       F.push({ x: px, z: pz, w, d, h: tall ? 50 + rnd() * 60 : 8 + Math.pow(rnd(), 2) * 34 * Math.exp(-dd / 6000), rot: -gridOff(px, pz).a + (rnd() - 0.5) * 0.06, c: PC[Math.floor(rnd() * PC.length)] });
     }
+    // 실제 지도 구역 안의 빈 땅: 지도에 건물이 빠진 곳(대학로·성북 등)만 임시 건물로 채움. 실제 건물·골목 바로 옆은 비워 둠
+    if (DD) { const G = 40, near = new Map(), K = (i, j) => i + ',' + j, putN = (x, z, r) => { const k = K(Math.floor(x / G), Math.floor(z / G)); if (!near.has(k)) near.set(k, []); near.get(k).push([x, z, r]); };
+      DD.b.forEach(b => { let sx = 0, sz = 0, n = 0, r = 0; for (let i = 1; i < b.length; i += 2) { sx += b[i]; sz += b[i + 1]; n++; } sx /= n; sz /= n; for (let i = 1; i < b.length; i += 2) r = Math.max(r, Math.hypot(b[i] - sx, b[i + 1] - sz)); putN(sx, sz, r + 4); });
+      [DD.s, DD.w].forEach((L, wi) => L.forEach(l => { for (let i = wi ? 0 : 1; i < l.length - 2; i += 2) { const x1 = l[i], z1 = l[i + 1], x2 = l[i + 2], z2 = l[i + 3], len = Math.hypot(x2 - x1, z2 - z1), st = Math.max(1, Math.ceil(len / 12)); for (let k = 0; k <= st; k++) putN(x1 + (x2 - x1) * k / st, z1 + (z2 - z1) * k / st, wi ? 1.5 : 3.5); } }));
+      const clear = (x, z, half) => { const i0 = Math.floor(x / G), j0 = Math.floor(z / G); for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) { const l = near.get(K(i0 + a, j0 + b)); if (l) for (const [qx, qz, r] of l) if (Math.hypot(qx - x, qz - z) < r + half * 0.7 + 1) return false; } return true; };
+      const st2 = light ? 70 : 52;
+      for (const [a0, a1, b0, b1] of DD.boxes) for (let x = a0 + st2 / 2; x < a1; x += st2) for (let z = b0 + st2 / 2; z < b1; z += st2) {
+        const px = x + (rnd() - 0.5) * st2 * 0.5, pz = z + (rnd() - 0.5) * st2 * 0.5;
+        if (rnd() < 0.12 || terrH(px, pz) > 85 || blocked(px, pz) || hills.some(([p0, r]) => Math.hypot(px - p0[0], pz - p0[1]) < r) || roadClear(px, pz) < 8) continue;
+        const w = 12 + rnd() * 14, d = 12 + rnd() * 14, half = Math.hypot(w, d) / 2;
+        if (!clear(px, pz, half) || !fit2(px, pz, half + 4)) continue;
+        const o = { x: px, z: pz, w, d, h: 9 + Math.pow(rnd(), 2.2) * 22, r: half, rot: rnd() * 0.3, c: PC[Math.floor(rnd() * PC.length)] }; put(o); F.push(o);
+      } }
     splitBoxes(F, false);
     // 격자 골목 그리기: 돔이 다니는 길에서 4km 안, 임시 건물이 있는 동네만 (실제 지도·물·공원·산은 빼고)
     { const ps = [], ix = []; let m = 0; const R0 = light ? 2600 : 4200;
