@@ -508,7 +508,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-238';
+const BUILD = '11.19-239';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -6672,6 +6672,11 @@ function buildSeoulReal(D, DD) {
   const P = [...RV.slice(0, hn + 1), [RV[hn][0] - 200, RV[hn][1] - 900], [-1500, -2500], ...LP, [-1500, -2500], [RV[hn][0] - 200, RV[hn][1] - 900], ...RV.slice(hn)];
   const segL = []; let tot = 0; for (let i = 0; i < P.length - 1; i++) { const l = Math.hypot(P[i + 1][0] - P[i][0], P[i + 1][1] - P[i][1]); segL.push(l); tot += l; }
   const atDist = d => { for (let i = 0; i < segL.length; i++) { if (d <= segL[i]) { const t = d / segL[i]; return [P[i][0] + (P[i + 1][0] - P[i][0]) * t, P[i][1] + (P[i + 1][1] - P[i][1]) * t]; } d -= segL[i]; } return P[P.length - 1]; };
+  // 길에 따라 저절로 정해지는 높이: 한강 위(넓게 내려다봐도 꽉 찬 곳)는 높이, 도시 위(멀리 빈 땅이 보이기 쉬운 곳)는 낮게. 600m 둘레를 평균해 부드럽게 오르내림
+  const ALT_HI = 270, ALT_LO = 150, altStep = 100, altArr = [];
+  { const raw = []; for (let d = 0; d <= tot; d += altStep) { const [x, z] = atDist(d); raw.push(inWater(x, z) ? 1 : 0); }
+    for (let i = 0; i < raw.length; i++) { let sum = 0, n = 0; for (let k = -6; k <= 6; k++) { const v = raw[Math.max(0, Math.min(raw.length - 1, i + k))]; sum += v; n++; } const f = sum / n; altArr.push(ALT_LO + (ALT_HI - ALT_LO) * f * f * (3 - 2 * f)); } }
+  const autoAlt = d => { const u = d / altStep, i = Math.floor(u), f = u - i; return altArr[Math.min(altArr.length - 1, i)] * (1 - f) + altArr[Math.min(altArr.length - 1, i + 1)] * f; };
   const nearRoute = (x, z, r) => { for (let i = 0; i < P.length - 1; i++) { const [ax, az] = P[i], [bx, bz] = P[i + 1]; const dx = bx - ax, dz = bz - az, L2 = dx * dx + dz * dz || 1; const t = Math.max(0, Math.min(1, ((x - ax) * dx + (z - az) * dz) / L2)); if (Math.hypot(x - ax - dx * t, z - az - dz * t) < r) return true; } return false; };
   // 건물 (파스텔, 지붕 색). 돔이 지나가는 길 가까이는 높이를 낮춰 부딪히지 않게
   const bldNightMats = [], roofs = [], landmarkGlows = [], landmarkLit = []; let fakeStreet = null, fillLots = null, mkTileBoxes = null;
@@ -7466,8 +7471,8 @@ function buildSeoulReal(D, DD) {
       // 돔 자리: 길을 따라 가다 끝에서 되돌아옴 (모두에게 같은 자리)
       let d = (now / 1000 * SEOUL_SPEED) % (tot * 2); if (d > tot) d = tot * 2 - d;
       const [x, z] = atDist(d);
-      const lift = Math.max(0, 1 - Math.hypot(x - NS[0], z - NS[1]) / 1600) * 380;
-      seoulAlt.now += (seoulAlt.want - seoulAlt.now) * Math.min(1, dt * 0.8);
+      const lift = Math.max(0, 1 - Math.hypot(x - NS[0], z - NS[1]) / 1600) * 300;   // 남산서울타워 비켜 가기
+      seoulAlt.want = autoAlt(d); if (!dt || myDim !== 'seoul') seoulAlt.now = seoulAlt.want; else seoulAlt.now += (seoulAlt.want - seoulAlt.now) * Math.min(1, dt * 0.5);   // 높이는 길이 정함 (사용자가 바꾸지 않음)
       dome.set(x, seoulAlt.now + lift, z);
       tileTick(x, z);
       if (shadowOn) { sunSh.target.position.set(x, 0, z); sunSh.position.set(x, 0, z).addScaledVector(lightOut.sunDir, 3500); sunSh.target.updateMatrixWorld(); }
@@ -7567,7 +7572,7 @@ function applyDim(k) {
   $('dimName').textContent = myDim === 'sea' ? '' : DIMS[myDim].name + ' ';
   if (domeUiShown) { domeUiShown = null; updateDomeUi(true); }   // 안내 글도 이 차원에 맞게
   setGlassFloor(myDim !== 'sea');
-  $('altBtn').hidden = myDim !== 'seoul';
+  $('altBtn').hidden = true;   // 높이는 길에 따라 저절로
   closeAltMenu();
   setLook(camera.position.y);
   if (peersReady) renderPeers(lastPeers);
