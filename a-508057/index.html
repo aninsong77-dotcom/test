@@ -584,7 +584,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-263';
+const BUILD = '11.19-264';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -4639,6 +4639,7 @@ audio.preload = 'auto';
 const MED_TRACKS = [
   { id: 'main', main: true, type: '자비 명상', voice: '여성', note: '9시 함께 명상 음성' },
   { id: 'jabi_m', file: 'med_jabi_m.mp3?v=1', type: '자비 명상', voice: '남성', dur: 951.5 },
+  { id: 'breath3', file: 'med_breath3.mp3?v=1', type: '호흡 명상 3분', voice: '여성', dur: 184.9 },
 ];
 let mainSrc = 'meditation.mp3?v=6', audioTrack = 'main', mainDur = 0;
 let medHeard = null;   // 방금 들은 명상 종류 (기록지에 미리 골라 둠)
