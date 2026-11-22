@@ -508,7 +508,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-235';
+const BUILD = '11.19-236';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -6482,8 +6482,8 @@ function buildSeoulReal(D, DD) {
         float sharp = 1.0 - smoothstep(4.0, 14.0, fw), bSharp = 1.0 - smoothstep(35.0, 110.0, fw);
         vec2 pc = floor(vWPc.xz / 260.0); float ph = hC(pc), ph2 = hC(pc + 31.0);
         vec3 farC = mix(vec3(0.7, 0.68, 0.64), ph < 0.25 ? vec3(0.6, 0.66, 0.58) : ph < 0.45 ? vec3(0.74, 0.6, 0.56) : ph < 0.65 ? vec3(0.6, 0.64, 0.72) : ph < 0.8 ? vec3(0.76, 0.7, 0.56) : vec3(0.62, 0.62, 0.62), 0.55) * (0.88 + ph2 * 0.18);   // 아주 먼 곳: 동네마다 지붕 빛이 다른 조각보
-        cc = mix(farC, mix(blk, cc, sharp), bSharp); cLit = mix(0.3 + 0.3 * ph2, mix(bLit, cLit, sharp), bSharp); diffuseColor.rgb = mix(diffuseColor.rgb, cc * diffuseColor.rgb / vec3(0.85, 0.83, 0.77), cK * 0.9); }`)
-      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n      totalEmissiveRadiance += vec3(1.0, 0.78, 0.5) * cLit * cK * uNightC * 0.55;');
+        cc = mix(farC, mix(blk, cc, sharp), bSharp); cLit = mix(0.12 + 0.18 * ph2, mix(bLit * 0.6, cLit, sharp), bSharp); diffuseColor.rgb = mix(diffuseColor.rgb, cc * diffuseColor.rgb / vec3(0.85, 0.83, 0.77), cK * 0.9); }`)
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n      totalEmissiveRadiance = mix(totalEmissiveRadiance, totalEmissiveRadiance * 0.35, cK * uNightC) + vec3(1.0, 0.78, 0.5) * cLit * cK * uNightC * 0.22;   // 밤: 먼 바닥은 어둡게, 창 불빛만 점점이');
   }; };
   cityPattern(groundMat, false);
   // 산: 실제 땅 높이로 만든 지형. 완만한 곳은 숲 초록, 가파른 곳은 바위 회색, 산자락은 땅 빛깔로 스며듦
