@@ -508,7 +508,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-237';
+const BUILD = '11.19-238';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -6579,7 +6579,18 @@ function buildSeoulReal(D, DD) {
     const low = name === '잠수교', deck = low ? 4 : 12;
     return { pts, name, cx, cz, ux, uz, a0, a1, w0, w1, len: a1 - a0, wid: w1 - w0, deck, top: deck + 1.8, bx0: Math.min(...xs), bx1: Math.max(...xs), bz0: Math.min(...zs), bz1: Math.max(...zs) };
   });
-  const bridgeTop = (x, z) => { for (const b of BR) { if (x < b.bx0 - 2 || x > b.bx1 + 2 || z < b.bz0 - 2 || z > b.bz1 + 2) continue;
+  // 지도에 다리 모양이 빠진 다리(한강대교 등): 물 위를 지나는 큰길 구간을 찾아 다리로 세움
+  const WM = 25, [WX0, WX1, WZ0, WZ1] = D.bounds, WW = Math.ceil((WX1 - WX0) / WM), WH = Math.ceil((WZ1 - WZ0) / WM);
+  const wcv = document.createElement('canvas'); wcv.width = WW; wcv.height = WH; const wq = wcv.getContext('2d'); wq.fillStyle = '#fff';
+  D.water.forEach(w => { wq.beginPath(); w.forEach(r => r.forEach(([x, z], k) => { const u = (x - WX0) / WM, v = (z - WZ0) / WM; k ? wq.lineTo(u, v) : wq.moveTo(u, v); })); wq.fill('evenodd'); });
+  const wdat = wq.getImageData(0, 0, WW, WH).data, inWater = (x, z) => { const u = Math.floor((x - WX0) / WM), v = Math.floor((z - WZ0) / WM); return u >= 0 && v >= 0 && u < WW && v < WH && wdat[(v * WW + u) * 4] > 100; };
+  const inBRpoly = (x, z) => BR.some(b => { if (x < b.bx0 - 2 || x > b.bx1 + 2 || z < b.bz0 - 2 || z > b.bz1 + 2) return false; let inside = false; const p = b.pts; for (let a = 0, c = p.length - 1; a < p.length; c = a++) { const [xa, za] = p[a], [xc, zc] = p[c]; if (((za > z) !== (zc > z)) && (x < (xc - xa) * (z - za) / (zc - za) + xa)) inside = !inside; } return inside; });
+  const AB = [];   // [x1, z1, x2, z2, 반폭]
+  D.roads.forEach(r => { const p = r.p; for (let i = 0; i < p.length - 1; i++) { const [x1, z1] = p[i], [x2, z2] = p[i + 1], L = Math.hypot(x2 - x1, z2 - z1), n = Math.max(1, Math.ceil(L / 20));
+    let run = null; for (let k = 0; k <= n; k++) { const x = x1 + (x2 - x1) * k / n, z = z1 + (z2 - z1) * k / n, w = inWater(x, z) && !inBRpoly(x, z);
+      if (w && !run) run = [Math.max(0, k - 1) / n]; if ((!w || k === n) && run) { run.push(Math.min(n, k + 1) / n); if ((run[1] - run[0]) * L > 40) AB.push([x1 + (x2 - x1) * run[0], z1 + (z2 - z1) * run[0], x1 + (x2 - x1) * run[1], z1 + (z2 - z1) * run[1], r.w / 2 + 2]); run = null; } } } });
+  const abTop = (x, z) => { for (const [x1, z1, x2, z2, hw] of AB) { const dx = x2 - x1, dz = z2 - z1, L2 = dx * dx + dz * dz || 1, t = Math.max(0, Math.min(1, ((x - x1) * dx + (z - z1) * dz) / L2)); if (Math.hypot(x - x1 - dx * t, z - z1 - dz * t) <= hw + 1) return 13.8; } return null; };
+  const bridgeTop = (x, z) => { const ab = AB.length ? abTop(x, z) : null; if (ab !== null) return ab; for (const b of BR) { if (x < b.bx0 - 2 || x > b.bx1 + 2 || z < b.bz0 - 2 || z > b.bz1 + 2) continue;
       let inside = false; const p = b.pts; for (let a = 0, c = p.length - 1; a < p.length; c = a++) { const [xa, za] = p[a], [xc, zc] = p[c]; if (((za > z) !== (zc > z)) && (x < (xc - xa) * (z - za) / (zc - za) + xa)) inside = !inside; }
       if (inside) return b.top; } return null; };
   const ryB = (x, z, y) => { const t = bridgeTop(x, z); return t === null ? y : t + (y - 1.5) * 0.3 + 0.1; };
@@ -6622,9 +6633,12 @@ function buildSeoulReal(D, DD) {
       // ---- 유명한 다리의 생김새 ----
       const N = b.name;
       if (N === '성수대교' || N.startsWith('한강철교') || N === '당산철교' || N === '잠실철교') {   // 철골 트러스 (성수대교는 붉은빛)
-        const tm = N === '성수대교' ? 'sx' : 'tx'; const H = N === '성수대교' ? 12 : 9;
-        for (const sd of [-1, 1]) { const [tx, tz] = at((b.a0 + b.a1) / 2, wc + sd * (hw - 0.4)); const g = new THREE.BoxGeometry(b.len * 0.94, 0.8, 0.8); g.rotateY(-ang); g.translate(tx, b.top + H, tz); extras.push(Object.assign(g, { userData: { m: tm } }));
-          for (let a = b.a0 + 15, k = 0; a < b.a1 - 15; a += 15, k++) { const [qx, qz] = at(a, wc + sd * (hw - 0.4)); const d = new THREE.BoxGeometry(0.6, Math.hypot(H, 15), 0.6); d.translate(0, Math.hypot(H, 15) / 2, 0); d.rotateZ((k % 2 ? 1 : -1) * Math.atan2(15, H)); d.rotateY(-ang); d.translate(qx, b.top, qz); extras.push(Object.assign(d, { userData: { m: tm } })); } }
+        // 철골 트러스: 위 현재 + 기둥 + 한 방향 사선 (철교는 네 다리가 나란해서 가늘고 성기게, 바깥쪽 한 면만 또렷이)
+        const rail = N !== '성수대교', tm = rail ? 'tx' : 'sx', H = rail ? 7.5 : 12, P = rail ? 22 : 15, T = rail ? 0.4 : 0.7;
+        for (const sd of [-1, 1]) { const [tx, tz] = at((b.a0 + b.a1) / 2, wc + sd * (hw - 0.4)); const g = new THREE.BoxGeometry(b.len * 0.94, T * 1.3, T * 1.3); g.rotateY(-ang); g.translate(tx, b.top + H, tz); extras.push(Object.assign(g, { userData: { m: tm } }));
+          for (let a = b.a0 + P, k = 0; a < b.a1 - P; a += P, k++) { const [qx, qz] = at(a, wc + sd * (hw - 0.4));
+            const v = new THREE.BoxGeometry(T, H, T); v.translate(qx, b.top + H / 2, qz); extras.push(Object.assign(v, { userData: { m: tm } }));
+            const DL = Math.hypot(H, P), d = new THREE.BoxGeometry(T * 0.8, DL, T * 0.8); d.translate(0, DL / 2, 0); d.rotateZ(-Math.atan2(P, H) * (a < (b.a0 + b.a1) / 2 ? 1 : -1)); d.rotateY(-ang); d.translate(qx, b.top, qz); extras.push(Object.assign(d, { userData: { m: tm } })); } }
       }
       if (N === '동호대교') {   // 가운데 주황빛 아치 두 개
         for (const sd of [-1, 1]) { const pts2 = []; for (let i = 0; i <= 24; i++) { const f = i / 24, a = -110 + 220 * f, [x, z] = at(a, wc + sd * (hw - 0.5)); pts2.push(new THREE.Vector3(x, b.top + Math.sin(f * Math.PI) * 32, z)); }
@@ -6641,7 +6655,12 @@ function buildSeoulReal(D, DD) {
         for (const sd of [-1, 1]) for (let a = b.a0 + 30, k = 0; a < b.a1 - 30; a += 9, k++) { const [fx, fz] = at(a, wc + sd * (hw + 6)); lampC.set(RB[Math.floor(k / 4) % RB.length]); reflPts.push(fx, 0.6, fz); reflCols.push(lampC.r, lampC.g, lampC.b); }
       }
     }
-    S.add(new THREE.Mesh(mergeGeos(decks), bridgeMat));
+    for (const [x1, z1, x2, z2, hw] of AB) { const L = Math.hypot(x2 - x1, z2 - z1), ang = Math.atan2(z2 - z1, x2 - x1), ux = (x2 - x1) / L, uz = (z2 - z1) / L, mx = (x1 + x2) / 2, mz = (z1 + z2) / 2;
+      const dg = new THREE.BoxGeometry(L, 1.8, hw * 2); dg.rotateY(-ang); dg.translate(mx, 12.9, mz); decks.push(dg);
+      for (const sd of [-1, 1]) box(mx - uz * sd * (hw - 0.6), 14.4, mz + ux * sd * (hw - 0.6), L, 1.2, 0.5, ang, 'r');
+      for (let a = 40; a < L - 20; a += 70) box(x1 + ux * a, 5, z1 + uz * a, 5, 14, Math.min(hw * 1.4, 24), ang, 'p');
+      for (const sd of [-1, 1]) for (let a = 10; a < L - 5; a += 28) { const lx = x1 + ux * a - uz * sd * (hw - 1), lz = z1 + uz * a + ux * sd * (hw - 1); lampC.set('#ffcf86'); bridgeLamps.push(lx, 20.8, lz); bridgeLampCols.push(lampC.r, lampC.g, lampC.b); reflPts.push(lx, 0.6, lz); reflCols.push(lampC.r, lampC.g, lampC.b); } }
+    S.add(new THREE.Mesh(mergeGeos(decks.map(g => g.index ? g.toNonIndexed() : g)), bridgeMat));
     if (piers.length) S.add(new THREE.Mesh(mergeGeos(piers), pierMat));
     if (rails.length) S.add(new THREE.Mesh(mergeGeos(rails), railMat));
     const EXM = { sx: std({ color: '#b5524a', roughness: 0.6, metalness: 0.3 }), tx: std({ color: '#7d828b', roughness: 0.6, metalness: 0.4 }), ox: std({ color: '#e8873a', roughness: 0.5, emissive: '#e8873a', emissiveIntensity: 0 }), wx: std({ color: '#eceae4', roughness: 0.6 }) };
