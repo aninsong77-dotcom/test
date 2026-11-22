@@ -508,7 +508,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-240';
+const BUILD = '11.19-241';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -3620,15 +3620,16 @@ const myGaze = { on: false, y: 0, p: 0 }, tmp2Gaze = new THREE.Vector3();
 const tpCam = new THREE.Vector3();
 let autoTP = false;
 // 버튼·키로 눈으로 보기를 켤 때: 화면을 보던 쪽이 아니라 아바타가 바라보던 쪽으로
-function toggleView() { const fp = !firstPerson; if (fp) { camYaw = heading; fpPitch = -0.12; } setView(fp); }
+function toggleView() { setView(!firstPerson); }
 function setView(fp) {
-  if (fp && !firstPerson) camYaw = heading;   // 어떤 길로 눈으로 보기가 되든(버튼·V키·휠·자동) 아바타가 바라보던 쪽으로
+  if (fp && !firstPerson) { camYaw = eyeYaw; fpPitch = eyePitch; }   // 어떤 길로 눈으로 보기가 되든 아바타 고개가 보던 쪽으로
   autoTP = false;
   firstPerson = fp;
   if (!fp) camZoom = 1;
   const b = document.getElementById('viewBtn');
   if (b) b.textContent = fp ? '내 모습 보기' : '눈으로 보기';
 }
+let eyeYaw = 0, eyePitch = 0, eyeHeadY = 0, eyeHeadP = 0, lastHeadingE = 0;   // 내 눈이 보는 쪽 (눈으로 보기에서 돌린 고개 그대로, 내 모습 보기에서도 아바타 고개가 그쪽을 봄)
 let camYaw = 0, camPitchOff = 0, camZoom = 1, lastLookAt = -1e9;
 let moveTarget = null;
 const targetRing = noRay(new THREE.Mesh(new THREE.RingGeometry(0.22, 0.3, 32), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.8, depthWrite: false, side: THREE.DoubleSide })));
@@ -3791,6 +3792,16 @@ function updateWalk(dt, t) {
   myFig.lookingOut = !!edgeSit;
   myFig.meditate = mySeat !== null && (!!solo || groupMeditating());   // 명상 중일 때만 눈을 감음
   applyPose(myFig, gesturePose(myGesture), t, mySeat !== null || teaSitting !== null || edgeSit ? 1 : 0, move);
+  { // 내 아바타 고개: 내 눈이 보는 쪽으로 (몸 기준 좌우 ±70°). 걸으면 고개는 몸 쪽으로 돌아옴
+    if (Math.abs(angTo(lastHeadingE, heading)) > 0.5 && !firstPerson) { eyeYaw = heading; eyePitch = 0; }   // 앉거나 몸이 확 돌면 고개도 정면으로
+    lastHeadingE = heading;
+    if (move > 0.05 || moveTarget) { eyeYaw += angTo(eyeYaw, heading) * Math.min(1, dt * 4); eyePitch *= Math.max(0, 1 - dt * 4); }
+    const hd = myFig.head; hd.rotation.order = 'YXZ';
+    const busy = faceK(myGesture) > 0.05 || myGesture.k === 'bow', k = Math.min(1, dt * 4);
+    eyeHeadY += ((busy ? 0 : Math.max(-1.2, Math.min(1.2, angTo(heading, eyeYaw)))) - eyeHeadY) * k;
+    eyeHeadP += ((busy ? 0 : Math.max(-0.5, Math.min(0.7, eyePitch))) - eyeHeadP) * k;
+    hd.rotation.y = eyeHeadY; hd.rotation.x -= eyeHeadP * 0.75;
+  }
 
   trailTimer -= dt;
   // 걸을 때 뒤로 남는 물방울은 돔 밖(물속)에서만. 돔 안은 공기라서 물방울이 생기지 않음
@@ -3847,6 +3858,7 @@ function updateWalk(dt, t) {
   if (fb > 0.001) {
     const eyeH = mix(0.86, 0.76, myFig.sit);
     let yaw = camYaw, pitchFP = fpPitch;
+    if (fb > 0.6) { eyeYaw = camYaw; eyePitch = fpPitch; }   // 눈으로 볼 때 돌린 고개를 기억
     { const fk = faceK(myGesture), T = fk > 0 ? personPos(myGesture.to) : null;
       if (T && T !== orb.position) yaw += angTo(yaw, Math.atan2(-(T.x - orb.position.x), -(T.z - orb.position.z))) * fk; }
     let eyeBack = 0;
@@ -3869,7 +3881,7 @@ function updateWalk(dt, t) {
     camera.lookAt(new THREE.Vector3().lerpVectors(lookTarget, fpLook, fb));
   } else { camera.lookAt(lookTarget); myGaze.p = Math.min(0.9, lookUp * 1.5); }
   { // 내 화면이 향한 쪽 = 내가 보는 쪽 (눈으로 보기든 내 모습 보기든)
-    const d = camera.getWorldDirection(tmp2Gaze); myGaze.on = true; myGaze.y = Math.atan2(d.x, d.z); }
+    const d = camera.getWorldDirection(tmp2Gaze); myGaze.on = true; myGaze.y = firstPerson ? Math.atan2(d.x, d.z) : eyeYaw + Math.PI; if (!firstPerson) myGaze.p = eyePitch; }
 
   let foundNow = null;
   for (const c of creatures) {
