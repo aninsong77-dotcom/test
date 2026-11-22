@@ -161,23 +161,28 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 #endSheet .actions button{background:none!important;border:none!important;border-bottom:1px solid #1d1a16!important;border-radius:0!important;padding:4px 2px!important;font-size:15px!important}
 #endSheet.opening .end-only{display:none}
 /* 명상 기록지: 한지 바탕, 먹 글씨 */
-#journalSheet .card{background:#faf8f2!important;border:none!important;color:#1d1a16;height:min(720px,calc(100dvh - 32px));overflow-y:auto;width:min(460px,100%);align-content:start;box-sizing:border-box}   /* 모든 탭이 같은 크기, 길면 스크롤 */
+#journalSheet .card{background:#faf8f2!important;border:none!important;color:#1d1a16;height:min(720px,calc(100dvh - 24px));overflow:hidden;padding:16px 18px!important;width:min(460px,100%);box-sizing:border-box;display:flex!important;flex-direction:column;gap:10px}   /* 모든 탭이 같은 크기: 제목·탭과 아래 버튼은 고정, 가운데만 스크롤 */
 #journalSheet .card *{font-family:var(--f-display)!important}
 #journalSheet h2,#journalSheet p,#journalSheet label,#journalSheet .j-label{color:#1d1a16!important}
 #journalSheet .j-meta{color:#5b5246!important;font-size:12.5px}
-#journalSheet .j-note{color:#6a6155!important;font-size:11.5px}
-#journalSheet select,#journalSheet textarea,#journalSheet input{background:rgba(255,255,255,.6);color:#1d1a16;border:1px solid rgba(29,26,22,.25);border-radius:8px;padding:8px 10px;font-size:14px;width:100%;box-sizing:border-box;resize:vertical}
+#journalSheet .j-note{color:#6a6155!important;font-size:11px;line-height:1.5!important}
+#journalSheet select,#journalSheet textarea,#journalSheet input{background:rgba(255,255,255,.6);color:#1d1a16;border:1px solid rgba(29,26,22,.25);border-radius:8px;padding:7px 10px;font-size:14px;width:100%;box-sizing:border-box;resize:vertical}
 #journalSheet button{background:none;border:1px solid rgba(29,26,22,.35);color:#1d1a16}
 #journalSheet button.primary,#journalSheet button[aria-pressed="true"]{background:#1d1a16;color:#faf8f2;border-color:#1d1a16}
 #journalSheet .j-tabs{display:flex;gap:8px}
-#journalSheet .j-moods{display:flex;flex-wrap:wrap;gap:6px}
-#journalSheet .j-moods button{padding:6px 12px;font-size:13px}
-#journalSheet #jNew,#journalSheet #jList,#journalSheet #jView{display:grid;gap:12px}
+#journalSheet .j-moods{display:flex;flex-wrap:wrap;gap:5px}
+#journalSheet .j-moods button{padding:4px 10px;font-size:13px}
+#journalSheet .j-moods .j-add{border-style:dashed;color:#5b5246}
+#journalSheet .j-moods input{width:9.5em;padding:4px 10px;border-radius:999px;font-size:13px}
+#journalSheet .card>h2,#journalSheet .j-tabs{flex-shrink:0}
+#journalSheet #jNew,#journalSheet #jList,#journalSheet #jView,#journalSheet #jStat{flex:1 1 0;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:2px 2px 0}
+#journalSheet label{gap:4px}
+#journalSheet #jNew>*,#journalSheet #jList>*,#journalSheet #jView>*,#journalSheet #jStat>*{flex-shrink:0}
+#journalSheet .actions{margin-top:auto;position:sticky;bottom:0;background:#faf8f2;padding:8px 0 2px;z-index:1}
 #journalSheet [hidden]{display:none!important}
 #journalSheet .j-items{display:grid;gap:8px}
 #journalSheet .j-items button{text-align:left;border-radius:10px;padding:10px 12px;display:grid;gap:3px}
 #journalSheet .j-items small{color:#6a6155;font-size:11.5px}
-#journalSheet #jStat{display:grid;gap:14px}
 #journalSheet .js-per{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 #journalSheet .js-per button{padding:5px 12px;font-size:13px}
 #journalSheet .js-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:14px}
@@ -438,7 +443,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
       <div class="j-label">지금 마음 <small>(여러 개 골라도 돼요)</small></div>
       <div class="j-moods" id="jMoods"></div>
       <label>몸의 느낌<textarea id="jBody" rows="2" maxlength="600" placeholder="예: 어깨가 풀리고 숨이 깊어졌어요"></textarea></label>
-      <label>떠오른 생각·마음<textarea id="jMind" rows="3" maxlength="1200" placeholder="자유롭게 적어요"></textarea></label>
+      <label>떠오른 생각·마음<textarea id="jMind" rows="2" maxlength="1200" placeholder="자유롭게 적어요"></textarea></label>
       <label>나에게 한 줄<input id="jLine" type="text" maxlength="80" placeholder="예: 오늘도 애썼어"></label>
       <p class="j-note">기록은 이 기기의 이 브라우저에만 저장돼요. 브라우저 기록을 지우거나 기기를 바꾸면 사라지니, '지난 기록'에서 일기장을 내려받아 원하는 곳에 보관하세요.</p>
       <div class="actions"><button type="button" id="jClose">닫기</button><button type="button" class="primary" id="jSave">저장</button></div>
@@ -534,7 +539,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-246';
+const BUILD = '11.19-249';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -7888,6 +7893,18 @@ const jPlace = k => ({ sea: '바다 명상', seoul: '서울 하늘 명상', spac
 let jPicked = new Set(), jOpen = null; const jUnsaved = [];   // 저장이 막힌 브라우저에서 쓴 기록 (창을 닫기 전까지)
 $('jMoods').append(...MOODS.map(m => { const b = document.createElement('button'); b.type = 'button'; b.textContent = m; b.setAttribute('aria-pressed', 'false');
   b.addEventListener('click', () => { if (jPicked.has(m)) jPicked.delete(m); else jPicked.add(m); b.setAttribute('aria-pressed', jPicked.has(m) ? 'true' : 'false'); }); return b; }));
+// 메뉴에 없는 마음: '＋ 직접 쓰기'를 누르면 칸이 열리고, 쓴 마음은 골라진 버튼으로 추가됨
+{ const add = document.createElement('button'), inp = document.createElement('input'); add.type = 'button'; add.className = 'j-add'; add.textContent = '＋ 직접 쓰기';
+  inp.type = 'text'; inp.maxLength = 14; inp.placeholder = '지금 마음을 적어요'; inp.hidden = true; inp.setAttribute('aria-label', '메뉴에 없는 마음');
+  const put = () => { const m = inp.value.trim().replace(/[,·]+$/, ''); inp.value = '';
+    if (m && !jPicked.has(m)) { jPicked.add(m); const exist = [...$('jMoods').querySelectorAll('button')].find(b => b.textContent === m);
+      if (exist) exist.setAttribute('aria-pressed', 'true');
+      else { const b = document.createElement('button'); b.type = 'button'; b.textContent = m; b.dataset.custom = '1'; b.setAttribute('aria-pressed', 'true');
+        b.addEventListener('click', () => { jPicked.delete(m); b.remove(); }); add.before(b); } } };
+  add.addEventListener('click', () => { inp.hidden = false; add.hidden = true; inp.focus(); });
+  inp.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ',') { ev.preventDefault(); put(); } });
+  inp.addEventListener('blur', () => { put(); inp.hidden = true; add.hidden = false; });
+  $('jMoods').append(add, inp); }
 function jShow(which) {
   $('jNew').hidden = which !== 'new'; $('jList').hidden = which !== 'list'; $('jView').hidden = which !== 'view'; $('jStat').hidden = which !== 'stat';
   $('jTabNew').setAttribute('aria-pressed', which === 'new' ? 'true' : 'false'); $('jTabList').setAttribute('aria-pressed', which === 'list' || which === 'view' ? 'true' : 'false'); $('jTabStat').setAttribute('aria-pressed', which === 'stat' ? 'true' : 'false');
@@ -7919,11 +7936,12 @@ $('jTabStat').addEventListener('click', () => jShow('stat'));
 const jCloseFn = () => { $('journalSheet').hidden = true; if (iAmOut) $('endSheet').hidden = false; };
 $('jClose').addEventListener('click', jCloseFn); $('jClose2').addEventListener('click', jCloseFn); $('jClose3').addEventListener('click', jCloseFn); $('jClose4').addEventListener('click', jCloseFn);
 $('jSave').addEventListener('click', () => {
+  { const i = $('jMoods').querySelector('input'); if (i && i.value.trim() && !jPicked.has(i.value.trim())) jPicked.add(i.value.trim()); }
   const e = { at: Date.now(), place: jPlace(myDim), kind: $('jKind').value, moods: [...jPicked], body: $('jBody').value.trim(), mind: $('jMind').value.trim(), line: $('jLine').value.trim() };
   if (!e.moods.length && !e.body && !e.mind && !e.line) { toast('마음을 고르거나 한 줄이라도 적어 주세요'); return; }
   const all = jLoad(); all.push(e);
   if (!jStore(all)) { jUnsaved.push(e); toast('이 브라우저에는 저장할 수 없어요 · 지난 기록에서 일기장으로 내려받아 두세요'); jOpen = e; $('jPaper').textContent = jText(e); jShow('view'); return; }
-  jPicked.clear(); $('jMoods').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', 'false')); $('jBody').value = $('jMind').value = $('jLine').value = '';
+  jPicked.clear(); $('jMoods').querySelectorAll('button[data-custom]').forEach(b => b.remove()); $('jMoods').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', 'false')); $('jBody').value = $('jMind').value = $('jLine').value = '';
   toast('기록을 저장했어요'); jOpen = e; $('jPaper').textContent = jText(e); jShow('view');
 });
 $('jDel').addEventListener('click', () => { if (!jOpen || !confirm('이 기록을 지울까요?')) return; jStore(jLoad().filter(x => x.at !== jOpen.at)); jOpen = null; jShow('list'); });
