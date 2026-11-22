@@ -584,7 +584,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-261';
+const BUILD = '11.19-262';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -4507,6 +4507,7 @@ function sitAt(i) {
   mySeat = i;
   moveTarget = null;
   camYaw = SEATS[i].heading; camPitchOff = 0; fpPitch = 0.06;
+  heading = SEATS[i].heading; eyeYaw = heading; eyePitch = 0; lastHeadingE = heading;   // 앉으면 몸·고개 모두 가운데 쪽 (눈으로 보기도 그쪽으로 열림)
   if (firstPerson) { setView(false); autoTP = true; }
   unlockAudio();
   $('seatBtn').textContent = '일어나기';
