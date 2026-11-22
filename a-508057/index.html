@@ -525,8 +525,8 @@ html[data-dim="seoul"] .copyline span,html[data-dim="space"] .copyline span{colo
       <p class="credits-h">명상 안내 음성 출처</p>
       <ul>
         <li>안내 음성은 AI로 만들었어요.</li>
-        <li>자비 명상(여성): AnyToSpeech AI 음성</li>
-        <li>자비 명상(남성): INZEUM AI 음성</li>
+        <li>AnyToSpeech AI 음성</li>
+        <li>INZEUM AI 음성</li>
       </ul>
     </div>
     <div class="credits" aria-label="기타 자료 출처">
@@ -584,7 +584,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-262';
+const BUILD = '11.19-263';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
