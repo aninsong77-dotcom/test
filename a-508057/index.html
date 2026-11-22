@@ -508,7 +508,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-232';
+const BUILD = '11.19-233';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -6937,13 +6937,24 @@ function buildSeoulReal(D, DD) {
     roofs.forEach(o => { if (o.h > 14 && o.h < 70 && rnd() < 0.06) { c.set(NEON[Math.floor(rnd() * NEON.length)]); for (let k = 0; k < 3; k++) { pts.push(o.x + (k - 1) * 2.2, o.h + 1.5, o.z); cols.push(c.r, c.g, c.b); } } });
     lightLayer(pts, cols, 4, false);
   }
-  // 공원 나무
-  { const N = light ? 6000 : 20000, tm = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 8, 6), std({ color: '#6fb35a', roughness: 1 }), N), m = new THREE.Matrix4(), c = new THREE.Color(); let k = 0;
-    const per = light ? 400 : 1400;   // 큰 공원은 숲처럼 빽빽하게
-    for (const p of D.parks) { const xs = p.map(a => a[0]), zs = p.map(a => a[1]); const minx = Math.min(...xs), maxx = Math.max(...xs), minz = Math.min(...zs), maxz = Math.max(...zs); const n = Math.min(per, Math.floor((maxx - minx) * (maxz - minz) / (light ? 9000 : 2600)));
-      for (let i = 0; i < n && k < N; i++) { const x = minx + rnd() * (maxx - minx), z = minz + rnd() * (maxz - minz); let inside = false; for (let a = 0, b = p.length - 1; a < p.length; b = a++) { const [xa, za] = p[a], [xb, zb] = p[b]; if (((za > z) !== (zb > z)) && (x < (xb - xa) * (z - za) / (zb - za) + xa)) inside = !inside; } if (!inside) continue;
-        const r = 4 + rnd() * 3; m.makeScale(r, r * 1.15, r); m.setPosition(x, r + terrH(x, z), z); tm.setMatrixAt(k, m); tm.setColorAt(k, c.setHSL(0.27 + rnd() * 0.06, 0.5, 0.42 + rnd() * 0.14)); k++; } }
-    tm.count = k; tm.frustumCulled = false; S.add(tm); }
+  // 공원 나무: 3~12그루씩 무리 지어 서로 겹치게 (숲 덩어리), 위가 조금 납작하고 울퉁불퉁한 나무 머리, 여러 초록빛. 무리 아래 잔디는 은은한 그늘.
+  // 넓은 잔디밭은 군데군데 그대로 남김
+  { const N = light ? 7000 : 22000;
+    const tg = new THREE.IcosahedronGeometry(1, 1); { const pa = tg.attributes.position; for (let i = 0; i < pa.count; i++) { const x = pa.getX(i), y = pa.getY(i), z = pa.getZ(i), k = 1 + (Math.sin(x * 5.1 + z * 3.7) * 0.5 + Math.sin(y * 6.3 - x * 2.9) * 0.5) * 0.14; pa.setXYZ(i, x * k, y * k * 0.82, z * k); } tg.computeVertexNormals(); }
+    const tm = new THREE.InstancedMesh(tg, std({ color: '#ffffff', roughness: 1 }), N), m = new THREE.Matrix4(), c = new THREE.Color(), q0 = new THREE.Quaternion(), e0 = new THREE.Euler(); let k = 0;
+    const shTex = canvasTex(64, 64, (g, w, h) => { const gr = g.createRadialGradient(32, 32, 4, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.6, 'rgba(255,255,255,.7)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, h); });
+    const shGeo = new THREE.CircleGeometry(1, 20); shGeo.rotateX(-Math.PI / 2);
+    const SHN = light ? 900 : 2600, sm2 = new THREE.InstancedMesh(shGeo, new THREE.MeshLambertMaterial({ color: '#4f7f42', transparent: true, opacity: 0.45, alphaMap: shTex, depthWrite: false }), SHN); let ks = 0;
+    const inP = (p, x, z) => { let inside = false; for (let a = 0, b = p.length - 1; a < p.length; b = a++) { const [xa, za] = p[a], [xb, zb] = p[b]; if (((za > z) !== (zb > z)) && (x < (xb - xa) * (z - za) / (zb - za) + xa)) inside = !inside; } return inside; };
+    for (const p of D.parks) { const xs = p.map(a => a[0]), zs = p.map(a => a[1]); const minx = Math.min(...xs), maxx = Math.max(...xs), minz = Math.min(...zs), maxz = Math.max(...zs), A = (maxx - minx) * (maxz - minz);
+      const nc = Math.min(light ? 60 : 220, Math.max(1, Math.floor(A / (light ? 26000 : 9000))));
+      for (let ci = 0; ci < nc && k < N; ci++) { const cx = minx + rnd() * (maxx - minx), cz = minz + rnd() * (maxz - minz); if (!inP(p, cx, cz)) continue;
+        const cr = 12 + rnd() * 26, nt = 3 + Math.floor(rnd() * 10), hue = 0.24 + rnd() * 0.08;
+        if (ks < SHN) { m.makeScale(cr * 1.25, 1, cr * 1.25); m.setPosition(cx, meshH(cx, cz) + 1.35, cz); sm2.setMatrixAt(ks++, m); }
+        for (let t = 0; t < nt && k < N; t++) { const a = rnd() * 6.283, rr = Math.sqrt(rnd()) * cr, x = cx + Math.cos(a) * rr, z = cz + Math.sin(a) * rr; if (!inP(p, x, z)) continue;
+          const r = 3.5 + rnd() * 4.5; q0.setFromEuler(e0.set(0, rnd() * 6.28, 0)); m.compose(new THREE.Vector3(x, meshH(x, z) + r * 0.9, z), q0, new THREE.Vector3(r * (0.9 + rnd() * 0.25), r, r * (0.9 + rnd() * 0.25)));
+          tm.setMatrixAt(k, m); tm.setColorAt(k, c.setHSL(hue + (rnd() - 0.5) * 0.03, 0.34 + rnd() * 0.16, 0.34 + rnd() * 0.16)); k++; } } }
+    tm.count = k; sm2.count = ks; tm.castShadow = true; tm.frustumCulled = sm2.frustumCulled = false; S.add(sm2, tm); }
   // 차: 큰길을 따라 달림 (움직임은 그래픽 카드에서 계산해 가벼움). 길 끝에서는 작아지며 사라졌다 다시 나타남
   const carMat = std({ roughness: 0.4, emissive: '#fff1c8', emissiveIntensity: 0 });
   const carT = { value: 0 };
