@@ -161,7 +161,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 #endSheet .actions button{background:none!important;border:none!important;border-bottom:1px solid #1d1a16!important;border-radius:0!important;padding:4px 2px!important;font-size:15px!important}
 #endSheet.opening .end-only{display:none}
 /* 명상 기록지: 한지 바탕, 먹 글씨 */
-#journalSheet .card{background:#faf8f2!important;border:none!important;color:#1d1a16;max-height:calc(100dvh - 32px);overflow-y:auto;width:min(460px,100%)}
+#journalSheet .card{background:#faf8f2!important;border:none!important;color:#1d1a16;height:min(720px,calc(100dvh - 32px));overflow-y:auto;width:min(460px,100%);align-content:start;box-sizing:border-box}   /* 모든 탭이 같은 크기, 길면 스크롤 */
 #journalSheet .card *{font-family:var(--f-display)!important}
 #journalSheet h2,#journalSheet p,#journalSheet label,#journalSheet .j-label{color:#1d1a16!important}
 #journalSheet .j-meta{color:#5b5246!important;font-size:12.5px}
@@ -452,7 +452,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
       <div class="js-per" id="jsPer"><button type="button" data-m="week" aria-pressed="true">주</button><button type="button" data-m="month" aria-pressed="false">월</button><button type="button" data-m="all" aria-pressed="false">전체</button></div>
       <div class="js-nav"><button type="button" id="jsPrev" aria-label="이전">‹</button><span id="jsRange"></span><button type="button" id="jsNext" aria-label="다음">›</button></div>
       <div id="jsBody"></div>
-      <div class="actions"><button type="button" id="jWipe">기록 모두 지우기</button><button type="button" id="jAll2">일기장 내려받기</button></div>
+      <div class="actions"><button type="button" id="jWipe">기록 모두 지우기</button><button type="button" id="jAll2">일기장 내려받기</button><button type="button" id="jClose3">닫기</button></div>
     </div>
     <div id="jView" hidden>
       <div class="j-paper" id="jPaper"></div>
@@ -534,7 +534,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-244';
+const BUILD = '11.19-245';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -7917,7 +7917,7 @@ $('jTabList').addEventListener('click', () => jShow('list'));
 $('jBack').addEventListener('click', () => jShow('list'));
 $('jTabStat').addEventListener('click', () => jShow('stat'));
 const jCloseFn = () => { $('journalSheet').hidden = true; if (iAmOut) $('endSheet').hidden = false; };
-$('jClose').addEventListener('click', jCloseFn); $('jClose2').addEventListener('click', jCloseFn);
+$('jClose').addEventListener('click', jCloseFn); $('jClose2').addEventListener('click', jCloseFn); $('jClose3').addEventListener('click', jCloseFn);
 $('jSave').addEventListener('click', () => {
   const e = { at: Date.now(), place: jPlace(myDim), kind: $('jKind').value, moods: [...jPicked], body: $('jBody').value.trim(), mind: $('jMind').value.trim(), line: $('jLine').value.trim() };
   if (!e.moods.length && !e.body && !e.mind && !e.line) { toast('마음을 고르거나 한 줄이라도 적어 주세요'); return; }
