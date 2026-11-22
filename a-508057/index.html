@@ -177,6 +177,25 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 #journalSheet .j-items{display:grid;gap:8px}
 #journalSheet .j-items button{text-align:left;border-radius:10px;padding:10px 12px;display:grid;gap:3px}
 #journalSheet .j-items small{color:#6a6155;font-size:11.5px}
+#journalSheet #jStat{display:grid;gap:14px}
+#journalSheet .js-per{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+#journalSheet .js-per button{padding:5px 12px;font-size:13px}
+#journalSheet .js-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:14px}
+#journalSheet .js-nav button{padding:2px 12px;font-size:15px}
+#journalSheet .js-big{font-size:13px;color:#5b5246!important}
+#journalSheet .js-cols{display:flex;align-items:flex-end;gap:3px;height:96px;border-bottom:1px solid rgba(29,26,22,.3);padding-top:14px}
+#journalSheet .js-cols div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0}
+#journalSheet .js-cols i{display:block;width:72%;max-width:26px;background:#1d1a16;border-radius:3px 3px 0 0;min-height:1px}
+#journalSheet .js-cols b{font-size:10px;font-weight:400;color:#5b5246;height:13px}
+#journalSheet .js-lab{display:flex;gap:3px}
+#journalSheet .js-lab span{flex:1;text-align:center;font-size:10.5px;color:#5b5246;min-width:0;overflow:hidden}
+#journalSheet .js-sec h3{margin:0 0 6px;font-size:14px;color:#1d1a16}
+#journalSheet .js-row{display:grid;grid-template-columns:5.5em 1fr 2em;align-items:center;gap:8px;font-size:12.5px;margin:3px 0;color:#1d1a16}
+#journalSheet .js-row i{display:block;height:9px;background:#1d1a16;border-radius:5px;opacity:.82}
+#journalSheet .js-row em{font-style:normal;text-align:right;color:#5b5246}
+#journalSheet .js-words{display:flex;flex-wrap:wrap;gap:6px}
+#journalSheet .js-words span{padding:2px 10px;border:1px solid rgba(29,26,22,.3);border-radius:999px;font-size:12.5px}
+#journalSheet .js-empty{font-size:13px;color:#6a6155!important}
 #journalSheet .j-paper{white-space:pre-wrap;line-height:1.8;font-size:14px;color:#1d1a16}
 /* 처음 화면의 들어가기 로딩: 가는 먹선이 차오르면 돔으로 들어감 */
 #endSheet .enter-load{display:none}
@@ -412,7 +431,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 <div class="sheet" id="journalSheet" hidden>
   <div class="card" role="dialog" aria-labelledby="jTitle">
     <h2 id="jTitle">명상 기록</h2>
-    <div class="j-tabs"><button type="button" id="jTabNew" aria-pressed="true">새로 쓰기</button><button type="button" id="jTabList" aria-pressed="false">지난 기록</button></div>
+    <div class="j-tabs"><button type="button" id="jTabNew" aria-pressed="true">새로 쓰기</button><button type="button" id="jTabList" aria-pressed="false">지난 기록</button><button type="button" id="jTabStat" aria-pressed="false">돌아보기</button></div>
     <div id="jNew">
       <p class="j-meta" id="jMeta"></p>
       <label>명상 종류<select id="jKind"><option>호흡 알아차리기</option><option>자비 명상</option><option>혼자 명상</option><option>9시 함께 명상</option><option>종 명상</option><option>그 밖에</option></select></label>
@@ -427,6 +446,13 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
     <div id="jList" hidden>
       <div class="j-items" id="jItems"></div>
       <div class="actions"><button type="button" id="jAll">일기장 내려받기</button><button type="button" id="jClose2">닫기</button></div>
+    </div>
+    <div id="jStat" hidden>
+      <p class="j-note">이 돌아보기는 이 기기의 이 브라우저 안에서만 계산해요. 기록과 결과는 어디에도 보내지 않고, 다른 사람도 저도 볼 수 없어요. 다른 기기나 다른 브라우저에서는 보이지 않아요.</p>
+      <div class="js-per" id="jsPer"><button type="button" data-m="week" aria-pressed="true">주</button><button type="button" data-m="month" aria-pressed="false">월</button><button type="button" data-m="all" aria-pressed="false">전체</button></div>
+      <div class="js-nav"><button type="button" id="jsPrev" aria-label="이전">‹</button><span id="jsRange"></span><button type="button" id="jsNext" aria-label="다음">›</button></div>
+      <div id="jsBody"></div>
+      <div class="actions"><button type="button" id="jWipe">기록 모두 지우기</button><button type="button" id="jAll2">일기장 내려받기</button></div>
     </div>
     <div id="jView" hidden>
       <div class="j-paper" id="jPaper"></div>
@@ -508,7 +534,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-242';
+const BUILD = '11.19-243';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -7863,8 +7889,9 @@ let jPicked = new Set(), jOpen = null; const jUnsaved = [];   // 저장이 막�
 $('jMoods').append(...MOODS.map(m => { const b = document.createElement('button'); b.type = 'button'; b.textContent = m; b.setAttribute('aria-pressed', 'false');
   b.addEventListener('click', () => { if (jPicked.has(m)) jPicked.delete(m); else jPicked.add(m); b.setAttribute('aria-pressed', jPicked.has(m) ? 'true' : 'false'); }); return b; }));
 function jShow(which) {
-  $('jNew').hidden = which !== 'new'; $('jList').hidden = which !== 'list'; $('jView').hidden = which !== 'view';
-  $('jTabNew').setAttribute('aria-pressed', which === 'new' ? 'true' : 'false'); $('jTabList').setAttribute('aria-pressed', which !== 'new' ? 'true' : 'false');
+  $('jNew').hidden = which !== 'new'; $('jList').hidden = which !== 'list'; $('jView').hidden = which !== 'view'; $('jStat').hidden = which !== 'stat';
+  $('jTabNew').setAttribute('aria-pressed', which === 'new' ? 'true' : 'false'); $('jTabList').setAttribute('aria-pressed', which === 'list' || which === 'view' ? 'true' : 'false'); $('jTabStat').setAttribute('aria-pressed', which === 'stat' ? 'true' : 'false');
+  if (which === 'stat') jStatDraw();
   $('jTabList').textContent = `지난 기록 (${jLoad().length})`;
   if (which === 'new') $('jMeta').textContent = `${jDate(Date.now())} · ${jPlace(myDim)}`;
   if (which === 'list') {
@@ -7888,6 +7915,7 @@ $('endJournal').addEventListener('click', () => { $('endSheet').hidden = true; j
 $('jTabNew').addEventListener('click', () => jShow('new'));
 $('jTabList').addEventListener('click', () => jShow('list'));
 $('jBack').addEventListener('click', () => jShow('list'));
+$('jTabStat').addEventListener('click', () => jShow('stat'));
 const jCloseFn = () => { $('journalSheet').hidden = true; if (iAmOut) $('endSheet').hidden = false; };
 $('jClose').addEventListener('click', jCloseFn); $('jClose2').addEventListener('click', jCloseFn);
 $('jSave').addEventListener('click', () => {
@@ -7899,11 +7927,74 @@ $('jSave').addEventListener('click', () => {
   toast('기록을 저장했어요'); jOpen = e; $('jPaper').textContent = jText(e); jShow('view');
 });
 $('jDel').addEventListener('click', () => { if (!jOpen || !confirm('이 기록을 지울까요?')) return; jStore(jLoad().filter(x => x.at !== jOpen.at)); jOpen = null; jShow('list'); });
+/* 돌아보기: 횟수·요일·시간대·곳·종류·마음·자주 쓴 단어. AI 없이 이 브라우저 안에서 세기만 함 */
+const JS_DOW = ['일', '월', '화', '수', '목', '금', '토'], JS_TOD = [['새벽', 0, 6], ['아침', 6, 12], ['낮', 12, 17], ['저녁', 17, 21], ['밤', 21, 24]];
+const JS_STOP = new Set('그리고 그래서 그런데 하지만 그냥 너무 정말 조금 많이 오늘 지금 나는 내가 나의 나를 저는 제가 이제 다시 계속 하고 했다 했어요 있다 있어요 없다 없어요 같다 같아요 같은 것 거 수 때 좀 더 잘 안 못 또 그 이 저 그것 이것 무엇 뭔가 때문에 위해 대한 하는 되는 있는 없는 했던 하며 하면서 같이 함께 처럼 정도 약간 많은 모든 어떤 아주 매우 진짜 그게 이게 것 같다 들었다 느꼈다 느낌이 생각이 생각을 마음이 마음을'.split(' '));
+const JS_TAIL = ['에서는', '에서', '으로', '에게', '한테', '까지', '부터', '처럼', '보다', '이랑', '하고', '은', '는', '이', '가', '을', '를', '에', '의', '도', '로', '와', '과', '만', '랑', '요'];
+let jsMode = 'week', jsOff = 0;
+function jsRange(mode, off) {
+  const n = new Date(); n.setHours(0, 0, 0, 0);
+  if (mode === 'week') { const s = new Date(n); s.setDate(n.getDate() - ((n.getDay() + 6) % 7) + off * 7); const e = new Date(s); e.setDate(s.getDate() + 7); return [s, e]; }
+  if (mode === 'month') { const s = new Date(n.getFullYear(), n.getMonth() + off, 1); return [s, new Date(s.getFullYear(), s.getMonth() + 1, 1)]; }
+  return [new Date(0), new Date(8.64e15)];
+}
+function jsWords(list) {
+  const c = new Map();
+  list.forEach(e => [e.body, e.mind, e.line].join(' ').split(/[^가-힣a-zA-Z0-9]+/).forEach(w => {
+    if (!w) return; w = w.toLowerCase();
+    for (const t of JS_TAIL) if (w.length > t.length + 1 && w.endsWith(t)) { w = w.slice(0, -t.length); break; }
+    if (w.length < 2 || JS_STOP.has(w) || /^[0-9]+$/.test(w)) return; c.set(w, (c.get(w) || 0) + 1); }));
+  return [...c].filter(x => x[1] > 1 || c.size < 12).sort((a, b) => b[1] - a[1]).slice(0, 12);
+}
+function jsCount(list, f) { const c = new Map(); list.forEach(e => [].concat(f(e)).forEach(k => k && c.set(k, (c.get(k) || 0) + 1))); return c; }
+function jsSummary(list) {
+  return { n: list.length, days: new Set(list.map(e => jDay(e.at))).size,
+    dow: JS_DOW.map((d, i) => [d, list.filter(e => new Date(e.at).getDay() === i).length]).slice(1).concat([['일', list.filter(e => new Date(e.at).getDay() === 0).length]]),
+    tod: JS_TOD.map(([t, a, b]) => [t, list.filter(e => { const h = new Date(e.at).getHours(); return h >= a && h < b; }).length]),
+    place: [...jsCount(list, e => e.place)].sort((a, b) => b[1] - a[1]), kind: [...jsCount(list, e => e.kind)].sort((a, b) => b[1] - a[1]),
+    mood: [...jsCount(list, e => e.moods)].sort((a, b) => b[1] - a[1]), words: jsWords(list) };
+}
+function jStatDraw() {
+  const all = jLoad(), [s, e] = jsRange(jsMode, jsOff), list = all.filter(x => x.at >= +s && x.at < +e), box = $('jsBody'), el = (t, c, txt) => { const d = document.createElement(t); if (c) d.className = c; if (txt != null) d.textContent = txt; return d; };
+  $('jsPer').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.m === jsMode ? 'true' : 'false'));
+  const last = new Date(+e - 1);
+  $('jsRange').textContent = jsMode === 'week' ? `${s.getMonth() + 1}월 ${s.getDate()}일 ~ ${last.getMonth() + 1}월 ${last.getDate()}일` : jsMode === 'month' ? `${s.getFullYear()}년 ${s.getMonth() + 1}월` : '모든 기록';
+  $('jsPrev').style.visibility = $('jsNext').style.visibility = jsMode === 'all' ? 'hidden' : ''; $('jsNext').disabled = jsOff >= 0;
+  box.replaceChildren();
+  if (!all.length) { box.append(el('p', 'js-empty', '아직 쓴 기록이 없어요. 명상 후 기록을 남기면 여기에 모여요.')); return; }
+  // 큰 그래프: 주=요일별, 월=날짜별, 전체=최근 12달
+  let cols = [];
+  if (jsMode === 'week') cols = [...Array(7)].map((_, i) => { const d = new Date(s); d.setDate(s.getDate() + i); const k = jDay(+d); return ['월화수목금토일'[i], list.filter(x => jDay(x.at) === k).length]; });
+  else if (jsMode === 'month') { const nd = new Date(s.getFullYear(), s.getMonth() + 1, 0).getDate(); cols = [...Array(nd)].map((_, i) => { const k = jDay(+new Date(s.getFullYear(), s.getMonth(), i + 1)); return [(i + 1) % 5 === 0 || i === 0 ? String(i + 1) : '', list.filter(x => jDay(x.at) === k).length]; }); }
+  else { const n = new Date(); cols = [...Array(12)].map((_, i) => { const a = new Date(n.getFullYear(), n.getMonth() - 11 + i, 1), b = new Date(a.getFullYear(), a.getMonth() + 1, 1); return [`${a.getMonth() + 1}월`, all.filter(x => x.at >= +a && x.at < +b).length]; }); }
+  const sm = jsSummary(list), mx = Math.max(1, ...cols.map(c => c[1]));
+  box.append(el('p', 'js-big', list.length ? `명상 기록 ${sm.n}번 · ${sm.days}일` : '이 기간에는 기록이 없어요.'));
+  const g = el('div', 'js-cols'), lb = el('div', 'js-lab');
+  cols.forEach(([l, v]) => { const c = el('div'), i = el('i'); i.style.height = `${v / mx * 82}%`; c.append(el('b', '', v ? String(v) : ''), i); g.append(c); lb.append(el('span', '', l)); });
+  box.append(g, lb);
+  if (!list.length) return;
+  const sec = (title, rows) => { if (!rows.length) return; const d = el('div', 'js-sec'), m = Math.max(1, ...rows.map(r => r[1])); d.append(el('h3', '', title));
+    rows.forEach(([k, v]) => { const r = el('div', 'js-row'), bar = el('div'), i = el('i'); i.style.width = `${v / m * 100}%`; bar.append(i); r.append(el('span', '', k), bar, el('em', '', String(v))); d.append(r); }); box.append(d); };
+  if (jsMode !== 'week') sec('요일', sm.dow);
+  sec('시간대', sm.tod); sec('명상한 곳', sm.place); sec('명상 종류', sm.kind); sec('마음 상태', sm.mood);
+  if (sm.words.length) { const d = el('div', 'js-sec'), w = el('div', 'js-words'); d.append(el('h3', '', '자주 쓴 단어')); sm.words.forEach(([k, v]) => w.append(el('span', '', `${k} ${v}`))); d.append(w); box.append(d); }
+}
+$('jsPer').addEventListener('click', ev => { const b = ev.target.closest('button'); if (!b) return; jsMode = b.dataset.m; jsOff = 0; jStatDraw(); });
+$('jsPrev').addEventListener('click', () => { jsOff--; jStatDraw(); });
+$('jsNext').addEventListener('click', () => { if (jsOff < 0) { jsOff++; jStatDraw(); } });
+$('jAll2').addEventListener('click', () => $('jAll').click());
+$('jWipe').addEventListener('click', () => {
+  if (!jLoad().length) { toast('지울 기록이 없어요'); return; }
+  if (!confirm('이 브라우저에 있는 명상 기록을 모두 지울까요?\n지운 기록은 되살릴 수 없어요. 먼저 일기장을 내려받아 두면 안전해요.')) return;
+  jStore([]); jUnsaved.length = 0; jOpen = null; toast('기록을 모두 지웠어요'); jShow('stat');
+});
 // 일기장 파일: 기록 전체를 웹페이지 파일 하나로 (한지 바탕·명조체, 날짜순). 아무 브라우저로나 열리고 용량이 아주 작음
 const jEsc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 function jDiaryHtml(all) {
   const paper = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='3' seed='4'/%3E%3CfeColorMatrix values='0 0 0 0 .55 0 0 0 0 .52 0 0 0 0 .45 0 0 0 .3 -.11'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E";
   const sec = (h, t) => t ? `<h3>${h}</h3><p>${jEsc(t).replace(/\n/g, '<br>')}</p>` : '';
+  const S = jsSummary(all), li = (t, rows) => rows.some(r => r[1]) ? `<h3>${t}</h3><p>${rows.filter(r => r[1]).map(r => `${jEsc(r[0])} ${r[1]}`).join(' · ')}</p>` : '';
+  const sum = `<section class="sum"><h2>돌아보기</h2><p>명상 기록 ${S.n}번 · ${S.days}일</p>${li('요일', S.dow)}${li('시간대', S.tod)}${li('명상한 곳', S.place)}${li('명상 종류', S.kind)}${li('마음 상태', S.mood)}${li('자주 쓴 단어', S.words)}</section>`;
   const items = all.map(e => `<article><time>${jEsc(jDate(e.at))}</time><div class="where">${jEsc(e.place)} · ${jEsc(e.kind)}</div>${e.moods.length ? `<div class="moods">${e.moods.map(m => `<span>${jEsc(m)}</span>`).join('')}</div>` : ''}${sec('몸의 느낌', e.body)}${sec('떠오른 생각·마음', e.mind)}${e.line ? `<p class="line">${jEsc(e.line)}</p>` : ''}</article>`).join('\n');
   return `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>나의 명상 일기장 · 쨘</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&display=swap">
@@ -7911,8 +8002,9 @@ function jDiaryHtml(all) {
 main{max-width:640px;margin:0 auto;padding:48px 20px 80px}header{text-align:center;margin-bottom:40px}header b{display:block;font-size:56px;line-height:1.1}header small{letter-spacing:.3em;color:#4a4237}header p{color:#6a6155;font-size:13px}
 article{padding:28px 0;border-top:1px solid rgba(29,26,22,.18)}time{font-weight:700;font-size:18px}.where{color:#5b5246;font-size:14px}
 .moods{margin:10px 0}.moods span{display:inline-block;margin:0 6px 6px 0;padding:2px 10px;border:1px solid rgba(29,26,22,.3);border-radius:999px;font-size:13px}
-h3{margin:14px 0 2px;font-size:14px;color:#4a4237}p{margin:0;font-size:15.5px}.line{margin-top:14px;font-weight:700;font-size:16.5px}</style></head>
+h3{margin:14px 0 2px;font-size:14px;color:#4a4237}.sum{padding:8px 0 28px}.sum h2{font-size:17px;margin:0 0 4px}p{margin:0;font-size:15.5px}.line{margin-top:14px;font-weight:700;font-size:16.5px}</style></head>
 <body><main><header><b>쨘</b><small>명상 메타버스</small><h1 style="font-size:20px;margin:18px 0 4px">나의 명상 일기장</h1><p>${all.length}개의 기록 · ${jEsc(jDate(Date.now()))}에 내려받음</p></header>
+${sum}
 ${items}
 </main></body></html>`;
 }
