@@ -185,16 +185,16 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 #journalSheet .js-big{font-size:13px;color:#5b5246!important}
 #journalSheet .js-cols{display:flex;align-items:flex-end;gap:3px;height:96px;border-bottom:1px solid rgba(29,26,22,.3);padding-top:14px}
 #journalSheet .js-cols div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0}
-#journalSheet .js-cols i{display:block;width:72%;max-width:26px;background:#1d1a16;border-radius:3px 3px 0 0;min-height:1px}
+#journalSheet .js-cols i{display:block;width:72%;max-width:26px;background:#4f6d8f;border-radius:3px 3px 0 0;min-height:1px}
 #journalSheet .js-cols b{font-size:10px;font-weight:400;color:#5b5246;height:13px}
 #journalSheet .js-lab{display:flex;gap:3px}
 #journalSheet .js-lab span{flex:1;text-align:center;font-size:10.5px;color:#5b5246;min-width:0;overflow:hidden}
 #journalSheet .js-sec h3{margin:0 0 6px;font-size:14px;color:#1d1a16}
 #journalSheet .js-row{display:grid;grid-template-columns:5.5em 1fr 2em;align-items:center;gap:8px;font-size:12.5px;margin:3px 0;color:#1d1a16}
-#journalSheet .js-row i{display:block;height:9px;background:#1d1a16;border-radius:5px;opacity:.82}
+#journalSheet .js-row i{display:block;height:9px;background:#1d1a16;border-radius:5px;opacity:.85}
 #journalSheet .js-row em{font-style:normal;text-align:right;color:#5b5246}
 #journalSheet .js-words{display:flex;flex-wrap:wrap;gap:6px}
-#journalSheet .js-words span{padding:2px 10px;border:1px solid rgba(29,26,22,.3);border-radius:999px;font-size:12.5px}
+#journalSheet .js-words span{padding:2px 10px;border:1px solid rgba(79,109,143,.35);background:rgba(79,109,143,.09);border-radius:999px;font-size:12.5px}
 #journalSheet .js-empty{font-size:13px;color:#6a6155!important}
 #journalSheet .j-paper{white-space:pre-wrap;line-height:1.8;font-size:14px;color:#1d1a16}
 /* 처음 화면의 들어가기 로딩: 가는 먹선이 차오르면 돔으로 들어감 */
@@ -534,7 +534,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-243';
+const BUILD = '11.19-244';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -7932,6 +7932,11 @@ const JS_DOW = ['일', '월', '화', '수', '목', '금', '토'], JS_TOD = [['�
 const JS_STOP = new Set('그리고 그래서 그런데 하지만 그냥 너무 정말 조금 많이 오늘 지금 나는 내가 나의 나를 저는 제가 이제 다시 계속 하고 했다 했어요 있다 있어요 없다 없어요 같다 같아요 같은 것 거 수 때 좀 더 잘 안 못 또 그 이 저 그것 이것 무엇 뭔가 때문에 위해 대한 하는 되는 있는 없는 했던 하며 하면서 같이 함께 처럼 정도 약간 많은 모든 어떤 아주 매우 진짜 그게 이게 것 같다 들었다 느꼈다 느낌이 생각이 생각을 마음이 마음을'.split(' '));
 const JS_TAIL = ['에서는', '에서', '으로', '에게', '한테', '까지', '부터', '처럼', '보다', '이랑', '하고', '은', '는', '이', '가', '을', '를', '에', '의', '도', '로', '와', '과', '만', '랑', '요'];
 let jsMode = 'week', jsOff = 0;
+// 한지에 어울리는 차분한 색 (곳·시간대·마음마다)
+const JS_COL = { '바다 명상': '#3f84ad', '서울 하늘 명상': '#d08a4c', '우주 명상': '#6f5f9e',
+  새벽: '#55608f', 아침: '#e0b456', 낮: '#79b2d6', 저녁: '#d9845a', 밤: '#2f3b63',
+  편안함: '#78a77c', 가벼움: '#93c2d4', 따뜻함: '#e09a68', 맑음: '#6fb0d8', 고요함: '#8494c0', 졸림: '#b3a3c8', 복잡함: '#b08c68', 무거움: '#8a8a86', 아쉬움: '#c99a9a' };
+const JS_SEC = { 요일: '#6f9a8c', '명상 종류': '#7d9a6a' };
 function jsRange(mode, off) {
   const n = new Date(); n.setHours(0, 0, 0, 0);
   if (mode === 'week') { const s = new Date(n); s.setDate(n.getDate() - ((n.getDay() + 6) % 7) + off * 7); const e = new Date(s); e.setDate(s.getDate() + 7); return [s, e]; }
@@ -7974,7 +7979,7 @@ function jStatDraw() {
   box.append(g, lb);
   if (!list.length) return;
   const sec = (title, rows) => { if (!rows.length) return; const d = el('div', 'js-sec'), m = Math.max(1, ...rows.map(r => r[1])); d.append(el('h3', '', title));
-    rows.forEach(([k, v]) => { const r = el('div', 'js-row'), bar = el('div'), i = el('i'); i.style.width = `${v / m * 100}%`; bar.append(i); r.append(el('span', '', k), bar, el('em', '', String(v))); d.append(r); }); box.append(d); };
+    rows.forEach(([k, v]) => { const r = el('div', 'js-row'), bar = el('div'), i = el('i'); i.style.width = `${v / m * 100}%`; i.style.background = JS_COL[k] || JS_SEC[title] || '#4f6d8f'; bar.append(i); r.append(el('span', '', k), bar, el('em', '', String(v))); d.append(r); }); box.append(d); };
   if (jsMode !== 'week') sec('요일', sm.dow);
   sec('시간대', sm.tod); sec('명상한 곳', sm.place); sec('명상 종류', sm.kind); sec('마음 상태', sm.mood);
   if (sm.words.length) { const d = el('div', 'js-sec'), w = el('div', 'js-words'); d.append(el('h3', '', '자주 쓴 단어')); sm.words.forEach(([k, v]) => w.append(el('span', '', `${k} ${v}`))); d.append(w); box.append(d); }
