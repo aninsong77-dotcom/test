@@ -508,7 +508,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-239';
+const BUILD = '11.19-240';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -3622,6 +3622,7 @@ let autoTP = false;
 // 버튼·키로 눈으로 보기를 켤 때: 화면을 보던 쪽이 아니라 아바타가 바라보던 쪽으로
 function toggleView() { const fp = !firstPerson; if (fp) { camYaw = heading; fpPitch = -0.12; } setView(fp); }
 function setView(fp) {
+  if (fp && !firstPerson) camYaw = heading;   // 어떤 길로 눈으로 보기가 되든(버튼·V키·휠·자동) 아바타가 바라보던 쪽으로
   autoTP = false;
   firstPerson = fp;
   if (!fp) camZoom = 1;
@@ -7475,7 +7476,11 @@ function buildSeoulReal(D, DD) {
       seoulAlt.want = autoAlt(d); if (!dt || myDim !== 'seoul') seoulAlt.now = seoulAlt.want; else seoulAlt.now += (seoulAlt.want - seoulAlt.now) * Math.min(1, dt * 0.5);   // 높이는 길이 정함 (사용자가 바꾸지 않음)
       dome.set(x, seoulAlt.now + lift, z);
       tileTick(x, z);
-      if (shadowOn) { sunSh.target.position.set(x, 0, z); sunSh.position.set(x, 0, z).addScaledVector(lightOut.sunDir, 3500); sunSh.target.updateMatrixWorld(); }
+      if (shadowOn) {   // 그림자 지도를 그림자 칸(약 1.6m) 단위로 딱딱 맞춰 옮김: 돔이 움직여도 그림자 가장자리가 떨리지 않게
+        const L = lightOut.sunDir, ux = new THREE.Vector3(0, 1, 0).cross(L).normalize(), uy = new THREE.Vector3().crossVectors(L, ux), T = 3200 / 2048;
+        const cu = Math.round((x * ux.x + z * ux.z) / T) * T, cv = Math.round((x * uy.x + z * uy.z) / T) * T, cw = x * L.x + z * L.z;
+        const cx = ux.x * cu + uy.x * cv + L.x * cw, cy = ux.y * cu + uy.y * cv + L.y * cw, cz = ux.z * cu + uy.z * cv + L.z * cw;
+        sunSh.target.position.set(cx, cy, cz); sunSh.position.set(cx, cy, cz).addScaledVector(L, 3500); sunSh.target.updateMatrixWorld(); }
       carT.value = (now / 1000) % 100000;
       nightLights.forEach(o => { o.material.uniforms.uT.value = carT.value; });
       walkT.value = carT.value;
