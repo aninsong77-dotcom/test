@@ -584,7 +584,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-264';
+const BUILD = '11.19-265';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -4639,7 +4639,7 @@ audio.preload = 'auto';
 const MED_TRACKS = [
   { id: 'main', main: true, type: '자비 명상', voice: '여성', note: '9시 함께 명상 음성' },
   { id: 'jabi_m', file: 'med_jabi_m.mp3?v=1', type: '자비 명상', voice: '남성', dur: 951.5 },
-  { id: 'breath3', file: 'med_breath3.mp3?v=1', type: '호흡 명상 3분', voice: '여성', dur: 184.9 },
+  { id: 'breath3', file: 'med_breath3.mp3?v=2', type: '호흡 명상 3분', voice: '여성', dur: 178.9 },
 ];
 let mainSrc = 'meditation.mp3?v=6', audioTrack = 'main', mainDur = 0;
 let medHeard = null;   // 방금 들은 명상 종류 (기록지에 미리 골라 둠)
@@ -4884,6 +4884,7 @@ function startSolo(track) {
   ensureCtx();
   setAudioTrack(track);
   solo = { startAt: Date.now(), track }; medHeard = track.type;
+  ringBowl();   // 시작에 종 한 번 (다른 명상과 같게, 소리가 잠겨 있으면 풀리는 대로)
   try { localStorage.setItem('a508057:med', track.id); } catch (e) {}
   // 누른 그 순간에 바로 재생 (폰 브라우저는 '누른 순간'의 재생만 허락하는 경우가 있음)
   try { audio.muted = false; audio.currentTime = 0; } catch (e) {}
@@ -5177,11 +5178,11 @@ function tick() {
   ambUpdate();
   const before = session;
   session = computeSession(now);
-  if (solo && now - solo.startAt >= soloDur() * 1000) stopSolo('🎧 혼자 명상이 끝났어요');
+  if (solo && now - solo.startAt >= soloDur() * 1000) { ringBell(false); stopSolo('🎧 혼자 명상이 끝났어요'); }   // 끝에 종 한 번
   if (!solo && groupOptOut && session.state !== 'playing') groupOptOut = false;
   if (session.state === 'playing' && now >= session.startAt && chimedFor !== session.startAt && now - session.startAt < 2500) {
     chimedFor = session.startAt;
-    if (!isOut() && !solo) { if (session.kind === 'nine') ringBell(true); else ringBell(false); }
+    if (!isOut() && !solo && session.kind === 'nine') ringBell(true);   // 종은 시작에 한 번만: 종 치고 시작은 칠 때 이미 울렸으니 다시 울리지 않음
   }
   if (before.state === 'playing' && session.state !== 'playing') {
     if (!isOut() && !solo && !groupOptOut) ringBell(false);
