@@ -524,7 +524,7 @@ html[data-dim="seoul"] .copyline span,html[data-dim="space"] .copyline span{colo
     <div class="credits" aria-label="명상 안내 음성 출처">
       <p class="credits-h">명상 안내 음성 출처</p>
       <ul>
-        <li>안내 음성은 AI로 만들었어요.</li>
+        <li>명상 대본/음성은 AI로 만들었어요.</li>
         <li>AnyToSpeech AI 음성</li>
         <li>INZEUM AI 음성</li>
       </ul>
@@ -584,7 +584,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-266';
+const BUILD = '11.19-267';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -4637,10 +4637,10 @@ const audio = new Audio();
 audio.preload = 'auto';
 /* 고를 수 있는 명상들. main은 9시·종소리 함께 명상에 쓰는 음성 */
 const MED_TRACKS = [
-  { id: 'main', main: true, type: '자애 명상', voice: '여성', note: '9시 함께 명상 음성' },
+  { id: 'main', main: true, type: '자비 명상 10분', voice: '여성', note: '9시 함께 명상 음성' },
   { id: 'breath3', file: 'med_breath3.mp3?v=2', type: '호흡 명상 3분', voice: '여성', dur: 178.9 },
 ];
-let mainSrc = 'meditation.mp3?v=7', audioTrack = 'main', mainDur = 0;
+let mainSrc = 'meditation.mp3?v=8', audioTrack = 'main', mainDur = 0;
 let medHeard = null;   // 방금 들은 명상 종류 (기록지에 미리 골라 둠)
 audio.src = mainSrc;
 let audioOk = null, audioUnlocked = false;
@@ -4992,7 +4992,7 @@ function syncAudio() {
 /* 음성 파일을 처음에 통째로 받아 두기: 듣는 도중 인터넷이 느려져도 끊기지 않게 */
 (async () => {
   try {
-    const r = await fetch('meditation.mp3?v=7');
+    const r = await fetch('meditation.mp3?v=8');
     if (!r.ok) return;
     const blob = await r.blob();
     mainSrc = URL.createObjectURL(blob);
