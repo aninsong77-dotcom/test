@@ -456,7 +456,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
     </div>
     <div id="jView" hidden>
       <div class="j-paper" id="jPaper"></div>
-      <div class="actions"><button type="button" id="jDel">지우기</button><button type="button" class="primary" id="jBack">목록</button></div>
+      <div class="actions"><button type="button" id="jDel">지우기</button><button type="button" id="jClose4">닫기</button><button type="button" class="primary" id="jBack">목록</button></div>
     </div>
   </div>
 </div>
@@ -534,7 +534,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-245';
+const BUILD = '11.19-246';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -7917,7 +7917,7 @@ $('jTabList').addEventListener('click', () => jShow('list'));
 $('jBack').addEventListener('click', () => jShow('list'));
 $('jTabStat').addEventListener('click', () => jShow('stat'));
 const jCloseFn = () => { $('journalSheet').hidden = true; if (iAmOut) $('endSheet').hidden = false; };
-$('jClose').addEventListener('click', jCloseFn); $('jClose2').addEventListener('click', jCloseFn); $('jClose3').addEventListener('click', jCloseFn);
+$('jClose').addEventListener('click', jCloseFn); $('jClose2').addEventListener('click', jCloseFn); $('jClose3').addEventListener('click', jCloseFn); $('jClose4').addEventListener('click', jCloseFn);
 $('jSave').addEventListener('click', () => {
   const e = { at: Date.now(), place: jPlace(myDim), kind: $('jKind').value, moods: [...jPicked], body: $('jBody').value.trim(), mind: $('jMind').value.trim(), line: $('jLine').value.trim() };
   if (!e.moods.length && !e.body && !e.mind && !e.line) { toast('마음을 고르거나 한 줄이라도 적어 주세요'); return; }
