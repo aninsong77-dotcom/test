@@ -518,8 +518,7 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
       <ul>
         <li>안내 음성은 AI로 만들었어요.</li>
         <li>자비 명상(여성): AnyToSpeech AI 음성</li>
-        <li>자비 명상(남성) · 호흡 알아차리기(남성): INZEUM AI 음성</li>
-        <li>대본: 김주완 명상수업 실습편</li>
+        <li>자비 명상(남성): INZEUM AI 음성</li>
       </ul>
     </div>
     <div class="credits" aria-label="기타 자료 출처">
@@ -577,7 +576,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-255';
+const BUILD = '11.19-256';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -4631,7 +4630,6 @@ audio.preload = 'auto';
 const MED_TRACKS = [
   { id: 'main', main: true, type: '자비 명상', voice: '여성', note: '9시 함께 명상 음성' },
   { id: 'jabi_m', file: 'med_jabi_m.mp3?v=1', type: '자비 명상', voice: '남성', dur: 951.5 },
-  { id: 'breath_m', file: 'med_breath_m.mp3?v=1', type: '호흡 알아차리기', voice: '남성', dur: 327.8 },
 ];
 let mainSrc = 'meditation.mp3?v=6', audioTrack = 'main', mainDur = 0;
 let medHeard = null;   // 방금 들은 명상 종류 (기록지에 미리 골라 둠)
