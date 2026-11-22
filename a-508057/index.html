@@ -581,7 +581,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-259';
+const BUILD = '11.19-260';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -6835,7 +6835,7 @@ function buildSeoulReal(D, DD) {
       #endif`); }; }
   baseBand(bldMat);
   { const geo = new THREE.BoxGeometry(1, 1, 1); geo.translate(0, 0.5, 0);
-    const PC = ['#f7c9c4', '#cfe9d9', '#fbe6b8', '#cfe1f5', '#e3d7f3', '#fff4e3', '#f6d6b8', '#d5ecec'], RC = ['#7fb76a', '#e98b78', '#8fb3d9', '#f0c46c', '#b7a3d8', '#9fcf8b'];
+    const PC = ['#f7c9c4', '#cfe9d9', '#fbe6b8', '#cfe1f5', '#e3d7f3', '#fff4e3', '#f6d6b8', '#d5ecec'], RC = ['#a9b89c', '#c9a89a', '#a9b6c4', '#cdbf9c', '#b8b0c2', '#b2c2a6', '#bdb8ae', '#c4beb2'];   // 지붕: 차분한 색 (진한 색 뚜껑처럼 보이지 않게)
     // 강·공원·궁궐 자리 그림 (20m 칸): 빈 땅에 건물을 채울 때 피함
     const [X0, X1, Z0, Z1] = D.bounds, MS = 20, MW = Math.ceil((X1 - X0) / MS), MH = Math.ceil((Z1 - Z0) / MS);
     const mc = document.createElement('canvas'); mc.width = MW; mc.height = MH;
@@ -7332,8 +7332,8 @@ function buildSeoulReal(D, DD) {
     const blue = Math.max(0, 1 - Math.abs(altDeg + 4.5) / 4.5);   // 해가 막 넘어간 푸른 저녁 (불이 하나둘 켜지고 건물이 푸르스름)
     skyU.uSun.value.copy(sd); skyU.uMoon.value.copy(md); skyU.uDay.value = day; skyU.uNight.value = night; skyU.uDusk.value = dusk;
     sunS.position.copy(sd).multiplyScalar(5000); sunS.intensity = 2.4 * day + 0.6 * dusk; sunS.color.set(dusk > 0.3 ? '#ffb27a' : '#fff4e0');
-    hemiS.intensity = 0.25 + 0.9 * day + 0.2 * dusk - 0.15 * night; hemiS.color.set(night > 0.5 ? '#3e4a6e' : '#cfe6ff'); hemiS.groundColor.set(night > 0.5 ? '#2a2018' : '#8a8f78');   // 밤에는 건물 몸체가 거의 까맣게
-    if (dusk > 0.2) hemiS.color.lerp(new THREE.Color('#ffb08a'), dusk * 0.6);
+    hemiS.intensity = 0.25 + 0.9 * day + 0.45 * dusk - 0.15 * night;   // 해 질 녘 역광에도 건물이 너무 어둡지 않게 hemiS.color.set(night > 0.5 ? '#3e4a6e' : '#cfe6ff'); hemiS.groundColor.set(night > 0.5 ? '#2a2018' : '#8a8f78');   // 밤에는 건물 몸체가 거의 까맣게
+    if (dusk > 0.2) hemiS.color.lerp(new THREE.Color('#ffc4a4'), dusk * 0.4);   // 노을빛은 은은하게 (건물이 붉게 물들지 않게)
     if (blue > 0) { hemiS.color.lerp(new THREE.Color('#6f8cc8'), blue * 0.8); hemiS.groundColor.lerp(new THREE.Color('#3a4868'), blue * 0.7); hemiS.intensity += blue * 0.25; }
     moonS.position.copy(md).multiplyScalar(5000); moonS.intensity = night * Math.max(0, md.y) * 0.5;
     const haze = new THREE.Color('#c4e2fa').lerp(new THREE.Color('#f0b48e'), dusk * 0.75).lerp(new THREE.Color('#090c16'), night).lerp(new THREE.Color('#2b2230'), night * 0.55);   // 밤 안개: 도시 불빛이 은은히 배어 따뜻한 잿빛
