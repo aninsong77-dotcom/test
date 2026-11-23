@@ -610,7 +610,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-277';
+const BUILD = '11.19-279';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -3828,6 +3828,7 @@ function updateWalk(dt, t) {
   if (myRitual || exActive()) mag = 0;
   if (onMat !== null && (mag > 0.05 || moveTarget)) onMat = null;
   else if (teaSitting !== null && mag > 0.15) teaSitting = null;
+  if (teaSitting !== null && moveTarget) { if (myRitual) moveTarget = null; else teaSitting = null; }   // 찻자리에서 바닥을 누르면: 마시는 중엔 무시, 다 마셨으면 일어나 걸어감 (몸이 자리와 목표 사이를 오가며 떨리지 않게)
   if (teaSitting !== null) { const sp = teaSpot(teaSitting); pos2.set(sp.x, sp.z); heading = sp.heading; }
   if (edgeSit && (mag > 0.15 || moveTarget)) edgeSit = null;           // 움직이면 일어남
   if (edgeSit) { pos2.set(edgeSit.x, edgeSit.z); heading = edgeSit.heading; }
@@ -3987,7 +3988,7 @@ function updateWalk(dt, t) {
       const hold = mr ? teaPhase((performance.now() - mr.at) / 1000).hold : 0;
       // 끌어서 둘러본 만큼 더함 (손을 떼고 1초 뒤부터 천천히 잔 쪽으로)
       if (performance.now() - teaLookAt > 1000) { const k = Math.exp(-dt * 1.4); teaLookYaw *= k; teaLookPitch *= k; }
-      yaw = mix(yaw, heading + teaLookYaw, smooth(teaView));
+      yaw = yaw + angTo(yaw, heading + teaLookYaw) * smooth(teaView);   // 각도가 한 바퀴 넘어가도 짧은 쪽으로
       pitchFP = mix(pitchFP, mix(-0.62, -0.25, hold) + teaLookPitch, smooth(teaView));
       eyeBack = 0;
     }
