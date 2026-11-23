@@ -1,0 +1,15 @@
+{
+  "name": "쨘 (명상 메타버스)",
+  "short_name": "쨘",
+  "description": "누구나 자유롭게 들어와 명상할 수 있는 공간입니다.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "browser",
+  "background_color": "#faf8f2",
+  "theme_color": "#1f86b6",
+  "lang": "ko",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
