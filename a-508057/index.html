@@ -614,7 +614,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-283';
+const BUILD = '11.19-284';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -4673,7 +4673,7 @@ const MED_TRACKS = [
   { id: 'ground', file: 'med_ground.mp3?v=1', type: '그라운딩', voice: '여성', note: '피아노', dur: 221.3 },
   { id: 'ground_v', file: 'med_ground_v.mp3?v=1', type: '그라운딩', voice: '여성', note: '목소리만', dur: 207.3 },
 ];
-let mainSrc = 'meditation.mp3?v=9', audioTrack = 'main', mainDur = 0;
+let mainSrc = 'meditation.mp3?v=10', audioTrack = 'main', mainDur = 0;
 let medHeard = null;   // 방금 들은 명상 종류 (기록지에 미리 골라 둠)
 audio.src = mainSrc;
 let audioOk = null, audioUnlocked = false;
@@ -5025,7 +5025,7 @@ function syncAudio() {
 /* 음성 파일을 처음에 통째로 받아 두기: 듣는 도중 인터넷이 느려져도 끊기지 않게 */
 (async () => {
   try {
-    const r = await fetch('meditation.mp3?v=9');
+    const r = await fetch('meditation.mp3?v=10');
     if (!r.ok) return;
     const blob = await r.blob();
     mainSrc = URL.createObjectURL(blob);
