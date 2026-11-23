@@ -239,12 +239,18 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 #endSheet .enter-load p{margin:0;font:700 14px/1.5 var(--f-display);color:#3b352d;letter-spacing:.06em;white-space:nowrap}   /* 작으면 '돔'이 '놈'처럼 보여 크고 굵게 */
 @keyframes enterFill{to{width:100%}}
 /* 대문: 명상할 곳 고르기 (카드). 고르지 않으면 바다로 */
-#endSheet .dim-cards{display:none}
-#endSheet.opening .dim-cards{display:flex;gap:10px;position:fixed;left:50%;bottom:92px;transform:translateX(-50%);writing-mode:horizontal-tb;z-index:3}
-#endSheet .dim-cards button{display:grid;justify-items:center;gap:6px;width:clamp(72px,19vw,104px);padding:12px 6px!important;border-radius:14px!important;
-  background:rgba(255,255,255,.55)!important;border:1px solid rgba(29,26,22,.22)!important;color:#1d1a16!important;font:700 13.5px/1.2 var(--f-display)!important;cursor:pointer}
-#endSheet .dim-cards button i{display:block;width:34px;height:34px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(29,26,22,.15)}
-#endSheet .dim-cards button small{font:400 10.5px/1 var(--f-display);color:#6a6155}
+#endSheet .dim-cards{display:none;flex-wrap:wrap;justify-content:center}
+#endSheet .dim-cards .dc-h{display:none;flex-basis:100%;margin:0 0 2px!important;text-align:center;font:800 13px/1.5 var(--f-display)!important;color:#1d1a16!important;letter-spacing:.04em}
+#endSheet:not(.opening) .dim-cards{display:flex;gap:6px;position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 24px);transform:translateX(-50%);writing-mode:horizontal-tb;z-index:3;width:max-content;max-width:calc(100vw - 24px)}
+#endSheet:not(.opening) .dim-cards .dc-h{display:block}
+#endSheet:not(.opening) .dim-cards button.def{border-color:rgba(29,26,22,.22)!important;background:rgba(255,255,255,.55)!important}
+
+#endSheet.opening .dim-cards{display:flex;gap:6px;position:fixed;left:50%;bottom:84px;transform:translateX(-50%);writing-mode:horizontal-tb;z-index:3;width:max-content;max-width:calc(100vw - 24px)}
+#endSheet .dim-cards button{display:flex;align-items:center;gap:6px;padding:6px 11px 6px 7px!important;border-radius:999px!important;white-space:nowrap;
+  background:rgba(255,255,255,.6)!important;border:1px solid rgba(29,26,22,.22)!important;color:#1d1a16!important;font:700 12.5px/1.2 var(--f-display)!important;cursor:pointer}
+#endSheet .dim-cards button i{display:block;flex:none;width:18px;height:18px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(29,26,22,.15)}
+@media (max-width:420px){#endSheet .dim-cards{gap:4px!important}#endSheet .dim-cards button{padding:5px 8px 5px 5px!important;gap:4px;font-size:11.5px!important;letter-spacing:-.02em}#endSheet .dim-cards button i{width:14px;height:14px}}
+#endSheet .dim-cards button small{display:none}
 #endSheet .dim-cards button.def{border-color:#1d1a16!important;background:rgba(255,255,255,.85)!important}
 #endSheet .dim-cards button:hover{background:rgba(255,255,255,.9)!important}
 #endSheet .dim-cards.chosen button{opacity:.45}
@@ -528,10 +534,11 @@ html[data-dim="seoul"] .copyline span,html[data-dim="space"] .copyline span{colo
 
 <div class="sheet" id="endSheet" hidden>
   <div class="dim-cards" role="group" aria-label="명상할 곳 고르기">
-    <button type="button" data-dim="sea" class="def"><i style="background:radial-gradient(circle at 35% 30%,#bfeaf3,#2a7fae)"></i>바다<small>기본</small></button>
-    <button type="button" data-dim="seoul" data-course="river"><i style="background:radial-gradient(circle at 35% 30%,#f6d9b9,#6f9fcf)"></i>서울 · 한강<small>&nbsp;</small></button>
-    <button type="button" data-dim="seoul" data-course="namsan"><i style="background:radial-gradient(circle at 35% 30%,#d9e8c8,#5f8a64)"></i>서울 · 남산<small>&nbsp;</small></button>
-    <button type="button" data-dim="space"><i style="background:radial-gradient(circle at 35% 30%,#4a6fd0,#05081a)"></i>지구 우주<small>&nbsp;</small></button>
+    <p class="dc-h">다시 들어가기 · 어디로 갈까요?</p>
+    <button type="button" data-dim="sea" class="def"><i style="background:radial-gradient(circle at 35% 30%,#bfeaf3,#2a7fae)"></i>바다</button>
+    <button type="button" data-dim="seoul" data-course="river"><i style="background:radial-gradient(circle at 35% 30%,#f6d9b9,#6f9fcf)"></i>서울 · 한강</button>
+    <button type="button" data-dim="seoul" data-course="namsan"><i style="background:radial-gradient(circle at 35% 30%,#d9e8c8,#5f8a64)"></i>서울 · 남산</button>
+    <button type="button" data-dim="space"><i style="background:radial-gradient(circle at 35% 30%,#4a6fd0,#05081a)"></i>지구 우주</button>
   </div>
   <div class="enter-load" aria-live="polite"><div class="bar"><i></i></div><p><span>고르지 않으면 잠시 후 바다로 들어가요</span><span class="sub">들어가서도 🌀 차원이동으로 언제든 옮길 수 있어요</span></p></div>
   <div class="card" role="dialog" aria-labelledby="endTitle">
@@ -562,7 +569,7 @@ html[data-dim="seoul"] .copyline span,html[data-dim="space"] .copyline span{colo
     </div>
     <div class="actions end-only">
       <button type="button" id="endJournal">오늘의 기록 쓰기</button>
-      <button type="button" id="endDive">다시 들어오기</button>
+      <button type="button" id="endDive" hidden>다시 들어오기</button>
     </div>
   </div>
 </div>
@@ -603,7 +610,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-271';
+const BUILD = '11.19-274';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -5512,11 +5519,12 @@ function enterDomeDirect() {
   $('domeBar').classList.add('is-hidden');
   setLook(HOUSE_BASE + 2);
   // 빛줄기를 타고 내려옴 (다른 화면 없이 바로): 함께 있는 사람을 알아본 뒤(빈 방석을 고른 뒤) 내려오기 시작
-  arriving = { t0: performance.now(), td: 0, seat: null, x: pos2.x, y: HOUSE_BASE + 0.17, z: pos2.y, landed: false };
+  arriving = { t0: performance.now(), td: 0, seat: null, x: pos2.x, y: HOUSE_BASE + 0.17, z: pos2.y, landed: false, fade: myDim !== 'sea' };
   pickArriveSeat(arriving);
   whiteFlash(1, 1, 0);   // 하얀 빛에서 시작
-  beam.visible = true;
-  motes.forEach(m => { m.sp.visible = true; });
+  // 바다는 빛기둥을 타고 내려옴. 서울 하늘·지구 우주는 차원이동처럼 하얀 빛이 걷히며 방석 위에 나타남
+  beam.visible = !arriving.fade;
+  motes.forEach(m => { m.sp.visible = !arriving.fade; });
   sendPresence(true);
 }
 /* 나가기와 들어오기는 한 장면을 앞으로/거꾸로 돌린 것
@@ -5592,6 +5600,28 @@ function arriveSeatClash(A) {
 }
 function updateArrive(dt, t) {
   const A = arriving, now = performance.now();
+  if (A.fade) {   // 서울 하늘·지구 우주: 하얀 빛 속에서 방석에 앉은 채로, 빛이 걷히며 나타남
+    beam.visible = false; motes.forEach(m => { m.sp.visible = false; });
+    if (!A.td) {
+      if (!(peersReady || now - A.t0 > 3000)) { sendPresence(); return; }
+      if (A.seat === null || takenSeats.has(A.seat)) pickArriveSeat(A);
+      A.td = now; A.landed = true;
+      pos2.set(A.x, A.z);
+      if (A.seat !== null && !takenSeats.has(A.seat)) sitAt(A.seat); else { const s2 = freeSeat(); if (s2 !== null) sitAt(s2); }
+      if (mySeat !== null) { A.x = SEATS[mySeat].x; A.z = SEATS[mySeat].z; }
+      const ox = A.x - DOME_CENTER.x, oz = A.z - DOME_CENTER.z, ol = Math.hypot(ox, oz) || 1, D = camera.aspect < 1 ? 4.8 : 2.9;
+      camera.position.set(A.x + ox / ol * D * 0.94, HOUSE_BASE + 0.33 + D * 0.35, A.z + oz / ol * D * 0.94);
+      camera.up.set(0, 1, 0); camera.lookAt(A.x - ox / ol * 2, HOUSE_BASE + 1.2, A.z - oz / ol * 2);
+      setLook(camera.position.y);
+      whiteFlash(1, 0, 1600);
+      bgmTryAuto();
+    }
+    const ox = A.x - DOME_CENTER.x, oz = A.z - DOME_CENTER.z, ol = Math.hypot(ox, oz) || 1;
+    camera.lookAt(A.x - ox / ol * 2, HOUSE_BASE + 1.2, A.z - oz / ol * 2);
+    if (now - A.td > 1700) { arriving = null; tpCam.copy(camera.position); snapCam = false; }
+    sendPresence();
+    return;
+  }
   // 하얀 빛 속에서 함께 있는 사람을 알아본 뒤(빈 방석을 고른 뒤) 되감기 시작
   if (!A.td) {
     if (peersReady || now - A.t0 > 3000) {
@@ -5656,17 +5686,29 @@ function startLeave() {
   const sat = mySeat !== null;
   mySeat = null; teaSitting = null; teaPending = null; moveTarget = null;
   $('seatBtn').textContent = '방석에 앉기';
-  leaving = { t0: performance.now(), x: orb.position.x, y: sat ? HOUSE_BASE + 0.33 : HOUSE_BASE + 0.17, z: orb.position.z, done: false };
+  leaving = { t0: performance.now(), x: orb.position.x, y: sat ? HOUSE_BASE + 0.33 : HOUSE_BASE + 0.17, z: orb.position.z, done: false, fade: myDim !== 'sea' };
   ['hud', 'stick', 'domeBar', 'session', 'toast'].forEach(id => $(id).classList.add('is-hidden'));
+  if (leaving.fade) { leaving.P = spawnPortal(orb.position.x, orb.position.z, 0, myDim, false); portalChime(); }   // 서울·우주: 빛이 감싸고 하얘짐
+  else {
   beam.position.set(leaving.x, HOUSE_BASE + 20, leaving.z);
   beam.visible = true;
   motes.forEach(m => { m.sp.visible = true; });
+  }
   unlockAudio();
   ringBell(false);
   sendPresence(true);
 }
 function updateLeave(dt, t) {
   const L = leaving, e = (performance.now() - L.t0) / 1000;
+  if (L.fade) {
+    if (L.P) { L.P.g.position.set(orb.position.x, HOUSE_BASE + 0.17, orb.position.z); L.P.mat.uniforms.uAvY.value = orb.position.y + 0.75; }
+    if (e > 0.8 && !L.white) { L.white = true; whiteFlash(0, 1, 1300); }
+    if (e > 2.3 && !L.done) {
+      L.done = true; if (L.P) L.P.want = 0;
+      iAmOut = true; applyLinks(); $('endSheet').hidden = false; standName(); sendPresence(true);
+    }
+    sendPresence(); return;
+  }
   const rise = drawLightPath(L, e, dt, t, 1);
   // 돔 안쪽에서 올려다보다가 함께 따라 올라감
   orbitCam(L, lightPathCam(L, rise), 1 - Math.exp(-dt * 2.2));
@@ -6472,11 +6514,11 @@ function loadSeoulReal() {
     // 한 번에 다 만들면 화면이 잠깐 멈추므로, 다음 틈에 만듦
     setTimeout(() => {
       try { seoulReal = buildSeoulReal(D, DD); }
-      catch (e) { console.warn('서울 지도 만들기 실패', e); seoulLoading = false; return; }
+      catch (e) { console.warn('서울 지도 만들기 실패', e); seoulLoading = false; if (myDim === 'seoul') applyDim('seoul'); return; }
       if (seoulWx) seoulReal.setWeather(seoulWx.w, true);
       if (myDim === 'seoul') applyDim('seoul');
     }, 30);
-  }).catch(e => { console.warn('서울 지도 불러오기 실패', e); seoulLoading = false; });
+  }).catch(e => { console.warn('서울 지도 불러오기 실패', e); seoulLoading = false; if (myDim === 'seoul') applyDim('seoul'); });   // 못 받으면 임시 배경
 }
 function buildSeoulReal(D, DD) {
   // 용산공원 (옛 미군 기지): 지도에는 군사 지역이라 빈 땅으로 남아 있어서, 공원(잔디·숲)으로 그림
@@ -7692,18 +7734,22 @@ function drawFrame() {
     renderer.autoClear = true;
   } else renderer.render(scene, camera);
 }
-function dimWorld(k) {
+function dimWorld(k, need) {
   if (k === 'sea') return null;
-  if (!dimWorlds[k]) { const W = k === 'seoul' ? buildSeoul() : buildSpace(); W.g.visible = false; scene.add(W.g); dimWorlds[k] = W; }
-  if (k === 'seoul') loadSeoulReal();   // 실제 지도는 처음 들어갈 때 불러옴 (그동안은 임시 배경)
+  if (k === 'seoul') {   // 진짜 지도를 먼저 받기 시작. 임시 배경(짓는 데 오래 걸림)은 진짜 지도가 아직 없는데 화면에 보여야 할 때만 지음
+    loadSeoulReal();
+    if (!dimWorlds.seoul && !(need && !seoulReal)) return null;
+  }
+  if (!dimWorlds[k]) { const W = k === 'seoul' ? buildSeoul() : buildSpace(); W.g.visible = key0(k); scene.add(W.g); dimWorlds[k] = W; }
   return dimWorlds[k];
 }
+function key0(k) { return k === myDim && !(k === 'seoul' && seoulReal); }
 /* 다른 차원의 빛과 하늘색 (바다는 원래 setLook 그대로) */
 function dimLook() {
   above = false;
   if (myDim === 'seoul' && seoulReal) { seoulRealLook(); return; }
-  const W = dimWorld(myDim);
-  if (!W) return;
+  const W = dimWorld(myDim, !(myDim === 'seoul' && seoulLoading));   // 서울 지도를 받는 중이면 임시 배경 없이 맑은 하늘만
+  if (!W) { if (myDim === 'seoul') { scene.background.set('#cfe3f2'); scene.fog.color.set('#cfe3f2'); } return; }
   W.look();
   scene.background.copy(W.bg); scene.fog.color.copy(W.bg); scene.fog.density = W.fog;
   hemi.color.copy(W.hemi); hemi.groundColor.copy(W.hemiG); hemi.intensity = W.hemiI;
@@ -8217,7 +8263,7 @@ function finishOpening() {
   const sh = $('endSheet');
   flash.style.transition = 'none'; flash.style.opacity = '1';   // 화면 뒤를 하얀 빛으로
   sh.classList.add('off');
-  setTimeout(() => { sh.hidden = true; sh.classList.remove('opening', 'off'); enterDomeDirect(); }, 800);
+  setTimeout(() => { sh.hidden = true; sh.classList.remove('opening', 'off'); sh.querySelectorAll('.dim-cards, .dim-cards button').forEach(x => x.classList.remove('chosen', 'on')); enterDomeDirect(); }, 800);
 }
 $('endSheet').addEventListener('click', () => { if ($('endSheet').classList.contains('opening')) { unlockAudio(); finishOpening(); } });
 iAmOut = true;   // 들어가기 전에는 다른 사람 화면에 안 보임
@@ -8226,13 +8272,24 @@ $('endSheet').hidden = false;
 standName();
 $('endSheet').style.setProperty('--enter-ms', '10000ms');
 openingGo = setTimeout(finishOpening, 10000);   // 고르지 않으면 10초 뒤 바다로
+setTimeout(() => { const cn = navigator.connection; if (cn && (cn.saveData || /2g/.test(cn.effectiveType || ''))) return;
+  if (!seoulReal && !seoulLoading) ['seoul-data.json?v=1', 'seoul-detail.json?v=1', 'seoul-stars.json?v=1', 'seoul-terrain.png?v=1', 'seoul-tiles/index.json?v=8'].forEach(u => fetch(u, { priority: 'low' }).catch(() => {})); }, 1500);   // 서울을 고르면 받는 시간 없이 바로 짓게
 // 카드를 고르면 그곳으로 (서울은 지도를 조금 받은 뒤, 최대 6초 기다림)
 $('endSheet').querySelector('.dim-cards').addEventListener('click', e => {
-  const b = e.target.closest('button[data-dim]'); if (!b || !openingGo) return;
+  const b = e.target.closest('button[data-dim]'); if (!b) return;
   e.stopPropagation(); unlockAudio();
   const box = e.currentTarget; if (box.classList.contains('chosen')) return;
-  box.classList.add('chosen'); b.classList.add('on');
   const k = b.dataset.dim, co = b.dataset.course;
+  if (!openingGo) {   // 끝 화면: 고른 곳으로 다시 들어감 (서울은 지도를 조금 받은 뒤, 최대 6초)
+    if ($('endSheet').classList.contains('opening')) return;
+    box.classList.add('chosen'); b.classList.add('on');
+    if (co) setSeoulCourse(co);
+    if (k !== myDim) applyDim(k);
+    const t0 = performance.now(), go = () => { box.classList.remove('chosen'); b.classList.remove('on'); enterDomeDirect(); };
+    const wait = () => { if (k !== 'seoul' || (seoulReal && seoulReal.nearReady(co)) || performance.now() - t0 > 6000) go(); else { if (seoulReal) seoulReal.prefetch(co); setTimeout(wait, 200); } };
+    setTimeout(wait, 150); return;
+  }
+  box.classList.add('chosen'); b.classList.add('on');
   clearTimeout(openingGo); openingGo = setTimeout(finishOpening, 8000);   // 아무리 늦어도 8초 안에 들어감
   if (k === 'sea') { finishOpening(); return; }
   if (co) setSeoulCourse(co);
