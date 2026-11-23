@@ -238,6 +238,19 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 #endSheet.opening .enter-load .bar i{animation:enterFill var(--enter-ms,6500ms) linear forwards}
 #endSheet .enter-load p{margin:0;font:700 14px/1.5 var(--f-display);color:#3b352d;letter-spacing:.06em;white-space:nowrap}   /* 작으면 '돔'이 '놈'처럼 보여 크고 굵게 */
 @keyframes enterFill{to{width:100%}}
+/* 대문: 명상할 곳 고르기 (카드). 고르지 않으면 바다로 */
+#endSheet .dim-cards{display:none}
+#endSheet.opening .dim-cards{display:flex;gap:10px;position:fixed;left:50%;bottom:92px;transform:translateX(-50%);writing-mode:horizontal-tb;z-index:3}
+#endSheet .dim-cards button{display:grid;justify-items:center;gap:6px;width:clamp(72px,19vw,104px);padding:12px 6px!important;border-radius:14px!important;
+  background:rgba(255,255,255,.55)!important;border:1px solid rgba(29,26,22,.22)!important;color:#1d1a16!important;font:700 13.5px/1.2 var(--f-display)!important;cursor:pointer}
+#endSheet .dim-cards button i{display:block;width:34px;height:34px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(29,26,22,.15)}
+#endSheet .dim-cards button small{font:400 10.5px/1 var(--f-display);color:#6a6155}
+#endSheet .dim-cards button.def{border-color:#1d1a16!important;background:rgba(255,255,255,.85)!important}
+#endSheet .dim-cards button:hover{background:rgba(255,255,255,.9)!important}
+#endSheet .dim-cards.chosen button{opacity:.45}
+#endSheet .dim-cards.chosen button.on{opacity:1;border-color:#1d1a16!important;background:#fff!important}
+#endSheet .enter-load p span{display:block;text-align:center}
+#endSheet .enter-load p .sub{font-weight:400;font-size:12px;color:#5b5246;letter-spacing:.02em;margin-top:2px}
 /* 세로쓰기: 오른쪽에서 왼쪽으로, 모든 줄의 윗머리를 맞춤 */
 #endSheet .card{writing-mode:vertical-rl;text-orientation:mixed;display:flex;flex-direction:column;align-items:flex-start;gap:clamp(10px,3vw,22px);
   height:calc(100dvh - 56px);max-height:none;max-width:calc(100vw - 24px);width:auto;overflow-x:auto;overflow-y:hidden;padding:6px 2px;scrollbar-width:none}
@@ -514,7 +527,13 @@ html[data-dim="seoul"] .copyline span,html[data-dim="space"] .copyline span{colo
 </div>
 
 <div class="sheet" id="endSheet" hidden>
-  <div class="enter-load" aria-live="polite"><div class="bar"><i></i></div><p>잠시 후 명상 돔으로 들어가요 · 누르면 바로 들어가요</p></div>
+  <div class="dim-cards" role="group" aria-label="명상할 곳 고르기">
+    <button type="button" data-dim="sea" class="def"><i style="background:radial-gradient(circle at 35% 30%,#bfeaf3,#2a7fae)"></i>바다<small>기본</small></button>
+    <button type="button" data-dim="seoul" data-course="river"><i style="background:radial-gradient(circle at 35% 30%,#f6d9b9,#6f9fcf)"></i>서울 · 한강<small>&nbsp;</small></button>
+    <button type="button" data-dim="seoul" data-course="namsan"><i style="background:radial-gradient(circle at 35% 30%,#d9e8c8,#5f8a64)"></i>서울 · 남산<small>&nbsp;</small></button>
+    <button type="button" data-dim="space"><i style="background:radial-gradient(circle at 35% 30%,#4a6fd0,#05081a)"></i>지구 우주<small>&nbsp;</small></button>
+  </div>
+  <div class="enter-load" aria-live="polite"><div class="bar"><i></i></div><p><span>고르지 않으면 잠시 후 바다로 들어가요</span><span class="sub">들어가서도 🌀 차원이동으로 언제든 옮길 수 있어요</span></p></div>
   <div class="card" role="dialog" aria-labelledby="endTitle">
     <div class="brand">
       <h2 id="endTitle" class="sp-name" aria-label="쨘, 명상 메타버스"><span id="spName" class="logo">쨘</span></h2>
@@ -584,7 +603,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-270';
+const BUILD = '11.19-271';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -8205,8 +8224,25 @@ iAmOut = true;   // 들어가기 전에는 다른 사람 화면에 안 보임
 $('endSheet').classList.add('opening');
 $('endSheet').hidden = false;
 standName();
-$('endSheet').style.setProperty('--enter-ms', '6500ms');
-openingGo = setTimeout(finishOpening, 6500);
+$('endSheet').style.setProperty('--enter-ms', '10000ms');
+openingGo = setTimeout(finishOpening, 10000);   // 고르지 않으면 10초 뒤 바다로
+// 카드를 고르면 그곳으로 (서울은 지도를 조금 받은 뒤, 최대 6초 기다림)
+$('endSheet').querySelector('.dim-cards').addEventListener('click', e => {
+  const b = e.target.closest('button[data-dim]'); if (!b || !openingGo) return;
+  e.stopPropagation(); unlockAudio();
+  const box = e.currentTarget; if (box.classList.contains('chosen')) return;
+  box.classList.add('chosen'); b.classList.add('on');
+  const k = b.dataset.dim, co = b.dataset.course;
+  clearTimeout(openingGo); openingGo = setTimeout(finishOpening, 8000);   // 아무리 늦어도 8초 안에 들어감
+  if (k === 'sea') { finishOpening(); return; }
+  if (co) setSeoulCourse(co);
+  applyDim(k);
+  const t0 = performance.now();
+  const wait = () => { if (!openingGo) return;
+    if (k !== 'seoul' || (seoulReal && seoulReal.nearReady(co)) || performance.now() - t0 > 6000) finishOpening();
+    else { if (seoulReal) seoulReal.prefetch(co); setTimeout(wait, 200); } };
+  setTimeout(wait, 300);
+});
 frame();
 </script>
 </body>
