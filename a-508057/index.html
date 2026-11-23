@@ -610,7 +610,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-274';
+const BUILD = '11.19-276';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -5609,6 +5609,7 @@ function updateArrive(dt, t) {
       pos2.set(A.x, A.z);
       if (A.seat !== null && !takenSeats.has(A.seat)) sitAt(A.seat); else { const s2 = freeSeat(); if (s2 !== null) sitAt(s2); }
       if (mySeat !== null) { A.x = SEATS[mySeat].x; A.z = SEATS[mySeat].z; }
+      else { setView(false); autoTP = false; }   // 빈 방석이 없어 서 있게 되어도 내 모습 보기로 (갑자기 눈으로 보기로 바뀌지 않게)
       const ox = A.x - DOME_CENTER.x, oz = A.z - DOME_CENTER.z, ol = Math.hypot(ox, oz) || 1, D = camera.aspect < 1 ? 4.8 : 2.9;
       camera.position.set(A.x + ox / ol * D * 0.94, HOUSE_BASE + 0.33 + D * 0.35, A.z + oz / ol * D * 0.94);
       camera.up.set(0, 1, 0); camera.lookAt(A.x - ox / ol * 2, HOUSE_BASE + 1.2, A.z - oz / ol * 2);
@@ -5688,7 +5689,7 @@ function startLeave() {
   $('seatBtn').textContent = '방석에 앉기';
   leaving = { t0: performance.now(), x: orb.position.x, y: sat ? HOUSE_BASE + 0.33 : HOUSE_BASE + 0.17, z: orb.position.z, done: false, fade: myDim !== 'sea' };
   ['hud', 'stick', 'domeBar', 'session', 'toast'].forEach(id => $(id).classList.add('is-hidden'));
-  if (leaving.fade) { leaving.P = spawnPortal(orb.position.x, orb.position.z, 0, myDim, false); portalChime(); }   // 서울·우주: 빛이 감싸고 하얘짐
+  if (leaving.fade) { leaving.P = spawnPortal(orb.position.x, orb.position.z, 0, myDim, false); portalChime(); leaving.hideMe = firstPerson && fpBlend > 0.5; }   // 서울·우주: 빛이 감싸고 하얘짐 (눈으로 보던 중이면 내 몸은 계속 숨김: 카메라가 머리 안에 있으므로)
   else {
   beam.position.set(leaving.x, HOUSE_BASE + 20, leaving.z);
   beam.visible = true;
@@ -5701,6 +5702,7 @@ function startLeave() {
 function updateLeave(dt, t) {
   const L = leaving, e = (performance.now() - L.t0) / 1000;
   if (L.fade) {
+    if (L.hideMe) { myFig.g.visible = false; myFig.head.visible = false; }
     if (L.P) { L.P.g.position.set(orb.position.x, HOUSE_BASE + 0.17, orb.position.z); L.P.mat.uniforms.uAvY.value = orb.position.y + 0.75; }
     if (e > 0.8 && !L.white) { L.white = true; whiteFlash(0, 1, 1300); }
     if (e > 2.3 && !L.done) {
@@ -7890,6 +7892,7 @@ function startDimMove(target, co) {
   unlockAudio();
   for (const r of [...teaRituals]) if (r.fig === myFig) endTeaRitual(r);
   if (mySeat !== null) { mySeat = null; $('seatBtn').textContent = '방석에 앉기'; }
+  autoTP = false;   // 차원이동으로 자리에서 일어나도 보던 방식(내 모습 보기/눈으로 보기) 그대로
   teaSitting = null; teaPending = null; edgeSit = null; onMat = null; moveTarget = null;
   if (target === 'seoul') dimWorld('seoul');   // 서울 지도는 빛에 감싸여 있는 동안 미리 불러옴
   portalRun = { target, co: target === 'seoul' ? (co || seoulCourse) : null, same, from: myDim, P: spawnPortal(orb.position.x, orb.position.z, 0, target, false), phase: 'gather', t0: performance.now() };
