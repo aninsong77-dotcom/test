@@ -610,7 +610,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-276';
+const BUILD = '11.19-277';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -5610,6 +5610,7 @@ function updateArrive(dt, t) {
       if (A.seat !== null && !takenSeats.has(A.seat)) sitAt(A.seat); else { const s2 = freeSeat(); if (s2 !== null) sitAt(s2); }
       if (mySeat !== null) { A.x = SEATS[mySeat].x; A.z = SEATS[mySeat].z; }
       else { setView(false); autoTP = false; }   // 빈 방석이 없어 서 있게 되어도 내 모습 보기로 (갑자기 눈으로 보기로 바뀌지 않게)
+      edgeSit = null; onMat = null; myGesture = { k: null, n: myGesture.n, at: 0 };   // 지난번 자세(유리 앞에 앉기 등)를 지움
       const ox = A.x - DOME_CENTER.x, oz = A.z - DOME_CENTER.z, ol = Math.hypot(ox, oz) || 1, D = camera.aspect < 1 ? 4.8 : 2.9;
       camera.position.set(A.x + ox / ol * D * 0.94, HOUSE_BASE + 0.33 + D * 0.35, A.z + oz / ol * D * 0.94);
       camera.up.set(0, 1, 0); camera.lookAt(A.x - ox / ol * 2, HOUSE_BASE + 1.2, A.z - oz / ol * 2);
@@ -5618,6 +5619,12 @@ function updateArrive(dt, t) {
       bgmTryAuto();
     }
     const ox = A.x - DOME_CENTER.x, oz = A.z - DOME_CENTER.z, ol = Math.hypot(ox, oz) || 1;
+    // 몸도 처음부터 방석 위에 (예전 자리에 남아 있다가 옮겨지지 않게)
+    const seated = mySeat !== null;
+    orb.position.set(A.x, HOUSE_BASE + (seated ? 0.33 : 0.17), A.z);
+    orb.rotation.y = Math.atan2(DOME_CENTER.x - A.x, DOME_CENTER.z - A.z);
+    myFig.lookingOut = false; myFig.g.visible = true; myFig.head.visible = true;
+    applyPose(myFig, null, t, seated ? 1 : 0, 0);
     camera.lookAt(A.x - ox / ol * 2, HOUSE_BASE + 1.2, A.z - oz / ol * 2);
     if (now - A.td > 1700) { arriving = null; tpCam.copy(camera.position); snapCam = false; }
     sendPresence();
