@@ -8174,7 +8174,7 @@ function jsWord(w) {
   for (const t of JS_TAIL) if (w.endsWith(t) && JS_NOUN_OK.has(w.slice(0, -t.length))) return w.slice(0, -t.length);   // 바다가 → 바다
   if (JS_STOP.has(w) || JS_GENERIC.has(w) || /^[0-9]+$/.test(w)) return null;
   let out = w;
-  for (const t of JS_TAIL) if (w.length > t.length && w.endsWith(t)) { const st = w.slice(0, -t.length); if (st.length >= 2 || JS_ONE.has(st)) out = st; break; }   // 숨이 → 숨
+  if (!/(다가|면서|는데|지만)$/.test(w)) for (const t of JS_TAIL) if (w.length > t.length && w.endsWith(t)) { const st = w.slice(0, -t.length); if (st.length >= 2 || JS_ONE.has(st)) out = st; break; }   // 숨이 → 숨
   if ((out.length < 2 && !JS_ONE.has(out)) || JS_STOP.has(out) || JS_GENERIC.has(out)) return null;
   return out;
 }
