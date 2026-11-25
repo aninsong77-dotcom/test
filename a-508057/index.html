@@ -614,7 +614,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-284';
+const BUILD = '11.19-285';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -8152,7 +8152,32 @@ $('jDel').addEventListener('click', () => { if (!jOpen || !confirm('이 기록�
 /* 돌아보기: 횟수·요일·시간대·곳·종류·마음·자주 쓴 단어. AI 없이 이 브라우저 안에서 세기만 함 */
 const JS_DOW = ['일', '월', '화', '수', '목', '금', '토'], JS_TOD = [['새벽', 0, 6], ['아침', 6, 12], ['낮', 12, 17], ['저녁', 17, 21], ['밤', 21, 24]];
 const JS_STOP = new Set('그리고 그래서 그런데 하지만 그냥 너무 정말 조금 많이 오늘 지금 나는 내가 나의 나를 저는 제가 이제 다시 계속 하고 했다 했어요 있다 있어요 없다 없어요 같다 같아요 같은 것 거 수 때 좀 더 잘 안 못 또 그 이 저 그것 이것 무엇 뭔가 때문에 위해 대한 하는 되는 있는 없는 했던 하며 하면서 같이 함께 처럼 정도 약간 많은 모든 어떤 아주 매우 진짜 그게 이게 것 같다 들었다 느꼈다 느낌이 생각이 생각을 마음이 마음을'.split(' '));
-const JS_TAIL = ['에서는', '에서', '으로', '에게', '한테', '까지', '부터', '처럼', '보다', '이랑', '하고', '은', '는', '이', '가', '을', '를', '에', '의', '도', '로', '와', '과', '만', '랑', '요'];
+const JS_TAIL = ['에서는', '에서', '으로', '에게', '한테', '까지', '부터', '처럼', '보다', '이랑', '하고', '은', '는', '이', '가', '을', '를', '에', '의', '도', '로', '와', '과', '만', '랑'];
+// ---- 새로: 서술어(움직임·상태 말)는 빼고 이름씨 위주로 ----
+const JS_ONE = new Set('숨 몸 잠 꿈 맘 빛 땀 눈 귀 손 발 배 목 물 비 별 달 해 산 집 길 밤 낮 봄 꽃 풀 새 쉼 힘 숲 강 땅 볕 등 피 맛 향 차 품 뜰 벗 일 돈 말 글 옷 밥 술 정 덕 복 벽 섬 굴 탑'.split(' '));
+const JS_NOUN_OK = new Set('바다 파도 최고 사고 온도 속도 하루 다리 허리 머리 노래 바람 구름 하늘 마루 가지 모래'.split(' '));
+// 어디에나 붙는 뜻 없는 서술어(~든다, 있다, 했다, 같다, 싶다, 느껴진다 …)는 뺌. 마음·느낌을 나타내는 말(편안했다, 좋았다 …)은 그대로 셈
+const JS_GENERIC = new Set(('든다 들었다 들어요 들어 들고 드는 들었어 들었어요 든 드네 들더라 ' +
+  '있다 있었다 있어 있어요 있는 있고 있었어 있었어요 있음 있었던 ' +
+  '없다 없었다 없어 없어요 없는 없고 없었어 ' +
+  '하다 했다 한다 해요 해 하고 하는 한 했어 했어요 합니다 했습니다 할 하게 하며 해서 했던 하던 ' +
+  '된다 됐다 되었다 돼 돼요 되고 되는 된 될 되어 됐어 됐어요 ' +
+  '같다 같았다 같아 같아요 같은 같고 같았어 같았어요 ' +
+  '싶다 싶었다 싶어 싶어요 싶은 싶고 ' +
+  '보다 봤다 보았다 봐 봐요 보고 보는 본 봤어 봤어요 ' +
+  '느낀다 느꼈다 느껴 느껴요 느끼고 느끼는 느껴진다 느껴졌다 느껴지는 느껴졌어 느껴졌어요 느껴지고 ' +
+  '간다 갔다 가요 가고 가는 갔어 갔어요 왔다 온다 와요 오고 오는 왔어 왔어요 ' +
+  '났다 난다 나요 나고 나는 났어 났어요 졌다 진다 지고 지는 준다 줬다 주고 ' +
+  '생각한다 생각했다 생각된다 생각됐다 생각해 생각하고 생각하는 생각했어').split(' '));
+function jsWord(w) {
+  if (!w) return null; w = w.toLowerCase();
+  for (const t of JS_TAIL) if (w.endsWith(t) && JS_NOUN_OK.has(w.slice(0, -t.length))) return w.slice(0, -t.length);   // 바다가 → 바다
+  if (JS_STOP.has(w) || JS_GENERIC.has(w) || /^[0-9]+$/.test(w)) return null;
+  let out = w;
+  for (const t of JS_TAIL) if (w.length > t.length && w.endsWith(t)) { const st = w.slice(0, -t.length); if (st.length >= 2 || JS_ONE.has(st)) out = st; break; }   // 숨이 → 숨
+  if ((out.length < 2 && !JS_ONE.has(out)) || JS_STOP.has(out) || JS_GENERIC.has(out)) return null;
+  return out;
+}
 let jsMode = 'week', jsOff = 0;
 // 한지에 어울리는 차분한 색 (곳·시간대·마음마다)
 const JS_COL = { '바다 명상': '#3f84ad', '서울 하늘 명상': '#d08a4c', '우주 명상': '#6f5f9e',
@@ -8168,9 +8193,7 @@ function jsRange(mode, off) {
 function jsWords(list) {
   const c = new Map();
   list.forEach(e => [e.body, e.mind, e.line].join(' ').split(/[^가-힣a-zA-Z0-9]+/).forEach(w => {
-    if (!w) return; w = w.toLowerCase();
-    for (const t of JS_TAIL) if (w.length > t.length + 1 && w.endsWith(t)) { w = w.slice(0, -t.length); break; }
-    if (w.length < 2 || JS_STOP.has(w) || /^[0-9]+$/.test(w)) return; c.set(w, (c.get(w) || 0) + 1); }));
+    w = jsWord(w); if (w) c.set(w, (c.get(w) || 0) + 1); }));   // 서술어(했다·좋은·깊어지고…)는 빼고 이름씨 위주로
   return [...c].filter(x => x[1] > 1 || c.size < 12).sort((a, b) => b[1] - a[1]).slice(0, 12);
 }
 function jsCount(list, f) { const c = new Map(); list.forEach(e => [].concat(f(e)).forEach(k => k && c.set(k, (c.get(k) || 0) + 1))); return c; }
