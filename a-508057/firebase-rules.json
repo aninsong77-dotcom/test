@@ -4,7 +4,9 @@
     ".write": false,
     "presence": {
       ".read": "auth != null",
-      "$uid": { ".write": "auth != null && auth.uid === $uid" }
+      "$uid": {
+        ".write": "auth != null && auth.uid === $uid"
+      }
     },
     "links": {
       ".read": "auth != null",
@@ -27,6 +29,34 @@
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
         ".write": "auth != null && auth.uid === $uid && root.child('hostKey').exists() && root.child('hostAuth/'+auth.uid).val() === root.child('hostKey').val()"
+      }
+    },
+    "stats": {
+      ".read": "auth != null && root.child('hostKey').exists() && root.child('hostAuth/'+auth.uid).val() === root.child('hostKey').val()",
+      "d": {
+        "$day": {
+          "$vid": {
+            ".write": "auth != null && $day.matches(/^20[0-9][0-9]-[01][0-9]-[0-3][0-9]$/) && $vid.matches(/^[a-z0-9]{12}$/) && newData.exists()",
+            "n": {
+              ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 1000"
+            },
+            "sea": {
+              ".validate": "newData.isBoolean()"
+            },
+            "river": {
+              ".validate": "newData.isBoolean()"
+            },
+            "namsan": {
+              ".validate": "newData.isBoolean()"
+            },
+            "space": {
+              ".validate": "newData.isBoolean()"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        }
       }
     }
   }

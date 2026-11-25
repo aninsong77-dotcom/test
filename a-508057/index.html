@@ -339,6 +339,11 @@ button:focus-visible{outline:2px solid var(--glow);outline-offset:2px}
 }
 .sheet input:focus-visible{outline:2px solid var(--glow);outline-offset:1px}
 .sheet .actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+#statsBody{display:grid;gap:8px;max-height:62vh;overflow-y:auto}
+.stat-t{border-collapse:collapse;font-size:13px;width:100%}
+.stat-t th,.stat-t td{padding:5px 4px;text-align:center;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.stat-t th:first-child{text-align:left;white-space:nowrap}
+.stat-sub{font-size:12px!important}
 .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;max-height:52vh;overflow-y:auto}
 .gallery a{display:grid;gap:4px;color:var(--muted);font-size:12px;text-decoration:none;min-width:0}
 .gallery img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;background:rgba(255,255,255,.06);max-width:100%}
@@ -464,6 +469,14 @@ html[data-dim="seoul"] .copyline span,html[data-dim="space"] .copyline span{colo
     <h2 id="soloTitle">곧 오전 9시 함께 명상이 시작돼요</h2>
     <p id="soloText"></p>
     <div class="actions"><button type="button" id="soloWait">9시에 함께하기</button><button type="button" class="primary" id="soloGo">혼자 시작하기</button></div>
+  </div>
+</div>
+
+<div class="sheet" id="statsSheet" hidden>
+  <div class="card" role="dialog" aria-labelledby="statsTitle">
+    <h2 id="statsTitle">방문 숫자</h2>
+    <div id="statsBody"></div>
+    <div class="actions"><button type="button" id="statsClose">닫기</button></div>
   </div>
 </div>
 
@@ -614,7 +627,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-287';
+const BUILD = '11.19-288';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -4623,6 +4636,7 @@ function openLink(kind) {
 function closeSheets() { $('soloSheet').hidden = true; $('medSheet').hidden = true; if (typeof closePeerMenu === 'function') closePeerMenu(); if (typeof hideNotice === 'function') hideNotice(); $('openSheet').hidden = true; $('linkSheet').hidden = true; $('gallerySheet').hidden = true; $('nameSheet').hidden = true; $('helpSheet').hidden = true; }
 
 $('openSheetClose').addEventListener('click', closeSheets);
+$('statsClose').addEventListener('click', () => { $('statsSheet').hidden = true; });
 $('openSheetGo').addEventListener('click', () => setTimeout(closeSheets, 300));
 $('linksBtn').addEventListener('click', () => {
   $('hostCodeRow').hidden = !fb || isHost;
@@ -5370,6 +5384,58 @@ function askNameSheet() {
     $('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') done(); });
   });
 }
+/* 방문 숫자 (주인만 ?stats 로 봄) */
+function kstDay(back) { return new Date(Date.now() + 9 * 3600e3 - back * 864e5).toISOString().slice(0, 10); }
+function visitorId() {
+  let v = '';
+  try { v = localStorage.getItem('a508057:vid') || ''; } catch (e) {}
+  if (!/^[a-z0-9]{12}$/.test(v)) {
+    v = Array.from(crypto.getRandomValues(new Uint8Array(12)), b => 'abcdefghijklmnopqrstuvwxyz0123456789'[b % 36]).join('');
+    try { localStorage.setItem('a508057:vid', v); } catch (e) {}
+  }
+  return v;
+}
+const statQueue = [];
+function statDim() { return myDim === 'seoul' ? (seoulCourse === 'namsan' ? 'namsan' : 'river') : (myDim === 'space' ? 'space' : 'sea'); }
+function countVisit(enter) {
+  const d = statDim();
+  if (fb && fb.statHit) fb.statHit(d, enter); else statQueue.push([d, enter]);
+}
+const STAT_NAMES = { sea: '바다', river: '한강', namsan: '남산', space: '우주' };
+async function showStats() {
+  const sh = $('statsSheet'), box = $('statsBody');
+  closeSheets(); sh.hidden = false;
+  if (!fb || !fb.readStats) { box.innerHTML = '<p>연결되는 중이에요. 잠시 뒤 다시 열어 주세요.</p>'; return; }
+  if (!isHost) { box.innerHTML = '<p>진행자만 볼 수 있어요. 메뉴의 진행자에서 진행자 코드를 넣어 주세요.</p>'; return; }
+  box.innerHTML = '<p>불러오는 중…</p>';
+  let data;
+  try { data = await fb.readStats(); }
+  catch (e) { box.innerHTML = '<p>읽을 수 없어요. Firebase 규칙에 stats 부분을 넣었는지 확인해 주세요.</p>'; return; }
+  const sum = days => {
+    const ppl = new Set(), dimP = { sea: new Set(), river: new Set(), namsan: new Set(), space: new Set() }; let n = 0;
+    for (let i = 0; i < days; i++) {
+      const day = data[kstDay(i)] || {};
+      for (const [vid, v] of Object.entries(day)) {
+        if (!v || typeof v !== 'object') continue;
+        ppl.add(vid); n += Number(v.n) || 0;
+        for (const k in dimP) if (v[k]) dimP[k].add(vid);
+      }
+    }
+    return { p: ppl.size, n, d: Object.fromEntries(Object.entries(dimP).map(([k, s]) => [k, s.size])) };
+  };
+  const rows = [['오늘', sum(1)], ['7일', sum(7)], ['30일', sum(30)]];
+  const esc = x => String(x);
+  let h = '<table class="stat-t"><tr><th></th><th>사람</th><th>들어옴</th>' + Object.values(STAT_NAMES).map(x => `<th>${x}</th>`).join('') + '</tr>';
+  for (const [lab, r] of rows) h += `<tr><th>${lab}</th><td>${r.p}</td><td>${r.n}</td>` + Object.keys(STAT_NAMES).map(k => `<td>${r.d[k]}</td>`).join('') + '</tr>';
+  h += '</table><p class="stat-sub">날마다 (최근 14일)</p><table class="stat-t"><tr><th>날짜</th><th>사람</th><th>들어옴</th></tr>';
+  for (let i = 0; i < 14; i++) {
+    const key = kstDay(i), day = data[key] || {}, vs = Object.values(day).filter(v => v && typeof v === 'object');
+    h += `<tr><th>${esc(key.slice(5).replace('-', '/'))}</th><td>${vs.length}</td><td>${vs.reduce((a, v) => a + (Number(v.n) || 0), 0)}</td></tr>`;
+  }
+  h += '</table><p class="stat-sub">사람 = 기기(브라우저) 수예요. 같은 사람이 폰과 컴퓨터로 오면 2명, 브라우저 기록을 지우면 새 사람으로 세요.</p>';
+  box.innerHTML = h;
+}
+
 async function startFirebase() {
   const V = '10.12.2';
   const [appM, authM, dbM] = await Promise.all([
@@ -5432,7 +5498,19 @@ async function startFirebase() {
       return true;
     } catch (e) { return false; }
   }
-  fb = { uid, becomeHost };
+  // 방문 숫자 세기: 날짜(한국 시각)별로 '이 기기'가 몇 번 들어왔는지와 간 곳만 (이름·내용은 없음)
+  const statHit = (dim, enter) => {
+    try {
+      const up = { [dim]: true };
+      if (enter) up.n = dbM.increment(1);
+      return dbM.update(R('stats/d/' + kstDay(0) + '/' + visitorId()), up).catch(() => {});
+    } catch (e) {}
+  };
+  const readStats = async () => {
+    const q = dbM.query(R('stats/d'), dbM.orderByKey(), dbM.startAt(kstDay(29)));
+    return (await dbM.get(q)).val() || {};
+  };
+  fb = { uid, becomeHost, statHit, readStats };
   room = roomAdapter; db = dbAdapter;
   let saved = '';
   try { saved = localStorage.getItem('a508057:host') || ''; } catch (e) {}
@@ -5449,6 +5527,8 @@ async function startFirebase() {
     try { hostDevice = !!localStorage.getItem('a508057:host'); } catch (e) {}
     $('hostRow').hidden = true;
     $('linksBtn').textContent = isHost ? '링크 넣기' : '진행자';
+    statQueue.splice(0).forEach(([d, e]) => fb.statHit(d, e));
+    if (/[?&]stats\b/.test(location.search)) showStats();
   } else {
     const [r, d, u, a, dl] = await Promise.all([c.use('room'), c.use('db'), c.use('user'), c.use('assets'), c.use('downloads')]);
     downloads = dl;
@@ -5527,6 +5607,7 @@ function enterDomeDirect() {
   setLook(HOUSE_BASE + 2);
   // 빛줄기를 타고 내려옴 (다른 화면 없이 바로): 함께 있는 사람을 알아본 뒤(빈 방석을 고른 뒤) 내려오기 시작
   arriving = { t0: performance.now(), td: 0, seat: null, x: pos2.x, y: HOUSE_BASE + 0.17, z: pos2.y, landed: false, fade: myDim !== 'sea' };
+  countVisit(true);
   pickArriveSeat(arriving);
   whiteFlash(1, 1, 0);   // 하얀 빛에서 시작
   // 바다는 빛기둥을 타고 내려옴. 서울 하늘·지구 우주는 차원이동처럼 하얀 빛이 걷히며 방석 위에 나타남
@@ -7930,6 +8011,7 @@ function updatePortalRun() {
       applyDim(R.target);
       }
       sendPresence(true);
+      countVisit(false);
       R.phase = 'reveal'; R.tr = now;
       setTimeout(() => whiteFlash(1, 0, 1600), 200);    // 새 차원으로 스르르
     }
