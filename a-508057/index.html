@@ -614,7 +614,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-286';
+const BUILD = '11.19-287';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -8197,7 +8197,7 @@ function jsPhrases(text, add) {
   text.split(/[.,!?…·\n]+/).forEach(cl => {
     const ws = cl.split(/[^가-힣a-zA-Z0-9]+/).filter(Boolean).map(x => x.toLowerCase());
     for (let i = 0; i < ws.length; i++) {
-      const w = ws[i], pt = JS_SUBJ.find(p => w.length > p.length && w.endsWith(p));
+      const w = ws[i], pt = /(다가|면서|는데|지만)$/.test(w) ? null : JS_SUBJ.find(p => w.length > p.length && w.endsWith(p));   // 세다가·하는데 같은 이음말은 이름씨가 아님
       if (pt) {
         const stem = w.slice(0, -pt.length);
         if (stem.length >= 2 || JS_ONE.has(stem)) {
