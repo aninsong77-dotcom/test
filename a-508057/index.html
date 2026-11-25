@@ -614,7 +614,7 @@ setTimeout(function(){
 
 <script>
 /* 판 번호: 고칠 때마다 바뀜. 공개 주소에서는 더 새 판이 올라와 있으면 저절로 새로 불러옴 (브라우저에 남은 예전 화면 대신) */
-const BUILD = '11.19-285';
+const BUILD = '11.19-286';
 document.addEventListener('DOMContentLoaded', () => { const t = document.getElementById('buildTag'); if (t) t.textContent = 'v' + BUILD; });
 if (/github\.io$/.test(location.hostname)) {
   fetch(location.pathname + '?check=' + Date.now(), { cache: 'no-store' }).then(r => r.text()).then(html => {
@@ -8151,7 +8151,7 @@ $('jSave').addEventListener('click', () => {
 $('jDel').addEventListener('click', () => { if (!jOpen || !confirm('이 기록을 지울까요?')) return; jStore(jLoad().filter(x => x.at !== jOpen.at)); jOpen = null; jShow('list'); });
 /* 돌아보기: 횟수·요일·시간대·곳·종류·마음·자주 쓴 단어. AI 없이 이 브라우저 안에서 세기만 함 */
 const JS_DOW = ['일', '월', '화', '수', '목', '금', '토'], JS_TOD = [['새벽', 0, 6], ['아침', 6, 12], ['낮', 12, 17], ['저녁', 17, 21], ['밤', 21, 24]];
-const JS_STOP = new Set('그리고 그래서 그런데 하지만 그냥 너무 정말 조금 많이 오늘 지금 나는 내가 나의 나를 저는 제가 이제 다시 계속 하고 했다 했어요 있다 있어요 없다 없어요 같다 같아요 같은 것 거 수 때 좀 더 잘 안 못 또 그 이 저 그것 이것 무엇 뭔가 때문에 위해 대한 하는 되는 있는 없는 했던 하며 하면서 같이 함께 처럼 정도 약간 많은 모든 어떤 아주 매우 진짜 그게 이게 것 같다 들었다 느꼈다 느낌이 생각이 생각을 마음이 마음을'.split(' '));
+const JS_STOP = new Set('그리고 그래서 그래도 그래 그러나 그러면 그러니 근데 그런 이런 저런 그런데 하지만 그냥 너무 정말 조금 많이 오늘 지금 나는 내가 나의 나를 저는 제가 이제 다시 계속 하고 했다 했어요 있다 있어요 없다 없어요 같다 같아요 같은 것 거 수 때 좀 더 잘 안 못 또 그 이 저 그것 이것 무엇 뭔가 때문에 위해 대한 하는 되는 있는 없는 했던 하며 하면서 같이 함께 처럼 정도 약간 많은 모든 어떤 아주 매우 진짜 그게 이게 것 같다 들었다 느꼈다 느낌이 생각이 생각을 마음이 마음을'.split(' '));
 const JS_TAIL = ['에서는', '에서', '으로', '에게', '한테', '까지', '부터', '처럼', '보다', '이랑', '하고', '은', '는', '이', '가', '을', '를', '에', '의', '도', '로', '와', '과', '만', '랑'];
 // ---- 새로: 서술어(움직임·상태 말)는 빼고 이름씨 위주로 ----
 const JS_ONE = new Set('숨 몸 잠 꿈 맘 빛 땀 눈 귀 손 발 배 목 물 비 별 달 해 산 집 길 밤 낮 봄 꽃 풀 새 쉼 힘 숲 강 땅 볕 등 피 맛 향 차 품 뜰 벗 일 돈 말 글 옷 밥 술 정 덕 복 벽 섬 굴 탑'.split(' '));
@@ -8190,10 +8190,31 @@ function jsRange(mode, off) {
   if (mode === 'month') { const s = new Date(n.getFullYear(), n.getMonth() + off, 1); return [s, new Date(s.getFullYear(), s.getMonth() + 1, 1)]; }
   return [new Date(0), new Date(8.64e15)];
 }
+// "~이/가/은/는" + (안·못·잘·덜·더) + 서술어는 한 덩어리로 셈: 힘이 든다 / 힘이 안 든다 / 마음이 편안했다 (같은 단어라도 뜻이 다를 수 있으니 맥락째)
+const JS_SUBJ = ['이', '가', '은', '는'], JS_NEG = new Set('안 못 잘 덜 더'.split(' ')), JS_SKIP = new Set('너무 정말 조금 많이 참 아주 좀 많이 진짜 그냥 다시 살짝 꽤'.split(' '));
+const jsPredLike = t => JS_GENERIC.has(t) || (/(다|요|어|아|네|지|죠|음|함|됨|짐|해|워|와)$/.test(t) && !JS_SUBJ.some(p => t.length > 2 && t.endsWith(p) && false));
+function jsPhrases(text, add) {
+  text.split(/[.,!?…·\n]+/).forEach(cl => {
+    const ws = cl.split(/[^가-힣a-zA-Z0-9]+/).filter(Boolean).map(x => x.toLowerCase());
+    for (let i = 0; i < ws.length; i++) {
+      const w = ws[i], pt = JS_SUBJ.find(p => w.length > p.length && w.endsWith(p));
+      if (pt) {
+        const stem = w.slice(0, -pt.length);
+        if (stem.length >= 2 || JS_ONE.has(stem)) {
+          let j = i + 1; const mid = [];
+          while (j < ws.length && (JS_SKIP.has(ws[j]) || JS_NEG.has(ws[j])) && j - i < 4) { if (JS_NEG.has(ws[j])) mid.push(ws[j]); j++; }
+          if (j < ws.length && jsPredLike(ws[j]) && !JS_SUBJ.some(p => ws[j].length > 1 && ws[j].endsWith(p) && !/(다|요)$/.test(ws[j]))) {
+            add([w, ...mid, ws[j]].join(' ')); i = j; continue;
+          }
+        }
+      }
+      const one = jsWord(w); if (one) add(one);
+    }
+  });
+}
 function jsWords(list) {
-  const c = new Map();
-  list.forEach(e => [e.body, e.mind, e.line].join(' ').split(/[^가-힣a-zA-Z0-9]+/).forEach(w => {
-    w = jsWord(w); if (w) c.set(w, (c.get(w) || 0) + 1); }));   // 서술어(했다·좋은·깊어지고…)는 빼고 이름씨 위주로
+  const c = new Map(), add = k => c.set(k, (c.get(k) || 0) + 1);
+  list.forEach(e => [e.body, e.mind, e.line].forEach(t => t && jsPhrases(String(t), add)));
   return [...c].filter(x => x[1] > 1 || c.size < 12).sort((a, b) => b[1] - a[1]).slice(0, 12);
 }
 function jsCount(list, f) { const c = new Map(); list.forEach(e => [].concat(f(e)).forEach(k => k && c.set(k, (c.get(k) || 0) + 1))); return c; }
